@@ -1,0 +1,657 @@
+\chapter{Python 爬虫基础：网页结构、HTTP、requests 与正则表达式}
+\noindent\key{本章速览}\quad 爬虫五步：\key{拼网址}（找 URL 规律）→ \key{取源码}（\texttt{requests.get(url, headers=headers).text}）→ \key{正则提取}（“文本A\texttt{(.*?)}文本B”+\texttt{re.S}）→ \key{清洗}（\texttt{strip}／\texttt{re.sub}／\texttt{split}）→ \key{输出存盘}。Selenium、反爬、正文抽取与 PDF 解析见第 7 章。
+
+% ======================================================================
+\section{金融研究中的文本数据：四类来源与研究用途}
+
+\subsection{为什么需要爬虫：从“硬数据”到“软信息”}
+传统实证金融用数据库中的\key{硬数据}（股价、财务科目）；文本数据（textual data：年报措辞、新闻数量与语气、政策强度）用来度量报表看不到的\key{软信息}（soft information）：风险、不确定性、战略取向、投资者情绪。文本散落在网站上、没有现成数据库，因此需要\term{网络爬虫}{web crawler / web scraper}：程序自动访问网页、下载内容、提取字段。
+
+\subsection{四类文本数据：公司文本、媒体舆情、平台商业、政策监管}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{2.6cm}Lp{2.5cm}p{3.1cm}@{}}
+\toprule
+类型 & 内容 & 论文中常见用途 & 典型来源 & 获取技术 \\
+\midrule
+公司文本 & 年报、MD\&A（管理层讨论与分析）、理财公告、ESG/社会责任报告 & ① 衡量企业风险、不确定性与战略取向；② 识别企业金融化、治理行为与信息披露质量；③ 构造 ESG、绿色、数字化等“软信息”指标 & 巨潮资讯网、交易所官网、公司官网 & Selenium 翻页批量下载 PDF；pdfplumber 解析文本与表格；os 批量处理 \\
+媒体与舆情 & 新闻报道、投资者讨论（股吧）、搜索行为 & ① 衡量媒体关注度与舆论监督；② 刻画投资者情绪与信息不对称；③ 构造外部冲击或信息扩散指标 & 百度新闻、财经网站、股吧、百度指数 & requests+headers 取源码；正则提取标题/链接/来源/日期；改 URL 翻页；正文抽取去噪 \\
+平台与商业行为 & 电商销售、用户评价、招聘信息 & ① 反映市场需求与企业经营状况；② 衡量竞争强度、品牌影响力；③ 刻画用工需求、技术升级与数字化转型 & 淘宝/京东、大众点评、招聘网站 & 同上；多为动态加载，常需 Selenium；反爬严，需 IP 代理与限速 \\
+政策与监管 & 政策文件、监管公告、环保处罚信息 & ① 构造政策强度或不确定性指标；② 作为\term{准自然实验}{quasi-natural experiment}的政策冲击变量；③ 衡量监管约束与合规风险 & 政府官网、部委网站、行政处罚公示平台 & requests/Selenium 取列表页与正文；PDF/网页正文解析 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textit{Textual data in finance include corporate disclosures, media and investor sentiment data, platform data, and policy and regulatory texts.}
+
+\subsection{技术路线：从研究问题到数据来源}
+\begin{itemize}
+\item 内容顺序：爬虫基础与网页结构 → 正则表达式 → 百度新闻爬取 → Selenium → IP 代理与反爬 → 数据清洗与文本过滤 → 巨潮资讯网 → PDF 文本解析。前置条件：一个 Python 环境（PyCharm/Anaconda）+ Chrome 浏览器。
+\item 概念题作答框架：\key{类型—内容—用途—来源}四要素，每类至少举一个用途（如“媒体关注度”“政策冲击变量”）。设计题要落到：\key{去哪个网站、用什么工具、提取哪些字段、怎么构造变量}（模板见 §6.12.3）。
+\end{itemize}
+
+% ======================================================================
+\section{课程考核要求（简述）}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}L@{}}
+\toprule
+考核构成 & 两次随堂小测各 30 分 + 一次课后作业 40 分 = 100 分；每次交\key{代码 + 运行视频}（从程序开始运行时录制，展示结果后停止）。课程共 8 次（12 月 22 日—次年 1 月 19 日，第 16–20 周）\\
+提交规范 & 发至指定作业邮箱，标题写“姓名+学号”；\key{以邮件时间为准，超时视为未交、不可补交}；随堂小测当天 24:00 前交，课后作业下一次课程前一天 24:00 前交 \\
+随堂小测 1 & 批量爬取工、农、中、建四大行的多页百度新闻（函数定义 \texttt{page}、\texttt{company}），模板见 §6.10.10 \\
+随堂小测 2 & 在正文抽取与“多家公司多页”基础上，爬取阿里巴巴、工商银行两家公司 2 页新闻正文（第 7 章）\\
+课后作业 & 巨潮资讯网年报 PDF 批量下载，文件名须含股票代码、年份、公司名称（第 7 章）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{网页源代码与开发者工具}
+
+\subsection{打开开发者工具：F12（笔记本 Fn+F12）}
+装 Chrome（\texttt{https://www.google.cn/chrome/}，火狐等亦可）。按 \key{F12} 打开开发者工具（DevTools）；笔记本 F 键为多媒体键时按 \key{Fn+F12}，或右键页面 →“检查”。标签页有 Elements、Console、Sources、Network 等，爬虫主要用 \key{Elements} 与 \key{Network}。
+
+\subsection{Elements 面板：网页源码（DOM 树）与“查看网页源代码”的区别}
+\begin{itemize}
+\item Elements 中的内容可理解为网站源码：\texttt{<!doctype html>}、\texttt{<html>}、\texttt{<head>}、\texttt{<body>}、\texttt{<div id="wrapper">} 层层嵌套；点标签左侧小三角展开/折叠（看不到中文就逐层展开）。
+\item \tagext\ Elements 显示的是浏览器执行 JavaScript 后的\term{文档对象模型}{Document Object Model, DOM}；右键“查看网页源代码”（Ctrl+U）显示服务器最初返回的 HTML，即 \texttt{requests.get(url).text} 能拿到的内容。静态网页两者基本一致；\key{动态加载}网页（巨潮资讯网、新版百度）Elements 里有、requests 可能拿不到 → 改用 Selenium 取 \texttt{page\_source}。
+\end{itemize}
+
+\subsection{“选择元素”箭头（Ctrl+Shift+C）：从页面定位到源码}
+点开发者工具左上角箭头（变蓝）→ 鼠标在页面上移动，被指区域高亮，Elements 自动跳到对应源码；悬浮提示显示“标签名.class 名 + 尺寸”（如 \texttt{a.JNXyal 172.48×17}）。搜索关键词常被 \texttt{<em>} 或 \texttt{<font color="\#CC0000">} 包住以标红。
+
+\subsection{定位新闻标题与链接的三步法}
+\key{① 点击}选择元素箭头 → \key{② 选择}页面上的新闻标题 → \key{③ 点击展开} \texttt{<a} 前的三角看完整内容。所见源码：
+\begin{lstlisting}
+<div class="result" id="1">
+  <h3 class="c-title">
+    <a href="http://www.100ppi.com/news/detail-20181213-1354526.html"
+       data-click="{ 'f0':'77A717EA', ... }" target="_blank">
+      电商趋势不可挡 水泥企业纷纷投入<em>阿里巴巴</em>、京东怀抱!</a>
+  </h3>
+\end{lstlisting}
+\texttt{href="..."} 里是\key{新闻链接}；\texttt{<a ...>} 与 \texttt{</a>} 之间是\key{新闻标题}（关键词被 \texttt{<em>} 包着）。一切提取规则都从这种观察出发。
+
+\subsection{Network 面板：请求列表、Headers、状态码；User-Agent 在哪里找}
+\begin{itemize}
+\item 记录页面加载时的每个请求（\key{打开面板后要刷新页面}才记录）；左侧请求列表（Name 列每个文件一行，底部“32 requests $|$ 1.1 kB transferred”，过滤器 All/XHR/JS/CSS/Img/Doc）。
+\item 点任一请求 → Headers 子页三块：\key{General}（Request URL、Request Method: GET、Status Code: 200 OK、Referrer Policy）；\key{Response Headers}（如 Content-Type）；\key{Request Headers}（含 User-Agent）。
+\item \key{UA 查找路径}：F12 → Network → 刷新 → 点任一请求 → Headers → Request Headers → User-Agent。
+\end{itemize}
+
+% ======================================================================
+\section{HTML 结构基础与“大框—中框—小框”定位思路}
+
+\subsection{标签、属性、嵌套与注释：HTML 基本语法}
+\begin{itemize}
+\item \term{超文本标记语言}{HyperText Markup Language, HTML}：网页的源代码语言。
+\item \key{标签}（tag）：尖括号标记，一般成对，\texttt{<p>} 开始、\texttt{</p>} 结束，中间是内容；少数单独出现（\texttt{<img ...>}、\texttt{<input ...>}）。
+\item \key{属性}（attribute）：开始标签里的“名=值”，如 \texttt{<div class="result" id="2">}。\key{id 通常全页唯一}，最适合定位；\key{class 可被多个元素共用}，一个元素可有多个 class（空格分隔：\texttt{class="c-summary c-row "}）；\texttt{data-} 开头（\texttt{data-click}、\texttt{data-id}）是网站自定义数据。
+\item \key{嵌套}（nesting）：标签套标签形成 DOM 树，目标信息几乎总在\key{最内层}。注释写作 \texttt{<!-{}- ... -{}->}，不显示。
+\end{itemize}
+
+\subsection{“大框—中框—小框”：一条百度新闻结果的嵌套结构}
+\begin{lstlisting}
+<div class="result" id="2">                          <- 大框：一条新闻
+    <h3 class="c-title">                             <- 中框：标题区
+      <a href="http://finance.sina.com.cn/roll/2018-12-18/doc-..."
+         data-click="{'f0':'77A717EA', ...}" target="_blank">   <- 小框
+         <em>阿里巴巴</em>马云:创新是解决问题的唯一途径</a></h3>
+    <div class="c-summary c-row ">...</div>         <- 摘要、来源、日期
+</div>
+<div class="result" id="3">...</div>  ...            <- 下一条新闻的大框
+\end{lstlisting}
+\begin{itemize}
+\item 两条要诀：\key{内容一般都在最后的小框里}（标题文字、链接都在最内层 \texttt{<a>}）；\key{点击箭头，展开大框，看到小框}。
+\item 为什么分框：提取规则需要一个每条新闻都相同、又能唯一圈住目标的\key{左边界}和\key{右边界}。直接搜 \texttt{<a href="} 会抓到导航栏、广告等所有链接；先锁定中框 \texttt{<h3 class="c-title">} 再找 \texttt{<a href="(...)"}，只命中新闻链接 → 这就是“文本A\texttt{(.*?)}文本B”（§6.8.4）：外层框特征作文本 A，小框结尾作文本 B。
+\end{itemize}
+
+\subsection{常用标签速查：div、h1–h6、p、a（target="\_blank"）及其他}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}L@{}}
+\toprule
+标签 & 含义与用途 \\
+\midrule
+\texttt{<div>} & “空盒子”（division），本身无样式含义；外层 div 多用于\key{布局}（圈出一条新闻、导航栏、正文区）；靠 class/id 区分，正文抽取靠“正文 div 的 id/class”或“文本最长的 div” \\
+\texttt{<h1>}–\texttt{<h6>} & 标题，格式 \texttt{<h1>标题内容</h1>}；\key{h1 字号最大、h6 最小}；百度新闻标题在 \texttt{<h3>} \\
+\texttt{<p>} & 段落，\texttt{<p>段落内容</p>}；新闻正文由一串 \texttt{<p>} 组成；百度来源与日期在 \texttt{<p class="c-author">} \\
+\texttt{<a>} & 链接，\texttt{<a href="链接地址">文本内容</a>}：\texttt{href} 是跳转网址，标签间是显示文字；加 \texttt{target=\_blank}（规范写 \texttt{target="\_blank"}）则在\key{新标签页}打开、不覆盖原页 \\
+\midrule
+\multicolumn{2}{@{}l}{\tagext\ 读源码时还需认得}\\
+\texttt{<!DOCTYPE html>}、\texttt{<html>} & 文档声明与根标签 \\
+\texttt{<head>}、\texttt{<body>} & 头部（标题、样式，不显示）与主体（可见内容）\\
+\texttt{<em>}、\texttt{<font>} & 强调/标红；百度、巨潮用来高亮搜索关键词，提取后用 \texttt{re.sub('<.*?>','',s)} 去掉 \\
+\texttt{<span>} & 行内小容器；巨潮公告标题在 \texttt{<span class="r-title">} \\
+\texttt{<table>}、\texttt{<tr>}、\texttt{<td>} & 表格、行、单元格；巨潮搜索结果每行 \texttt{<tr class="el-table\_\_row">} \\
+\texttt{<input>}、\texttt{<button>} & 输入框、按钮；百度搜索框 \texttt{<input id="kw">}（Selenium 定位用）\\
+\texttt{<img>}、\texttt{<script>} & 图片、JavaScript 脚本 \\
+HTML 实体 & \texttt{\&nbsp;} = 不换行空格（百度用 \texttt{\&nbsp;\&nbsp;} 隔开来源与日期）；\texttt{\&} 写作 \texttt{\&amp;} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{最简单的网页 test.html}
+\begin{lstlisting}
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>这是标题 1</h1>
+    <p>这是标题1下的段落。</p>
+    <h2>这是标题 2</h2>
+    <a href="https://www.baidu.com" target=_blank>这是带链接的内容</a>
+</body>
+</html>
+\end{lstlisting}
+浏览器打开：大号标题 1、一段正文、稍小的标题 2、一个可点击链接（因 \texttt{target=\_blank} 在新标签页打开百度）。
+
+% ======================================================================
+\section{HTTP 请求、URL 与 User-Agent}
+
+\subsection{HTTP 请求—响应模型：浏览器与爬虫做同一件事}
+客户端（浏览器/Python 程序）发 \key{HTTP 请求}（GET + URL + headers）→ 服务器回 \key{HTTP 响应}（状态码 + 响应头 + HTML 源码）。浏览器把源码“画”成页面；爬虫不画，而是把源码当\key{字符串}交给程序处理。
+
+\subsection{URL 结构：协议、域名、路径、查询参数（word、pn）}
+\term{统一资源定位符}{Uniform Resource Locator, URL}，例：\texttt{https://www.baidu.com/s?rtt=1\&bsst=1\&cl=2\&tn=news\&ie=utf-8\&word=阿里巴巴\&pn=10}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm}L@{}}
+\toprule
+部分 & 含义 \\
+\midrule
+\texttt{https://} & 协议（http 或加密的 https）\\
+\texttt{www.baidu.com} & 域名（哪台服务器）\\
+\texttt{/s} & 路径（服务器上哪个页面/程序；百度搜索为 \texttt{/s}）\\
+\texttt{?} 之后 & 查询参数（query parameters），“名=值”，多个参数用 \texttt{\&} 连接 \\
+\texttt{tn=news}；\texttt{ie=utf-8} & 搜索类型为新闻；输入编码 \\
+\texttt{word=阿里巴巴} & 搜索关键词——\key{批量爬多家公司只换它} \\
+\texttt{pn=10} & 结果偏移量：第 1 页 0、第 2 页 10、第 3 页 20——\key{翻页只改它} \\
+\texttt{rtt=1\&bsst=1\&cl=2} & 百度内部排序/显示参数，照抄 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+汉字在传输时被转成百分号编码（\texttt{\%E9\%98\%BF...}）。\key{“URL 找不同”}是基本功：找出随“公司”和“页码”变化的部分，用字符串拼接批量生成网址：\texttt{url = '...\&word=' + company + '\&pn=' + str((page-1)*10)}。
+
+\subsection{请求方法 GET/POST 与常见状态码}
+\key{GET}：取网页，参数写在 URL 里（本章所有请求）；\tagext\ \key{POST}：提交表单。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.4cm}p{4cm}L@{}}
+\toprule
+状态码 & 含义 & 爬虫中的典型情形 \\
+\midrule
+200 OK & 请求成功 & 正常取到网页 \\
+301/302 \tagext & 重定向 & requests 默认自动跟随 \\
+403 Forbidden & 禁止访问 & 没加 User-Agent、IP 被封 \\
+404 Not Found \tagext & 页面不存在 & 网址拼错、链接失效 \\
+500 \tagext & 服务器内部错误 & 对方出错，稍后重试 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{请求头 headers 与 User-Agent：爬虫的“身份证”}
+\begin{itemize}
+\item \term{用户代理}{User-Agent, UA} 告诉服务器“你是谁——浏览器？程序？爬虫？”；requests 默认 UA 为 \texttt{python-requests/版本号}，一眼可认出是程序。
+\item \key{不加 UA 的三种后果}：① 返回空页面；② 直接 403；③ 返回“简化版页面”（内容不全）。
+\item 做法：从 Network 复制浏览器 UA，放进\key{字典}随请求发出，把程序“伪装”成浏览器：
+\end{itemize}
+\begin{lstlisting}[language=Python]
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'}   # Win10 64 位 + Chrome 69
+res = requests.get(url, headers=headers).text
+\end{lstlisting}
+\textbf{易错}：键名写成 \texttt{'User\_Agent'}/\texttt{'UserAgent'}（服务器不认，等于没加）；把 UA 字符串直接传给 \texttt{headers=}（必须是字典）。\tagext\ 有的网站还检查 \texttt{Referer}（来源页）或 \texttt{Cookie}（登录状态），同样从 Request Headers 复制进字典。
+
+% ======================================================================
+\section{requests 库：发请求、拿源码}
+
+\subsection{requests 是什么：HTTP 客户端库}
+\key{requests} 是 HTTP 客户端库（HTTP client library），本质一句话：\key{向服务器发请求，拿响应结果}。非标准库，首次使用需安装：Win+R → cmd → \texttt{pip install requests}（Anaconda 已自带）。
+
+\subsection{最小程序：requests.get() 发请求，.text 取字符串 HTML}
+\begin{lstlisting}[language=Python]
+import requests
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...'}  # 伪装浏览器
+url = 'https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word=阿里巴巴'  # 浏览器中复制
+res = requests.get(url, headers=headers).text   # get() 返回响应对象；.text 取源码字符串
+print(res)
+\end{lstlisting}
+\textbf{易错}：\texttt{requests.get(...)} 本身是\key{响应对象}（打印为 \texttt{<Response [200]>}），不是字符串。漏写 \texttt{.text} 时，\texttt{'关键词' in res} 不报错但恒为 False，\texttt{re.findall(p, res)} 报 \texttt{TypeError: expected string or bytes-like object}。
+
+\subsection{检验是否拿到网页：Ctrl+F 搜关键词与 \texttt{'阿里巴巴' in res}}
+在输出（或存成文件的 res）里 Ctrl+F 搜“阿里巴巴”：找得到标题 → 拿到内容；找不到或源码很短 → \key{被拦截}（没加 UA、触发验证码）或\key{动态加载}（需 Selenium）。程序内判断：\texttt{print('阿里巴巴' in res)}。
+
+\subsection{响应对象的常用属性 \tagext}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}L@{}}
+\toprule
+\texttt{r.text} & 按 \texttt{r.encoding} 解码的字符串源码（最常用）\\
+\texttt{r.content} & 原始字节；下载 PDF、图片时用它写文件（\texttt{'wb'} 模式）\\
+\texttt{r.status\_code} & 状态码（200、403……）\\
+\texttt{r.encoding}／\texttt{r.apparent\_encoding} & 当前解码编码／按内容推测的编码；中文乱码时先 \texttt{r.encoding = r.apparent\_encoding} 再取 \texttt{r.text} \\
+\texttt{r.url} & 最终网址（汉字已被百分号编码）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{requests.get 的常用参数：headers、timeout、proxies、params}
+\begin{lstlisting}[language=Python]
+res = requests.get(url,
+                   headers=headers,   # 请求头字典，伪装浏览器
+                   timeout=10,        # 10 秒无响应即抛异常，防止卡死
+                   proxies=proxies    # IP 代理字典（第 7 章）
+                   ).text
+# 拓展：params={'tn': 'news', 'word': '阿里巴巴', 'pn': 10} 由 requests 自动拼接并编码查询参数
+\end{lstlisting}
+
+% ======================================================================
+\section{正则表达式基础：findall 与元字符}
+
+\subsection{为什么用正则：从一长串源码中“抠”出内容}
+源码是几十万字符的字符串，目标（标题、链接、来源、日期）总出现在固定标签之间、格式有规律。\term{正则表达式}{regular expression, regex}是描述字符串格式规律的小语言：用\key{模式}（pattern）匹配文本，找出符合规则的片段。标准库 \texttt{re}，\texttt{import re} 即可（无需安装）。
+
+\subsection{re.findall(pattern, string, flags=0) 的返回规则}
+从左到右找出\key{所有不重叠}的匹配，\key{结果总是列表}：
+\begin{itemize}
+\item 多个匹配 → 多个元素：\lstinline|re.findall(r'\d\d\d', 'Hello 123 world 456')| → \texttt{['123', '456']}；
+\item 无匹配 → 空列表 \texttt{[]}（不报错、不是 None）；
+\item 规则\key{无括号}→ 返回整个匹配；\key{有一个括号}→ 只返回括号内内容；\key{多个括号}→ 元组列表（§6.8.7）；
+\item 第三参数 \texttt{flags} 为修饰符，最常用 \texttt{re.S}（§6.9.1）。
+\end{itemize}
+
+\subsection{原始字符串 r'' 与转义问题}
+反斜杠在 Python 字符串和正则里各有一层含义：普通字符串中 \lstinline|'\n'| 是换行、\lstinline|'\t'| 是制表符、\lstinline|'\\'| 是一个反斜杠；\key{原始字符串}（raw string，引号前加 \texttt{r}）中反斜杠不转义，\lstinline|r'\d'| 就是“\textbackslash”“d”两个字符，原样交给正则引擎。\lstinline|'\d'| 非法转义：旧版 Python 照常保留，\key{Python 3.12 起}给出 \texttt{SyntaxWarning: invalid escape sequence}（仍能运行）。\key{规范：正则一律加 r}。同理 Windows 路径 \lstinline|'C:\Users\...'| 中 \lstinline|\U| 是 Unicode 转义开头，不加 r 直接 \texttt{SyntaxError}，应写 \lstinline|r'C:\Users\...'|。
+
+\subsection{常用元字符速查表}
+注意“一个”：\texttt{\textbackslash d}、\texttt{\textbackslash w}、\texttt{.} 等每次只匹配\key{一个字符}。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.5cm}p{6.2cm}L@{}}
+\toprule
+模式 & 描述 & 例（\texttt{re.findall} 结果）\\
+\midrule
+\texttt{\textbackslash d} & 一个数字（0–9）& \texttt{r'\textbackslash d'}, \texttt{'A12'} → \texttt{['1','2']} \\
+\texttt{\textbackslash w} & 一个字母、数字或下划线（Python 3 中\key{也匹配汉字}）& \texttt{r'\textbackslash w+'}, \texttt{'abc\_2025'} → \texttt{['abc\_2025']} \\
+\texttt{\textbackslash s} & 一个空白字符（空格、\texttt{\textbackslash t}、\texttt{\textbackslash n} 等）& \texttt{r'\textbackslash s'}, \texttt{'a b'} → \texttt{[' ']} \\
+\texttt{\textbackslash S} & 一个非空白字符 & \texttt{r'\textbackslash S+'}, \texttt{' 中南 大学'} → \texttt{['中南','大学']} \\
+\texttt{\textbackslash n}／\texttt{\textbackslash t} & 一个换行符／一个制表符（Tab）& \\
+\texttt{.} & 一个任意字符，\key{换行符除外} & \texttt{r'c.t'}, \texttt{'cat cut'} → \texttt{['cat','cut']} \\
+\texttt{*} & 前一个单位重复 \key{0 次或多次} & \texttt{r'ab*c'}, \texttt{'ac abc'} → \texttt{['ac','abc']} \\
+\texttt{+} & 前一个单位重复 \key{1 次或多次} & \texttt{r'\textbackslash d+'}, \texttt{'A12345'} → \texttt{['12345']} \\
+\texttt{?} & 常与 \texttt{.}、\texttt{*} 组成\key{非贪婪}匹配（尽量少匹配）& \texttt{.*?}（§6.8.1）\\
+\texttt{( )} & 匹配括号内表达式，也表示一个组 & §6.8.2 \\
+\midrule
+\multicolumn{3}{@{}l}{\tagext}\\
+\texttt{?}（单独）& 前一个单位出现 0 或 1 次 & \texttt{r'ab?c'}, \texttt{'ac abc abbc'} → \texttt{['ac','abc']} \\
+\texttt{\{m,n\}} & 重复 m 到 n 次；\texttt{\{m\}} 恰好 m 次；\texttt{\{m,\}} 至少 m 次 & \texttt{r'\textbackslash d\{4\}'}, \texttt{'2025年'} → \texttt{['2025']} \\
+\texttt{[ ]} & 字符集：任选其一；其中元字符失去特殊含义 & \texttt{r'[A-Za-z0-9\_]+'}、\texttt{'[*]'} \\
+\texttt{[\^{} ]} & 取反：不在方括号中的任一字符 & \texttt{r'[\^{}0-9]+'}, \texttt{'A1B22'} → \texttt{['A','B']} \\
+\texttt{|} & 或 & \texttt{r'(五|5|主要)'} \\
+\texttt{\^{}}、\texttt{\$} & 字符串开头、结尾（不占字符）& \texttt{r'\textbackslash d+\$'}, \texttt{'123abc456'} → \texttt{['456']} \\
+\texttt{\textbackslash.}\,\texttt{\textbackslash*}\,\texttt{\textbackslash(} & 转义：匹配字面的点、星号、括号 & \texttt{r'\textbackslash.'}, \texttt{'3.14'} → \texttt{['.']} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{\texorpdfstring{\texttt{\textbackslash d}：一个数字；\texttt{\textbackslash d\textbackslash d\textbackslash d} 与 \texttt{\textbackslash d+} 的区别}{\\d, \\d\\d\\d 与 \\d+ 的区别}}
+\begin{lstlisting}[language=Python]
+s = '订单号A12345'
+re.findall(r'\d', s)        # ['1', '2', '3', '4', '5']  每次只吃一个数字，逐个找出
+re.findall(r'\d\d\d', s)    # ['123']                    剩下 45 不够三位
+re.findall(r'\d+', s)       # ['12345']                  连续数字串
+\end{lstlisting}
+\textbf{易错}：\texttt{\textbackslash d} 只是“一个数字”，一串数字要 \texttt{\textbackslash d+}；提取 6 位股票代码用 \texttt{\textbackslash d\{6\}}，\texttt{\textbackslash d+} 会把价格 \texttt{1650.5} 拆成 \texttt{'1650'}、\texttt{'5'} 一起抓出。
+
+\subsubsection{\texorpdfstring{\texttt{\textbackslash w}：单词字符，在 Python 3 中也匹配中文}{\\w：单词字符，也匹配中文}}
+Python 3 的 re 默认 Unicode 规则：\lstinline|re.findall(r'\w+', '阿里巴巴2025')| → \texttt{['阿里巴巴2025']}。只要英文字母、数字、下划线：\lstinline|r'[A-Za-z0-9_]+'| → \texttt{['2025']}；或 \tagext\ \texttt{re.ASCII} 模式：\lstinline|re.findall(r'\w+', '阿里巴巴2025', re.ASCII)| → \texttt{['2025']}。
+
+\subsubsection{\texorpdfstring{\texttt{\textbackslash s}／\texttt{\textbackslash S}、\texttt{\textbackslash n}／\texttt{\textbackslash t}：空白、非空白、换行、制表符}{\\s, \\S, \\n, \\t}}
+\lstinline|re.findall(r'\s', 'a b\tc\nd')| → \texttt{[' ', '\textbackslash t', '\textbackslash n']}；\lstinline|re.findall(r'\S+', ' 中南 大学 2025 ')| → \texttt{['中南', '大学', '2025']}；\tagext\ \lstinline|re.sub(r'\s+', ' ', s)| 把连续空白压成一个空格。\texttt{\textbackslash n} 匹配“换行”这个字符（\lstinline|'第一行\n第二行'| → \texttt{['\textbackslash n']}），\texttt{\textbackslash t} 匹配一个 Tab（\lstinline|'姓名\t学号'|）。源码和 PDF 文本充满换行 → 引出 \texttt{re.S}（§6.9.1）。
+
+\subsubsection{点号 .：占一个位置，什么字符都行，但只能一个}
+\lstinline|re.findall(r'c.t', 'cat cut cot')| → \texttt{['cat','cut','cot']}。三个易错：① \texttt{.} 不是“一段”，只是一个字符（\texttt{ct} 中间无字符，不匹配；空格可以匹配）；② \key{不能跨行}：\lstinline|re.findall(r'c.t', 'c\nt')| → \texttt{[]}；③ 想要“一段任意字符”用 \texttt{.*}。
+
+\subsubsection{* 与 +：重复前一个单位（作用范围）}
+\begin{lstlisting}[language=Python]
+re.findall(r'ab*c', 'ac abc abbbc adc')   # ['ac', 'abc', 'abbbc']  b 可 0 次；adc 不行
+re.findall(r'ab+c', 'ac abc abbbc')       # ['abc', 'abbbc']        b 至少 1 次
+re.findall(r'ab?c', 'ac abc abbbc')       # ['ac', 'abc']           (拓展) b 至多 1 次
+\end{lstlisting}
+\texttt{*} 只作用于\key{紧挨在前的一个单位}（这里是 b 不是 ab），整体重复要加括号 \texttt{(ab)*}。所以 \texttt{.*} = 任意字符重复 0 次或多次 = 一段任意长度的任意字符（不跨行）。
+
+\subsubsection{\texorpdfstring{量词 \texttt{\{m,n\}}：限定重复次数 \tagext}{量词 {m,n}：限定重复次数（拓展）}}
+\lstinline|r'\d{4}'| 从 \texttt{'2025年12月18日'} 得 \texttt{['2025']}；\lstinline|r'\d{1,2}'| 得 \texttt{['20','25','12','18']}（贪婪，每次尽量取 2 位）；标准日期 \lstinline|r'\d{4}-\d{2}-\d{2}'| → \texttt{['2025-12-18']}。“前五大客户”正则 \texttt{(五|5|主要).\{0,10\}?客户} 中 \texttt{.\{0,10\}?} = 0 到 10 个任意字符、非贪婪（第 7 章）。
+
+\subsubsection{\texorpdfstring{字符集 \texttt{[ ]}、取反 \texttt{[\^{} ]} 与“或” \texttt{|} \tagext}{字符集 [ ]、取反与“或”（拓展）}}
+\texttt{[abc]} 任选一个；\texttt{[0-9]} ≡ \texttt{\textbackslash d}；\texttt{[A-Za-z0-9\_]} 为英文单词字符；常用汉字范围 \texttt{[一-龥]} ≡ \lstinline|[\u4e00-\u9fa5]|（Unicode 4E00–9FA5，统计汉字个数用）。方括号内开头的 \texttt{\^{}} 表示取反；方括号中的 \texttt{*}、\texttt{.} 失去特殊含义（§6.9.5 \texttt{'[*]'} 的原理）。\texttt{A|B} 表示 A 或 B，常配括号限定范围：\lstinline|re.findall(r'(工商|建设)银行', '工商银行和建设银行')| → \texttt{['工商','建设']}（有括号只返回括号内容）。
+
+\subsubsection{\texorpdfstring{锚点 \texttt{\^{}} 与 \texttt{\$}：开头与结尾 \tagext}{锚点 ^ 与 \$：开头与结尾（拓展）}}
+\lstinline|re.findall(r'^\d+', '123abc456')| → \texttt{['123']}；\lstinline|re.findall(r'\d+$', '123abc456')| → \texttt{['456']}。\texttt{\$} 可为 \texttt{(.*?)} 充当右边界（§6.8.3）。
+
+% ======================================================================
+\section{非贪婪匹配 (.*?) 与分组}
+
+\subsection{贪婪 .* 与非贪婪 .*?：\texorpdfstring{\texttt{<title>}}{<title>} 例与匹配机制}
+\begin{lstlisting}[language=Python]
+t = '<title>AAA</title><title>BBB</title>'
+re.findall('<title>(.*)</title>', t)    # ['AAA</title><title>BBB']  贪婪：吃太多，只 1 个元素
+re.findall('<title>(.*?)</title>', t)   # ['AAA', 'BBB']             非贪婪：刚好一段
+\end{lstlisting}
+\begin{itemize}
+\item \term{贪婪匹配}{greedy matching} \texttt{.*}：能匹配成功的前提下\key{尽量多吃}——先一口气吃到末尾，再逐字符往回“吐”，直到后面接得上 \texttt{</title>}，第一次接上的是\key{最后一个} \texttt{</title>}，中间的 \texttt{</title><title>} 全被吞掉。
+\item \term{非贪婪匹配}{non-greedy / lazy matching} \texttt{.*?}：先吃 0 个，不行再多吃一个，遇到\key{第一个} \texttt{</title>} 就停。源码中同样的标签成百上千次重复，所以爬虫几乎总用 \texttt{.*?}。
+\end{itemize}
+\textit{Greedy quantifiers match as much as possible; adding a question mark makes them non-greedy.}
+
+\subsection{分组 ()：整体重复与捕获内容；非捕获组 (?:)}
+括号两个作用：① \key{整体}：\texttt{(ab)+} 匹配 ab、abab、ababab；② \key{捕获}（capturing group，最常用）：findall 遇到带括号的规则\key{只返回括号里的内容}，两边“定位文字”不返回。\\
+\tagext\ 重复的组只记住\key{最后一次}：\lstinline|re.findall('(ab)+', 'ab abab ababab')| → \texttt{['ab','ab','ab']}；要整段用非捕获组 \lstinline|(?:ab)+| → \texttt{['ab','abab','ababab']}。
+
+\subsection{(.*?) 无右边界为什么得到空串（“日期：(.*?)”）}
+\begin{lstlisting}[language=Python]
+s2 = '来源：新华社 日期：2025-12-18'
+re.findall(r"日期：(.*?)", s2)                # ['']            无右边界：吃 0 个就满足
+re.findall(r"日期：(.*)", s2)                 # ['2025-12-18']  贪婪，到行尾
+re.findall(r"日期：(\d{4}-\d{2}-\d{2})", s2)  # ['2025-12-18']  精确描述日期格式
+re.findall(r"日期：(.*?)$", s2)               # ['2025-12-18']  $ 作右边界
+re.findall(r"来源：(.*?) 日期", s2)           # ['新华社']       夹在两段文字之间
+\end{lstlisting}
+原理：\texttt{(.*?)} 能少吃就少吃，后面没有右边界时吃 0 个字符整个规则已满足 → \texttt{['']}。\key{原则：\texttt{(.*?)} 必须夹在文本 A 与文本 B 之间}（找错题高频）。
+
+\subsection{核心套路：文本A(.*?)文本B}
+\begin{thm}[“文本A(.*?)文本B”提取法]
+目标内容记为 X：取紧挨 X 左侧、每处都相同的文字作\key{文本 A}，紧挨 X 右侧的相同文字作\key{文本 B}，则 \texttt{re.findall('文本A(.*?)文本B', 源码, re.S)} 返回所有 X 的列表。文本 A 要\key{足够独特}（只出现在目标附近，如带 class 的开始标签），文本 B 通常取\key{结束标签}（\texttt{</a>}、\texttt{"}）。
+\end{thm}
+\lstinline|re.findall('文本A(.*?)文本B', '文本A百度新闻文本B')| → \texttt{['百度新闻']}。用途：不确定内容的长度与格式，但知道它在哪两块内容中间。\textbf{易错}：\texttt{'<span.*?>(.*?)</span>'} 会把价格、名称两个 span 都抓到无法区分；应分别用 \texttt{'<span class="price">(.*?)</span>'}、\texttt{'<span class="name">(.*?)</span>'}。
+
+\subsection{多个匹配与“规则存成变量 p\_xxx”的习惯}
+\begin{lstlisting}[language=Python]
+res = '文本A百度新闻文本B，新闻标题文本A新浪财经文本B，文本A搜狐新闻文本B新闻网址'
+p_source = '文本A(.*?)文本B'           # p = pattern：规则单独存成变量
+re.findall(p_source, res)              # ['百度新闻', '新浪财经', '搜狐新闻']
+# 贪婪 '文本A(.*)文本B' → ['百度新闻文本B，新闻标题文本A新浪财经文本B，文本A搜狐新闻']（只 1 个）
+\end{lstlisting}
+规则存为 \texttt{p\_source}、\texttt{p\_title}、\texttt{p\_href}：可单独修改、复用。
+
+\subsection{.*? 与 (.*?)：填充不关心的内容 vs 提取要的内容}
+以 \texttt{'<h3 class="c-title">.*?>(.*?)</a>'} 为例：\texttt{<h3 class="c-title">.*?>} 整体是文本 A，\texttt{</a>} 是文本 B；\key{不带括号的 \texttt{.*?} 填充}不关心、每条都不同的内容（\texttt{<a} 后的 href、data-click、target 等），只跳过不返回；\key{带括号的 \texttt{(.*?)} 提取}目标（新闻标题）。简化例：
+\begin{lstlisting}[language=Python]
+res = '<h3>文本C<变化的网址>文本D新闻标题</h3>'
+re.findall('<h3>文本C.*?文本D(.*?)</h3>', res)   # ['新闻标题']  .*? 跳过“变化的网址”
+\end{lstlisting}
+\textit{A non-capturing .*? skips irrelevant content, while a capturing (.*?) extracts the target.}
+
+\subsection{多个分组：findall 返回元组列表 \tagext}
+\begin{lstlisting}[language=Python]
+s = '<a href="http://x.com/1.html" target="_blank">标题一</a><a href="http://x.com/2.html" target="_blank"><em>阿里</em>标题二</a>'
+re.findall('<a href="(.*?)".*?>(.*?)</a>', s)
+# [('http://x.com/1.html', '标题一'), ('http://x.com/2.html', '<em>阿里</em>标题二')]
+\end{lstlisting}
+每个元组按括号顺序装各组内容。对比：每个字段单独一条规则（\texttt{p\_href}、\texttt{p\_title}）得等长列表、按下标对应；元组写法不会出现“某字段少抓一条导致错位”。
+
+% ======================================================================
+\section{修饰符 re.S、替换与转义}
+
+\subsection{修饰符 re.S（DOTALL）：让点号匹配换行}
+\texttt{.} 默认不匹配 \texttt{\textbackslash n}；\texttt{re.S}（DOTALL，“点号匹配一切”）使 \texttt{.} 也匹配换行，\texttt{.*?} 可\key{跨行}，即 findall 时“自动考虑换行的影响”。
+\begin{lstlisting}[language=Python]
+res = '''文本A
+       百度新闻文本B'''                         # 三引号字符串：文本A 后有换行和空格
+re.findall('文本A(.*?)文本B', res)              # []                不加 re.S：跨不过换行
+source = re.findall('文本A(.*?)文本B', res, re.S)  # ['\n       百度新闻']  结果带换行和空格
+source[0].strip()                               # '百度新闻'
+\end{lstlisting}
+网页标签间到处是换行和缩进，\key{爬网页时 findall 几乎总加 re.S}。\textbf{易错}：若 \texttt{(.*?)} 要匹配的内容本身不含换行（目标与边界在同一行），不加 re.S 也能匹配；贪婪 \texttt{(.*)} 不加 re.S 时只吃到本行末尾，加 re.S 后会跨行吃到最后一个右边界。
+
+\subsection{strip()：去掉提取结果两端的空白}
+\texttt{字符串.strip()} 删除\key{两端}的空格、\texttt{\textbackslash n}、\texttt{\textbackslash t}，中间不动；“\key{re.S + strip()}”总成对出现。（\texttt{lstrip}、\texttt{rstrip}、带参数用法见第 7 章。）
+
+\subsection{str.replace(旧, 新)：固定字符串替换}
+百度用 \texttt{<em>...</em>} 包住关键词，提取的标题带标签：
+\begin{lstlisting}[language=Python]
+title = ['<em>阿里巴巴</em>马云:创新是解决问题的唯一途径']
+title[0] = title[0].replace('<em>', '')    # 必须赋值回去
+title[0] = title[0].replace('</em>', '')   # → 阿里巴巴马云:创新是解决问题的唯一途径
+\end{lstlisting}
+replace 是字符串方法，一次只换\key{一个固定串}；字符串不可变，返回新串，\key{必须赋值回去}。
+
+\subsection{re.sub(pattern, repl, string)：按规则替换，去掉所有 <...> 标签}
+\texttt{re.sub} 把 string 中所有匹配 pattern 的片段换成 repl，返回新串；不仅去掉 \texttt{<em></em>}，还去掉 \texttt{<font>}、\texttt{<span>}、\texttt{<img>} 等所有 \texttt{<>} 内容。
+\begin{lstlisting}[language=Python]
+title[0] = re.sub('<.*?>', '', title[0])
+#  左 title[0]：替换后的标题；'<.*?>'：所有“<任何内容>”（.*? 起填充作用）
+#  ''：替换成空值（即删除）；右 title[0]：原标题
+\end{lstlisting}
+\textbf{易错}：必须非贪婪。贪婪 \texttt{'<.*>'} 从第一个 \texttt{<} 删到最后一个 \texttt{>}：\texttt{'<em>阿里巴巴</em>马云:…'} → \texttt{'马云:…'}，“阿里巴巴”丢失。编辑器显示的 \texttt{pattern:}、\texttt{repl:} 是参数名提示，不是代码。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm}LL@{}}
+\toprule
+方法 & 作用 & 典型用途 \\
+\midrule
+\texttt{s.strip()} & 去两端空白（不动中间） & re.S 后去换行缩进 \\
+\texttt{s.replace(old, new)} & 替换一个固定子串（全部出现处）& 去 \texttt{<em>}、去 \texttt{\&nbsp;} \\
+\texttt{re.sub(p, repl, s)} & 按正则替换所有匹配 & 去所有标签 \texttt{'<.*?>'}、去星号 \texttt{'[*]'}、压空白 \\
+\texttt{s.split(sep)} & 按分隔符切成列表 & \texttt{split('\&nbsp;\&nbsp;')} 分来源与日期 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{中括号 [ ] 与反斜杠转义：处理 *ST 公司名中的星号}
+中括号使其中内容\key{不再有特殊含义}。\texttt{*ST} 公司（被实施退市风险警示）名称含 \texttt{*}，而 \texttt{*} 在正则中表示“重复”：
+\begin{lstlisting}[language=Python]
+re.sub('[*]', '', '*阿里巴巴')   # '阿里巴巴'   [*] 表示字面星号
+re.sub(r'\*', '', '*ST阿里')     # 'ST阿里'     另一写法：反斜杠转义
+re.sub('*', '', '*阿里巴巴')     # 报错 re.error: nothing to repeat at position 0
+\end{lstlisting}
+直接写 \texttt{'*'} 时前面无可重复的东西而报错（Python 3.13 起错误类名显示为 \texttt{PatternError}）。其他特殊字符 \texttt{. ? + ( ) [ ] \{ \} | \^{} \$ \textbackslash} 同理；\tagext\ \texttt{re.escape('*ST康美(600518)')} 自动给所有特殊字符加反斜杠。用途：去星号后才能拼进搜索网址、才能作 Windows 文件名（\texttt{*} 不能出现在文件名中）。
+
+\subsection{re 模块的其他函数：search、match、compile、split \tagext}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3cm}L@{}}
+\toprule
+函数 & 作用与返回值 \\
+\midrule
+\texttt{re.findall(p, s)} & 所有匹配 → 列表（无匹配为 \texttt{[]}）\\
+\texttt{re.search(p, s)} & 全串找\key{第一个}匹配 → Match 对象；找不到 → \texttt{None}；可写 \texttt{if re.search(p, s):}；\texttt{.group()} 取匹配文字 \\
+\texttt{re.match(p, s)} & \key{只从开头}匹配；开头不符即 \texttt{None} \\
+\texttt{re.sub(p, repl, s)} & 替换所有匹配 → 新字符串 \\
+\texttt{re.split(p, s)} & 按规则切分 → 列表：\texttt{re.split(r'[，,]', 'a，b,c')} → \texttt{['a','b','c']} \\
+\texttt{re.compile(p)} & 预编译成正则对象 q，之后 \texttt{q.findall(s)}、\texttt{q.search(s)}、\texttt{q.sub(...)}；循环中反复使用更快、更整洁 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\lstinline|m = re.search(r'\d+', '订单号A12345')| → \texttt{<re.Match object; span=(4, 9), match='12345'>}，\texttt{m.group()} → \texttt{'12345'}；\lstinline|re.match(r'\d+', '订单号A12345')| → \texttt{None}（开头是“订”）。
+
+% ======================================================================
+\section{案例实战：百度新闻爬取}
+
+\subsection{任务与流程总览}
+输入公司名，得到百度新闻搜索结果中每条新闻的\key{标题、网址、来源、日期}。流程：\key{① 拼网址}（\texttt{word=公司}，\texttt{pn=(页-1)*10}）→ \key{② 取源码}（\texttt{requests.get}+headers）→ \key{③ 正则提取}（\texttt{p\_href}/\texttt{p\_title}/\texttt{p\_info}，\texttt{re.S}）→ \key{④ 清洗}（strip／\texttt{re.sub}／\texttt{split('\&nbsp;')}）→ \key{⑤ 输出}（print／写入文件）；外套两层循环：\texttt{for company in companys:} × \texttt{for page in range(1, n+1):}，每次调用 \texttt{baidu(company, page)}。
+
+\subsection{第一步与第二步：取源码，写出标题、链接、来源与日期的正则}
+每条新闻是大框 \texttt{<div class="result">}；标题和链接在中框 \texttt{<h3 class="c-title">} 内的小框 \texttt{<a href="...">...</a>}；来源和日期在 \texttt{<p class="c-author">来源\&nbsp;\&nbsp;日期</p>}。（规则以当时 F12 看到的源码为准。）
+\begin{lstlisting}[language=Python]
+import requests, re
+res = requests.get(url, headers=headers).text            # 第一步：取源码
+p_href  = '<h3 class="c-title">.*?<a href="(.*?)"'      # 文本A=中框开头...<a href="；文本B=引号
+p_title = '<h3 class="c-title">.*?>(.*?)</a>'           # .*?> 跳过 <a ...> 属性串；(.*?) 是标题
+p_info  = '<p class="c-author">(.*?)</p>'               # 来源与日期在同一段，先整段取出
+href  = re.findall(p_href, res, re.S)                   # 链接列表
+title = re.findall(p_title, res, re.S)                  # 标题列表（带 <em> 和空白）
+info  = re.findall(p_info, res, re.S)                   # “来源&nbsp;&nbsp;日期”列表
+\end{lstlisting}
+三条都加 re.S（\texttt{<h3>} 与 \texttt{<a>} 间有换行）；三个列表\key{按下标一一对应}（\texttt{title[0]}、\texttt{href[0]}、\texttt{info[0]} 是第 1 条）。
+
+\subsection{第三步：清理新闻标题}
+\begin{lstlisting}[language=Python]
+for i in range(len(title)):                      # i = 0, 1, ..., len(title)-1
+    title[i] = title[i].strip()                  # 去两端换行和空格
+    title[i] = re.sub('<.*?>', '', title[i])     # 去 <em> 等所有标签
+\end{lstlisting}
+\textbf{易错}：须用下标原地修改；\texttt{for t in title: t = t.strip()} 只改临时变量、列表不变。先 strip 或先 sub 均可；标签前后夹空白时，sub 之后再 strip 一次最保险。
+
+\subsection{第四步：清理新闻来源和发布日期}
+info 元素形如 \texttt{'新浪财经\&nbsp;\&nbsp;2025年12月18日 10:30'}（有时前带媒体 logo 的 \texttt{<img ...>}）。三步：\key{去标签 → 按两个 \texttt{\&nbsp;} 切开 → 去空白}：
+\begin{lstlisting}[language=Python]
+source, date = [], []
+for i in range(len(info)):
+    info[i] = re.sub('<.*?>', '', info[i])                     # 去 <img ...> 等标签
+    source.append(info[i].split('&nbsp;&nbsp;')[0].strip())   # 第 0 段：来源
+    date.append(info[i].split('&nbsp;&nbsp;')[1].strip())     # 第 1 段：日期
+\end{lstlisting}
+\texttt{split(分隔符)} 切成列表，\texttt{[0]}、\texttt{[1]} 取第一、二段。日期有“2025年12月18日 10:30”“3小时前”“昨天 20:26”等写法，统一为 YYYY-MM-DD 见第 7 章。
+
+\subsection{第五步：打印输出与 str() 拼接}
+\begin{lstlisting}[language=Python]
+for i in range(len(title)):
+    print(str(i + 1) + '.' + title[i] + '(' + date[i] + '-' + source[i] + ')')
+    print(href[i])
+\end{lstlisting}
+下标从 0、编号从 1，故 \texttt{str(i + 1)}；数字与字符串不能直接 \texttt{+}（\texttt{'第' + 3} 报 \texttt{TypeError: can only concatenate str (not "int") to str}）。
+
+\subsection{离线演练：样例源码上的中间结果与输出}
+用两条按上述结构简化的样例（第 2 条来源前带 \texttt{<img>}、日期为相对时间）代替 res，运行第二至五步：
+\begin{lstlisting}
+href  = ['http://www.100ppi.com/news/detail-1.html', 'http://finance.sina.com.cn/roll/2018-12-18/doc-2.shtml']
+title = ['\n电商趋势不可挡 水泥企业纷纷投入<em>阿里巴巴</em>、京东怀抱!\n', '\n<em>阿里巴巴</em>马云:创新是解决问题的唯一途径\n']
+info  = ['生意社&nbsp;&nbsp;2018年12月13日 09:41', '<img src="x.png">新浪财经&nbsp;&nbsp;3小时前']
+1.电商趋势不可挡 水泥企业纷纷投入阿里巴巴、京东怀抱!(2018年12月13日 09:41-生意社)
+http://www.100ppi.com/news/detail-1.html
+2.阿里巴巴马云:创新是解决问题的唯一途径(3小时前-新浪财经)
+http://finance.sina.com.cn/roll/2018-12-18/doc-2.shtml
+\end{lstlisting}
+p\_title 不加 re.S 时 \texttt{title = []}，第五步什么也不打印——最常见的“\key{不报错但没结果}”。
+
+\subsection{封装成函数：批量爬取多家公司（定义函数 → 公司列表 → 输出结果）}
+\begin{lstlisting}[language=Python]
+def baidu(company):                  # 给一个公司名，爬第 1 页新闻
+    url = 'https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word=' + company
+    res = requests.get(url, headers=headers).text
+    ...                              # 第二步到第五步同上
+companys = ['阿里巴巴', '万科集团', '百度', '腾讯', '京东']
+for i in companys:
+    try:
+        baidu(i)
+        print(i + '百度新闻爬取成功')
+    except:
+        print(i + '百度新闻爬取失败')
+\end{lstlisting}
+\texttt{try/except}：try 中出错不崩溃，跳到 except 执行后继续下一家公司（异常处理详见第 7 章）。
+
+\subsection{找规律：翻页参数 pn = (页码 − 1) × 10}
+三页网址对比：第一页无 \texttt{pn}，第二页 \texttt{\&pn=10}，第三页 \texttt{\&pn=20}，只有末尾 \texttt{pn} 在变。每页 10 条，\texttt{pn} 是“跳过前多少条”，故 \[\texttt{pn}=(\text{页码}-1)\times 10\quad(\text{第一页相当于 } \texttt{pn=0}).\]
+\begin{lstlisting}[language=Python]
+def baidu(page):
+    num = (page - 1) * 10
+    url = 'https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word=阿里巴巴&pn=' + str(num)
+    ...
+for i in range(10):                  # i = 0..9
+    baidu(i + 1)                     # 爬第 1..10 页
+    print('第' + str(i + 1) + '页爬取成功')
+\end{lstlisting}
+
+\subsection{随堂小测 1 模板：多家公司 × 多页（def baidu(company, page)）}
+要求：函数带 \texttt{page}、\texttt{company} 两参数，外层循环公司、内层循环页码；交代码 + 运行视频。
+\begin{lstlisting}[language=Python]
+import requests, re, time
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) ...'}
+def baidu(company, page):
+    num = (page - 1) * 10                                                    # 1 拼网址
+    url = ('https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word='
+           + company + '&pn=' + str(num))
+    res = requests.get(url, headers=headers, timeout=10).text                # 2 取源码
+    href  = re.findall('<h3 class="c-title">.*?<a href="(.*?)"', res, re.S)  # 3 提取
+    title = re.findall('<h3 class="c-title">.*?>(.*?)</a>', res, re.S)
+    info  = re.findall('<p class="c-author">(.*?)</p>', res, re.S)
+    source, date = [], []                                                    # 4 清洗
+    for i in range(len(info)):
+        info[i] = re.sub('<.*?>', '', info[i])
+        source.append(info[i].split('&nbsp;&nbsp;')[0].strip())
+        date.append(info[i].split('&nbsp;&nbsp;')[1].strip())
+    with open('数据挖掘报告.txt', 'a', encoding='utf-8') as f:               # 5 写入（追加）
+        f.write(company + '第' + str(page) + '页\n')
+        for i in range(len(title)):
+            title[i] = re.sub('<.*?>', '', title[i]).strip()
+            f.write(str(i + 1) + '.' + title[i] + '(' + date[i] + '-' + source[i] + ')\n')
+            f.write(href[i] + '\n')
+companys = ['工商银行', '农业银行', '中国银行', '建设银行']
+for company in companys:              # 外层：公司
+    for page in range(1, 6):          # 内层：第 1-5 页
+        try:
+            baidu(company, page)
+            print(company + '第' + str(page) + '页爬取成功')
+        except:
+            print(company + '第' + str(page) + '页爬取失败')
+        time.sleep(1)                 # 每次请求间隔 1 秒，降低被封概率
+\end{lstlisting}
+\textbf{易错}：\texttt{'\&pn=' + num} 报 TypeError，须 \texttt{str(num)}；写成 \texttt{pn = page*10} 会漏掉第 1 页（检查：代入 page=1 应得 pn=0）；\texttt{range(3)} 产生 0,1,2，调用时要 \texttt{page + 1} 或改 \texttt{range(1, 4)}；外层公司、内层页码 → 同一公司各页连续输出。\tagext\ 某条新闻缺来源段时 info 比 title 短，\texttt{date[i]} 报 IndexError，先 \texttt{print(len(title), len(href), len(info))} 检查等长。
+
+\subsection{把结果写入文件：txt、csv 与 Excel \tagext}
+\begin{itemize}
+\item txt：\texttt{with open(文件名, 'a', encoding='utf-8') as f: f.write(字符串)}；\key{\texttt{'w'} 覆盖写、\texttt{'a'} 追加写}（多公司多页必须 \texttt{'a'}，否则每次调用覆盖前面结果）；write 不自动换行，手动加 \texttt{'\textbackslash n'}；with 结束自动关闭文件。
+\item csv／Excel（便于第 8 章文本分析）：
+\end{itemize}
+\begin{lstlisting}[language=Python]
+import pandas as pd
+df = pd.DataFrame({'公司': company, '标题': title, '日期': date,
+                   '来源': source, '网址': href})                # 每个列表一列，长度须相同
+df.to_csv('baidu_news.csv', index=False, encoding='utf-8-sig')  # utf-8-sig：Excel 打开不乱码
+df.to_excel('baidu_news.xlsx', index=False)                      # 需安装 openpyxl
+\end{lstlisting}
+多家公司：把每次的 df 收进列表，最后 \texttt{pd.concat(列表)} 合并成一张表再保存。
+
+\subsection{实战提醒：页面改版、规则失效与“列表为空”排查顺序}
+\texttt{c-title}、\texttt{c-author} 来自 2018 年前后的百度页面，改版后规则可能失效——\key{方法不变，规则以当时 F12 源码为准}。“不报错但列表为空”时：
+\begin{enumerate}
+\item \texttt{print(len(res))}，把 res 存文件后 Ctrl+F 搜公司名：源码里没有新闻 → 被拦截（查 UA、是否出现“百度安全验证”页）或动态加载（改用 Selenium）；
+\item 源码有新闻但 findall 为空 → 在 res 中找到标题位置，逐字核对文本 A/文本 B（空格、引号、class 名），是否漏了 re.S；
+\item 各列表长度不一 → 部分新闻缺字段：修改规则，或先切出每个大框再逐条提取。
+\end{enumerate}
+
+% ======================================================================
+\section{本章小结}
+\begin{summary}[核心代码清单]
+\begin{itemize}
+\item 一句话：找网址规律 → \texttt{requests.get(url, headers=headers).text} → “文本A\texttt{(.*?)}文本B”+\texttt{re.S} → strip／\texttt{re.sub}／split 清洗 → 输出或存盘。
+\item 取源码：\texttt{headers = \{'User-Agent': '...'\}}（不加：空页面／403／简化页面）。
+\item 提取：\texttt{re.findall(p, res, re.S)}；带括号只返回括号内容；无匹配为 \texttt{[]}。
+\item 元字符：\texttt{\textbackslash d \textbackslash w \textbackslash s \textbackslash S \textbackslash n \textbackslash t .} 各匹配“一个”；\texttt{*}（0+ 次）、\texttt{+}（1+ 次）、\texttt{?}（与 \texttt{.*} 组成非贪婪）、\texttt{()}（分组/捕获）；拓展 \texttt{\{m,n\}}、\texttt{[ ]}、\texttt{|}、\texttt{\^{}}、\texttt{\$}。
+\item 贪婪 \texttt{.*} vs 非贪婪 \texttt{.*?}；\texttt{.*?} 填充、\texttt{(.*?)} 提取；\texttt{(.*?)} 必须有右边界。
+\item 清洗：\texttt{s.strip()}；\texttt{s.replace(旧, 新)}；\texttt{re.sub('<.*?>', '', s)}；\texttt{re.sub('[*]', '', s)}；\texttt{s.split('\&nbsp;\&nbsp;')[0]}。
+\item 翻页 \texttt{pn = (page - 1) * 10}，拼数字要 \texttt{str()}；批量：\texttt{def baidu(company, page)} + 双层循环 + try/except。
+\end{itemize}
+\end{summary}
+\begin{english}
+Web scraping consists of retrieving the page source, extracting the target fields, and cleaning and storing the data. The developer tools (F12) show the page structure in the Elements panel and every HTTP request in the Network panel, where the User-Agent is found under Request Headers. An HTML document is a tree of nested tags; the target content usually lies in the innermost tag. \texttt{re.findall(pattern, string)} returns a list of all non-overlapping matches (an empty list if none); with a capturing group only the group is returned. The dot does not match a newline by default; \texttt{re.S} (DOTALL) makes it match newlines. \texttt{re.sub('<.*?>', '', text)} removes all HTML tags, whereas \texttt{str.replace} replaces a fixed substring; special characters lose their meaning inside square brackets. Pagination: \texttt{pn = (page - 1) * 10}; the code is wrapped in \texttt{baidu(company, page)} and called in a nested loop with try/except.
+\end{english}
+
+% ======================================================================
+\section{易错汇总与数据采集流程设计模板}
+
+\subsection{requests.get(url, headers=headers).text 背后发生了什么}
+程序以 GET 方法向 url 所在服务器发 HTTP 请求，请求头带 headers 字典；服务器返回响应（状态码、响应头、HTML 源码）；\texttt{requests.get} 返回响应对象，\texttt{.text} 把响应体解码为字符串。\\
+\textit{The crawler sends an HTTP GET request with the given headers; the server returns a response, and .text decodes its body into an HTML string. The User-Agent header tells the server which client is making the request; without a browser-like User-Agent the server may return an empty page, a 403 error, or a simplified page.}
+
+\subsection{爬虫代码高频错误清单（找错题）}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{5.6cm}L@{}}
+\toprule
+错误写法 & 正确写法／原因 \\
+\midrule
+\texttt{\{'User\_Agent': ...\}} & \texttt{'User-Agent'}（连字符）\\
+\texttt{'\&pn=' + page * 10} & \texttt{str((page - 1) * 10)}：整数不能拼字符串，且少减 1 \\
+\texttt{for page in range(3): baidu(company, page)} & 得 0,1,2：用 \texttt{page + 1} 或 \texttt{range(1, 4)} \\
+\texttt{res = requests.get(url, headers=headers)} & 缺 \texttt{.text}（响应对象不是字符串）\\
+\texttt{'<h3 class="c-title">.*?>(.*)</a>'}、无 re.S & 非贪婪 \texttt{(.*?)} 并加 \texttt{re.S} \\
+\texttt{"日期：(.*?)"} & 无右边界得空串：\texttt{r"日期：(\textbackslash d\{4\}-\textbackslash d\{2\}-\textbackslash d\{2\})"} 或补右边界 \\
+\texttt{re.sub('<.*>', '', t)} & \texttt{'<.*?>'}（贪婪会删掉标签间正文），再 \texttt{.strip()} \\
+公司名 \texttt{'*ST国华'} 直接拼网址 & 先 \texttt{re.sub('[*]', '', company)} \\
+无 try/except；结果不输出不保存 & 加 try/except 跳过失败页；print 或写文件 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{研究设计模板：用百度新闻构造公司—年度媒体关注度}
+以“媒体关注度能否降低股价崩盘风险（A 股，2015–2024）”为例：
+\begin{enumerate}
+\item \key{输入名单}：全部 A 股股票代码与简称（CSMAR/Wind）；\texttt{re.sub('[*]', '', 简称)} 去星号，必要时加全称减少同名误匹配。
+\item \key{网址规律}：\texttt{word=简称\&pn=(page-1)*10}；\texttt{baidu(company, page)} 外层公司、内层页码，直到某页结果为空。
+\item \key{提取字段}：F12 观察源码，“文本A\texttt{(.*?)}文本B”+\texttt{re.S} 提取标题、网址、来源、日期。
+\item \key{清洗}：strip、\texttt{re.sub('<.*?>','',...)} 去标签；split 切来源与日期；“X天前”“昨天”“YYYY年MM月DD日”统一为 YYYY-MM-DD；按日期保留样本期；按网址去重。
+\item \key{去噪}：逐条请求正文（timeout + try/except），按候选容器或最长 div 抽正文，正文不含公司名者剔除（第 7 章）。
+\item \key{反爬}：User-Agent；\texttt{time.sleep}；必要时 IP 代理；记录失败的公司与页码事后补爬；源码无新闻（动态加载/验证页）改用 Selenium。
+\item \key{变量构造}：按公司—年度统计新闻条数 $N_{it}$，媒体关注度 $=\ln(1+N_{it})$；可按权威媒体来源构造稳健性指标，或做情感分析（第 8 章）得负面报道比例；与崩盘风险指标（NCSKEW、DUVOL）按代码—年度合并回归。
+\end{enumerate}
+\textit{The pipeline consists of (i) building the firm list, (ii) generating search URLs with the word and pn parameters, (iii) retrieving the source with a browser User-Agent and extracting titles, URLs, sources and dates with non-greedy regular expressions, (iv) cleaning and standardising dates and removing noise articles that do not mention the firm, and (v) aggregating the number of articles by firm and year, taking $\log(1+N)$ as the media attention measure.}

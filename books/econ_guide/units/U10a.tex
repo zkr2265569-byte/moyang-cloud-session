@@ -1,0 +1,151 @@
+\chapter{静态面板（一）：固定效应、LSDV、组内估计与双向固定效应}
+\label{ch:U10a-panel1}
+
+前九章处理的都是截面数据 $(y_i,x_i)$：外生条件下用 OLS，内生条件下用 IV/GMM。从本章起进入面板数据——同一批个体被反复观测多期。面板最大的好处是：\key{不需要工具变量}，就能控制那些不随时间变化、观测不到、又可能与解释变量相关的个体特征 $\alpha_i$（能力、偏好、企业文化等）。本章依次回答三个问题：(1) 面板模型是什么、为什么要用；(2) 当 $\alpha_i$ 与 $x_{it}$ 任意相关时如何一致估计 $\beta$——最小二乘虚拟变量（LSDV）估计与组内（WG）估计，用 FWL 定理证明二者完全相同，并给出正确的标准误；(3) 再加入时间效应 $\lambda_t$ 时如何做双向固定效应（TWFE）估计。第 11 章讲随机效应、Hausman 检验与时不变变量，第 12 章讲动态面板，第 15 章讲 DiD 的处理效应框架。
+
+\begin{keypt}[本章与 2025 年真题]
+\tagexam\ 2025 年真题第 1 题（30 分）考 TWFE 模型 $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$：(a) 写出同时消去 $\alpha_i$ 与 $\lambda_t$ 的组内变换及 $\hat\beta_{FE}$；(b) 用时间虚拟变量表示 $\lambda_t$、只做消去 $\alpha_i$ 的组内变换时 $\hat\beta_{FE}$ 的公式。作答所需的工具——组内变换、去均值矩阵 $M_T$、Kronecker 积写法与 FWL 定理——都在本章前半部分建立；双向情形在本章后半部分展开，逐步作答见第 17 章。
+\end{keypt}
+
+%======================================================================
+\section{面板数据概览}\label{sec:U10a-overview}
+
+\subsection{面板数据的定义：截面与时间序列的“合体”}
+
+\subsubsection{定义：\texorpdfstring{$N$}{N} 个个体在 \texorpdfstring{$T$}{T} 个时期上的重复观测}
+
+\begin{defn}[面板数据]\label{def:U10a-panel}
+\term{面板数据}{panel data}（统计学中称\term{纵向数据}{longitudinal data}）是对 $N$ 个个体在 $T$ 个时期上的重复观测：
+\[
+(y_{it},x_{it}),\qquad i=1,\dots,N\ \text{（个体）},\qquad t=1,\dots,T\ \text{（时期）},
+\]
+其中 $y_{it}$ 是标量，$x_{it}$ 是 $K\times 1$ 向量。若每个个体都有完整的 $T$ 期观测，称为\term{平衡面板}{balanced panel}，总样本量 $n=NT$；否则称为\term{非平衡面板}{unbalanced panel}（第 11 章讨论）。
+\end{defn}
+
+下标 $i$ 是“谁”，下标 $t$ 是“何时”。一个观测由二元组 $(i,t)$ 确定。
+
+\subsubsection{固定 \texorpdfstring{$t$}{t} 是截面，固定 \texorpdfstring{$i$}{i} 是时间序列}
+
+面板 $(y_{it},x_{it})$ 同时包含两种熟悉的数据结构：
+\begin{itemize}
+  \item \key{固定 $t$}，沿 $i$ 看：$\{(y_{it},x_{it})\}_{i=1}^N$ 是一个\key{截面}，即前九章的 $(y_i,x_i)$；
+  \item \key{固定 $i$}，沿 $t$ 看：$\{(y_{it},x_{it})\}_{t=1}^T$ 是一条\key{时间序列} $(y_t,x_t)$。
+\end{itemize}
+时间序列模型首先关心的是\term{平稳性}{stationarity}：分布是否随时间漂移。$T$ 很小时，单个个体的时间序列太短，平稳性问题退居次要；$T$ 很大时必须认真对待（见下文长面板）。
+
+\subsubsection{个体间变异与个体内变异}
+
+截面数据回答“不同个体之间有什么差别”，时间序列回答“同一个体随时间如何变化”。面板两种变异都有。把任一变量写成
+\[
+x_{it}=\underbrace{\bar x_{i\cdot}}_{\text{个体均值}}+\underbrace{(x_{it}-\bar x_{i\cdot})}_{\text{对个体均值的偏离}},\qquad \bar x_{i\cdot}=\frac1T\sum_{t=1}^T x_{it},
+\]
+$\bar x_{i\cdot}$ 在个体之间的差别称为\term{个体间变异}{between variation}，$x_{it}-\bar x_{i\cdot}$ 称为\term{个体内变异}{within variation}。本章的固定效应方法\key{只用个体内变异}，从而把个体之间那些看不见的差别全部挡在门外。
+
+\subsection{分类一：短面板与长面板；微观面板与宏观面板}
+
+按 $T$ 的大小（相对于 $N$）分：
+\begin{itemize}
+  \item \term{短面板}{short panel}：$N$ 大、$T$ 小（如几千家企业、5 年）。渐近理论取 \key{$N\to\infty$、$T$ 固定}。本章与第 11、12 章的结论默认是这一情形。
+  \item \term{长面板}{long panel}：$T$ 也大（如几十个国家、几十年）。此时还要考虑时间序列性质（平稳性、协整），并可做 $N,T\to\infty$ 的联合渐近。
+\end{itemize}
+Hansen 第 17.1 节的说法与此对应：\term{微观面板}{micro panel}——个体多（常上千）、期数少（常为 2–20 年）；\term{宏观面板}{macro panel}——个体数中等（如 7–20 个国家）、期数 20–60 年。
+
+\subsection{分类二：静态面板与动态面板}
+
+按回归元中是否含被解释变量的滞后项分：
+\begin{align*}
+\text{\term{静态面板}{static panel}：}\quad & y_{it}=\alpha_i+x_{it}\T\beta+u_{it},\\
+\text{\term{动态面板}{dynamic panel}：}\quad & y_{it}=\alpha_i+\rho\, y_{i,t-1}+x_{it}\T\beta+u_{it}.
+\end{align*}
+静态面板的 $x_{it}$ 中不含 $y_{i,t-1}$；动态面板含 $y_{i,t-1}$。这一区别直接决定估计方法：静态面板用组内（WG）估计；动态面板中 WG \key{不一致}，要改用差分加工具变量（第 12 章）。
+
+\subsection{分类三：线性面板与非线性面板}
+
+\begin{itemize}
+  \item \key{线性面板}：包括静态面板与动态面板，是本章与第 11、12 章的主体；
+  \item \key{非线性面板}：代表是\term{面板二元选择模型}{panel binary choice model}
+  \[
+  y_{it}=\mathbf{1}\{\alpha_i+x_{it}\T\beta+u_{it}>0\}.
+  \]
+  含固定效应时没有像组内变换那样能精确消去 $\alpha_i$ 的通用办法，伴随参数问题会污染 $\hat\beta$（见本章 LSDV 一节与第 11 章）。
+\end{itemize}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lllL}
+\toprule
+分类标准 & 类别 & 典型设定 & 估计要点 / 本书位置\\
+\midrule
+$T$ 的大小 & 短面板 / 长面板 & $N\to\infty$, $T$ 固定 / $T$ 也大 & 本书默认短面板；长面板需顾及平稳性\\
+是否含 $y_{i,t-1}$ & 静态 / 动态 & $x_{it}$ 不含 / 含 $y_{i,t-1}$ & 静态用 WG（第 10–11 章）；动态用差分 + IV（第 12 章）\\
+模型形式 & 线性 / 非线性 & 线性回归 / 二元选择 & 非线性 FE 受伴随参数问题困扰（第 11 章）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{面板数据的三种分类}
+\end{center}
+
+\subsection{面板方法全景图：从静态面板到因果推断}
+
+面板数据方法可按研究脉络分成四块：
+\begin{itemize}
+  \item a. 静态面板、b. 动态面板——“早期研究”（early research），本书第 10–12 章；
+  \item c. 因子模型——源于资产定价中的套利定价理论（APT）与 CAPM，第 13–14 章；
+  \item d. 因果推断 / 处理效应——DiD $\to$ TWFE、合成控制法、回归控制法 / 矩阵补全 / 因子结构，第 15–16 章。
+\end{itemize}
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners=2pt,align=center,font=\small,inner sep=3pt},
+  >={Stealth[length=2mm]}]
+\node[box] (P) at (0,0) {面板数据\\$(y_{it},x_{it})$};
+\node[box] (a) at (-5.8,-1.6) {a. 静态面板\\第 10--11 章};
+\node[box] (b) at (-3.3,-1.6) {b. 动态面板\\第 12 章};
+\node[box] (c) at (-0.6,-1.6) {c. 因子模型\\APT / CAPM\\第 13--14 章};
+\node[box] (d) at (3.2,-1.6) {d. 因果推断 / 处理效应};
+\node[box] (d1) at (0.4,-3.3) {DiD $\to$ TWFE\\第 15 章};
+\node[box] (d2) at (2.8,-3.3) {SCM\\第 16 章};
+\node[box] (d3) at (5.5,-3.3) {RCM / MC / 因子结构\\第 16 章};
+\foreach \x in {a,b,c,d} \draw[->] (P) -- (\x);
+\foreach \x in {d1,d2,d3} \draw[->] (d) -- (\x);
+\draw[decorate,decoration={brace,mirror,amplitude=4pt}] ([yshift=-3pt]a.south west) -- ([yshift=-3pt]b.south east)
+  node[midway,below=4pt,font=\small] {early research};
+\end{tikzpicture}
+\captionof{figure}{面板数据方法全景图}
+\end{center}
+
+图中缩写：\term{因子模型}{factor model} 用少数共同因子刻画大量个体（如资产收益）的共动；SCM 为\term{合成控制法}{synthetic control method}；RCM 为\term{回归控制法}{regression control method}，即\term{面板数据法}{panel data approach}（PDA）；MC 为\term{矩阵补全}{matrix completion}。本章后半部分将说明 DiD 是 TWFE 的一个特例，这就是图中“DiD $\to$ TWFE”箭头的含义。
+
+\subsection{本章记号约定：本书、2025 真题与 Hansen 的符号对照}
+
+2025 真题与 Hansen 教材对同一对象所用的符号不同，最容易混淆的是\key{时间效应}与 Hansen 的\key{个体效应}。本书统一如下：
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{Lccc}
+\toprule
+含义 & 本书 & 2025 真题 & Hansen \\
+\midrule
+个体效应（不可观测、不随时间变） & $\alpha_i$ & $\alpha_i$ & $u_i$\\
+特异误差（idiosyncratic error） & $u_{it}$ & $\epsilon_{it}$ & $\varepsilon_{it}$\\
+时间（年份）效应 & $\lambda_t$ & $\lambda_t$ & $v_t$\\
+第 $s$ 期时间虚拟变量 & $\text{year}_s$ & $f_t$ & $\tau_t$\\
+个体 $j$ 的虚拟变量 & $d_j$ & — & $d_i$\\
+个体均值 / 时间均值 / 总均值 & $\bar y_{i\cdot},\ \bar y_{\cdot t},\ \bar y_{\cdot\cdot}$ & — & $\overline{Y}_i,\ \widetilde{Y}_t,\ \overline{Y}$\\
+单向组内变换 / 双向组内变换 & $\dot y_{it},\ \ddot y_{it}$ & — & $\dot Y_{it},\ \ddot Y_{it}$\\
+$\alpha_i$ 的方差 / $u_{it}$ 的方差 & $\sigma_\alpha^2,\ \sigma_u^2$ & — & $\sigma_u^2,\ \sigma_\varepsilon^2$\\
+回归元个数 & $K$ & 1 & $k$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章记号对照}
+\end{center}
+
+另外：$\one_T$ 为 $T\times1$ 全 1 向量；
+\[
+P_T=\one_T(\one_T\T\one_T)\inv\one_T\T=\tfrac1T\one_T\one_T\T,\qquad M_T=I_T-P_T,
+\]
+二者都是 $T\times T$ 的对称幂等矩阵，且 $M_T\one_T=0$（第 1 章）；$\otimes$ 为 Kronecker 积（第 1 章）。注意因子模型里的 $\lambda_i$（载荷，下标 $i$）与时间效应 $\lambda_t$（下标 $t$）不是同一个东西。
+
+\begin{english}
+Panel data consist of repeated observations $(y_{it},x_{it})$ on $N$ individuals over $T$ periods; the panel is balanced if every individual is observed in all $T$ periods. A panel is \emph{short} if $N$ is large and $T$ is small (asymptotics: $N\to\infty$, $T$ fixed) and \emph{long} if $T$ is also large. A panel model is \emph{static} if the regressors do not include lagged dependent variables and \emph{dynamic} if they include $y_{i,t-1}$. Panel models may be linear (static or dynamic) or nonlinear (e.g.\ panel binary choice).
+\end{english}
+
