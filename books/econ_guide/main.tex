@@ -1,0 +1,42 @@
+\documentclass[a4paper,openany,UTF8,fontset=none,zihao=5]{ctexbook}
+\usepackage{bookstyle}
+\input{titlepage}
+\newcommand{\unit}[1]{\IfFileExists{units/#1.tex}{\input{units/#1.tex}}{\typeout{MISSING UNIT #1}}}
+\hypersetup{pdftitle={高级计量经济学 博士资格考试复习教材（新版）},pdfauthor={}}
+\begin{document}
+\frontmatter
+\pagenumbering{roman}
+\maketitlepage{高级计量经济学}{Advanced Econometrics}{博士资格考试复习教材（新版）}{%
+正文 16 章 \quad · \quad 2025 年真题精讲\\[4pt]
+推导逐步注明理由 \quad · \quad 例题完整求解 \quad · \quad 即时练习附答案\\[4pt]
+临界值表 \quad · \quad Stata/R 命令 \quad · \quad 英文答题句式 \quad · \quad 中英术语表与英文索引}
+\input{front/howto}
+\begingroup
+\etocsettocstyle{\chapter*{简明目录}\markboth{简明目录}{简明目录}}{}
+\etocsetnexttocdepth{section}
+\tableofcontents
+\endgroup
+\begingroup
+\etocsettocstyle{\chapter*{详细目录}\markboth{详细目录}{详细目录}}{}
+\etocsetnexttocdepth{subsubsection}
+\tableofcontents
+\endgroup
+\mainmatter
+\part{预备知识与截面回归}
+\unit{U01a}\unit{U01b}\unit{U02}\unit{U03}\unit{U04}\unit{U05a}\unit{U05b}\unit{U06a}\unit{U06b}
+\part{内生性、工具变量与 GMM}
+\unit{U07}\unit{U08a}\unit{U08b}\unit{U09}
+\part{面板数据模型}
+\unit{U10a}\unit{U10b}\unit{U11a}\unit{U11b}\unit{U12a}\unit{U12b}\unit{U12c}
+\part{截面相关与因子模型}
+\unit{U13a}\unit{U13b}\unit{U14a}\unit{U14b}
+\part{处理效应与政策评估}
+\unit{U15a}\unit{U15b}\unit{U16}
+\part{真题精讲}
+\unit{U17a}\unit{U17b}
+\appendix
+\chapter{统计分布临界值表}
+\input{critvals}
+\unit{appB_stata}\unit{appC_english}\unit{appD_notation}\unit{appE_glossary_a}\unit{appE_glossary_b}
+\printindex
+\end{document}

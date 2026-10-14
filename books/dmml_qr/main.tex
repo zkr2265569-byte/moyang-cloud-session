@@ -1,0 +1,28 @@
+\documentclass[a4paper,10pt,openany,UTF8,fontset=none,zihao=false]{ctexbook}
+\usepackage[qr]{bookstyle}
+\input{titlepage}
+\newcommand{\unit}[1]{\IfFileExists{units/#1.tex}{\input{units/#1.tex}}{\typeout{MISSING UNIT #1}}}
+\hypersetup{pdftitle={数据挖掘与机器学习 考场速查册},pdfauthor={}}
+\begin{document}
+\frontmatter
+\pagenumbering{roman}
+\maketitlepage{数据挖掘与机器学习}{Data Mining and Machine Learning}{考场速查册}{%
+机器学习基础 · 线性模型 · 前馈神经网络\\[4pt]
+模型评估与经典算法 · 无监督学习 · 关联规则\\[4pt]
+Python 爬虫 · 文本分析 · 代码与公式速查}
+\input{front/howto}
+\begingroup
+\etocsettocstyle{\chapter*{目录}\markboth{目录}{目录}}{}
+\etocsetnexttocdepth{subsubsection}
+\tableofcontents
+\endgroup
+\mainmatter
+\addcontentsline{toc}{part}{第一部分\quad 机器学习基础}
+\unit{D01a}\unit{D01b}\unit{D02a}\unit{D02b}\unit{D03a}\unit{D03b}
+\addcontentsline{toc}{part}{第二部分\quad 经典算法与无监督学习}
+\unit{D04a}\unit{D04b}\unit{D05a}\unit{D05b}
+\addcontentsline{toc}{part}{第三部分\quad 数据挖掘实务：爬虫与文本分析}
+\unit{D06}\unit{D07}\unit{D08a}\unit{D08b}
+\appendix
+\unit{DAPP1}\unit{DAPP2}\unit{DAPP3}
+\end{document}

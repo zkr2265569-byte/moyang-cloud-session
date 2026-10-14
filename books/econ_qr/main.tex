@@ -1,0 +1,30 @@
+\documentclass[a4paper,10pt,openany,UTF8,fontset=none,zihao=false]{ctexbook}
+\usepackage[qr]{bookstyle}
+\input{titlepage}
+\newcommand{\unit}[1]{\IfFileExists{units/#1.tex}{\input{units/#1.tex}}{\typeout{MISSING UNIT #1}}}
+\hypersetup{pdftitle={高级计量经济学 考场速查册},pdfauthor={}}
+\begin{document}
+\frontmatter
+\pagenumbering{roman}
+\maketitlepage{高级计量经济学}{Advanced Econometrics}{考场速查册}{%
+公式 · 条件 · 结论 · 对比表 · 易错点\\[4pt]
+2025 年真题精讲\\[4pt]
+节号与《复习教材（新版）》一一对应}
+\input{front/howto}
+\begingroup
+\etocsettocstyle{\chapter*{目录}\markboth{目录}{目录}}{}
+\etocsetnexttocdepth{subsubsection}
+\tableofcontents
+\endgroup
+\mainmatter
+\unit{U01a}\unit{U01b}\unit{U02}\unit{U03}\unit{U04}\unit{U05a}\unit{U05b}\unit{U06a}\unit{U06b}
+\unit{U07}\unit{U08a}\unit{U08b}\unit{U09}
+\unit{U10a}\unit{U10b}\unit{U11a}\unit{U11b}\unit{U12a}\unit{U12b}\unit{U12c}
+\unit{U13a}\unit{U13b}\unit{U14a}\unit{U14b}
+\unit{U15a}\unit{U15b}\unit{U16}
+\unit{U17a}\unit{U17b}
+\appendix
+\chapter{统计分布临界值表}
+\input{critvals}
+\unit{qr_appB}\unit{qr_glossary}
+\end{document}

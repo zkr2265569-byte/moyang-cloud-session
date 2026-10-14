@@ -1,0 +1,19 @@
+% \maketitlepage{中文书名}{英文书名}{副标题}{内容提要（多行，用 \\ 分隔）}
+\newcommand{\maketitlepage}[4]{%
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{tikzpicture}[remember picture,overlay]
+  \fill[chead] (current page.north west) rectangle ([yshift=-7.2cm]current page.north east);
+  \fill[chead!70] ([yshift=-7.2cm]current page.north west) rectangle ([yshift=-7.45cm]current page.north east);
+  \node[anchor=south west,text=white,font=\sffamily\Large] at ([xshift=2.2cm,yshift=-3.0cm]current page.north west) {博士资格考试 · 开卷用};
+  \node[anchor=south west,text=white,font=\bfseries\fontsize{34}{40}\selectfont] at ([xshift=2.2cm,yshift=-5.2cm]current page.north west) {#1};
+  \node[anchor=south west,text=white!85!chead,font=\Large\itshape] at ([xshift=2.25cm,yshift=-6.3cm]current page.north west) {#2};
+\end{tikzpicture}
+\vspace*{7.6cm}
+\begin{center}
+{\Huge\bfseries\color{chead} #3}\par\vspace{1.6cm}
+{\large\color{black!75}\begin{tabular}{c}#4\end{tabular}}\par
+\vfill
+{\large 2026 年 10 月}
+\end{center}
+\end{titlepage}}

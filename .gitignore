@@ -1,0 +1,8 @@
+books/build/
+*.aux
+*.log
+*.out
+*.toc
+*.idx
+*.ind
+*.ilg

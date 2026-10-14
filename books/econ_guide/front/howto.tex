@@ -1,0 +1,48 @@
+\chapter*{使用说明}
+\addcontentsline{toc}{chapter}{使用说明}
+\markboth{使用说明}{使用说明}
+
+\section*{一、本书的结构}
+本书按“工具 → 截面回归 → 内生性 → 面板 → 截面相关 → 政策评估 → 真题”的顺序展开，前面的章节是后面章节的基础，建议按顺序学习。
+
+\begin{center}
+\begin{tabularx}{\linewidth}{>{\bfseries}p{3.4cm}p{1.9cm}L}
+\toprule
+部分 & 章 & 内容 \\
+\midrule
+一 预备知识与截面回归 & 第 1–6 章 & 矩阵与概率工具、条件期望与线性投影、OLS 的代数与几何、有限样本性质与 MLE、大样本理论与稳健/聚类标准误、$t$/$F$/Wald 检验 \\
+二 内生性、IV 与 GMM & 第 7–9 章 & 内生性的来源与后果、工具变量与 GMM、相关性/内生性/过度识别三大检验 \\
+三 面板数据模型 & 第 10–12 章 & FE/LSDV/组内估计/TWFE，RE/GLS/Hausman/FEF，动态面板与 GMM \\
+四 截面相关与因子模型 & 第 13–14 章 & 截面相关、因子模型与 PCA、Bai (2009) 交互固定效应、CCE、截面相关检验 \\
+五 处理效应与政策评估 & 第 15–16 章 & 潜在结果、DiD 与 TWFE、事件研究、交错处理，合成控制、面板数据法、矩阵补全 \\
+六 真题精讲 & 第 17 章 & 2025 年春季试卷逐题精讲：完整推导、英文标准答案、常见错误 \\
+附录 & A–E & 临界值表、Stata/R 命令、英文答题句式、记号对照、中英术语对照表；书末英文术语索引 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\section*{二、考场上怎么查}
+\begin{enumerate}
+\item \key{按主题查}：先看“简明目录”定位到章、节，再看“详细目录”——每个小知识点（定义、公式、推导、例子）都有自己的标题。页眉显示当前章名（左页）与节名（右页）。
+\item \key{按英文术语查}：试卷是英文的。遇到不熟的英文词，查书末“英文术语索引”（按字母排序，给出页码），或查附录 E“中英术语对照表”看一句话解释。
+\item \key{查临界值}：附录 A 给出标准正态、$t$、$\chi^2$、$F$ 分布临界值与 Stock--Yogo 弱工具临界值，表前有“统计量—分布—查哪张表”总览。
+\item \key{写英文答案}：每节末尾的“English version”盒给出可直接写进答卷的标准表述；附录 C 汇总英文答题句式与作答结构。
+\item \key{与速查册配合}：配套的《考场速查册》与本书\key{节号一致}（速查册 §10.6 与本书 §10.6 是同一主题）。考场上先在速查册里找公式和结论，需要推导细节时翻到本书同一节。
+\end{enumerate}
+
+\section*{三、标记说明}
+\begin{itemize}
+\item 推导右侧的灰色〔……〕：这一步用到的理由（定义、性质、代入哪个式子等）。推导一步一行，看不懂某一步时先看它的理由。
+\item 彩色盒子：
+  \textcolor{cdef}{\bfseries 定义}、\textcolor{cthm}{\bfseries 结论}（定理及其条件）、\textcolor{cex}{\bfseries 例}（完整求解）、\textcolor{cpr}{\bfseries 即时练习}（附答案）、\textcolor{cnote}{\bfseries 注意}（易错点）、\textcolor{ckey}{\bfseries 考点}、\textcolor{ceng}{\bfseries English version}、\textcolor{cext}{\bfseries 拓展}、\textcolor{cmeth}{\bfseries 方法与步骤}、\textcolor{chead}{\bfseries 本节要点}。
+\item \tagext\ 标记的内容属于拓展：超出核心范围、但可能在试题中出现或有助于理解。\tagexam\ 标记与真题直接相关的内容。
+\item 记号：$X\T$ 表示转置；$\one_T$ 为 $T$ 维全 1 向量；$P_X=X(X\T X)\inv X\T$、$M_X=I-P_X$；$\pto$、$\dto$ 分别为依概率收敛与依分布收敛。全书记号见附录 D。
+\end{itemize}
+
+\section*{四、复习建议}
+\begin{enumerate}
+\item 第 1 章是工具箱：不必一次读完，后文推导中遇到哪条工具，再回头查对应小节。
+\item 第 2–6 章是全书地基，重点掌握：线性投影与 CEF、OLS 的矩阵推导与 FWL 定理、一致性与渐近正态的“分母/分子”证明套路、三种标准误（同方差、异方差稳健、聚类稳健）、Wald/$F$ 检验。
+\item 第 8–12 章是 GMM 与面板的主体：矩条件 → 识别 → 估计量 → 渐近分布 → 权重矩阵 → 检验，这一套逻辑在 IV、动态面板中反复出现。
+\item 第 15 章与第 17 章直接对应 2025 年真题（双向固定效应、2$\times$2 DiD、异质处理效应），务必熟练到能独立写出英文推导。
+\end{enumerate}

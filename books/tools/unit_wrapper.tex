@@ -1,0 +1,13 @@
+% 单元编译检查用包装文件。由 check_unit.sh 调用。
+\ifdefined\qrmode
+\documentclass[a4paper,10pt,openany,UTF8,fontset=none,zihao=false]{ctexbook}
+\usepackage[qr]{bookstyle}
+\else
+\documentclass[a4paper,openany,UTF8,fontset=none,zihao=5]{ctexbook}
+\usepackage{bookstyle}
+\fi
+\begin{document}
+\setcounter{chapter}{\numexpr\unitchap-1\relax}
+\ifdefined\unitchaptitle \chapter{\unitchaptitle}\else\fi
+\input{\unitfile}
+\end{document}

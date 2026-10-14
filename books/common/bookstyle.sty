@@ -1,0 +1,200 @@
+% ===================================================================
+%  bookstyle.sty —— 复习教材 / 考场速查册 共用样式
+%  用法：\usepackage{bookstyle}        （教材：11pt 版式）
+%        \usepackage[qr]{bookstyle}    （速查册：紧凑版式）
+% ===================================================================
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{bookstyle}[2026/10/14 study guide style]
+
+\newif\ifqr \qrfalse
+\DeclareOption{qr}{\qrtrue}
+\ProcessOptions\relax
+
+% ---------------- 字体 ----------------
+\RequirePackage{fontspec}
+\setmainfont{Latin Modern Roman}
+\setsansfont{Latin Modern Sans}
+\setmonofont{Latin Modern Mono}[Scale=1.0]
+\setCJKmainfont{Noto Serif CJK SC}[BoldFont=Noto Serif CJK SC Bold, ItalicFont=AR PL KaitiM GB]
+\setCJKsansfont{Noto Sans CJK SC}[BoldFont=Noto Sans CJK SC Bold]
+\setCJKmonofont{Noto Sans Mono CJK SC}
+\setCJKfamilyfont{kai}{AR PL KaitiM GB}
+\newcommand{\kai}{\CJKfamily{kai}}
+
+% ---------------- 版面 ----------------
+\RequirePackage{geometry}
+\ifqr
+  \geometry{a4paper,top=1.5cm,bottom=1.6cm,inner=1.6cm,outer=1.5cm,headsep=0.35cm,footskip=0.6cm}
+\else
+  \geometry{a4paper,top=2.3cm,bottom=2.2cm,inner=2.3cm,outer=2.0cm,headsep=0.5cm,footskip=0.9cm}
+\fi
+\ifqr\linespread{1.08}\else\linespread{1.2}\fi
+
+% ---------------- 数学 ----------------
+\RequirePackage{amsmath,amssymb,amsthm,mathtools,bm}
+% (bbm 不可用，用 \mathbbm{1} 时改写为 \mathbf{1})
+\allowdisplaybreaks[3]
+\numberwithin{equation}{chapter}
+% 推导步骤右侧的理由（灰色、右对齐）。用于 align*/equation*/gather* 的每一行。
+\newcommand{\why}[1]{\tag*{\footnotesize\color{reason}〔#1〕}}
+% 行内的理由标注（不在公式环境里时用）
+\newcommand{\whyin}[1]{{\footnotesize\color{reason}〔#1〕}}
+% 常用记号
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\Var}{\operatorname{Var}}
+\newcommand{\Cov}{\operatorname{Cov}}
+\newcommand{\Corr}{\operatorname{Corr}}
+\newcommand{\avar}{\operatorname{avar}}
+\newcommand{\tr}{\operatorname{tr}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\diag}{\operatorname{diag}}
+\newcommand{\plim}{\operatorname*{plim}}
+\newcommand{\argmin}{\operatorname*{arg\,min}}
+\newcommand{\argmax}{\operatorname*{arg\,max}}
+\newcommand{\iid}{\text{i.i.d.}}
+\newcommand{\pto}{\xrightarrow{\;p\;}}
+\newcommand{\dto}{\xrightarrow{\;d\;}}
+\newcommand{\T}{^{\prime}}
+\newcommand{\inv}{^{-1}}
+\newcommand{\R}{\mathbb{R}}
+\newcommand{\one}{\mathbf{1}}
+\newcommand{\indep}{\perp\!\!\!\perp}
+\newcommand{\dd}{\mathrm{d}}
+
+% ---------------- 颜色 ----------------
+\RequirePackage[dvipsnames,svgnames,table]{xcolor}
+\definecolor{reason}{HTML}{6B6B6B}
+\definecolor{cdef}{HTML}{1F5FA8}
+\definecolor{cthm}{HTML}{B03030}
+\definecolor{cex}{HTML}{2E7D32}
+\definecolor{cpr}{HTML}{C76A00}
+\definecolor{cnote}{HTML}{B8860B}
+\definecolor{ckey}{HTML}{6A3D9A}
+\definecolor{ceng}{HTML}{4A5560}
+\definecolor{cext}{HTML}{00796B}
+\definecolor{cmeth}{HTML}{37474F}
+\definecolor{chead}{HTML}{1A3D6D}
+
+% ---------------- 表格、列表、图 ----------------
+\RequirePackage{booktabs,tabularx,longtable,multirow,makecell,array}
+\RequirePackage{enumitem}
+\setlist{nosep,leftmargin=*,topsep=2pt,itemsep=1pt}
+\RequirePackage{graphicx}
+\RequirePackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes,calc,fit,backgrounds,decorations.pathreplacing}
+\RequirePackage{multicol}
+\RequirePackage{listings}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,columns=fullflexible,keepspaces=true,
+  frame=single,framerule=0.3pt,rulecolor=\color{gray!50},backgroundcolor=\color{gray!5},
+  showstringspaces=false,upquote=true,
+  keywordstyle=\color{cdef}\bfseries,commentstyle=\color{reason}\itshape,stringstyle=\color{cex},
+  extendedchars=false}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}{>{\centering\arraybackslash}X}
+\renewcommand{\arraystretch}{1.25}
+
+% ---------------- 盒子 ----------------
+\RequirePackage[most]{tcolorbox}
+\ifqr
+  \tcbset{bxbase/.style={enhanced,breakable,arc=1.2pt,boxrule=0.5pt,left=4pt,right=4pt,top=2pt,bottom=2pt,
+      before skip=4pt,after skip=4pt,fonttitle=\bfseries\small,coltitle=white,
+      attach boxed title to top left={xshift=4pt,yshift=-1.5pt},boxed title style={arc=1pt,boxrule=0pt,top=0.5pt,bottom=0.5pt}}}
+\else
+  \tcbset{bxbase/.style={enhanced,breakable,arc=1.5pt,boxrule=0.6pt,left=6pt,right=6pt,top=4pt,bottom=4pt,
+      before skip=8pt,after skip=8pt,fonttitle=\bfseries,coltitle=white,
+      attach boxed title to top left={xshift=6pt,yshift=-2pt},boxed title style={arc=1pt,boxrule=0pt,top=1pt,bottom=1pt}}}
+\fi
+% 带编号的盒子：定义、定理/结论、例、练习
+\newtcolorbox[auto counter,number within=chapter]{defn}[1][]{bxbase,colback=cdef!4,colframe=cdef,
+  boxed title style={colback=cdef},title={定义~\thetcbcounter\ifx\relax#1\relax\else\enspace#1\fi}}
+\newtcolorbox[auto counter,number within=chapter]{thm}[1][]{bxbase,colback=cthm!4,colframe=cthm,
+  boxed title style={colback=cthm},title={结论~\thetcbcounter\ifx\relax#1\relax\else\enspace#1\fi}}
+\newtcolorbox[auto counter,number within=chapter]{exmp}[1][]{bxbase,colback=cex!4,colframe=cex,
+  boxed title style={colback=cex},title={例~\thetcbcounter\ifx\relax#1\relax\else\enspace#1\fi}}
+\newtcolorbox[auto counter,number within=chapter]{prac}[1][]{bxbase,colback=cpr!4,colframe=cpr,
+  boxed title style={colback=cpr},title={即时练习~\thetcbcounter\ifx\relax#1\relax\else\enspace#1\fi}}
+% 无编号盒子
+\newtcolorbox{note}[1][]{bxbase,colback=cnote!6,colframe=cnote,boxed title style={colback=cnote},
+  title={\ifx\relax#1\relax 注意\else 注意：#1\fi}}
+\newtcolorbox{keypt}[1][]{bxbase,colback=ckey!4,colframe=ckey,boxed title style={colback=ckey},
+  title={\ifx\relax#1\relax 考点\else 考点：#1\fi}}
+\newtcolorbox{english}[1][]{bxbase,colback=ceng!4,colframe=ceng,boxed title style={colback=ceng},
+  fontupper=\small,title={English version\ifx\relax#1\relax\else: #1\fi}}
+\newtcolorbox{extend}[1][]{bxbase,colback=cext!4,colframe=cext,boxed title style={colback=cext},
+  title={拓展\ifx\relax#1\relax\else：#1\fi}}
+\newtcolorbox{method}[1][]{bxbase,colback=cmeth!4,colframe=cmeth,boxed title style={colback=cmeth},
+  title={\ifx\relax#1\relax 方法与步骤\else #1\fi}}
+\newtcolorbox{summary}[1][]{bxbase,colback=chead!4,colframe=chead,boxed title style={colback=chead},
+  title={\ifx\relax#1\relax 本节要点\else #1\fi}}
+% 例、练习中的“解答”分隔
+\newcommand{\solution}{\par\smallskip\noindent{\bfseries\color{cex!80!black}【解答】}\enspace}
+\newcommand{\answer}{\par\smallskip\noindent{\bfseries\color{cpr!80!black}【答案】}\enspace}
+% 行内标签
+\newcommand{\tagext}{{\sffamily\footnotesize\color{white}\colorbox{cext}{拓展}}}
+\newcommand{\tagkey}{{\sffamily\footnotesize\color{white}\colorbox{ckey}{重点}}}
+\newcommand{\tagexam}{{\sffamily\footnotesize\color{white}\colorbox{cthm}{真题}}}
+% 重点文字
+\newcommand{\key}[1]{{\bfseries\color{chead}#1}}
+
+% ---------------- 英文术语索引 ----------------
+\RequirePackage{imakeidx}
+\makeindex[title=英文术语索引（English Index）,columns=2,intoc,noautomatic]
+% \idx{English term}{中文}：在正文中不输出任何内容，只在书末索引登记一条“English term（中文）”
+\newcommand{\idx}[2]{\index{#1@#1（#2）}}
+% \term{中文}{English}：正文输出“中文（English）”，并登记索引
+\newcommand{\term}[2]{\textbf{#1}（#2）\index{#2@#2（#1）}}
+
+% ---------------- 标题格式 ----------------
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{3}
+\ctexset{
+  chapter={format=\huge\bfseries\color{chead}\centering,nameformat={},titleformat={},
+           beforeskip=\ifqr 0pt\else 10pt\fi,afterskip=\ifqr 10pt\else 24pt\fi,
+           name={第,章},number=\arabic{chapter}},
+  section={format=\Large\bfseries\color{chead}\raggedright,beforeskip=\ifqr 8pt\else 16pt\fi,afterskip=\ifqr 4pt\else 8pt\fi},
+  subsection={format=\large\bfseries\color{chead!85!black}\raggedright,beforeskip=\ifqr 6pt\else 12pt\fi,afterskip=\ifqr 3pt\else 6pt\fi},
+  subsubsection={format=\normalsize\bfseries\color{chead!75!black}\raggedright,beforeskip=\ifqr 4pt\else 8pt\fi,afterskip=\ifqr 2pt\else 4pt\fi},
+  part={format=\Huge\bfseries\color{chead}\centering,name={第,部分},number=\chinese{part}},
+}
+
+% ---------------- 页眉页脚 ----------------
+\RequirePackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\small\color{reason}\leftmark}
+\fancyhead[RO]{\small\color{reason}\rightmark}
+\fancyfoot[C]{\small\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\chaptermark}[1]{\markboth{\CTEXifname{\CTEXthechapter\quad}{}#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection\quad #1}}
+\fancypagestyle{plain}{\fancyhf{}\fancyfoot[C]{\small\thepage}\renewcommand{\headrulewidth}{0pt}}
+
+% ---------------- 目录 ----------------
+\RequirePackage{etoc}
+\RequirePackage{tocloft}
+\renewcommand{\cftchapfont}{\bfseries\color{chead}}
+\renewcommand{\cftchappagefont}{\bfseries}
+\renewcommand{\cftsecfont}{\bfseries}
+\renewcommand{\cftchapleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cftdotsep}{2}
+\setlength{\cftbeforechapskip}{4pt}
+\setlength{\cftbeforesecskip}{1pt}
+\setlength{\cftchapnumwidth}{4.2em}
+\setlength{\cftsecindent}{1em}\setlength{\cftsecnumwidth}{2.8em}
+\setlength{\cftsubsecindent}{3.8em}\setlength{\cftsubsecnumwidth}{3.4em}
+\setlength{\cftsubsubsecindent}{7.2em}\setlength{\cftsubsubsecnumwidth}{4.2em}
+\renewcommand{\cftsubsubsecfont}{\small}
+\renewcommand{\cftsubsubsecpagefont}{\small}
+
+% ---------------- 超链接与书签 ----------------
+\RequirePackage[hidelinks,bookmarksnumbered,bookmarksopen,bookmarksopenlevel=1,unicode]{hyperref}
+\RequirePackage{bookmark}
+\pdfstringdefDisableCommands{\def\why#1{}\def\bm#1{#1}\def\T{'}\def\inv{^-1}}
+
+% 其他
+\RequirePackage{xspace}
+\RequirePackage{caption}
+\captionsetup{font=small,labelfont=bf}
+\setlength{\parskip}{2pt plus 1pt}
+\raggedbottom
+\endinput
