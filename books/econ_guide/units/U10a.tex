@@ -149,3 +149,291 @@ P_T=\one_T(\one_T\T\one_T)\inv\one_T\T=\tfrac1T\one_T\one_T\T,\qquad M_T=I_T-P_T
 Panel data consist of repeated observations $(y_{it},x_{it})$ on $N$ individuals over $T$ periods; the panel is balanced if every individual is observed in all $T$ periods. A panel is \emph{short} if $N$ is large and $T$ is small (asymptotics: $N\to\infty$, $T$ fixed) and \emph{long} if $T$ is also large. A panel model is \emph{static} if the regressors do not include lagged dependent variables and \emph{dynamic} if they include $y_{i,t-1}$. Panel models may be linear (static or dynamic) or nonlinear (e.g.\ panel binary choice).
 \end{english}
 
+%======================================================================
+\section{为什么用面板：控制不可观测的个体效应}\label{sec:U10a-why}
+
+为什么要用面板模型？有两条理由：(1) 数据可得；(2) 理论上，面板能“控制”截面模型中的遗漏变量——不可观测的个体效应。第二条是根本。
+
+\subsection{理由一：数据可得}
+
+现实中大量数据天然是面板：上市公司年报、工业企业数据库、CFPS / CHARLS 等追踪调查、省级 / 城市统计年鉴。数据本身就是“同一批个体、多个年份”的结构，自然要用适合它的模型。
+
+\subsection{静态线性面板模型与个体效应 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+\subsubsection{模型设定：\texorpdfstring{$y_{it}=\alpha_i+x_{it}'\beta+u_{it}$}{y = alpha + x'beta + u}}
+
+\begin{defn}[静态线性面板模型]\label{def:U10a-static}
+\begin{equation}\label{eq:U10a-static}
+y_{it}=\alpha_i+x_{it}\T\beta+u_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\end{equation}
+其中 $x_{it}$ 为 $K\times1$，不含 $y_{i,t-1}$；$\beta$ 为 $K\times 1$ 的待估斜率；$\alpha_i$ 称为\term{个体效应}{individual effect}（也称\term{不可观测异质性}{unobserved heterogeneity}），\key{随个体变、不随时间变}；$u_{it}$ 称为\term{特异误差}{idiosyncratic error}，随 $i$ 和 $t$ 都变。
+\end{defn}
+
+\subsubsection{\texorpdfstring{$\alpha_i$}{alpha\_i} 可以不可观测，也可以可观测}
+
+$\alpha_i$ 汇集了个体身上一切不随时间变化的因素：
+\begin{itemize}
+  \item 不可观测的：性格（personality）、能力（ability）、偏好、企业文化；
+  \item 可观测的：性别（gender）、种族（race）、出生地。
+\end{itemize}
+可观测但不随时间变的变量也会被 $\alpha_i$ 吸收，因此它们的系数在固定效应估计中无法单独识别（第 11 章）。
+
+\subsubsection{例：工资方程中的能力偏误}
+
+\begin{exmp}[工资方程中的 $\alpha_i$]\label{ex:U10a-wage}
+研究教育回报：
+\[
+\text{wage}_{it}=\alpha_i+\beta_1\,\text{edu}_{it}+\beta_2\,\text{expr}_{it}+\cdots+u_{it}.
+\]
+$\alpha_i$ 包含个人能力、性格、家庭背景等一切不随时间变的因素。能力强的人往往受教育多（$\alpha_i$ 与 $\text{edu}_{it}$ 正相关），同时工资也高。若不把 $\alpha_i$ 分离出来，$\hat\beta_1$ 会把“能力”的作用错算到“教育”头上——典型的\term{遗漏变量偏误}{omitted variable bias}（第 7 章），且偏误为正。
+\end{exmp}
+
+\subsection{理由二：截面数据中 \texorpdfstring{$\alpha_i$}{alpha\_i} 无法处理}
+
+\subsubsection{\texorpdfstring{$N+K$}{N+K} 个参数只有 \texorpdfstring{$N$}{N} 个观测：\texorpdfstring{$\beta$}{beta} 不可识别}
+
+\begin{thm}[截面中个体效应不可识别]\label{thm:U10a-cs-unid}
+在截面模型 $y_i=\alpha_i+x_i\T\beta+u_i$（$i=1,\dots,N$）中，参数 $(\alpha_1,\dots,\alpha_N,\beta)$ 共 $N+K$ 个，而方程只有 $N$ 个，$\beta$ 不可识别（un-identified model）。
+\end{thm}
+
+证明思路：只需说明“任意 $\beta$ 都能完美拟合数据”。任取 $b\in\R^K$，令
+\begin{align*}
+a_i &= y_i-x_i\T b,\qquad i=1,\dots,N \why{逐个体设定截距}\\
+\Rightarrow\ y_i-a_i-x_i\T b &= 0,\qquad \forall i \why{代入即得残差为零}
+\end{align*}
+即无论 $b$ 取什么值，残差平方和都能达到最小值 $0$。数据无法区分不同的 $b$，所以 $\beta$ 不可识别。
+
+\subsubsection{截面中 \texorpdfstring{$\alpha_i$}{alpha\_i} 只能进入误差：遗漏变量偏误}
+
+因此截面研究只能把各个 $\alpha_i$ 换成一个公共截距 $\beta_0$，把个体效应藏进误差：
+\begin{align*}
+y_i &= \alpha_i+x_i\T\beta+u_i \why{原模型}\\
+&= \beta_0+x_i\T\beta+\underbrace{(\alpha_i-\beta_0)+u_i}_{e_i} \why{加减 $\beta_0$}
+\end{align*}
+设 $\E(u_i\mid x_i)=0$，则误差的条件均值为
+\begin{align*}
+\E(e_i\mid x_i) &= \E(\alpha_i\mid x_i)-\beta_0+\E(u_i\mid x_i) \why{条件期望线性性}\\
+&= \E(\alpha_i\mid x_i)-\beta_0 \why{$\E(u_i\mid x_i)=0$}
+\end{align*}
+只要 $\alpha_i$ 与 $x_i$ 相关（$\Cov(x_i,\alpha_i)\neq0$），$\E(\alpha_i\mid x_i)$ 就随 $x_i$ 变，$\E(e_i\mid x_i)\neq0$，OLS 有偏且不一致。截面中唯一的出路是找工具变量（第 7--8 章）。
+
+\subsection{面板的优势：同一个 \texorpdfstring{$\alpha_i$}{alpha\_i} 出现 \texorpdfstring{$T$}{T} 次}
+
+\subsubsection{用个体内的跨期比较消去 \texorpdfstring{$\alpha_i$}{alpha\_i}，无需工具变量}
+
+面板中个体 $i$ 有 $T\ge2$ 期观测，而 $\alpha_i$ 在这 $T$ 期里都相同。于是可以用“同一个体不同时期之间的比较”把 $\alpha_i$ 消掉（组内变换、一阶差分，见本章组内变换一节）。这就是面板相对截面的根本优势。Hansen 第 17.1 节将其概括为：面板可以\key{不借助工具变量}而控制不随时间变化的内生性。
+
+\subsubsection{\texorpdfstring{$\alpha_i$}{alpha\_i} 是冗余参数：只需控制，不必估计}
+
+$\alpha_i$ 的作用是控制不可观测的个体效应，但没有必要把它估计出来。$\alpha_i$ 是\term{冗余参数}{nuisance parameter}：我们关心的是 $\beta$，$\alpha_i$ 只要被“控制住”即可。而且 $T$ 固定时 $\alpha_i$ 本身也估不准（见本章 LSDV 一节的伴随参数问题）。
+
+\subsubsection{公共截距被 \texorpdfstring{$\alpha_i$}{alpha\_i} 吸收}
+
+若写 $y_{it}=\beta_0+\alpha_i+x_{it}\T\beta+u_{it}$，则对任意常数 $c$，
+\[
+\beta_0+\alpha_i=(\beta_0+c)+(\alpha_i-c),
+\]
+$(\beta_0,\alpha_i)$ 与 $(\beta_0+c,\alpha_i-c)$ 给出完全相同的模型，$\beta_0$ 与 $\alpha_i$ 不能分别识别。可以理解为 $\alpha_i$ 已经“含有”截距：把 $\beta_0+\alpha_i$ 重新记作 $\alpha_i$。所以固定效应模型中\key{不单独写截距}。
+
+Stata 的 \texttt{xtreg, fe} 仍报告一个“\texttt{\_cons}”，它等于 $\bar y_{\cdot\cdot}-\bar x_{\cdot\cdot}\T\hat\beta$（$\bar y_{\cdot\cdot},\bar x_{\cdot\cdot}$ 为全样本均值），即各 $\hat\alpha_i$ 的平均，只是一种归一化。Hansen 第 17.16 节建议忽略它，只看斜率。
+
+\subsection{推广：从 \texorpdfstring{$\alpha_i$}{alpha\_i} 到交互固定效应 \texorpdfstring{$\alpha_{it}=\lambda_i'f_t$}{alpha\_it = lambda\_i' f\_t}}
+
+\subsubsection{完全自由的 \texorpdfstring{$\alpha_{it}$}{alpha\_it} 又不可识别}
+
+若允许个体效应随时间变化、写成完全自由的 $\alpha_{it}$，则参数有 $NT$ 个 $\alpha_{it}$ 加 $K$ 个 $\beta$，而观测只有 $NT$ 个——又回到“每个观测一个参数”的不可识别局面，与截面中个体效应不可识别的结论同理。
+
+\subsubsection{因子结构及其两个特例}
+
+可识别的折中是给 $\alpha_{it}$ 加结构：
+\[
+\alpha_{it}=\lambda_i\T f_t\qquad(\lambda_i:\ r\times1\ \text{个体载荷},\quad f_t:\ r\times1\ \text{共同因子}),
+\]
+称为\term{交互固定效应}{interactive fixed effects}或因子结构，参数个数约为 $r(N+T)$，远少于 $NT$。两个熟悉的模型都是它的特例：
+\begin{align*}
+r=1,\ \lambda_i=\alpha_i,\ f_t\equiv1:\quad \lambda_i\T f_t &= \alpha_i \why{单向个体效应}\\
+r=2,\ \lambda_i=(\alpha_i,1)\T,\ f_t=(1,\lambda_t)\T:\quad \lambda_i\T f_t &= \alpha_i\cdot1+1\cdot\lambda_t=\alpha_i+\lambda_t \why{双向效应}
+\end{align*}
+详见第 13--14 章。
+
+\subsection{图示：忽略 \texorpdfstring{$\alpha_i$}{alpha\_i} 时混合回归的斜率为何会反号}
+
+\subsubsection{例：三家企业的混合回归}
+
+\begin{exmp}[三家企业]\label{ex:U10a-3firms}
+设真实模型 $y_{it}=\alpha_i-x_{it}$（真斜率 $\beta=-1$，无噪声），三家企业各 3 期：
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+企业 & $\alpha_i$ & $x$ & $y$\\
+\midrule
+1 & 4 & $(1,2,3)$ & $(3,2,1)$\\
+2 & 8 & $(4,5,6)$ & $(4,3,2)$\\
+3 & 12 & $(7,8,9)$ & $(5,4,3)$\\
+\bottomrule
+\end{tabular}
+\end{center}
+$\alpha_i$ 越大的企业 $x$ 也越大（$\alpha_i$ 与 $x_{it}$ 正相关）。把 9 个点混在一起做 OLS，即\term{混合回归}{pooled regression}，求斜率；再与每家企业内部的斜率比较。
+
+\solution 全样本均值：$\bar x=45/9=5$，$\bar y=27/9=3$。离差：
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+企业 & $x-\bar x$ & $y-\bar y$ & $\sum(x-\bar x)(y-\bar y)$\\
+\midrule
+1 & $(-4,-3,-2)$ & $(0,-1,-2)$ & $0+3+4=7$\\
+2 & $(-1,0,1)$ & $(1,0,-1)$ & $-1+0-1=-2$\\
+3 & $(2,3,4)$ & $(2,1,0)$ & $4+3+0=7$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{align*}
+\textstyle\sum(x-\bar x)(y-\bar y) &= 7-2+7=12 \why{三家企业相加}\\
+\textstyle\sum(x-\bar x)^2 &= 16+9+4+1+0+1+4+9+16=60 \why{逐项平方}\\
+\text{混合 OLS 斜率} &= 12/60=0.2,\qquad \text{截距}=\bar y-0.2\bar x=2 \why{OLS 公式}
+\end{align*}
+拟合线 $\hat y=2+0.2x$，斜率为正，\key{符号反了}。而每家企业内部（以企业 1 为例，去均值后 $\dot x=(-1,0,1)$，$\dot y=(1,0,-1)$）斜率为 $\sum\dot x\dot y/\sum\dot x^2=-2/2=-1$，三家都是 $-1$。
+
+\begin{center}
+\begin{tikzpicture}[x=0.7cm,y=0.6cm,>={Stealth[length=2mm]}]
+\draw[->] (0,0) -- (10,0) node[right] {$x$};
+\draw[->] (0,0) -- (0,6) node[above] {$y$};
+\foreach \x in {1,...,9} \draw (\x,0.08) -- (\x,-0.08) node[below,font=\scriptsize] {\x};
+\foreach \y in {1,...,5} \draw (0.08,\y) -- (-0.08,\y) node[left,font=\scriptsize] {\y};
+\draw[thick,blue] (0.6,3.4) -- (3.4,0.6);
+\draw[thick,red] (3.6,4.4) -- (6.4,1.6);
+\draw[thick,ForestGreen] (6.6,5.4) -- (9.4,2.6);
+\foreach \p in {(1,3),(2,2),(3,1)} \fill[blue] \p circle (2pt);
+\foreach \p in {(4,4),(5,3),(6,2)} \fill[red] \p circle (2pt);
+\foreach \p in {(7,5),(8,4),(9,3)} \fill[ForestGreen] \p circle (2pt);
+\draw[dashed,thick] (0.5,2.1) -- (9.6,3.92) node[right,font=\small] {混合 OLS：斜率 $+0.2$};
+\node[blue,font=\small] at (1.6,3.9) {企业 1};
+\node[red,font=\small] at (4.6,4.9) {企业 2};
+\node[ForestGreen,font=\small] at (7.6,5.8) {企业 3};
+\end{tikzpicture}
+\end{center}
+组内估计只用每家企业内部的变异，恰好得到 $-1$。这就是 Hansen 图 17.1 所示的道理：混合回归的“正相关”完全来自 $x$ 与 $\alpha_i$ 的相关。
+\end{exmp}
+
+\subsubsection{混合 OLS 斜率的分解：偏误由 \texorpdfstring{$\Cov(x_{it},\alpha_i)$}{Cov(x,alpha)} 决定}
+
+上例的现象可以一般化。设单个回归元的模型 $y_{it}=\alpha_i+\beta x_{it}+u_{it}$，记全样本均值 $\bar x,\bar y,\bar\alpha,\bar u$（对全部 $NT$ 个观测平均）。混合 OLS 斜率 $b=\sum_{i,t}(x_{it}-\bar x)(y_{it}-\bar y)\big/\sum_{i,t}(x_{it}-\bar x)^2$。要证：$b$ 等于真斜率加上一个由 $\alpha_i$ 与 $x$ 的协方差决定的偏误项。
+\begin{align*}
+y_{it}-\bar y &= (\alpha_i-\bar\alpha)+\beta(x_{it}-\bar x)+(u_{it}-\bar u) \why{模型减去全样本均值}\\
+b &= \beta+\frac{\sum_{i,t}(x_{it}-\bar x)(\alpha_i-\bar\alpha)}{\sum_{i,t}(x_{it}-\bar x)^2}+\frac{\sum_{i,t}(x_{it}-\bar x)(u_{it}-\bar u)}{\sum_{i,t}(x_{it}-\bar x)^2} \why{代入 $b$ 的分子}
+\end{align*}
+若 $u_{it}$ 对 $x$ 外生，最后一项依概率收敛到 0；若 $x_{it}$ 的分布不随 $t$ 变，则
+\[
+\plim_{N\to\infty} b=\beta+\frac{\Cov(x_{it},\alpha_i)}{\Var(x_{it})}.
+\]
+偏误方向取决于 $\Cov(x_{it},\alpha_i)$ 的符号。验证上例：$\bar\alpha=8$，$\sum(x-\bar x)(\alpha_i-\bar\alpha)=(-9)(-4)+0\cdot0+9\cdot4=72$（括号内第一个数为各企业 $x-\bar x$ 之和），故 $b=-1+72/60=0.2$，与直接计算一致。
+
+\begin{prac}[混合回归的偏误方向]\label{pr:U10a-pooledbias}
+在上例（三家企业）中把企业 3 的 $\alpha_3$ 改为 $0$（其余不变）。先判断 $\alpha_i$ 与 $x$ 的相关方向，再计算混合 OLS 斜率，验证其小于 $-1$。
+\answer 企业 3 的 $y=\alpha_3-x=(-7,-8,-9)$。此时 $\alpha=(4,8,0)$，而企业平均 $x$ 为 $(2,5,8)$：$x$ 最大的企业 $\alpha$ 最小，$\alpha_i$ 与 $x$ 负相关。计算：
+\begin{align*}
+\bar x &= 5,\qquad \bar y=(3+2+1+4+3+2-7-8-9)/9=-1 \why{全样本均值}\\
+\text{企业 1：}&\ (-4)(4)+(-3)(3)+(-2)(2)=-29 \why{$y-\bar y=(4,3,2)$}\\
+\text{企业 2：}&\ (-1)(5)+0\cdot4+(1)(3)=-2 \why{$y-\bar y=(5,4,3)$}\\
+\text{企业 3：}&\ (2)(-6)+(3)(-7)+(4)(-8)=-65 \why{$y-\bar y=(-6,-7,-8)$}\\
+b &= (-29-2-65)/60=-96/60=-1.6<-1 \why{$\sum(x-\bar x)^2=60$ 不变}
+\end{align*}
+用分解式验证：$\bar\alpha=4$，$\sum(x-\bar x)(\alpha_i-\bar\alpha)=(-9)(0)+0\cdot 4+9\cdot(-4)=-36$，$b=-1-36/60=-1.6$。$\Cov(x_{it},\alpha_i)<0$，斜率被压低。
+\end{prac}
+
+\begin{english}
+The individual effect $\alpha_i$ captures time-invariant unobserved heterogeneity such as ability or preferences. In a cross-section, $y_i=\alpha_i+x_i'\beta+u_i$ has $N+K$ parameters but only $N$ observations, so $\alpha_i$ must be absorbed into the error; if $\alpha_i$ is correlated with $x_i$, OLS suffers from omitted-variable bias. With panel data, each $\alpha_i$ is observed $T\ge2$ times, so it can be eliminated by comparing observations on the same individual over time, without instruments. A common intercept is not separately identified from the $\alpha_i$.
+\end{english}
+
+%======================================================================
+\section{FE 与 RE：“模型”与“估计”的区别}\label{sec:U10a-fere}
+
+“固定效应”“随机效应”这两个词既用来指\key{模型}（关于数据生成过程的假设），也用来指\key{估计方法}。二者必须分清。
+
+\subsection{FE 模型与 RE 模型：由 \texorpdfstring{$\E(\alpha_i\mid x_{it})$}{E(alpha|x)} 决定}
+
+\begin{defn}[FE 模型与 RE 模型]\label{def:U10a-feremodel}
+在模型 \eqref{eq:U10a-static} 中：
+\begin{itemize}
+  \item \term{固定效应模型}{fixed effects model}（FE model）：$\E(\alpha_i\mid x_{it})\neq0$，即 $\alpha_i$ 可以与 $x_{it}$ \key{任意相关}；
+  \item \term{随机效应模型}{random effects model}（RE model）：$\E(\alpha_i\mid x_{it})=0$，即 $\alpha_i$ 对 $x_{it}$ 外生，可以当作误差的一部分（additional errors）。
+\end{itemize}
+\end{defn}
+
+\begin{note}[两种模型中 $\alpha_i$ 都是随机变量]
+“固定”与“随机”是历史遗留的叫法（Hansen 第 17.25 节）。FE 模型中的 $\alpha_i$ \key{并非}非随机常数；两种模型的真正区别只在于 $\alpha_i$ \key{是否与回归元相关}。严格地说，RE 模型要求 $\alpha_i$ 对所有期的回归元均值独立，$\E(\alpha_i\mid x_{i1},\dots,x_{iT})=0$（第 11 章）。
+\end{note}
+
+\subsection{FE 估计与 RE 估计：把 \texorpdfstring{$\alpha_i$}{alpha\_i} 当参数还是当误差}
+
+\begin{defn}[FE 估计与 RE 估计]\label{def:U10a-fereest}
+\begin{itemize}
+  \item \term{FE 估计}{FE estimation}：把 $\alpha_i$ 当作待估\key{参数}（或用变换消去），即 LSDV 或组内（WG）估计；
+  \item \term{RE 估计}{RE estimation}：把 $\alpha_i$ 当作\key{误差项}的一部分，复合误差 $v_{it}=\alpha_i+u_{it}$，用 GLS 估计（第 11 章）。
+\end{itemize}
+\end{defn}
+
+\subsection{先定模型、再选估计：模型与估计的对照}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & \textbf{Model}（取决于 $\alpha_i$ 与 $x_{it}$ 的关系） & \textbf{Estimation}（取决于如何处理 $\alpha_i$）\\
+\midrule
+FE & FE model：$\E(\alpha_i\mid x_{it})\neq0$ & FE estimation：WG（或 LSDV）\\
+RE & RE model：$\E(\alpha_i\mid x_{it})=0$ & RE estimation：GLS\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{FE / RE 的“模型”与“估计”}
+\end{center}
+
+原则：\key{Model first, estimation second}——先确定模型，再选估计方法。数据究竟服从 FE 模型还是 RE 模型，用 Hausman 检验判断（第 11 章）。
+
+\subsubsection{两种模型下 WG 与 GLS 的一致性}
+
+\begin{center}
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+估计量 & 在 FE 模型下（$\E(\alpha_i\mid x_{it})\neq0$） & 在 RE 模型下（$\E(\alpha_i\mid x_{it})=0$）\\
+\midrule
+WG（FE 估计） & 一致（$\alpha_i$ 被精确消去） & 一致，但不如 GLS 有效\\
+GLS（RE 估计） & \key{不一致}（$\alpha_i$ 留在误差中且与 $x_{it}$ 相关） & 一致且有效\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{两种估计在两种模型下的性质}
+\end{center}
+
+\begin{keypt}[“FE 模型”是否等于“FE 估计”]
+考试中若问 “Is the fixed effects model the same as fixed effects estimation?”，要答：\key{不同}。FE / RE \emph{model} 是关于数据生成过程的假设（$\alpha_i$ 是否与 $x_{it}$ 相关）；FE / RE \emph{estimation} 是估计方法（WG 还是 GLS）。WG 估计在两种模型下都一致；GLS 只在 RE 模型下一致。
+\end{keypt}
+
+\subsection{静态线性面板中 \texorpdfstring{$\beta$}{beta} 的三种估计方法}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLlL}
+\toprule
+方法 & 如何处理 $\alpha_i$ & Stata & 标准误\\
+\midrule
+(a) LSDV & 作为 $N$ 个虚拟变量的系数一并估计 & \texttt{reg y x i.id} & 需配 \texttt{vce(cluster id)}\\
+(b) FE / WG & 组内变换消去 & \texttt{xtreg y x, fe} & 默认为经典标准误，应加 \texttt{vce(cluster id)}\\
+(c) RE / GLS & 并入复合误差，GLS & \texttt{xtreg y x, re} & 默认为经典标准误，应加 \texttt{vce(cluster id)}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{$\beta$ 的三种估计方法}
+\end{center}
+
+实务结论：三种估计都应报告\key{按个体聚类的稳健标准误}（理由见本章方差估计一节）。(a) 与 (b) 给出完全相同的 $\hat\beta$（本章 FWL 一节证明）。本章讲 (a)(b) 及其在双向效应下的推广，第 11 章讲 (c)。
+
+\begin{prac}[模型还是估计]\label{pr:U10a-modelest}
+判断对错并说明理由：(1) FE 模型中 $\alpha_i$ 是非随机的常数；(2) 使用 \texttt{xtreg, re} 等于隐含地假设了 RE 模型；(3) 在 RE 模型下 WG 估计量不一致。
+\answer
+(1) 错。两种模型中 $\alpha_i$ 都是随机变量，区别只在于 $\E(\alpha_i\mid x_{it})$ 是否为零。
+(2) 对。RE 估计（GLS）只在 $\E(\alpha_i\mid x_{it})=0$ 时一致，使用它就要为这个假设负责（可用 Hausman 检验检查，第 11 章）。
+(3) 错。WG 把 $\alpha_i$ 消去，不依赖 $\alpha_i$ 与 $x_{it}$ 的关系，在两种模型下都一致；RE 模型下它只是不如 GLS 有效。
+\end{prac}
+
+\begin{english}
+The fixed effects (FE) model allows $\alpha_i$ to be arbitrarily correlated with $x_{it}$, i.e.\ $E(\alpha_i\mid x_{it})\neq0$, whereas the random effects (RE) model assumes $E(\alpha_i\mid x_{it})=0$; in both models $\alpha_i$ is random. FE estimation (LSDV or within-group) treats $\alpha_i$ as parameters to be estimated or eliminated, while RE estimation (GLS) treats $\alpha_i$ as part of the composite error $v_{it}=\alpha_i+u_{it}$. The within estimator is consistent under both models; GLS is consistent only under the RE model. The model must be specified first; the estimator is chosen second.
+\end{english}
+
