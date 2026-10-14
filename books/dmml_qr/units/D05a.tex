@@ -1,0 +1,251 @@
+\chapter{数据预处理、无监督学习、关联规则与经济金融应用}
+\noindent\key{本章速览}\quad 数据挖掘概述 → 预处理 → 距离与相似度 → 聚类 → 降维 → 关联规则 → 异常检测与推荐 → 经济金融应用。\key{记号}：数据矩阵 $X\in\R^{n\times p}$ \key{每行一个样本}（与 pandas／sklearn／计量一致，作答先声明）；$n$ 样本数，$p$ 属性数，$k$（$K$）簇数，$C_j$ 簇，$\mu_j$ 簇中心，$d(x,y)$ 距离。
+
+% ======================================================================
+\section{数据挖掘概述}
+
+\subsection{数据挖掘的定义：从大量数据中发现“有趣”的模式}
+\term{数据挖掘}{data mining}：从大量数据中发现有趣模式与知识的过程；“有趣”= \key{有效}（新数据上以一定确定性成立）、\key{新颖}（事先未知）、\key{潜在有用}（支持决策）、\key{最终可理解}（Fayyad 等 1996）。又称\term{数据库中的知识发现}{KDD}；严格说 KDD 是全过程，数据挖掘只是用算法提取模式的一步。计量关心参数与因果，数据挖掘关心模式与预测。
+
+\subsection{KDD 过程七步与 CRISP-DM 六阶段}
+\key{KDD 七步}（Han 等 2012）：数据清理 → 数据集成 → 数据选择 → 数据变换 → 数据挖掘 → 模式评估（兴趣度度量，如提升度）→ 知识表示（可视化）；\key{前四步统称数据预处理}，可返回迭代。Fayyad 原始五步：选择 → 预处理 → 变换 → 数据挖掘 → 解释／评估。
+\key{CRISP-DM}（跨行业数据挖掘标准流程，业界最常用）六阶段、可迭代：① \key{业务理解}（业务目标 → 挖掘目标，制定计划；提出研究问题）② \key{数据理解}（收集、描述统计、探索、质量检查；缺失率）③ \key{数据准备}（选择、清理、构造、集成、格式化，\key{最耗时}；合并库、缩尾、构造财务比率）④ \key{建模}（选算法、设计检验、调参；交叉验证）⑤ \key{评估}（对照业务目标、复查流程；样本外与稳健性检验）⑥ \key{部署}（上线、监控维护、报告）。\textbf{易错}：CRISP-DM 比 KDD 多首尾的\key{业务理解}与\key{部署}，以业务目标为导向。\key{SEMMA}（SAS：Sample, Explore, Modify, Model, Assess）大体对应其第 2–5 阶段。
+
+\subsection{数据挖掘任务分类：描述性任务与预测性任务}
+\term{预测性任务}{predictive task}（用其他属性预测目标属性）：\key{分类}（离散标签；Logistic、决策树、SVM、朴素贝叶斯；违约、ST、欺诈）、\key{回归}（连续；线性／岭／Lasso、树、神经网络；收益、GDP 增速）。\term{描述性任务}{descriptive task}（刻画相关、趋势、簇、异常）：\key{聚类}（k-means、层次、DBSCAN；客户分群）、\key{关联分析}（Apriori、FP-growth；交叉销售）、\key{异常检测}（3$\sigma$、LOF、孤立森林；欺诈交易）。另有特征化与区分、序列模式挖掘（开户→基金→保险）、演变分析。分类、回归为监督学习；聚类、关联、多数异常检测为无监督学习。
+
+\subsection{数据对象与属性类型：标称、二元、序数、数值（区间／比率标度）}
+数据对象（样本、元组、记录）由属性（特征、变量、维度）描述：
+\begin{itemize}
+\item \term{标称}{nominal}：无序类别，只能判 $=,\neq$，用众数（行业代码、省份）。
+\item \term{二元}{binary}：\key{对称}（两状态同等重要，性别）vs \key{非对称}（取 1 罕见且重要，违约／ST；“同为 0”不说明相似）。
+\item \term{序数}{ordinal}：有序但间距未知，再加 $<,>$，用众数、中位数、分位数（评级、学历、李克特量表）；求“平均评级”隐含等间距假设。
+\item \term{数值}{numeric}：\key{区间标度}（差值有意义、无真零点、比值无意义，再加 $+,-$ 可用均值：摄氏温度、日历年份）；\key{比率标度}（有真零点、比值有意义，再加 $\times,\div$，可用几何均值、变异系数：收入、资产、价格）。
+\end{itemize}
+前三类为定性（分类型），数值为定量；另一划分为离散（有限或可数无限）vs 连续。
+
+\subsection{数据集的类型与经济数据的对应}
+\key{记录数据}：数据矩阵（公司—财务指标）、\term{事务数据}{transaction data}（购物篮、持有产品集合）、文档—词矩阵（极稀疏）；\key{图数据}：社交、供应链、银行间拆借、董事连锁网络；\key{有序数据}：时间序列、序列（客户行为）、空间数据。截面／时间序列／面板 ↔ 数据矩阵／有序数据／数据矩阵 $\times$ 时间。三特性：\key{维度}（$p$ 大 → 维数灾难）、\key{稀疏性}、\key{分辨率}（日、月、年粒度呈现不同模式）。
+
+\subsection{数据仓库与 OLAP：四特征、三种模式、方体个数、五种 OLAP 操作}
+\begin{itemize}
+\item \term{数据仓库}{data warehouse}（Inmon）：\key{面向主题、集成、时变、非易失}，支持管理决策。\term{OLTP}{联机事务处理}：操作人员、当前细节数据、读写频繁、每次少量记录；\term{OLAP}{联机分析处理}：分析与管理者、历史汇总数据、只读为主、每次扫描大量记录。
+\item \term{数据立方体}{data cube} = 维（时间、地区、产品）+ 度量（销售额）。\term{星形模式}{star schema}：一张事实表 + 每维一张维表；\term{雪花模式}{snowflake schema}：维表再规范化（省空间、多次连接）；\term{事实星座}{fact constellation}：多张事实表共享维表。度量：\key{分布式}（count、sum、min、max，可分块合并）、\key{代数式}（avg、标准差）、\key{整体式}（中位数、众数）。
+\item \key{方体个数}：$n$ 维无概念分层 $2^n$；第 $i$ 维 $L_i$ 层（不含顶层 all）$\Rightarrow\prod_{i=1}^n(L_i+1)$（4、3、2 层 → $5\cdot4\cdot3=60$）。
+\item \key{OLAP 操作}：\term{上卷}{roll-up}（沿分层汇总：城市→省，或去掉一维）、\term{下钻}{drill-down}（逆操作：季度→月）、\term{切片}{slice}（\key{一个}维取定值）、\term{切块}{dice}（\key{两个及以上}维选定取值）、\term{转轴}{pivot}（旋转行列，不改数据）。立方体上挖掘称 OLAM。
+\end{itemize}
+
+\subsection{基本统计描述：集中趋势、离散程度与五数概括}
+\key{集中趋势}：均值、加权均值、\term{截尾均值}{trimmed mean}（去两端各 $\alpha\%$）、中位数、众数、\term{中列数}{midrange} $(\max+\min)/2$；右偏时均值 $>$ 中位数 $>$ 众数，经验式 均值 $-$ 众数 $\approx3$(均值 $-$ 中位数)。\key{离散程度}：极差、$\mathrm{IQR}=Q_3-Q_1$、方差（样本除以 $n-1$，总体除以 $n$）。\term{五数概括}{five-number summary} $(\min,Q_1,\text{中位数},Q_3,\max)$ = 箱线图；另有直方图、分位数图、Q-Q 图、散点图。pandas：\texttt{df.describe()}、\texttt{df.isna().mean()}（缺失率）、\texttt{df.skew()}。
+
+% ======================================================================
+\section{数据预处理}
+
+\subsection{为什么要预处理：数据质量六维度；预处理四大任务}
+“垃圾进，垃圾出”。\key{质量六维度}（Han 等）：准确性（录入错误、虚报）、完整性（缺失）、一致性（口径、编码、单位：万元与元混用）、时效性（年报 4 月底披露）、可信性、可解释性。\key{四大任务}：\term{数据清理}{data cleaning}（缺失、噪声、离群、不一致）、\term{数据集成}{data integration}（实体识别、冗余、重复、值冲突）、\term{数据规约}{data reduction}（维、数量、压缩）、\term{数据变换}{data transformation}（规范化、离散化、编码、属性构造、聚集）。预处理决定（缩尾比例、填补方式、样本筛选）应在论文中报告。
+
+\subsection{缺失机制：MCAR、MAR 与 MNAR}
+（Rubin 1976）\term{完全随机缺失}{MCAR}：缺失与任何变量（观测或缺失的）无关 → 删除只损失效率、无偏。\term{随机缺失}{MAR}：\key{给定观测变量后}缺失与缺失值本身无关（小公司少披露研发，给定规模后与研发大小无关）→ 可用观测变量建模插补。\term{非随机缺失}{MNAR}：缺失与缺失值本身有关（亏损公司不愿披露）→ 需对缺失机制建模（Heckman 选择模型）。
+
+\subsection{缺失值的七种处理方法；缺失指示变量；均值填充低估方差}
+(1) \key{删除元组}（列表删除；缺失多时损失信息，非 MCAR 时有选择偏差；缺失率高的属性整列删）；(2) \key{人工填写}（准确但不可扩展）；(3) \key{全局常量}（“Unknown”、$-999$，可能被当成有意义类别）；(4) \key{均值／中位数}（偏态用中位数，分类用众数）；(5) \key{同类均值}（同行业、同年度、同评级）；(6) \key{模型预测}（回归、KNN、树、随机森林：\texttt{KNNImputer}、\texttt{IterativeImputer}，利用属性间关系，通常最好）；(7) \term{多重插补}{multiple imputation}（抽 $M$ 次得 $M$ 个完整数据集，分别估计后按 Rubin 规则合并，标准误反映插补不确定性）。\key{缺失指示变量}：填充后加 0/1“是否缺失”列；XGBoost、LightGBM、\texttt{HistGradientBoosting} 可直接处理缺失。
+\textbf{易错}：(1) 均值填充\key{不改均值但压低方差}、削弱相关、使标准误偏小（$4,6,\text{NA},8,10,\text{NA}$：方差 $20/3=6.67$ → 填 7 后 $20/5=4.0$）；(2) 填充值只用训练集拟合（放进 \texttt{Pipeline}），否则\key{数据泄露}。
+
+\subsection{噪声数据与分箱平滑（箱均值、箱中位数、箱边界）}
+\term{噪声}{noise}：被测变量的随机误差或方差。平滑：(1) \term{分箱}{binning}——排序分箱后用\key{箱均值}、\key{箱中位数}或\key{箱边界}（换为离它最近的箱内最小／最大值）替换；(2) \key{回归}拟合值；(3) \key{离群点分析}（聚类）。示意：等频 $\{1,2,4\},\{5,6,9\},\{10,14,40\}$ → 均值 $2.33,6.67,21.33$；中位数 $2,6,14$；边界 $(1,1,4),(5,5,9),(10,10,40)$。中位数平滑更稳健。
+
+\subsection{\texorpdfstring{离群点识别：3$\sigma$ 法则、z-score、掩蔽效应与稳健 z}{离群点识别：3 sigma 法则、z-score、掩蔽效应与稳健 z}}
+正态下 $P(|x-\mu|>3\sigma)\approx0.27\%$；判据 $|z_i|>3$，$z_i=(x_i-\bar x)/s$（也用 2.5 或 2）。缺点：依赖近似正态；\term{掩蔽效应}{masking effect}（$\bar x,s$ 被离群点拉大而藏住它）。\key{上界}（Shiffler 1988）：$\max_i|z_i|\le(n-1)/\sqrt n$（$s$ 除以 $n-1$），$n=10$ 时 $2.85<3$，\key{$n\le10$ 时 3$\sigma$ 法则永远找不到离群点}。\key{稳健 z}：$M_i=0.6745(x_i-\text{中位数})/\mathrm{MAD}$，$\mathrm{MAD}=\text{中位数}\{|x_i-\text{中位数}|\}$，$|M_i|>3.5$ 为离群。
+
+\subsection{箱线图与 IQR 法：内限、外限与四分位数算法}
+内限 $[Q_1-1.5\,\mathrm{IQR},\,Q_3+1.5\,\mathrm{IQR}]$ 外为\key{温和}离群点，外限 $[Q_1-3\,\mathrm{IQR},\,Q_3+3\,\mathrm{IQR}]$ 外为\key{极端}离群点；须延伸到内限以内最远观测。基于分位数，不受极端值影响、不要求正态。\key{四分位数算法}：手算“中位数分半法”（下／上半部分的中位数；$n$ 奇数时两半不含中位数，Tukey 铰链则含）；numpy/pandas 默认线性插值（第 $q$ 分位数在排序后第 $(n-1)q$ 位，从 0 计）。作答写明方法。\key{结论}：均值—标准差法不稳健，中位数—分位数法稳健。
+
+\subsection{离群点的处理：删除、缩尾、截尾与变换}
+\key{删除／纠正}（确认为错误时）；\term{缩尾}{winsorization}：低于 $\alpha$ 分位数者替换为该分位数、高于 $1-\alpha$ 分位数者替换为该分位数，\key{样本量不变}（实证常用 1\%/99\%；Stata \texttt{winsor2}，Python \texttt{Series.clip(lo, hi)} 或 \texttt{mstats.winsorize(a, limits=[0.01, 0.01])}）；\term{截尾}{trimming}：删两端各 $\alpha$，\key{样本量减少}；\key{变换}：$\log(1+x)$ 压缩右尾。
+
+\subsection{数据变换（一）：标准化、归一化与规范化（五种公式）}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}p{6.5cm}L@{}}
+\toprule
+方法 & 公式 & 说明\\
+\midrule
+最小—最大（“归一化”）& $x'=\frac{x-\min}{\max-\min}(b-a)+a$，映射到 $[a,b]$ & 默认 $[0,1]$；极端值挤压正常值；\texttt{MinMaxScaler}\\
+z-score（“标准化”）& $x'=(x-\bar x)/s$ & 均值 0、标准差 1；\texttt{StandardScaler}\\
+小数定标 & $x'=x/10^j$，$j$ 为使 $\max|x'|<1$ 的最小整数 & $\max|x|=20\Rightarrow j=2$\\
+稳健标准化 & $x'=(x-\text{中位数})/\mathrm{IQR}$ & \texttt{RobustScaler}\\
+按行单位化 & $x_i'=x_i/\|x_i\|_2$ & \texttt{Normalizer}；之后欧氏与余弦等价\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错}：(1) 中文“标准化”多指 z-score、“归一化”多指 min-max，Han 的 normalization 泛指规范化，sklearn \texttt{Normalizer} 是按行单位化——写公式最保险；(2) \texttt{StandardScaler} 用总体标准差（除以 $n$），pandas \texttt{.std()} 默认除以 $n-1$；(3) 参数只从训练集算（训练 \texttt{fit\_transform}、测试 \texttt{transform}），测试集超出 $[0,1]$ 属正常。\key{需要规范化}：距离类（KNN、k-means、层次、DBSCAN）、梯度类（神经网络）、范数惩罚（岭、Lasso）、SVM、PCA；\key{不需要}：决策树及随机森林、梯度提升（阈值分裂，对单调变换不敏感）。
+
+\subsection{数据变换（二）：离散化（等宽、等频、聚类、有监督）与概念分层}
+\term{离散化}{discretization}：连续属性划为区间标签（降噪、易解释、满足原始 Apriori、ID3 等）；区间按层次组织即\term{概念分层}{concept hierarchy}。(1) \key{等宽} $w=(\max-\min)/B$：对离群点敏感、可能空箱（$1,\dots,40$ 分 3 箱各 7、1、1 个）；(2) \key{等频}：按分位数切，适合偏态；(3) \key{聚类}：一维 k-means；(4) \key{有监督}：基于熵（信息增益最大的切点）、ChiMerge（自底向上合并卡方值最小的相邻区间）。十分位组合排序即按截面分位数等频离散化。
+
+\subsection{数据变换（三）：分类变量编码（标签、独热、哑变量陷阱、目标编码）}
+\key{标签（序数）编码}（$0,\dots,K-1$）只适用于序数属性或树模型；\textbf{易错}：用于标称属性（行业）进线性模型或距离计算会引入虚假顺序与等间距。\key{独热编码}：$K$ 类 → $K$ 个 0/1 列（虚拟变量）。\key{哑变量陷阱}：带截距放入全部 $K$ 列，其和恒为 1 与截距共线，$X^\top X$ 不可逆 → 删一类作基准（\texttt{OneHotEncoder(drop='first')}、\texttt{pd.get\_dummies(drop\_first=True)}）；正则化与树模型通常保留 $K$ 列。\key{高基数}（城市、股票代码）：目标编码（类内目标均值，须折内计算防泄露）、频数编码、特征哈希。
+
+\subsection{数据集成的四个问题：实体识别、冗余、元组重复、值冲突}
+(1) \term{实体识别}{entity identification}：跨源匹配同一实体（更名与代码变更；CSMAR 与 Wind 字段不同；CCM 链接 CRSP 的 PERMNO 与 Compustat 的 GVKEY）；(2) \key{冗余}：可由他者导出或高度相关；(3) \key{元组重复}：\texttt{df.duplicated()}、\texttt{drop\_duplicates()}；(4) \key{值冲突}：单位、币种、会计口径（合并／母公司报表）、统计时点。
+
+\subsection{数值属性的冗余：相关系数与协方差}
+$r_{A,B}=\dfrac{\sum_{i}(a_i-\bar a)(b_i-\bar b)}{(n-1)s_As_B}=\dfrac{\Cov(A,B)}{s_As_B}\in[-1,1]$；$|r|\to1$ 高度冗余，删其一或 PCA 合并。\textbf{易错}：相关不等于因果；$r=0$ 不意味独立（$B=A^2$，$A$ 关于 0 对称）。
+
+\subsection{\texorpdfstring{标称属性的冗余：$\chi^2$ 独立性检验、$\phi$ 系数与 Cramér's V}{标称属性的冗余：卡方独立性检验、phi 系数与 Cramer's V}}
+$r\times c$ 列联表，观测频数 $o_{ij}$，$H_0$：两属性独立。
+\[\chi^2=\sum_{i=1}^r\sum_{j=1}^c\frac{(o_{ij}-e_{ij})^2}{e_{ij}},\qquad e_{ij}=\frac{(\text{第 }i\text{ 行合计})\times(\text{第 }j\text{ 列合计})}{n},\qquad \chi^2\overset{H_0}{\approx}\chi^2_{(r-1)(c-1)}.\]步骤：期望频数 → 统计量 → 自由度 → 比较临界值（$\chi^2_{0.05}(1)=3.841$，$\chi^2_{0.01}(1)=6.635$），大于则拒绝独立。强度：$\phi=\sqrt{\chi^2/n}$（$2\times2$），$V=\sqrt{\chi^2/[n(\min(r,c)-1)]}$。\textbf{易错}：有 $e_{ij}<5$ 时合并类别或用 Fisher 精确检验；大样本下弱关联也显著，需看 $\phi$／$V$；\texttt{chi2\_contingency} 对 $2\times2$ 默认 Yates 校正，对照手算设 \texttt{correction=False}。
+
+\subsection{数据规约：维规约、数量规约与数据压缩}
+\key{维规约}：特征提取（PCA、小波、因子分析）；特征选择／\term{属性子集选择}{attribute subset selection}——过滤法（方差、相关、卡方、互信息，与模型无关）、包裹法（逐步向前、逐步向后、RFE）、嵌入法（Lasso、决策树）；$2^p$ 个子集不能穷举 → 贪心逐步法。\key{数量规约}：参数方法（回归、对数线性模型参数代替数据）、非参数方法（直方图、聚类、抽样、立方体聚集：日度→月度）。\key{数据压缩}：无损／有损（小波、PCA 低秩近似）。
+
+\subsection{抽样：SRSWOR、SRSWR、簇抽样与分层抽样}
+\key{SRSWOR}（无放回简单随机）；\key{SRSWR}（有放回，Bootstrap 即此）；\key{簇抽样}（随机抽整簇：地区、页）；\key{分层抽样}（按行业或是否违约分层，层内随机；不平衡时保持类别比例：\texttt{stratify=y}、\texttt{StratifiedKFold}）；另有欠采样、过采样、SMOTE。
+
+\subsection{特征构造：比率、增长、滞后与滚动、交互、分组标准化；前视偏差}
+\key{比率}（ROA、杠杆率、账面市值比、Tobin's Q）；\key{变化}（差分、增长率、对数收益）；\key{滞后与滚动}（动量：过去 12 个月跳过最近 1 个月；60 个月滚动贝塔；\texttt{shift}、\texttt{rolling}）；\key{交互与多项式}（\texttt{PolynomialFeatures}；树和神经网络自动学交互）；\key{分组变换}（行业—年度去中位数 \texttt{groupby(...).transform('median')}；截面秩映射到 $[-1,1]$，Gu–Kelly–Xiu 2020）；\key{日期与文本}特征。\textbf{易错}：\term{前视偏差}{look-ahead bias}——A 股年报最晚次年 4 月 30 日披露，常滞后到次年 5 月后才使用。
+
+\subsection{pandas 与 sklearn 预处理代码模板（Pipeline 防泄露）}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+lo, hi = df['roa'].quantile([0.01, 0.99]); df['roa_w'] = df['roa'].clip(lo, hi)  # winsorize
+pd.cut(df['age'], bins=3); pd.qcut(df['mv'], q=10, labels=False)   # equal-width / equal-freq
+chi2, p, dof, exp = chi2_contingency(pd.crosstab(df['a'], df['b']), correction=False)
+num, cat = ['roa', 'lev', 'size'], ['industry', 'province']
+pre = ColumnTransformer([                                 # sklearn.compose
+  ('num', Pipeline([('imp', SimpleImputer(strategy='median')), ('sc', StandardScaler())]), num),
+  ('cat', Pipeline([('imp', SimpleImputer(strategy='most_frequent')),
+                    ('oh', OneHotEncoder(handle_unknown='ignore'))]), cat)])
+model = Pipeline([('pre', pre), ('clf', LogisticRegression(max_iter=1000))])
+cross_val_score(model, df[num + cat], df['default'], cv=5, scoring='roc_auc')  # fit per fold
+KBinsDiscretizer(n_bins=5, encode='ordinal', strategy='quantile')  # 'uniform'|'quantile'|'kmeans'
+from sklearn.experimental import enable_iterative_imputer  # needed before IterativeImputer
+\end{lstlisting}
+
+% ======================================================================
+\section{相似性与距离度量}
+
+\subsection{数据矩阵与相异性矩阵；距离度量的四条公理}
+\key{数据矩阵}（$n\times p$，对象—属性，二模）vs \term{相异性矩阵}{dissimilarity matrix}（$n\times n$ 存 $d(i,j)$，对称、对角为 0、只写下三角，单模；层次聚类、k-medoids 可直接输入）。\term{距离度量}{metric}四公理：非负 $d(x,y)\ge0$；同一性 $d(x,y)=0\iff x=y$；对称 $d(x,y)=d(y,x)$；三角不等式 $d(x,z)\le d(x,y)+d(y,z)$。互转：$\mathrm{sim}=1-d$（$d\in[0,1]$）或 $1/(1+d)$。\textbf{易错}：平方欧氏距离、余弦距离 $1-\cos$ 不满足三角不等式，不是严格度量。
+
+\subsection{数值属性：闵可夫斯基距离族（曼哈顿、欧氏、切比雪夫）}
+$d_h(x,y)=\big(\sum_{j=1}^p|x_j-y_j|^h\big)^{1/h}$（$h\ge1$）；$h=1$ 曼哈顿（城市街区）$\sum_j|x_j-y_j|$，$h=2$ 欧氏，$h\to\infty$ 切比雪夫（上确界）$\max_j|x_j-y_j|$。差 $(3,4,0)$ → $d_1=7,d_2=5,d_\infty=4$；一般 $d_\infty\le d_2\le d_1$；单位球依次为菱形、圆、正方形。曼哈顿对单维大偏差较不敏感（高维、有离群值）；欧氏旋转不变，是 k-means 默认。
+
+\subsection{标准化的必要性与马氏距离}
+量纲大的属性主导距离 → 先 z-score 标准化。属性相关时用\term{马氏距离}{Mahalanobis distance} $d_M(x,y)=\sqrt{(x-y)^\top S^{-1}(x-y)}$（$S$ 为样本协方差阵）：$S=I$ 即欧氏；$S$ 对角 = 各维除以标准差后的欧氏；非对角元还消除相关。$S=\diag(4,1)$、$x-y=(2,1)$：欧氏 $2.236$，马氏 $\sqrt{4/4+1}=1.414$。也用于多元离群点检测与匹配。
+
+\subsection{二元属性：简单匹配系数（SMC）与 Jaccard 系数}
+$q$ = 同为 1，$r$ = $x$ 为 1 而 $y$ 为 0，$s$ = $x$ 为 0 而 $y$ 为 1，$t$ = 同为 0，$q+r+s+t=p$。\key{对称二元}：$d=\frac{r+s}{q+r+s+t}$，$\mathrm{SMC}=\frac{q+t}{p}$。\key{非对称二元}（同为 0 无信息）：$d=\frac{r+s}{q+r+s}$，$\text{Jaccard}=\frac{q}{q+r+s}=\frac{|A\cap B|}{|A\cup B|}$。示意 $q=2,r=1,s=1,t=3$：SMC $=5/7$，Jaccard $=2/4$。购物篮、持仓等稀疏数据用 Jaccard。
+
+\subsection{标称属性、序数属性与混合类型属性（Gower 距离）}
+\key{标称}：$d(i,j)=(p-m)/p$（$m$ 为取值相同的属性数），或独热后按二元处理。\key{序数}：$M_f$ 个状态 → 秩 $r\in\{1,\dots,M_f\}$ → $z=\frac{r-1}{M_f-1}$ 再按数值处理（BBB、A、AA、AAA → $0,\frac13,\frac23,1$）。\key{混合（Gower）}：$d(i,j)=\frac{\sum_f\delta_{ij}^{(f)}d_{ij}^{(f)}}{\sum_f\delta_{ij}^{(f)}}$，数值 $d_{ij}^{(f)}=\frac{|x_{if}-x_{jf}|}{\max_f-\min_f}$，标称同 0 异 1，序数先转 $z$；$\delta_{ij}^{(f)}=0$ 表示该属性缺失或为非对称二元的“同为 0”（不参与），否则为 1。
+
+\subsection{余弦相似度、相关系数与距离选择}
+\term{余弦相似度}{cosine similarity} $\cos(x,y)=\frac{x^\top y}{\|x\|\,\|y\|}\in[-1,1]$（非负数据 $\in[0,1]$），只看方向不看长度，适合文本（$(3,0,2,1)$ 与 $(1,1,1,0)$：$5/\sqrt{42}=0.772$）。\key{Pearson 相关 = 中心化后的余弦}（消除“打分普遍偏高”）。单位化后 $\|x-y\|^2=2-2\cos(x,y)$，欧氏与余弦排序相同。
+\key{选择}：量纲不同的数值 → 标准化后欧氏／曼哈顿（相关则马氏）；对称二元 → SMC；非对称二元、集合 → Jaccard；标称 → 不匹配率；序数 → 秩规范化；混合 → Gower；文本、高维稀疏 → 余弦；时间序列走势 → $1-r$ 或 DTW。
+代码：\texttt{scipy.spatial.distance} 的 \texttt{cityblock}、\texttt{euclidean}、\texttt{chebyshev}、\texttt{minkowski(u, v, p)}、\texttt{mahalanobis(u, v, VI)}（\texttt{VI} 为协方差逆）、\texttt{jaccard}、\texttt{cosine}（返回 $1-\cos$），\texttt{pdist}／\texttt{squareform}；sklearn \texttt{pairwise\_distances}、\texttt{cosine\_similarity}。
+
+% ======================================================================
+\section{聚类分析}
+
+\subsection{聚类的定义与应用；聚类方法的分类}
+\term{聚类}{clustering}：无标签地把对象划为若干\term{簇}{cluster}，簇内相似（紧致）、簇间相异（分离），属\key{无监督学习}；分类有标签，聚类的簇需事后解释命名。应用：客户分群、股票按收益相关分组、地区分组；作离散化、异常检测、数量规约的预处理。\key{五类方法}：\key{划分}（给定 $k$ 迭代改进目标：k-means、k-medoids）、\key{层次}（合并或分裂得树状图：AGNES、DIANA、BIRCH）、\key{密度}（高密度区被低密度区分开，任意形状：DBSCAN、OPTICS）、\key{网格}（空间量化为网格单元，快：STING、CLIQUE）、\key{模型}（概率分布混合：GMM）。\key{硬聚类}（k-means）vs \key{软聚类}（GMM 给概率）。
+
+\subsection{k-means：目标函数 SSE 与 Lloyd 算法（分配步、更新步）}
+$\min\ \mathrm{SSE}=\sum_{j=1}^k\sum_{x_i\in C_j}\|x_i-\mu_j\|^2$（簇内平方和 WCSS，sklearn \texttt{inertia\_}）；精确求解 NP 难。\key{Lloyd}：(1) 初始化 $k$ 个中心（随机样本或 k-means++）；(2) \key{分配步} $c_i=\argmin_j\|x_i-\mu_j\|^2$；(3) \key{更新步} $\mu_j=\frac1{|C_j|}\sum_{x_i\in C_j}x_i$；(4) 重复至分配不变（或中心移动小于阈值、达最大迭代）。手算：每轮列到各中心的距离表 → 分配 → 新中心 → SSE；一维时以两中心\key{中点}为分界。
+
+\subsection{为什么 SSE 单调下降并在有限步内收敛（坐标下降）}
+分配步：中心固定，每点选最近中心，SSE 不增。更新步：分配固定时
+\begin{align*}
+\tfrac{\partial}{\partial\mu_j}\textstyle\sum_{x_i\in C_j}\|x_i-\mu_j\|^2=\sum_{x_i\in C_j}-2(x_i-\mu_j)=0\ \Longrightarrow\ \mu_j=\frac1{|C_j|}\sum_{x_i\in C_j}x_i \why{凸二次，一阶条件即最小}
+\end{align*}
+故 SSE 不增；SSE $\ge0$、划分数有限（$\le k^n$）、不重复访问划分 → \key{有限步收敛，但只到局部最优}，依赖初值。
+
+\subsection{k-means 的复杂度与优缺点}
+每轮 $O(nkp)$，共 $O(nkpt)$，可扩展（Mini-batch）。\key{优点}：简单、快、中心易解释，球形且大小相近的簇效果好。\key{缺点}：(1) 须预设 $k$；(2) 对初值敏感、局部最优（多次初始化取 SSE 最小，\texttt{n\_init}）；(3) 对离群点敏感（均值被拉偏）；(4) 只适合凸、球形、大小与密度相近的簇（不能识别环形、月牙形）；(5) 只用于数值数据（类别用 k-modes）；(6) 依赖量纲，须先标准化。
+
+\subsection{\texorpdfstring{k-means++：按 $D(x)^2$ 概率选择初始中心}{k-means++：按 D(x)\^{}2 概率选择初始中心}}
+(1) 均匀随机选第一个中心；(2) 算各点 $D(x)$ = 到已选中心中最近者的距离；(3) 以概率 $D(x)^2/\sum_{x'}D(x')^2$ 选下一个（越远越可能；已选中心概率 0）；(4) 重复至 $k$ 个再跑 k-means。期望 SSE $\le O(\log k)\times$ 最优（Arthur–Vassilvitskii 2007）；sklearn 默认 \texttt{init='k-means++'}。
+
+\subsection{选择 k：肘部法、间隔统计量与其他准则}
+\key{肘部法}：画 SSE–$k$ 曲线，SSE 随 $k$ 单调降（$k=n$ 为 0），\key{不能直接最小化 SSE}，取下降明显变缓的拐点（如 $91.5\to17.0\to8.0\to3.5$，肘部 $k=2$）；拐点可能不明显。\key{间隔统计量}（gap statistic，Tibshirani 等 2001）：真实数据与均匀参考数据 $\log\mathrm{SSE}_k$ 之差最大处。另有平均轮廓系数最大、CH 最大、DB 最小、GMM 用 BIC、业务需要（只能执行 4 套方案就分 4 类）。
+
+\subsection{轮廓系数：定义、判读与手算}
+$i\in C_A$：$a(i)$ = 到本簇\key{其他}样本的平均距离；$b(i)=\min_{B\neq A}$（到簇 $C_B$ 全部样本的平均距离）；
+\[s(i)=\frac{b(i)-a(i)}{\max\{a(i),b(i)\}}\in[-1,1],\qquad \text{单点簇约定 }s(i)=0.\]$s\to1$ 归属合理，$s\approx0$ 在边界，$s<0$ 可能分错；取平均轮廓系数最大的 $k$。手算：用欧氏距离（非平方）求平均，分母取较大者（$a=3.256,b=4.060\Rightarrow s=0.198$）。
+
+\subsection{k-medoids（PAM）：用代表对象代替均值}
+以真实对象\term{中心点}{medoid} $o_j$ 代表簇，最小化 $E=\sum_j\sum_{x_i\in C_j}d(x_i,o_j)$（距离和而非平方和）。\key{PAM}：(1) 任选 $k$ 个中心点；(2) 各对象归最近中心点；(3) 对每对（中心点 $o_j$，非中心点 $o_h$）算替换后代价变化 $\Delta E$，最小 $\Delta E<0$ 则交换；(4) 至无可降代价的交换。一维中心点即中位数（$\{1,2,3,4,20\}$：均值 6，中心点 3）。优点：抗离群点、可用任意距离或仅距离矩阵、中心点是真实对象；缺点：每轮 $O(k(n-k)^2)$ → CLARA（抽样上跑 PAM）、CLARANS（随机搜索）。类别数据用 k-modes（众数中心、不匹配数距离）。
+
+\subsection{层次聚类：凝聚式（AGNES）与分裂式（DIANA）；凝聚算法步骤}
+\term{层次聚类}{hierarchical clustering}得嵌套簇序列与\term{树状图}{dendrogram}（纵轴为合并高度）；\key{凝聚式}自底向上（每对象一簇，每步合并最近两簇），\key{分裂式}自顶向下。横切一刀，切断的竖线数即簇数，\key{不需预设 $k$}。\key{凝聚算法}：(1) 算 $n\times n$ 距离矩阵；(2) 合并最近两簇，记高度；(3) 按链接准则更新新簇到其他簇的距离（矩阵减一行一列）；(4) 至一簇。朴素 $O(n^3)$ 时间、$O(n^2)$ 空间；合并不可撤销（贪心）。示意 $d(a,c)=3,d(b,c)=2$：单链接 $d(ab,c)=2$，全链接 $3$，平均链接按\key{原始点对}平均为 $2.5$。\textbf{易错}：树状图纵轴必须标合并高度。
+
+\subsection{簇间距离：单链接、全链接、平均链接、质心链接与 Ward 法}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.4cm}p{5.6cm}L@{}}
+\toprule
+链接 & 簇间距离 & 特点\\
+\midrule
+单链接（最近邻）& $\min_{p\in C_i,q\in C_j}d(p,q)$ & \term{链式效应}{chaining effect}、细长簇；能识别非球形；对噪声敏感；合并高度 = 最小生成树边权\\
+全链接（最远邻）& $\max_{p\in C_i,q\in C_j}d(p,q)$ & 紧凑、直径小（高度 = 新簇直径）；对离群点敏感\\
+平均链接 & $\frac1{|C_i||C_j|}\sum_{p\in C_i}\sum_{q\in C_j}d(p,q)$ & 居中\\
+质心链接 & $d(\mu_i,\mu_j)$ & \\
+Ward 法 & SSE 增量最小：$\frac{|C_i||C_j|}{|C_i|+|C_j|}\|\mu_i-\mu_j\|^2$ & 同 k-means 目标，大小相近球形簇；sklearn 默认\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{BIRCH：聚类特征 CF 与 CF 树}
+一遍扫描，子簇压缩为\term{聚类特征}{clustering feature} $\mathrm{CF}=\langle n,LS=\sum_ix_i,SS=\sum_i\|x_i\|^2\rangle$；\key{可加}：$\mathrm{CF}_1+\mathrm{CF}_2=\langle n_1+n_2,LS_1+LS_2,SS_1+SS_2\rangle$；质心 $LS/n$，半径 $R=\sqrt{SS/n-\|LS/n\|^2}$（$\{(1,2),(2,4),(3,3)\}$：$\langle3,(6,9),43\rangle$，$R=1.155$）。\key{CF 树}：高度平衡，分支因子 $B$、阈值 $T$（叶子子簇最大半径／直径）；阶段 1 插入最近叶子子簇，超 $T$ 新建、溢出分裂；阶段 2 对叶子子簇跑 k-means 或凝聚聚类。$O(n)$、内存可控；只适合球形簇、受输入顺序影响。
+
+\subsection{DBSCAN：核心点、边界点、噪声点与密度可达}
+参数 $\varepsilon$（\texttt{eps}）、MinPts（\texttt{min\_samples}）。$N_\varepsilon(x)=\{y:d(x,y)\le\varepsilon\}$（\key{含自身}，sklearn 同；有的教材不含，作答写明）。\key{核心点} $|N_\varepsilon(x)|\ge$ MinPts；\key{边界点}：非核心但在某核心点邻域内；\key{噪声点}：二者皆非。\key{直接密度可达}：$p$ 核心且 $q\in N_\varepsilon(p)$；\key{密度可达}：链 $p=p_1,\dots,p_m=q$ 逐个直接密度可达（除末点外皆核心），\key{不对称}；\key{密度相连}：存在 $o$ 使 $p,q$ 都从 $o$ 密度可达，\key{对称}。\key{簇}：任两点密度相连、对密度可达封闭的最大点集。
+\textbf{易错}：边界点不传递密度——紧挨边界点但不在任何核心点邻域内的点是噪声；两个边界点可同簇；$\varepsilon$ 不变增大 MinPts，核心点只减、噪声只增。
+
+\subsection{DBSCAN 算法步骤、参数选择（k-距离图）与优缺点}
+(1) 全部标未访问，任取未访问点 $p$、求 $N_\varepsilon(p)$；(2) 非核心 → 暂标噪声（可能后被吸收为边界点）；(3) 核心 → 新建簇，邻域点入候选集，逐个加入当前簇，遇核心点则把其邻域并入候选集（扩张）；(4) 至全部访问。空间索引下平均 $O(n\log n)$，最坏 $O(n^2)$。\key{参数}：MinPts $\ge p+1$，常取约 $2p$；$\varepsilon$ 取 \key{k-距离图}（各点到第 $k=\text{MinPts}-1$ 近邻距离升序作图）由平缓转急升的拐点。\key{优点}：不需 $k$、任意形状、自动识别噪声。\key{缺点}：对参数敏感；密度不均时单一 $\varepsilon$ 难兼顾（OPTICS、HDBSCAN）；高维距离区分度下降；邻近两簇的边界点归属依访问顺序。
+
+\subsection{高斯混合模型（GMM）与 EM：模型、E 步、M 步}
+$p(x)=\sum_{k=1}^K\pi_kN(x\mid\mu_k,\Sigma_k)$，$\pi_k\ge0,\sum_k\pi_k=1$；隐变量 $z_i$ 先按 $\pi_k$ 选成分；$\ell(\theta)=\sum_i\log\sum_k\pi_kN(x_i\mid\mu_k,\Sigma_k)$ “对数里有求和”无闭式解 → \term{EM 算法}{expectation-maximization}：
+\begin{itemize}
+\item \key{E 步}（责任度，软分配）：$\gamma_{ik}=P(z_i=k\mid x_i)=\dfrac{\pi_kN(x_i\mid\mu_k,\Sigma_k)}{\sum_{l=1}^K\pi_lN(x_i\mid\mu_l,\Sigma_l)}$。
+\item \key{M 步}（加权 MLE）：$N_k=\sum_i\gamma_{ik}$，$\mu_k=\frac1{N_k}\sum_i\gamma_{ik}x_i$，$\Sigma_k=\frac1{N_k}\sum_i\gamma_{ik}(x_i-\mu_k)(x_i-\mu_k)^\top$，$\pi_k=N_k/n$；迭代至对数似然变化小于阈值。
+\item \key{原理}：Jensen 得 $\log p(x\mid\theta)\ge\E_q[\log p(x,z\mid\theta)]-\E_q[\log q(z)]$；E 步取 $q=p(z\mid x,\theta^{(t)})$ 使下界取等，M 步最大化 $Q(\theta,\theta^{(t)})=\E_{z\mid x,\theta^{(t)}}[\log p(x,z\mid\theta)]$ → 似然\key{单调不减}，只到局部极大（或鞍点），常用 k-means 结果初始化。
+\end{itemize}
+
+\subsection{GMM 与 k-means 的关系}
+$\Sigma_k=\sigma^2I$、$\pi_k$ 相等且 $\sigma\to0$ 时 $\gamma_{ik}\to0/1$，E 步 → 分配步、M 步 → 更新步：\key{k-means 是 GMM 的硬分配极限}。GMM 优势：软聚类、椭圆且大小不同的簇、BIC 选 $K$；代价：参数多、慢、可能退化（某成分只盖一点，方差 $\to0$、似然 $\to\infty$，\texttt{reg\_covar} 正则）。
+
+\subsection{聚类趋势：Hopkins 统计量}
+空间内均匀抽 $m$ 点，到数据集最近邻距离 $x_1,\dots,x_m$；数据集中随机抽 $m$ 个样本，到\key{其他}样本最近邻距离 $y_1,\dots,y_m$；$H=\frac{\sum_iy_i}{\sum_ix_i+\sum_iy_i}$：均匀 $H\approx0.5$，高度聚集 $H\to0$（Han 等）。\textbf{易错}：有的软件分子用 $\sum x_i$，则 $H\to1$ 表示有簇结构。
+
+\subsection{外部指标（有真实标签）：纯度、Rand 指数、ARI、NMI}
+\key{纯度}：各簇最多真实类别个数之和 $/n$（簇越多越高）。\key{Rand 指数}：在 $\binom n2$ 对中，$a$ 同类同簇、$b$ 异类异簇、$c$ 同类异簇、$d$ 异类同簇，$\mathrm{RI}=\frac{a+b}{a+b+c+d}$。\key{ARI} $=\frac{\mathrm{RI}-\E[\mathrm{RI}]}{\max\mathrm{RI}-\E[\mathrm{RI}]}$：随机约 0、完全一致 1、可为负（RI 因异类异簇对多而偏高）。\key{NMI}：互信息除以熵的某种平均，$\in[0,1]$。
+
+\subsection{内部指标（无真实标签）：SSE、轮廓系数、DB 指数、CH 指数}
+SSE（越小越好，但随 $k$ 单调降）；平均轮廓系数（越大越好）；$\mathrm{DB}=\frac1k\sum_i\max_{j\neq i}\frac{s_i+s_j}{d(\mu_i,\mu_j)}$（$s_i$ 为簇内样本到中心平均距离，\key{越小越好}）；$\mathrm{CH}=\frac{\tr(B_k)/(k-1)}{\tr(W_k)/(n-k)}$（簇间／簇内离差矩阵，类似 $F$ 统计量，\key{越大越好}）。
+
+\subsection{聚类方法对比与 sklearn／scipy 调用}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}p{2.2cm}p{2.4cm}p{3.3cm}L@{}}
+\toprule
+方法 & 需指定 $k$ & 噪声／离群点 & 簇形状 & 主要缺点\\
+\midrule
+k-means & 是 & 敏感 & 凸、球形、大小相近 & 依赖初值，局部最优\\
+k-medoids & 是 & 较稳健 & 凸 & 计算量大\\
+层次聚类 & 否（切树）& 单／全链接敏感 & 视链接方式 & $O(n^2)$ 内存，不可撤销\\
+DBSCAN & 否 & 自动识别 & 任意形状 & 参数敏感，密度不均难\\
+GMM & 是（BIC）& 敏感 & 椭圆，大小可不同 & 参数多，可能退化\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+Xs = StandardScaler().fit_transform(X)
+km = KMeans(n_clusters=k, init='k-means++', n_init=10, random_state=0).fit(Xs)
+km.inertia_, silhouette_score(Xs, km.labels_)          # elbow + silhouette, loop over k
+Z = linkage(Xs, method='single'); fcluster(Z, t=2, criterion='maxclust'); dendrogram(Z)
+AgglomerativeClustering(n_clusters=2, linkage='average', metric='euclidean').fit(Xs)
+DBSCAN(eps=0.5, min_samples=4).fit(Xs).labels_            # -1 = noise
+gmm = GaussianMixture(n_components=2, covariance_type='full').fit(Xs)
+gmm.predict_proba(Xs); gmm.bic(Xs)                         # soft labels; BIC to choose K
+adjusted_rand_score(y, lab); normalized_mutual_info_score(y, lab); davies_bouldin_score(Xs, lab)
+\end{lstlisting}
+\texttt{linkage} 来自 \texttt{scipy.cluster.hierarchy}（方法 \texttt{'complete'}、\texttt{'average'}、\texttt{'ward'}）；\texttt{AgglomerativeClustering} 的距离参数名为 \texttt{metric}（旧名 \texttt{affinity} 已移除），预计算距离用 \texttt{'precomputed'}（不能配 \texttt{ward}）；另有 \texttt{calinski\_\allowbreak harabasz\_\allowbreak score}、\texttt{rand\_score}、\texttt{Birch}；k-medoids 用 scikit-learn-extra 的 \texttt{KMedoids(method='pam')}。

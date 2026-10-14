@@ -1,0 +1,1182 @@
+\chapter{合成控制、面板数据法与矩阵补全}
+\label{ch:U16-scm}
+% 盒内编号引用：令 \label 取盒子自身的编号
+\providecommand{\UXVIlabel}[1]{\expandafter\def\csname @currentlabel\endcsname{\thetcbcounter}\label{#1}}
+
+第 15 章的 DiD 估计\key{平均}处理效应，依赖处理单位足够多与平行趋势。当只有一个（或极少数）单位受处理——一个省的改革、一个国家的政策——平均失去意义，平行趋势也常不可信。本章讲三种估计\key{个体}处理效应的方法：合成控制法（SCM）、面板数据法（PDA，又称回归控制法 RCM）与矩阵补全（MC）。三者都以第 13 章的因子模型描述无处理结果，都把处理效应看成“插补缺失的 $y(0)$”：SCM 用控制单位的凸组合，PDA 用控制单位的无约束线性组合，MC 用估计出的因子乘载荷。学习路线：设定与因子模型 → SCM（推导、估计、三个问题、安慰剂推断）→ PDA → 两者比较 → 矩阵补全 → SUTVA 与处理效应方法总表。交互固定效应见第 14 章；Hansen 教材不讲本章内容。
+
+%======================================================================
+\section{从平均处理效应到个体处理效应}\label{sec:U16-ite}
+
+\subsection{DiD 估计平均效应，SCM/PDA/MC 估计个体效应}
+
+\subsubsection{DiD 的对象：处理组的平均处理效应}
+
+第 15 章的 DiD/TWFE 估计的是\term{处理组平均处理效应}{average treatment effect on the treated, ATT}：把处理组内各单位的效应求平均。它需要处理单位足够多（$N_1\to\infty$），推断依靠按单位聚类的标准误。
+
+\subsubsection{只有一个处理单位：转向个体处理效应}
+
+政策评估中常见的情形是只有一个处理单位（一个省、一个国家）。此时“对处理组求平均”只是对一个单位求平均，聚类标准误也无从谈起。于是目标改为估计这个单位的\term{个体处理效应}{individual treatment effect}：它在每个处理后时期 $t$ 的效应 $\Delta_t$。合成控制法（SCM）与面板数据法（PDA，又称回归控制法 RCM）都估计个体效应；矩阵补全（MC）更进一步，估计每个处理单元格 $(i,t)$ 的效应 $\Delta_{it}$。个体效应的点估计并不难，难点在于\key{推断}，这是本章反复出现的主题。
+
+\subsubsection{两类方法的对照}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & DiD / TWFE（第 15 章） & SCM / PDA / MC（本章）\\
+\midrule
+估计目标 & ATT：对处理组求平均 & 单个处理单位的逐期效应 $\Delta_t$（MC：每个单元格 $\Delta_{it}$）\\
+数据要求 & 处理单位多（$N_1\to\infty$） & 处理前期长（$T_0$ 大），控制单位与处理单位足够“像”\\
+无处理结果模型 & $\alpha_i+\lambda_t$（双向固定效应） & 因子模型 $\lambda_i\T f_t$\\
+识别假设 & 平行趋势 & 处理单位的载荷可由控制单位表示\\
+推断 & 聚类标准误（$N$ 大） & 安慰剂检验 / bootstrap / 大 $T_0$ 渐近\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{平均处理效应方法与个体处理效应方法}\label{tab:U16-did-vs-scm}
+\end{center}
+
+\subsection{设定与记号：一个处理单位，处理前 \texorpdfstring{$1\sim T_0$}{1 to T0}，处理后 \texorpdfstring{$T_0+1\sim T$}{T0+1 to T}}
+
+\subsubsection{处理单位、捐赠池与处理前后时期}
+
+\begin{defn}[个体处理效应的设定]\UXVIlabel{def:U16-setup}
+共有 $N$ 个单位、$T$ 个时期。单位 $i=1$ 是唯一的处理单位；$j=2,\dots,N$ 是 $N-1$ 个控制单位，合称\term{捐赠池}{donor pool}。$t=1,\dots,T_0$ 为处理前，政策在 $T_0$ 之后生效，$t=T_0+1,\dots,T$ 为处理后，处理后期数记 $T_1=T-T_0$。记 $y_{it}(1)$、$y_{it}(0)$ 为有处理、无处理时的\term{潜在结果}{potential outcome}。处理单位第 $t$ 期的个体处理效应为
+\begin{equation}\label{eq:U16-delta}
+\Delta_t=y_{1t}(1)-y_{1t}(0)=\underbrace{y_{1t}}_{\text{可观测}}-\underbrace{y_{1t}(0)}_{\text{缺失}},\qquad t=T_0+1,\dots,T.
+\end{equation}
+\end{defn}
+
+\subsubsection{个体处理效应 = 可观测的结果 $-$ 缺失的反事实}
+
+处理后，处理单位的观测值就是 $y_{1t}=y_{1t}(1)$，它“受政策影响”（affected by policy）；而 $y_{1t}(0)$——如果没有政策会怎样——永远观测不到，称为\term{反事实}{counterfactual}。所以估计 $\Delta_t$ 就是\key{估计（插补）缺失的 $y_{1t}(0)$}：
+\[
+\hat\Delta_t=y_{1t}-\hat y_{1t}(0).
+\]
+处理前（$t\le T_0$）处理单位尚未受处理，$y_{1t}=y_{1t}(0)$ 可观测；控制单位在全部时期都有 $y_{jt}=y_{jt}(0)$（这需要 SUTVA，见本章 SUTVA 一节）。
+
+\subsubsection{另一种计数：1 个处理单位加 \texorpdfstring{$N$}{N} 个控制单位}
+
+\begin{note}[两种计数方式]
+也常见“$1+N$”的写法：1 个处理单位加 $N$ 个控制单位，共 $N+1$ 个单位。本书统一用定义~\ref{def:U16-setup} 的写法：$i=1,\dots,N$，第 1 个为处理单位，控制单位共 $N-1$ 个。因此下文 PDA 的秩条件写作 $N-1>r$；若改用“$1+N$”写法，相应写作 $N>r$，推导完全相同。
+\end{note}
+
+\subsection{无处理时的因子模型；TWFE 是其特例}
+
+\subsubsection{模型设定：\texorpdfstring{$y_{it}(0)=\lambda_i'f_t+u_{it}$}{y\_it(0) = lambda\_i' f\_t + u\_it}}
+
+三种方法都假设：在没有处理时（in the absence of treatment），所有单位、所有时期的结果服从因子模型（第 13 章）
+\begin{equation}\label{eq:U16-factor}
+y_{it}(0)=\lambda_i\T f_t+u_{it},\qquad \E(u_{it})=0,\qquad i=1,\dots,N,\ t=1,\dots,T,
+\end{equation}
+其中 $f_t$ 为 $r\times 1$ 的\term{共同因子}{common factor}（宏观冲击），$\lambda_i$ 为 $r\times1$ 的\term{因子载荷}{factor loading}（单位 $i$ 对各共同冲击的敏感度），$u_{it}$ 为特异误差。为简洁起见，本章略去协变量 $x_{it}$。
+
+\subsubsection{TWFE 是因子模型的特例：\texorpdfstring{$\lambda_i=(\alpha_i,1)'$}{lambda\_i=(alpha\_i,1)'}、\texorpdfstring{$f_t=(1,\lambda_t)'$}{f\_t=(1,lambda\_t)'}}
+
+要说明：双向固定效应模型 $y_{it}(0)=\alpha_i+\lambda_t+u_{it}$ 是 $r=2$ 的因子模型。这里 $\lambda_t$ 是第 15 章的（标量）时间效应，不要与载荷向量 $\lambda_i$ 混淆。取 $\lambda_i=(\alpha_i,1)\T$、$f_t=(1,\lambda_t)\T$：
+\begin{align*}
+\lambda_i\T f_t &= (\alpha_i,\ 1)\begin{pmatrix}1\\ \lambda_t\end{pmatrix} \why{代入两向量}\\
+&= \alpha_i\cdot 1+1\cdot\lambda_t \why{内积展开}\\
+&= \alpha_i+\lambda_t. \why{化简}
+\end{align*}
+载荷的第二个分量对所有单位都等于 1：在 TWFE 中，所有单位对时间冲击 $\lambda_t$ 的“敏感度”相同。一般因子模型允许不同单位对共同冲击有不同反应（$\lambda_i$ 的各分量随 $i$ 变化），所以\key{比 TWFE 更宽松}。
+
+\subsubsection{因子模型下平行趋势成立的条件}
+
+记 $d_i\in\{0,1\}$ 为处理组指示变量。把 $f_t$ 视为非随机（或在 $f_t$ 上取条件），设 $\E(u_{it}\mid d_i)=0$，并记两组的平均载荷 $\bar\lambda_T=\E(\lambda_i\mid d_i=1)$、$\bar\lambda_C=\E(\lambda_i\mid d_i=0)$。
+
+\begin{thm}[因子模型下的平行趋势]\UXVIlabel{thm:U16-pt}
+在模型 \eqref{eq:U16-factor} 下，
+\[
+\E[y_{it}(0)-y_{i,t-1}(0)\mid d_i=1]-\E[y_{it}(0)-y_{i,t-1}(0)\mid d_i=0]=(\bar\lambda_T-\bar\lambda_C)\T(f_t-f_{t-1}).
+\]
+平行趋势成立当且仅当右边为 0；充分条件是两组平均载荷相同（$\bar\lambda_T=\bar\lambda_C$）或因子不变（$f_t=f_{t-1}$）。
+\end{thm}
+
+思路：先对单个单位做一阶差分，再分组取条件期望，最后相减。
+\begin{align*}
+y_{it}(0)-y_{i,t-1}(0) &= \lambda_i\T f_t+u_{it}-\lambda_i\T f_{t-1}-u_{i,t-1} \why{代入因子模型}\\
+&= \lambda_i\T(f_t-f_{t-1})+(u_{it}-u_{i,t-1}) \why{提出 $\lambda_i\T$}\\
+\E[y_{it}(0)-y_{i,t-1}(0)\mid d_i=1] &= \E(\lambda_i\mid d_i=1)\T(f_t-f_{t-1})+0 \why{$f_t$ 非随机；$\E(u\mid d)=0$}\\
+&= \bar\lambda_T\T(f_t-f_{t-1}) \why{记号}\\
+\E[y_{it}(0)-y_{i,t-1}(0)\mid d_i=0] &= \bar\lambda_C\T(f_t-f_{t-1}) \why{同理}\\
+\text{两组之差} &= (\bar\lambda_T-\bar\lambda_C)\T(f_t-f_{t-1}). \why{两式相减}
+\end{align*}
+所以在一般因子模型下，只要两组对共同冲击的平均敏感度不同（$\bar\lambda_T\ne\bar\lambda_C$）且因子随时间变化，平行趋势就不成立，DiD 有偏。
+
+\subsubsection{TWFE 情形下平行趋势自动成立}
+
+把 TWFE 的特例代入结论~\ref{thm:U16-pt}：
+\begin{align*}
+f_t-f_{t-1} &= \begin{pmatrix}1\\ \lambda_t\end{pmatrix}-\begin{pmatrix}1\\ \lambda_{t-1}\end{pmatrix}=\begin{pmatrix}0\\ \lambda_t-\lambda_{t-1}\end{pmatrix} \why{$f_t=(1,\lambda_t)\T$}\\
+\bar\lambda_T-\bar\lambda_C &= \begin{pmatrix}\bar\alpha_T\\ 1\end{pmatrix}-\begin{pmatrix}\bar\alpha_C\\ 1\end{pmatrix}=\begin{pmatrix}\bar\alpha_T-\bar\alpha_C\\ 0\end{pmatrix} \why{$\lambda_i=(\alpha_i,1)\T$}\\
+(\bar\lambda_T-\bar\lambda_C)\T(f_t-f_{t-1}) &= (\bar\alpha_T-\bar\alpha_C)\cdot 0+0\cdot(\lambda_t-\lambda_{t-1})=0, \why{内积展开}
+\end{align*}
+其中 $\bar\alpha_T,\bar\alpha_C$ 为两组个体效应的均值。TWFE 模型中两组可以有任意的水平差（$\bar\alpha_T\ne\bar\alpha_C$），但它只出现在常数因子上，差分时被消去——这正是 DiD 能成立的原因。
+
+\subsubsection{含义：何时用 DiD，何时用 SCM/PDA/MC}
+
+载荷异质、处理单位很少时，平行趋势不可信，应改用 SCM/PDA/MC。它们不要求平行趋势，而是允许异质载荷，只要求处理单位的载荷能由控制单位“合成”出来（SCM：凸组合；PDA：线性组合），或能由处理前数据估计（MC）。代价是需要较长的处理前期。
+
+\subsubsection{三种方法的共同思路：插补缺失的 \texorpdfstring{$y(0)$}{y(0)}}
+
+\begin{itemize}
+  \item SCM：$\hat y_{1t}(0)=\sum_j\hat w_jy_{jt}$，控制单位的\key{凸组合}；
+  \item PDA：$\hat y_{1t}(0)=\hat a_0+\hat a\T\tilde Y_t$，控制单位的\key{无约束线性组合}（$\tilde Y_t$ 为控制单位结果叠成的向量）；
+  \item MC：$\hat y_{it}(0)=\hat\lambda_i\T\hat f_t$，估计出的\key{因子乘载荷}。
+\end{itemize}
+
+\begin{keypt}[英文试卷常见问法]
+“Why may DiD be inappropriate with a single treated unit?”——回答两点：(1) 平均效应失去意义、聚类推断不可行；(2) 在因子模型下平行趋势等价于 $(\bar\lambda_T-\bar\lambda_C)\T(f_t-f_{t-1})=0$，一般不成立；TWFE 是 $\lambda_i=(\alpha_i,1)\T$、$f_t=(1,\lambda_t)\T$ 的特例，此时才自动成立。
+\end{keypt}
+
+\begin{english}
+With a single treated unit, the object of interest is the individual treatment effect $\Delta_t=y_{1t}-y_{1t}(0)$ for $t>T_0$, rather than an average effect. We assume that untreated outcomes follow a factor model, $y_{it}(0)=\lambda_i'f_t+u_{it}$, which nests the two-way fixed effects model ($\lambda_i=(\alpha_i,1)'$, $f_t=(1,\lambda_t)'$) but allows units to respond differently to common shocks. Under the factor model the difference in expected untreated changes between groups equals $(\bar\lambda_T-\bar\lambda_C)'(f_t-f_{t-1})$, so the parallel trends assumption may fail. Synthetic control, panel data and matrix completion methods remain valid as long as the treated unit's loadings can be reproduced from the control units.
+\end{english}
+
+%======================================================================
+\section{合成控制法（SCM）}\label{sec:U16-scm}
+
+\subsection{SCM 的代表文献：Abadie (2003, 2010, 2015) 与 2021 年以来的推断研究}
+
+\term{合成控制法}{synthetic control method, SCM}由 Abadie 及合作者提出并发展：
+\begin{itemize}
+  \item Abadie \& Gardeazabal (2003, \emph{American Economic Review})：巴斯克地区恐怖活动的经济代价；
+  \item Abadie, Diamond \& Hainmueller (2010, \emph{Journal of the American Statistical Association})：加州控烟法案（Proposition 99）；
+  \item Abadie, Diamond \& Hainmueller (2015, \emph{American Journal of Political Science})：两德统一的经济影响。
+\end{itemize}
+2021 年前后的研究重心转向\key{推断}：Abadie (2021, \emph{Journal of Economic Literature}) 系统综述了 SCM 的可行性、数据要求与推断；Chernozhukov, W\"uthrich \& Zhu (2021, \emph{Journal of the American Statistical Association}) 提出了合成控制的共形推断（conformal inference）。
+
+\subsection{从因子模型推导 SCM：\texorpdfstring{$\lambda_1=\sum_j w_j\lambda_j\Rightarrow y_{1t}=\sum_j w_jy_{jt}+v_t$}{lambda\_1 = sum w\_j lambda\_j implies y\_1t = sum w\_j y\_jt + v\_t}}\label{sec:U16-scm-derive}
+
+\subsubsection{思路：用控制单位的加权平均模仿处理单位}
+
+要证明：若存在权重 $w_2,\dots,w_N$ 使处理单位的载荷等于控制单位载荷的加权平均，则处理单位的无处理结果等于控制单位结果的加权平均加一个均值为零的误差。思路是把处理单位的方程与控制单位方程的加权和相减，让因子项抵消。
+
+\subsubsection{四行推导}
+
+由因子模型 \eqref{eq:U16-factor}，无处理时：
+\begin{align*}
+y_{1t} &= \lambda_1\T f_t+u_{1t} \why{处理单位（无处理时）}\\
+\sum_{j=2}^N w_jy_{jt} &= \Big(\sum_{j=2}^N w_j\lambda_j\Big)\T f_t+\sum_{j=2}^N w_ju_{jt} \why{控制单位方程加权求和}\\
+y_{1t}-\sum_{j=2}^N w_jy_{jt} &= \Big(\lambda_1-\sum_{j=2}^N w_j\lambda_j\Big)\T f_t+\Big(u_{1t}-\sum_{j=2}^N w_ju_{jt}\Big) \why{两式相减}\\
+&= u_{1t}-\sum_{j=2}^N w_ju_{jt}\equiv v_t \why{若 $\lambda_1=\sum_j w_j\lambda_j$，因子项为 0}\\
+\Rightarrow\quad y_{1t} &= \sum_{j=2}^N w_jy_{jt}+v_t,\qquad \E(v_t)=0. \why{移项；$\E(u_{it})=0$}
+\end{align*}
+
+\subsubsection{合成控制的含义：载荷匹配是关键条件}
+
+整个推导只用了一个条件：
+\begin{equation}\label{eq:U16-loading-match}
+\lambda_1=\sum_{j=2}^N w_j\lambda_j .
+\end{equation}
+只要找到这样的权重，处理单位的未处理结果就等于控制单位结果的加权平均加一个均值为零的误差。加权平均出来的“虚拟单位”$\sum_jw_jy_{jt}$ 就是\term{合成控制}{synthetic control}——用真实控制单位“合成”的处理单位。注意 $f_t$ 与 $\lambda_i$ 都不可观测，推导的作用是说明：\key{不必估计因子}，直接用可观测的控制单位结果就能复制处理单位的因子部分。
+
+\subsection{SCM 模型与权重约束 \texorpdfstring{$w_j\ge0$, $\sum w_j=1$}{w\_j >= 0, sum w\_j = 1}}
+
+\subsubsection{定义：SCM 模型}
+
+\begin{defn}[SCM 模型]\UXVIlabel{def:U16-scm}
+在没有处理时，对所有 $t=1,\dots,T$：
+\begin{equation}\label{eq:U16-scm}
+y_{1t}=\sum_{j=2}^N w_jy_{jt}+v_t,\qquad \text{s.t.}\quad w_j\ge0,\quad \sum_{j=2}^N w_j=1 .
+\end{equation}
+\end{defn}
+
+关系对\key{所有} $t$ 成立（包括处理后），因为权重由载荷决定，而载荷不随时间变化。这是后面“用处理前估计权重、到处理后去预测”的依据。
+
+\subsubsection{凸组合：权重透明、可解释}
+
+在约束下，合成单位是真实控制单位的\term{凸组合}{convex combination}，权重透明、可解释，例如“加州 $=0.16\times$ 科罗拉多 $+\cdots$”。读者可以直接检查合成单位由哪些单位构成、是否合理。
+
+\subsubsection{不外推：处理单位必须落在控制单位的凸包内}
+
+凸组合的每个分量都在各控制单位相应分量的最小值与最大值之间。因此处理单位的载荷 $\lambda_1$（以及处理前结果）必须落在控制单位的\term{凸包}{convex hull}内，SCM \term{不外推}{no extrapolation}。若处理单位“最大”或“最小”（如全国人均 GDP 最高的省），就无法被合成。
+
+\subsubsection{无截距：和为 1 意味着水平也要匹配}
+
+把载荷匹配条件 \eqref{eq:U16-loading-match} 应用到两类特殊的因子分量上，可以看清和为 1 约束的来源与代价。
+\begin{itemize}
+  \item 若 $f_t$ 含一个对所有单位载荷都为 1 的时间效应分量（如 TWFE 中 $f_t$ 的第二个分量 $\lambda_t$），则该分量的匹配条件为
+  \begin{align*}
+  1 &= \sum_{j=2}^N w_j\cdot 1 \why{该分量载荷全为 1}\\
+  \Rightarrow\ \sum_{j=2}^N w_j &= 1. \why{化简}
+  \end{align*}
+  和为 1 约束正是“共同时间效应被完整复制”的要求。
+  \item 若 $f_t$ 含常数分量 1，其载荷为个体效应 $\alpha_i$，则该分量的匹配条件为
+  \[
+  \alpha_1=\sum_{j=2}^N w_j\alpha_j .
+  \]
+  SCM 模型不含截距，所以处理单位的\key{水平}也必须由控制单位的加权平均复制出来——这与 DiD 允许两组有任意水平差不同。
+\end{itemize}
+
+\subsubsection{约束的正则化作用：权重往往稀疏}
+
+非负与和为 1 的约束把权重限制在一个单纯形上，起到\term{正则化}{regularization}作用：解往往\key{稀疏}（只有少数控制单位权重为正），即使控制单位多于处理前期也能求解。
+
+\subsection{估计权重：处理前期的约束回归（时间序列估计）}\label{sec:U16-scm-est}
+
+\subsubsection{约束最小二乘问题}
+
+政策在 $T_0$ 之后生效，处理前处理单位也未受处理，$y_{1t}=y_{1t}(0)$。于是只用处理前数据估计权重：
+\begin{equation}\label{eq:U16-scm-ls}
+\hat w=\argmin_{w}\ \sum_{t=1}^{T_0}\Big(y_{1t}-\sum_{j=2}^N w_jy_{jt}\Big)^2\qquad \text{s.t.}\quad w_j\ge0,\quad \sum_{j=2}^N w_j=1 .
+\end{equation}
+
+\subsubsection{这是一个时间序列回归：时期为观测、控制单位为回归元}
+
+问题 \eqref{eq:U16-scm-ls} 是一个\key{时间序列回归}：观测是 $T_0$ 个时期，“被解释变量”是处理单位的结果 $y_{1t}$，“回归元”是 $N-1$ 个控制单位的同期结果 $y_{2t},\dots,y_{Nt}$。处理前的拟合值
+\[
+\hat y_{1t}=\sum_j\hat w_jy_{jt},\qquad t\le T_0
+\]
+称为\term{样本内预测}{in-sample prediction}，用于评价合成效果（处理前两条线是否贴合）。
+
+\begin{note}[约束最小二乘不是 OLS]
+SCM 的权重是在约束 $w_j\ge0$、$\sum_{j=2}^N w_j=1$ 下的\key{约束最小二乘}（一个二次规划问题），不是无约束 OLS；无约束 OLS（再加截距）正是本章的 PDA。约束只对控制单位求和：$\sum_{j=2}^N w_j=1$，处理单位不在其中。
+\end{note}
+
+\subsubsection{两个控制单位时的闭式解：化为过原点回归再截断}
+
+只有两个控制单位（$j=2,3$）时，约束最小二乘可以手算。
+
+\begin{thm}[两个控制单位的 SCM 权重]\UXVIlabel{thm:U16-twounit}
+记 $z_t=y_{2t}-y_{3t}$、$e_t=y_{1t}-y_{3t}$，令
+\[
+\tilde w_2=\frac{\sum_{t\le T_0}z_te_t}{\sum_{t\le T_0}z_t^2}.
+\]
+则 SCM 权重为 $\hat w_2=\min\{\max\{\tilde w_2,0\},1\}$，$\hat w_3=1-\hat w_2$。即先做无约束的过原点回归，若结果落在 $[0,1]$ 外，就取最近的端点（角点解）。
+\end{thm}
+
+思路：用和为 1 消去一个参数，把问题化为一元二次函数在区间上的最小化。
+\begin{align*}
+y_{1t} &= w_2y_{2t}+(1-w_2)y_{3t}+v_t \why{代入 $w_3=1-w_2$}\\
+y_{1t}-y_{3t} &= w_2(y_{2t}-y_{3t})+v_t \why{两边减 $y_{3t}$}\\
+e_t &= w_2z_t+v_t \why{记号 $z_t,e_t$}\\
+Q(w_2) &= \sum_{t\le T_0}(e_t-w_2z_t)^2 \why{目标函数}\\
+Q'(w_2) &= -2\sum_{t\le T_0}z_t(e_t-w_2z_t)=0 \why{一阶条件}\\
+\Rightarrow\ \tilde w_2 &= \frac{\sum_{t\le T_0}z_te_t}{\sum_{t\le T_0}z_t^2} \why{解出无约束最优}\\
+Q''(w_2) &= 2\sum_{t\le T_0}z_t^2>0 \why{$Q$ 严格凸}
+\end{align*}
+$Q$ 是开口向上的抛物线，顶点在 $\tilde w_2$。非负约束 $w_2\ge0$、$w_3=1-w_2\ge0$ 等价于 $w_2\in[0,1]$；抛物线在区间上的最小值点是顶点（若在区间内）或离顶点最近的端点。
+
+\subsection{反事实预测与 \texorpdfstring{$\hat\Delta_t$}{Delta-hat\_t}}
+
+\subsubsection{三步：模型对处理后成立 → 用 \texorpdfstring{$\hat w$}{w-hat} 预测 → 观测值减反事实}
+
+\begin{align*}
+y_{1t}(0) &= \sum_j w_jy_{jt}+v_t,\qquad t>T_0 \why{SCM 模型对所有 $t$ 成立}\\
+\hat y_{1t}(0) &= \sum_j \hat w_jy_{jt} \why{$\hat w_j$ 来自处理前；$y_{jt}$ 处理后可观测}\\
+\hat\Delta_t &= y_{1t}-\sum_j\hat w_jy_{jt},\qquad t=T_0+1,\dots,T. \why{观测值减反事实（插补）}
+\end{align*}
+处理后 $y_{1t}$ 可观测但受政策影响；控制单位的 $y_{jt}$ 未受影响（SUTVA）。这种“先估计缺失的 $y(0)$、再相减”的做法就是\term{插补}{imputation}。
+
+\subsubsection{处理后平均效应 \texorpdfstring{$\bar\Delta$}{Delta-bar}}
+
+还可以报告处理后平均效应
+\[
+\hat{\bar\Delta}=\frac{1}{T-T_0}\sum_{t>T_0}\hat\Delta_t .
+\]
+
+\subsubsection{图示：处理前两线贴合，处理后的缺口就是效应}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm,>={Stealth[length=2mm]}]
+\draw[->] (0,0) -- (8.4,0) node[right] {$t$};
+\draw[->] (0,0) -- (0,5) node[above] {$y$};
+\draw[dashed,gray] (4.4,0) -- (4.4,4.8) node[above,black] {$T_0$};
+\draw[thick,blue] (0.4,1.0) -- (1.2,1.45) -- (2.0,1.3) -- (2.8,1.75) -- (3.6,1.85) -- (4.4,2.0) -- (5.2,3.0) -- (6.0,3.55) -- (6.9,4.0) -- (7.8,4.5);
+\draw[thick,red,dashed] (0.4,1.05) -- (1.2,1.4) -- (2.0,1.35) -- (2.8,1.7) -- (3.6,1.9) -- (4.4,2.0) -- (5.2,2.2) -- (6.0,2.4) -- (6.9,2.6) -- (7.8,2.8);
+\draw[<->] (6.9,2.65) -- (6.9,3.95) node[midway,right] {$\hat\Delta_t$};
+\node[blue,anchor=west] at (5.5,4.6) {处理单位 $y_{1t}$};
+\node[red,anchor=west] at (5.3,1.9) {合成控制 $\sum_j\hat w_jy_{jt}$};
+\node[align=center,font=\small] at (2.2,3.4) {处理前：两线贴合\\（样本内拟合）};
+\end{tikzpicture}
+\captionof{figure}{SCM 示意：处理前合成控制拟合处理单位，处理后两线之差为 $\hat\Delta_t$}
+\end{center}
+
+\subsubsection{SCM 的三个要素：时间序列估计、约束回归、安慰剂推断}
+
+\begin{summary}[SCM 三要素]
+(1) 时间序列估计：以处理前的 $T_0$ 个时期为观测估计权重；(2) 约束回归：$w_j\ge0$、$\sum_jw_j=1$；(3) 推断基于安慰剂检验（见本章安慰剂检验一节）。
+\end{summary}
+
+\subsection{协变量匹配与 \texorpdfstring{$V$}{V} 矩阵；匹配处理前均值 \texorpdfstring{$\bar y_1=\sum_j w_j\bar y_j$}{y1-bar = sum w\_j yj-bar}}
+
+\subsubsection{预测变量向量 \texorpdfstring{$X_1$}{X1} 与矩阵 \texorpdfstring{$X_0$}{X0}}
+
+\tagext\ Abadie 等人的原始做法不是直接对 $T_0$ 期结果做约束回归，而是匹配一组\term{预测变量}{predictors}。令 $X_1$ 为处理单位的 $k\times1$ 预测变量向量（处理前协变量的均值，以及处理前结果的若干线性组合，如处理前均值、某几年的取值），$X_0$ 为控制单位相应的 $k\times(N-1)$ 矩阵（第 $j-1$ 列是控制单位 $j$ 的预测变量），$W=(w_2,\dots,w_N)\T$ 为 $(N-1)\times1$ 权重向量。
+
+\subsubsection{加权距离最小化与 \texorpdfstring{$V$}{V} 的选择（嵌套优化）}
+
+\[
+\hat W(V)=\argmin_W\ (X_1-X_0W)\T V(X_1-X_0W)\qquad\text{s.t.}\quad w_j\ge0,\quad\sum_j w_j=1,
+\]
+$V$ 为 $k\times k$ 对角半正定矩阵，对角元表示各预测变量的相对重要性。$V$ 通常选择使处理前结果的拟合误差最小：
+\[
+\hat V=\argmin_V\ \sum_{t\le T_0}\Big(y_{1t}-\sum_j \hat w_j(V)\,y_{jt}\Big)^2,
+\]
+这是一个\term{嵌套优化}{nested optimization}：内层给定 $V$ 求 $\hat W(V)$，外层选 $V$ 使处理前\term{均方预测误差}{mean squared prediction error, MSPE}最小。也可用交叉验证选 $V$。
+
+\subsubsection{最简单的预测变量：处理前均值}
+
+记处理前均值 $\bar y_i=T_0^{-1}\sum_{t\le T_0}y_{it}$。只用它作为预测变量（$k=1$）时，匹配条件就是
+\[
+\bar y_1=\sum_{j=2}^N w_j\bar y_j ,
+\]
+然后再用 $y_{1t}=\sum_j w_jy_{jt}+v_t$ 构造反事实。这说明“匹配处理前均值”是协变量匹配框架中最简单的一个特例。
+
+\subsection{数值例：两个控制单位的 SCM 权重手算}
+
+\begin{exmp}[SCM 权重与效应]\UXVIlabel{ex:U16-scm}
+$T_0=4$，两个控制单位：$y_2=(1,3,2,4)$，$y_3=(5,4,7,6)$；处理单位处理前 $y_1=(2.6,3.4,4.0,4.8)$。处理后（$t=5,6$）：$y_2=(5,6)$，$y_3=(8,7)$，$y_1=(8.2,9.4)$。求 SCM 权重与 $\hat\Delta_5,\hat\Delta_6$。
+\solution 用结论~\ref{thm:U16-twounit}：
+\begin{align*}
+y_{1t}-y_{3t} &= w_2(y_{2t}-y_{3t})+v_t \why{代入 $w_3=1-w_2$}\\
+z=y_2-y_3 &= (-4,-1,-5,-2) \why{逐期相减}\\
+e=y_1-y_3 &= (-2.4,-0.6,-3.0,-1.2) \why{逐期相减}\\
+\tilde w_2 &= \frac{\sum_tz_te_t}{\sum_tz_t^2}=\frac{9.6+0.6+15+2.4}{16+1+25+4} \why{过原点回归}\\
+&= \frac{27.6}{46}=0.6 \why{计算}\\
+\hat w_2 &= 0.6,\qquad \hat w_3=0.4 \why{在 $[0,1]$ 内，约束不起作用}\\
+\hat y_{1,5}(0) &= 0.6\times5+0.4\times8=6.2 \why{反事实}\\
+\hat y_{1,6}(0) &= 0.6\times6+0.4\times7=6.4 \why{反事实}\\
+\hat\Delta_5 &= 8.2-6.2=2.0,\qquad \hat\Delta_6=9.4-6.4=3.0. \why{个体效应}
+\end{align*}
+处理前拟合完美（残差全为 0），因为数据按 $y_1=0.6y_2+0.4y_3$ 构造；实际数据中会有误差 $v_t$。
+\end{exmp}
+
+\subsection{即时练习：非负约束与凸包之外的处理单位}
+
+\begin{prac}[SCM 权重与非负约束]\UXVIlabel{pr:U16-scm}
+$T_0=3$，控制单位 $y_2=(2,4,6)$，$y_3=(4,4,4)$；处理单位处理前 $y_1=(3,4,5)$。(a) 求 SCM 权重；(b) 处理后控制单位为 $y_2=8$、$y_3=4$，处理单位为 $y_1=9$，求 $\hat\Delta$；(c) 若处理单位处理前为 $(7,8,9)$，SCM 会遇到什么问题？
+\answer
+(a) $z=y_2-y_3=(-2,0,2)$，$e=y_1-y_3=(-1,0,1)$，
+\[
+\tilde w_2=\frac{2+0+2}{4+0+4}=0.5\in[0,1],\qquad \hat w_2=\hat w_3=0.5 .
+\]
+处理前拟合 $0.5y_2+0.5y_3=(3,4,5)$，与 $y_1$ 完全一致。
+
+(b) $\hat y_1(0)=0.5\times8+0.5\times4=6$，$\hat\Delta=9-6=3$。
+
+(c) $(7,8,9)$ 每期都高于两个控制单位（$\max(y_2,y_3)=(4,4,6)$），落在控制单位凸包之外。此时 $e=y_1-y_3=(3,4,5)$，无约束 $\tilde w_2=\frac{-6+0+10}{8}=0.5$，拟合值 $(3,4,5)$ 与实际 $(7,8,9)$ 每期相差 4——任何凸组合都达不到处理单位的水平，处理前拟合很差，反事实有偏。这正是 SCM“不外推”的代价；允许截距的 PDA（或先去均值再做 SCM）可以处理这种水平差（见本章 PDA 一节的数值例）。
+\end{prac}
+
+\subsection{Stata 与 R 实现（拓展）}
+
+常用命令如下。
+\begin{lstlisting}
+* SSC: synth (Abadie, Diamond & Hainmueller)
+tsset id year
+synth y x1 x2 y(1985) y(1988) y(1990), trunit(1) trperiod(1991) fig
+* placebo-in-space inference (SSC: synth_runner)
+synth_runner y x1 x2 y(1985) y(1988) y(1990), trunit(1) trperiod(1991) gen_vars
+\end{lstlisting}
+命令中 \texttt{y(1985)} 等表示把该年的结果作为预测变量。R：\texttt{Synth}、\texttt{tidysynth}；增广 SCM（Ben-Michael, Feller \& Rothstein 2021）用 \texttt{augsynth}。
+
+\begin{english}
+The synthetic control method constructs the counterfactual of a single treated unit as a convex combination of control units. If untreated outcomes follow a factor model and the weights satisfy $\lambda_1=\sum_j w_j\lambda_j$, then $y_{1t}(0)=\sum_j w_jy_{jt}+v_t$ with $E(v_t)=0$. The weights are estimated by constrained least squares over the pre-treatment periods, subject to $w_j\ge0$ and $\sum_j w_j=1$. The treatment effect is then estimated by $\hat\Delta_t=y_{1t}-\sum_j\hat w_jy_{jt}$ for $t>T_0$. The constraints rule out extrapolation and make the synthetic unit a transparent weighted average of actual controls.
+\end{english}
+
+%======================================================================
+\section{SCM 的三个问题}\label{sec:U16-scm-problems}
+
+SCM 有三个主要问题：(1) 需要较长的处理前期 $T_0$；(2) 只能用处理前的样本内拟合评价效果，容易“挑选设定”；(3) 约束回归在计算与推断上都很棘手，推断只能另辟蹊径——安慰剂检验。
+
+\subsection{问题一：需要较长的处理前期 \texorpdfstring{$T_0$}{T0}}
+
+\subsubsection{匹配结果不等于匹配载荷：\texorpdfstring{$T_0$}{T0} 短时会拟合噪声}
+
+SCM 的推导要求载荷匹配 $\lambda_1=\sum_jw_j\lambda_j$，但载荷不可观测，我们只能匹配处理前的\key{结果} $y_{1t}=\lambda_1\T f_t+u_{1t}$。结果里既有因子部分 $\lambda_1\T f_t$，也有噪声 $u_{1t}$。处理前期少时，好的拟合可能只是“碰巧拟合了噪声 $u$”，而没有真正匹配载荷——即\term{过拟合}{overfitting}。处理后噪声换了一批，载荷却没匹配上，反事实就会有偏。
+
+\subsubsection{偏误上界随 \texorpdfstring{$T_0$}{T0} 增大而趋于零}
+
+Abadie, Diamond \& Hainmueller (2010) 证明：若处理前拟合完美，SCM 估计量偏误的上界随 $T_0$ 增大（相对于噪声的大小）而趋于 0。直觉：只有在很多期里都能贴合，才说明匹配的是稳定的载荷而不是一时的噪声。因此 SCM 需要较长的处理前期。
+
+\subsubsection{控制单位相对 \texorpdfstring{$T_0$}{T0} 过多时的虚假完美拟合}
+
+控制单位个数相对 $T_0$ 过多时，用很多条序列去拟合很短的一条序列，更容易出现“插值式”的虚假完美拟合：拟合完美，但没有任何样本外预测能力。
+
+\subsection{问题二：样本内拟合与“挑选设定”（cherry picking）}
+
+\subsubsection{只能用处理前拟合评价，研究者自由度大}
+
+SCM 的好坏通常只能用处理前的样本内拟合（$y_{1t}\approx\hat y_{1t}$，$t\le T_0$）来评价。而研究者在捐赠池、预测变量、$V$ 矩阵、处理前时间窗等方面有很多选择，可以不断尝试，直到拟合好看、结果“显著”——这就是\term{挑选设定}{cherry picking}（Ferman, Pinto \& Possebom 2020, \emph{Journal of Policy Analysis and Management}）。样本内拟合好不等于样本外预测好。
+
+\subsubsection{对策：预先确定设定、报告稳健性、留出样本外检验}
+
+\begin{itemize}
+  \item 事先确定设定（捐赠池、预测变量、时间窗），不根据结果调整；
+  \item 报告多种设定下的结果，作为稳健性检验；
+  \item 留出最后几期处理前数据做样本外检验，即本章安慰剂检验一节的时间安慰剂。
+\end{itemize}
+
+\subsection{问题三：约束回归很棘手}
+
+\subsubsection{角点解、解不唯一与凸包外的拟合失败}
+
+\begin{itemize}
+  \item 带不等式约束的二次规划，解常落在边界上（许多 $\hat w_j=0$）；
+  \item 控制单位多于处理前期（$N-1>T_0$）时解可能不唯一；
+  \item 处理单位在凸包之外时无法良好拟合（即时练习~\ref{pr:U16-scm}(c)）。
+\end{itemize}
+
+\subsubsection{参数在边界上：常规渐近正态不适用，推断改用安慰剂}
+
+当真实权重有一部分为 0（参数在参数空间的边界上）时，约束估计量的分布不是正态，常规的渐近正态理论不适用，标准误难以给出。因此 SCM 的推断改用\key{安慰剂检验}（下一节）。
+
+\begin{english}
+SCM has three main limitations. First, it requires a long pre-treatment period, because matching pre-treatment outcomes approximates matching factor loadings only when $T_0$ is large; otherwise a good fit may reflect overfitting of idiosyncratic noise. Second, its performance is judged by in-sample pre-treatment fit, which invites specification searching or cherry picking. Third, the constrained regression often has corner or non-unique solutions, and conventional asymptotic inference does not apply because parameters lie on the boundary, so inference is usually based on placebo tests.
+\end{english}
+
+%======================================================================
+\section{SCM 的推断：安慰剂检验}\label{sec:U16-placebo}
+
+\subsection{空间安慰剂检验的四步}
+
+\subsubsection{四个步骤}
+
+设共有 $N$ 个单位（例如 100 个：单位 1 为处理单位，$2,\dots,100$ 为控制单位）。\term{空间安慰剂检验}{placebo test in space}的做法如下。
+
+\begin{method}[空间安慰剂检验]
+\begin{enumerate}
+  \item 对真实处理单位（单位 1）做 SCM，得到 $\hat\Delta_t$，或处理后平均效应 $\hat\Delta^{(1)}$。
+  \item 依次把每个控制单位 $j$ 假装成处理单位（捐赠池为其余控制单位，通常剔除真实处理单位），同样做 SCM，得到“安慰剂效应”$\hat\Delta^{(j)}$。$j$ 并未受处理，故应有 $\hat\Delta^{(j)}\approx0$。
+  \item 把 $|\hat\Delta^{(1)}|$ 与所有 $|\hat\Delta^{(j)}|$ 一起从大到小排序。
+  \item 安慰剂 $p$ 值 = 处理单位的排名 / 单位总数。
+\end{enumerate}
+\end{method}
+
+\subsubsection{安慰剂 \texorpdfstring{$p$}{p} 值公式}
+
+\begin{equation}\label{eq:U16-placebo-p}
+p=\frac1N\sum_{i=1}^N\mathbf{1}\Big\{|\hat\Delta^{(i)}|\ge|\hat\Delta^{(1)}|\Big\}.
+\end{equation}
+求和包括 $i=1$ 本身，所以分子正是处理单位在 $N$ 个效应中的排名（从大到小）。
+
+\subsubsection{直觉：随机化（置换）推断}
+
+这是\term{随机化推断}{randomization inference}（\term{置换检验}{permutation test}）的思想。如果政策毫无作用，而且“哪个单位被处理”可以看作随机的，那么真实处理单位的效应在所有单位中的排名应服从均匀分布——排第 1 的概率只有 $1/N$。若它排第 1，就说明这么大的“效应”在没有处理的单位中从未出现，证据很强。
+
+\subsection{按秩的 \texorpdfstring{$p$}{p} 值：100 个单位排第 1 对应 1\%}
+
+\subsubsection{例：不同排名下的安慰剂 \texorpdfstring{$p$}{p} 值}
+
+\begin{exmp}[安慰剂 $p$ 值]\UXVIlabel{ex:U16-placebo}
+(1) 100 个单位（1 个处理 + 99 个控制），处理单位的 $|\hat\Delta|$ 排第 1、2、3 时 $p$ 各是多少？(2) 20 个单位，处理单位排第 2 呢？(3) 只有 10 个单位时，能否在 5\% 水平拒绝？
+\solution
+(1) 由 \eqref{eq:U16-placebo-p}，排第 1：$p=1/100=1\%$；排第 2：$p=2/100=2\%$；排第 3：$p=3\%$。
+
+(2) $p=2/20=10\%>5\%$，在 5\% 水平不显著。
+
+(3) 能达到的最小 $p$ 值是 $1/N$。只有 10 个单位时，即使排第 1，$p=1/10=10\%$，永远无法在 5\% 水平拒绝。
+\end{exmp}
+
+\subsubsection{最小可达 \texorpdfstring{$p$}{p} 值为 \texorpdfstring{$1/N$}{1/N}：控制单位必须足够多}
+
+由例~\ref{ex:U16-placebo}(3)，要在水平 $\alpha$ 下有可能拒绝原假设，至少需要 $1/N\le\alpha$，即 $N\ge1/\alpha$（5\% 水平需至少 20 个单位）。安慰剂推断需要足够多的控制单位。
+
+\subsection{RMSPE 比统计量（拓展）}
+
+\subsubsection{拟合差的安慰剂单位会制造大“效应”}
+
+控制单位中，有些本身就很难被其他单位合成（处理前拟合差），它们的处理后“效应”大，只是拟合差造成的，并非真有冲击。直接比较 $|\hat\Delta|$ 会让这些单位排到前面，降低检验功效。
+
+\subsubsection{处理后与处理前均方根预测误差之比}
+
+Abadie 等人因此用处理后与处理前\term{均方根预测误差}{root mean squared prediction error, RMSPE}之比作为排序统计量：
+\begin{gather*}
+r_i=\frac{\mathrm{RMSPE}_{i,\mathrm{post}}}{\mathrm{RMSPE}_{i,\mathrm{pre}}},\\
+\mathrm{RMSPE}_{i,\mathrm{pre}}=\Big(\frac{1}{T_0}\sum_{t\le T_0}(y_{it}-\hat y_{it})^2\Big)^{1/2},\qquad
+\mathrm{RMSPE}_{i,\mathrm{post}}=\Big(\frac{1}{T-T_0}\sum_{t>T_0}(y_{it}-\hat y_{it})^2\Big)^{1/2},
+\end{gather*}
+其中 $\hat y_{it}$ 是把单位 $i$ 当作处理单位时的合成控制值。分母越小（处理前拟合越好），同样大的处理后缺口就越可信。
+
+\subsubsection{另一种做法：剔除处理前 MSPE 过大的安慰剂单位}
+
+也可以剔除处理前 MSPE 超过处理单位若干倍（如 2、5、20 倍）的安慰剂单位，再按 $|\hat\Delta|$ 排序。剔除规则必须事先确定。
+
+\subsection{时间安慰剂（拓展）}
+
+\subsubsection{把政策时点人为提前}
+
+把政策时点人为提前到 $T_0'<T_0$，只用 $T_0'$ 之前的数据估计权重，看 $T_0'\sim T_0$ 之间（真实政策之前）是否出现“效应”。若出现明显缺口，说明合成控制的预测能力不足，或存在\term{预期效应}{anticipation effect}。Abadie, Diamond \& Hainmueller (2015) 用过这种检验（也称 backdating）。它也是对“cherry picking”的样本外检验。
+
+\subsection{即时练习：安慰剂 \texorpdfstring{$p$}{p} 值与剔除规则}
+
+\begin{prac}[安慰剂检验]\UXVIlabel{pr:U16-placebo}
+某研究用 SCM 评估一项省级政策，共有 1 个处理省和 29 个控制省。处理后平均效应的绝对值：处理省 0.8；29 个安慰剂中有 2 个大于 0.8，其余都小于 0.8。(a) 求安慰剂 $p$ 值；(b) 若改用 RMSPE 比，发现那两个大于 0.8 的省处理前拟合误差是处理省的 10 倍以上，剔除它们后 $p$ 值是多少？(c) 用 5\% 水平作出结论。
+\answer
+(a) 共 30 个单位，比处理省大的有 2 个，处理省排第 3，$p=3/30=10\%$。
+
+(b) 剔除 2 个拟合很差的安慰剂省，剩 28 个单位，处理省排第 1，$p=1/28\approx3.6\%$。
+
+(c) 按 (a) 在 5\% 水平不显著；按 (b) 显著。(b) 更合理，因为那两个省的大“效应”来自处理前就合成不好，而非真正的冲击。但剔除规则应事先确定（如 Abadie 等人用的 5 倍或 20 倍标准），避免事后挑选（cherry picking）。
+\end{prac}
+
+\begin{english}
+Inference for SCM is based on placebo (permutation) tests. We apply the synthetic control method to each control unit as if it had been treated and obtain a distribution of placebo effects, which should be close to zero. The placebo p-value is the rank of the treated unit's effect among all units divided by the number of units; for example, ranking first among 100 units gives $p=0.01$, and the smallest attainable p-value is $1/N$. Because placebo units with poor pre-treatment fit produce large post-treatment gaps, the ratio of post- to pre-treatment RMSPE is often used as the test statistic. An in-time placebo, which backdates the intervention, checks the predictive ability of the synthetic control.
+\end{english}
+
+%======================================================================
+\section{面板数据法（PDA）／回归控制法}\label{sec:U16-pda}
+
+\subsection{名称与文献：Hsiao, Ching \& Wan (2012)；又称回归控制法 RCM}
+
+\term{面板数据法}{panel data approach, PDA}由 Hsiao, Ching \& Wan (2012, \emph{Journal of Applied Econometrics})（下文简记 HCW）提出，用于评估香港与内地的政治融合（1997 年回归）与经济融合（CEPA）的效果。它也称\term{回归控制法}{regression control method, RCM}。与 SCM 一样，PDA 估计单个处理单位的个体效应，并同样从因子模型出发；不同在于它得到的是控制单位的\key{无约束}线性组合。推导分四步：叠向量、秩条件、解出因子、代回处理单位。
+
+\subsection{第一步：把控制单位叠成向量 \texorpdfstring{$\tilde Y_t=\Lambda f_t+\tilde u_t$}{Y\_t = Lambda f\_t + u\_t}}
+
+无处理时 $y_{it}=\lambda_i\T f_t+u_{it}$。处理单位：$y_{1t}=\lambda_1\T f_t+u_{1t}$。把 $N-1$ 个控制单位的方程逐行叠起来，第 $j$ 行是 $y_{jt}=\lambda_j\T f_t+u_{jt}$；各行的 $f_t$ 相同，可以提到矩阵外面：
+\begin{equation}\label{eq:U16-stack}
+\underbrace{\begin{pmatrix}y_{2t}\\ y_{3t}\\ \vdots\\ y_{Nt}\end{pmatrix}}_{\tilde Y_t:\ (N-1)\times1}
+=\begin{pmatrix}\lambda_2\T f_t\\ \lambda_3\T f_t\\ \vdots\\ \lambda_N\T f_t\end{pmatrix}+\tilde u_t
+=\underbrace{\begin{pmatrix}\lambda_2\T\\ \lambda_3\T\\ \vdots\\ \lambda_N\T\end{pmatrix}}_{\Lambda:\ (N-1)\times r}f_t+\underbrace{\begin{pmatrix}u_{2t}\\ u_{3t}\\ \vdots\\ u_{Nt}\end{pmatrix}}_{\tilde u_t:\ (N-1)\times1}
+\quad\Longleftrightarrow\quad \tilde Y_t=\Lambda f_t+\tilde u_t .
+\end{equation}
+
+\subsection{第二步：秩条件——\texorpdfstring{$\Lambda$}{Lambda} 列满秩（\texorpdfstring{$N-1>r$}{N-1 > r}）}
+
+\subsubsection{为什么需要 \texorpdfstring{$\rank(\Lambda)=r$}{rank(Lambda)=r}}
+
+要从 $\tilde Y_t$ 中“解出”$f_t$，需要 $r\times r$ 矩阵 $\Lambda\T\Lambda$ 可逆。由于 $\rank(\Lambda\T\Lambda)=\rank(\Lambda)$，这等价于 $\Lambda$ \key{列满秩}：$\rank(\Lambda)=r$。它要求 (1) 控制单位个数不少于因子个数，$N-1\ge r$，通常写作 $N-1>r$；(2) 各控制单位的载荷不能“共线”到张不满 $r$ 维空间。
+
+\subsubsection{直觉：\texorpdfstring{$r$}{r} 个未知因子至少需要 \texorpdfstring{$r$}{r} 个方程}
+
+每个控制单位提供一个关于 $f_t$ 的方程，$r$ 个未知因子至少需要 $r$ 个“方程”（控制单位）才能识别。
+
+\subsection{第三步：解出因子 \texorpdfstring{$f_t=(\Lambda'\Lambda)^{-1}\Lambda'(\tilde Y_t-\tilde u_t)$}{f\_t = (Lambda'Lambda)\^{}-1 Lambda'(Y\_t - u\_t)}}
+
+对 \eqref{eq:U16-stack} 两边左乘 $\Lambda\T$（$r\times(N-1)$）：
+\begin{align*}
+\Lambda\T\tilde Y_t &= \underbrace{\Lambda\T\Lambda}_{r\times r}f_t+\Lambda\T\tilde u_t \why{两边左乘 $\Lambda\T$}\\
+\Lambda\T\Lambda f_t &= \Lambda\T(\tilde Y_t-\tilde u_t) \why{移项}\\
+\Rightarrow\quad f_t &= (\Lambda\T\Lambda)\inv\Lambda\T(\tilde Y_t-\tilde u_t)\equiv A(\tilde Y_t-\tilde u_t), \why{秩条件保证 $(\Lambda\T\Lambda)\inv$ 存在}
+\end{align*}
+其中 $A=(\Lambda\T\Lambda)\inv\Lambda\T$ 是 $r\times(N-1)$ 矩阵。这一步与第 14 章 CCE 中“用截面平均近似因子”的思路相同：不可观测的因子可以用可观测的控制单位结果线性表示（再加上误差）。
+
+\subsection{第四步：代回处理单位——\texorpdfstring{$y_{1t}=a'\tilde Y_t+v_t$}{y\_1t = a'Y\_t + v\_t}，无约束线性组合}
+
+\subsubsection{推导}
+
+\begin{align*}
+y_{1t} &= \lambda_1\T f_t+u_{1t} \why{处理单位，无处理时对所有 $t$ 成立}\\
+&= \lambda_1\T A(\tilde Y_t-\tilde u_t)+u_{1t} \why{代入 $f_t$}\\
+&= \lambda_1\T A\tilde Y_t+\big(u_{1t}-\lambda_1\T A\tilde u_t\big) \why{展开、整理}\\
+&= \underbrace{\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T}_{a\T:\ 1\times(N-1)}\tilde Y_t+\underbrace{u_{1t}-a\T\tilde u_t}_{v_t,\ \E(v_t)=0} \why{代入 $A$；定义 $a$、$v_t$}\\
+\Rightarrow\quad y_{1t} &= a\T\tilde Y_t+v_t. \why{无约束线性组合}
+\end{align*}
+
+\begin{thm}[PDA 表示]\UXVIlabel{thm:U16-pda}
+在因子模型 \eqref{eq:U16-factor} 与秩条件 $\rank(\Lambda)=r$ 下，无处理时对所有 $t$：
+\begin{equation}\label{eq:U16-pda}
+y_{1t}=a\T\tilde Y_t+v_t,\qquad a\T=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T,\qquad v_t=u_{1t}-a\T\tilde u_t,\qquad \E(v_t)=0 .
+\end{equation}
+\end{thm}
+
+\subsubsection{与 SCM 的区别：无约束、含截距}
+
+系数 $a$ 由 $\lambda_1$ 与 $\Lambda$ 决定，只是“用控制单位张成的空间去表示处理单位的因子部分”，\key{没有非负、和为 1 的约束}。实践中还加入截距 $a_0$：
+\[
+y_{1t}=a_0+a\T\tilde Y_t+v_t ,
+\]
+截距吸收处理单位与控制单位之间的水平差，这正是 SCM 做不到的。
+
+\subsubsection{严格地说 \texorpdfstring{$v_t$}{v\_t} 与 \texorpdfstring{$\tilde Y_t$}{Y\_t} 相关：OLS 收敛到线性投影系数}
+
+设 $u_{1t}$、$\tilde u_t$、$f_t$ 两两不相关，$\Var(\tilde u_t)=\Sigma_{u}$。则
+\begin{align*}
+\Cov(\tilde Y_t,v_t) &= \Cov(\Lambda f_t+\tilde u_t,\ u_{1t}-a\T\tilde u_t) \why{代入 $\tilde Y_t$、$v_t$}\\
+&= \Lambda\Cov(f_t,u_{1t})-\Lambda\Cov(f_t,\tilde u_t)a+\Cov(\tilde u_t,u_{1t})-\Var(\tilde u_t)a \why{协方差双线性}\\
+&= -\Sigma_{u}a\ne0. \why{不相关假设}
+\end{align*}
+$v_t$ 含 $\tilde u_t$，而 $\tilde Y_t$ 也含 $\tilde u_t$，二者相关，所以 OLS 并不收敛到 \eqref{eq:U16-pda} 中的 $a$，而是收敛到 $y_{1t}$ 对 $\tilde Y_t$ 的\term{线性投影}{linear projection}系数（最佳线性预测，第 2 章）。这不影响反事实预测：只要无处理状态下 $(y_{1t},\tilde Y_t)$ 的联合分布在处理前后保持不变（平稳），处理前估计的投影关系在处理后同样适用，预测仍然（近似）无偏。式 \eqref{eq:U16-pda} 的作用是说明“为什么处理单位能被控制单位线性预测”。
+
+\subsection{估计：处理前期用 OLS 估计 \texorpdfstring{$a$}{a}}
+
+\subsubsection{OLS 公式}
+
+政策在 $T_0$ 之后生效，处理前 $y_{1t}$ 未受影响，可直接做 OLS：
+\[
+\hat a=\Big(\sum_{t=1}^{T_0}\tilde Y_t\tilde Y_t\T\Big)\inv\sum_{t=1}^{T_0}\tilde Y_ty_{1t}.
+\]
+含截距时，令 $Z_t=(1,\tilde Y_t\T)\T$（$N\times1$），则
+\[
+\begin{pmatrix}\hat a_0\\ \hat a\end{pmatrix}=\Big(\sum_{t=1}^{T_0}Z_tZ_t\T\Big)\inv\sum_{t=1}^{T_0}Z_ty_{1t}.
+\]
+
+\subsubsection{仍是时间序列回归：\texorpdfstring{$T_0$}{T0} 需大于回归元个数}
+
+这同样是“时间序列回归”：$T_0$ 个观测、$N-1$（含截距为 $N$）个回归元。需要 $T_0>N$（大致），否则 $\sum_tZ_tZ_t\T$ 奇异、OLS 不可行，或严重过拟合——这就引出控制单位的选择问题。
+
+\subsection{反事实与 \texorpdfstring{$\hat\Delta_t$}{Delta-hat\_t}}
+
+\begin{align*}
+y_{1t}(0) &= a_0+a\T\tilde Y_t+v_t,\qquad t>T_0 \why{关系对所有 $t$ 成立}\\
+\hat y_{1t}(0) &= \hat a_0+\hat a\T\tilde Y_t,\qquad t=T_0+1,\dots,T \why{反事实预测}\\
+\hat\Delta_t &= y_{1t}-\hat y_{1t}(0). \why{观测值减反事实}
+\end{align*}
+处理后 $y_{1t}$ 可观测但受政策影响；$\tilde Y_t$ 处理后可观测且不受影响（SUTVA）。
+
+\subsection{控制组选择：AIC 与 AICc（拓展）}
+
+\subsubsection{HCW 的两步选择法}
+
+控制单位多、$T_0$ 短时，HCW (2012) 建议两步选择：
+\begin{enumerate}
+  \item 对每个 $k=1,2,\dots$，在所有含 $k$ 个控制单位的子集中，选 $R^2$ 最大的一个；
+  \item 用信息准则在不同 $k$ 之间选择。
+\end{enumerate}
+
+\subsubsection{AIC 与小样本修正的 AICc}
+
+\[
+\mathrm{AIC}(k)=T_0\ln\hat\sigma_k^2+2K,\qquad \mathrm{AICc}(k)=\mathrm{AIC}(k)+\frac{2K(K+1)}{T_0-K-1},
+\]
+$K$ 为该模型的参数个数，$\hat\sigma_k^2$ 为残差方差；AICc 对小样本（$T_0$ 小）做了修正，惩罚更重。
+
+\subsubsection{LASSO 选择控制单位}
+
+Li \& Bell (2017, \emph{Journal of Econometrics}) 用 LASSO 选择控制单位，并给出渐近理论。
+
+\subsection{推断：\texorpdfstring{$T_0$}{T0} 大时的置信区间与 bootstrap 置信区间}
+
+PDA 有两种推断思路：(1) $T_0$ 大时用渐近理论构造区间；(2) 用 bootstrap 构造 $\hat\Delta_t$ 的置信区间。两者都从估计误差的分解出发。
+
+\subsubsection{估计误差分解 \texorpdfstring{$\hat\Delta_t-\Delta_t=v_t+(a-\hat a)'\tilde Y_t$}{Delta-hat - Delta = v\_t + (a - a-hat)'Y\_t}}
+
+为简洁，省略截距（含截距时把 $\tilde Y_t$ 换成 $Z_t$ 即可）：
+\begin{align*}
+\hat\Delta_t-\Delta_t &= \big(y_{1t}-\hat a\T\tilde Y_t\big)-\big(y_{1t}-y_{1t}(0)\big) \why{代入 $\hat\Delta_t$ 与 $\Delta_t$}\\
+&= y_{1t}(0)-\hat a\T\tilde Y_t \why{$y_{1t}$ 抵消}\\
+&= a\T\tilde Y_t+v_t-\hat a\T\tilde Y_t \why{代入 $y_{1t}(0)=a\T\tilde Y_t+v_t$}\\
+&= v_t+(a-\hat a)\T\tilde Y_t. \why{合并}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$T_0$}{T0} 大时：单期效应无偏但不一致}
+
+$T_0\to\infty$ 时 $\hat a\pto a$，第二项消失，$\hat\Delta_t-\Delta_t\approx v_t$。于是对单期效应 $\Delta_t$：
+\begin{itemize}
+  \item $\E(\hat\Delta_t-\Delta_t)\approx\E(v_t)=0$，\key{（近似）无偏}；
+  \item 但 $v_t$ 是单期的随机误差，不随 $T_0$ 增大而消失，所以 $\hat\Delta_t$ 对 $\Delta_t$ \key{不一致}。
+\end{itemize}
+
+\subsubsection{单期效应的预测区间}
+
+设处理后的 $v_t$ 与只用处理前数据得到的 $\hat a$ 不相关。对 $\tilde Y_t$ 取条件：
+\begin{align*}
+\Var(\hat\Delta_t-\Delta_t\mid\tilde Y_t) &= \Var(v_t)+\tilde Y_t\T\Var(\hat a)\tilde Y_t+2\Cov\big(v_t,(a-\hat a)\T\tilde Y_t\mid\tilde Y_t\big) \why{和的方差}\\
+&= \sigma_v^2+\tilde Y_t\T\Var(\hat a)\tilde Y_t . \why{$v_t$ 与 $\hat a$ 不相关}
+\end{align*}
+由此得到\term{预测区间}{prediction interval}
+\[
+\hat\Delta_t\pm z_{\alpha/2}\sqrt{\hat\sigma_v^2+\tilde Y_t\T\widehat{\Var}(\hat a)\tilde Y_t},
+\]
+根号内第二项反映 $\hat a$ 的估计误差，$T_0$ 很大时可忽略。由于 $\hat\Delta_t-\Delta_t$ 的主体是\key{单个} $v_t$，中心极限定理帮不上忙，该区间要求 $v_t$ 近似正态。
+
+\subsubsection{处理后平均效应：处理后期数大时可一致估计}
+
+对处理后平均效应 $\bar\Delta=T_1\inv\sum_{t>T_0}\Delta_t$，
+\[
+\hat{\bar\Delta}-\bar\Delta=\frac1{T_1}\sum_{t>T_0}v_t+(a-\hat a)\T\frac1{T_1}\sum_{t>T_0}\tilde Y_t .
+\]
+当处理后期数 $T_1$ 也大时，$v_t$ 的平均趋于 0，平均效应可以一致估计；$v_t$ 一般序列相关，用 HAC 方差（长期方差）构造渐近置信区间（$T_0$ 相对 $T_1$ 足够大时，$\hat a$ 的估计误差可忽略）。
+
+\subsubsection{Bootstrap 置信区间}
+
+\begin{method}[PDA 的残差 bootstrap 区间]
+\begin{enumerate}
+  \item 处理前 OLS 得 $\hat a$ 与残差 $\hat v_t=y_{1t}-\hat a\T\tilde Y_t$（$t\le T_0$）。
+  \item 从 $\{\hat v_t\}$ 中重抽样得 $v_t^*$（序列相关时用分块 bootstrap），生成 $y_{1t}^*=\hat a\T\tilde Y_t+v_t^*$（$t\le T_0$），重新做 OLS 得 $\hat a^*$。
+  \item 对处理后的 $t$ 再抽一个 $v_t^*$，计算自助预测误差 $e_t^*=(\hat a-\hat a^*)\T\tilde Y_t+v_t^*$（模仿 $\hat\Delta_t-\Delta_t=(a-\hat a)\T\tilde Y_t+v_t$）。
+  \item 重复 $B$ 次，取 $e_t^*$ 的 $\alpha/2$ 与 $1-\alpha/2$ 分位数 $q_{\mathrm{lo}},q_{\mathrm{hi}}$，得 $\Delta_t$ 的区间 $[\hat\Delta_t-q_{\mathrm{hi}},\ \hat\Delta_t-q_{\mathrm{lo}}]$。
+\end{enumerate}
+\end{method}
+
+\subsubsection{近期进展：Jiang et al. (2025) 的预测区间}
+
+Jiang, Li, Shen \& Zhou (2025, \emph{Journal of Applied Econometrics}) 系统处理了 PDA 中个体、逐期处理效应的推断：用 post-LASSO OLS 估计 $a$，用相依 wild bootstrap 或残差 bootstrap 构造预测区间，并证明当处理前期数 $T_0\to\infty$ 时区间渐近有效。
+
+\subsection{数值例：PDA 用截距吸收水平差，SCM 失败}
+
+\begin{exmp}[SCM 失败而 PDA 成功]\UXVIlabel{ex:U16-pda}
+沿用例~\ref{ex:U16-scm} 的控制单位 $y_2=(1,3,2,4)$，$y_3=(5,4,7,6)$，但处理单位比合成值整体高 3：处理前 $y_1=3+0.6y_2+0.4y_3=(5.6,6.4,7.0,7.8)$；处理后控制单位 $y_2=(5,6)$，$y_3=(8,7)$，处理单位观测值 $(11.2,12.4)$（真实效应为 2、3）。分别用 PDA 与 SCM 估计效应。
+\solution
+\textbf{PDA。} 处理前 $y_{1t}=3+0.6y_{2t}+0.4y_{3t}$ 恰好成立，且 $(1,y_{2t},y_{3t})$ 在 4 期上线性无关（$\sum_tZ_tZ_t\T$ 可逆），所以含截距 OLS 的残差平方和可达最小值 0，且解唯一：
+\begin{align*}
+\hat a_0 &= 3,\quad \hat a_2=0.6,\quad \hat a_3=0.4 \why{含截距 OLS，处理前完美拟合}\\
+\hat y_1(0) &= (3+0.6\times5+0.4\times8,\ 3+0.6\times6+0.4\times7) \why{反事实}\\
+&= (3+3+3.2,\ 3+3.6+2.8)=(9.2,\ 9.4) \why{计算}\\
+\hat\Delta &= (11.2-9.2,\ 12.4-9.4)=(2.0,\ 3.0). \why{与真实效应一致}
+\end{align*}
+\textbf{SCM。} 用结论~\ref{thm:U16-twounit}，$z=y_2-y_3=(-4,-1,-5,-2)$，$e=y_1-y_3=(0.6,2.4,0,1.8)$：
+\begin{align*}
+\tilde w_2 &= \frac{\sum_tz_te_t}{\sum_tz_t^2}=\frac{-2.4-2.4+0-3.6}{46}=\frac{-8.4}{46}\approx-0.18 \why{$<0$，违反非负约束}\\
+\Rightarrow\ \hat w_2 &= 0,\quad \hat w_3=1 \why{截断到端点：角点解}\\
+\mathrm{RMSPE}_{\mathrm{pre}} &= \sqrt{(0.6^2+2.4^2+0^2+1.8^2)/4}=\sqrt{2.34}\approx1.53 \why{处理前拟合差}\\
+\hat y_1(0) &= y_3=(8,\ 7),\qquad \hat\Delta^{\mathrm{SCM}}=(11.2-8,\ 12.4-7)=(3.2,\ 5.4). \why{高估效应}
+\end{align*}
+处理单位的水平在控制单位凸包之外，SCM 不能外推；PDA 的截距与无约束系数吸收了水平差。代价是 PDA 可能过拟合、权重难以解释。
+\end{exmp}
+
+\subsection{即时练习：PDA 推导中各矩阵的维数}
+
+\begin{prac}[PDA 推导中的维数]\UXVIlabel{pr:U16-pda-dim}
+设 $N-1=5$ 个控制单位、$r=2$ 个因子。(a) 写出 $\tilde Y_t,\Lambda,f_t,A,a$ 的维数；(b) 若 $r=6$ 会怎样？(c) 为什么 PDA 不需要“$\sum_ja_j=1$”？
+\answer
+(a) $\tilde Y_t$：$5\times1$；$\Lambda$：$5\times2$；$f_t$：$2\times1$；$\Lambda\T\Lambda$：$2\times2$；$A=(\Lambda\T\Lambda)\inv\Lambda\T$：$2\times5$；$a\T=\lambda_1\T A$：$1\times5$（$\lambda_1$ 为 $2\times1$）。
+
+(b) $r=6>N-1=5$，$\Lambda$ 为 $5\times6$，$\rank(\Lambda)\le5<6$，$\Lambda\T\Lambda$（$6\times6$）奇异，无法从控制单位解出全部因子，PDA 的线性表示不成立（控制单位太少）。
+
+(c) $a$ 由 $a\T=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T$ 决定，只是“用控制单位张成的空间表示处理单位的因子部分”，没有理由要求非负或和为 1。和为 1 只在载荷中含一个对所有单位都为 1 的时间效应分量、并要求水平匹配时才自然出现（SCM 的情形，见 SCM 一节“无截距”的讨论）；PDA 用截距吸收水平差。
+\end{prac}
+
+\subsection{Stata 与 R 实现（拓展）}
+
+常用命令如下。
+\begin{lstlisting}
+* SSC: rcm (regression control method / panel data approach)
+xtset id year
+rcm y, trunit(1) trperiod(2004) method(lasso)
+rcm y, trunit(1) trperiod(2004) method(lasso) placebo(unit)
+\end{lstlisting}
+Stata 命令 \texttt{rcm}（Yan \& Chen 2022, \emph{Stata Journal}）：\texttt{method()} 可选最优子集（默认）、\texttt{lasso}、向前或向后逐步回归，默认用 AICc 选模型，\texttt{placebo(unit)} 做空间安慰剂。R 包 \texttt{pampe} 实现 HCW (2012) 的方法。
+
+\begin{english}
+The panel data approach of Hsiao, Ching and Wan (2012) also starts from a factor model. Stacking the control units gives $\tilde Y_t=\Lambda f_t+\tilde u_t$; if $\Lambda$ has full column rank ($N-1>r$), then $f_t=(\Lambda'\Lambda)^{-1}\Lambda'(\tilde Y_t-\tilde u_t)$. Substituting into the treated unit's equation yields $y_{1t}=a'\tilde Y_t+v_t$ with $a'=\lambda_1'(\Lambda'\Lambda)^{-1}\Lambda'$, an unconstrained linear combination of the control outcomes. We estimate $a$ (with an intercept) by OLS on pre-treatment data, predict the counterfactual $\hat y_{1t}(0)=\hat a'\tilde Y_t$ after treatment, and compute $\hat\Delta_t=y_{1t}-\hat y_{1t}(0)$. Since $\hat\Delta_t-\Delta_t=v_t+(a-\hat a)'\tilde Y_t$, the individual effect is approximately unbiased but inconsistent; inference relies on large-$T_0$ prediction intervals or the bootstrap.
+\end{english}
+
+%======================================================================
+\section{SCM 与 PDA 的比较}\label{sec:U16-compare}
+
+\subsection{常考问法}
+
+\begin{keypt}[英文试卷常见问法]
+(1) “Derive the SCM (or PDA) estimator from a factor model”——按 SCM 一节的四行推导或 PDA 一节的四步推导写出，注明关键条件 $\lambda_1=\sum_jw_j\lambda_j$（SCM）或秩条件 $N-1>r$（PDA）；(2) “Compare SCM and PDA”——约束与无约束、截距、外推、推断方法；(3) “How do you conduct inference for SCM?”——安慰剂四步与按秩 $p$ 值。
+\end{keypt}
+
+\subsection{逐项对照表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & SCM（Abadie） & PDA / RCM（Hsiao, Ching \& Wan）\\
+\midrule
+无处理模型 & 因子模型 $y_{it}=\lambda_i\T f_t+u_{it}$ & 同左\\
+关键条件 & 载荷匹配 $\lambda_1=\sum_jw_j\lambda_j$ & 秩条件 $\rank(\Lambda)=r$（$N-1>r$）\\
+反事实形式 & $y_{1t}=\sum_jw_jy_{jt}+v_t$ & $y_{1t}=a_0+a\T\tilde Y_t+v_t$\\
+约束 & $w_j\ge0$，$\sum_jw_j=1$，无截距 & 无约束，含截距\\
+估计 & 处理前约束最小二乘（二次规划） & 处理前 OLS（+ AIC/AICc 或 LASSO 选控制单位）\\
+外推 & 不允许（需在凸包内） & 允许（可处理水平差）\\
+数据要求 & 大 $T_0$；控制单位可多于 $T_0$（约束起正则化作用） & 大 $T_0$，且 $T_0$ 需大于所用控制单位数\\
+权重可解释性 & 高（稀疏、非负） & 低（可正可负）\\
+推断 & 安慰剂 / 置换检验 & 大 $T_0$ 渐近区间、bootstrap 区间\\
+主要风险 & 处理单位极端时有偏；cherry picking & 过拟合；控制单位选择\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{SCM 与 PDA 的对照}\label{tab:U16-scm-pda}
+\end{center}
+
+\subsection{共同点：都是“垂直回归”}
+
+两者都是“垂直回归”：以时期为观测、控制单位的同期结果为回归元（见本章矩阵补全一节的水平与垂直预测）；都估计单个处理单位的逐期效应；都依赖 SUTVA（控制单位不受政策影响）与处理前后关系稳定（权重或投影系数不随时间变化）。
+
+\subsection{选择要点：处理单位是否在控制单位的凸包内}
+
+处理单位落在控制单位“中间”、需要可解释的权重时用 SCM；处理单位水平极端（最高或最低）、落在凸包外时用 PDA（或先去均值、增广的 SCM）。无论哪种，都需要较长的处理前期。
+
+\begin{english}
+Both SCM and PDA predict the treated unit's untreated outcome from the contemporaneous outcomes of control units, using the pre-treatment period to estimate the weights. SCM restricts the weights to be non-negative and to sum to one, which prevents extrapolation and yields sparse, interpretable weights, but fails when the treated unit lies outside the convex hull of the controls. PDA uses unrestricted OLS with an intercept, which accommodates level differences but may overfit and requires selecting the control units. SCM relies on placebo inference, whereas PDA relies on large-$T_0$ asymptotics or the bootstrap.
+\end{english}
+
+%======================================================================
+\section{矩阵补全}\label{sec:U16-mc}
+
+\subsection{把处理效应看成缺失的矩阵元素：“随机缺失”}
+
+\subsubsection{定义：无处理结果矩阵 \texorpdfstring{$Y(0)$}{Y(0)} 与缺失集合 \texorpdfstring{$I_1$}{I1}}
+
+本节允许多个处理单位：设单位 $i=1,\dots,N_1$ 在 $T_0$ 之后受处理，其余 $N_0=N-N_1$ 个为控制单位；$D_{it}=1$ 表示单元格 $(i,t)$ 受处理。
+
+\begin{defn}[矩阵补全视角]\UXVIlabel{def:U16-mc}
+把无处理潜在结果排成 $N\times T$ 矩阵 $Y(0)=[y_{it}(0)]$。未处理的单元格可以观测到 $y_{it}(0)$；处理组 × 处理后的单元格集合
+\[
+I_1=\{(i,t):D_{it}=1\}
+\]
+中 $y_{it}(0)$ 缺失，观测到的是 $y_{it}(1)$（受政策影响）。\term{矩阵补全}{matrix completion}就是利用 $Y(0)$ 的低秩结构（因子模型，对所有 $i,t$ 有 $y_{it}(0)=\lambda_i\T f_t+u_{it}$）把缺失元素“补”出来，再得到每个处理单元格的效应
+\begin{equation}\label{eq:U16-mc-delta}
+\Delta_{it}=\underbrace{y_{it}(1)}_{\text{可观测}}-\underbrace{y_{it}(0)}_{\text{缺失}},\qquad \hat\Delta_{it}=y_{it}-\hat y_{it}(0),\qquad (i,t)\in I_1 .
+\end{equation}
+\end{defn}
+
+\subsubsection{“随机缺失”的含义}
+
+把处理效应估计变成缺失数据问题后，需要的假设是\term{随机缺失}{missing at random}。在这里它的含义是：哪些单元格被处理（缺失）可以与载荷 $\lambda_i$、因子 $f_t$ 相关（例如经济强的地区先改革），但与特异误差 $u_{it}$ 无关。这比 DiD 中“处理与 $\alpha_i$ 可以相关”的假设更宽：处理可以与单位对共同冲击的任意敏感度相关。
+
+\subsubsection{代表文献}
+
+Bai \& Ng (2021, \emph{Journal of the American Statistical Association})，“Matrix Completion, Counterfactuals, and Factor Analysis of Missing Data”；Athey, Bayati, Doudchenko, Imbens \& Khosravi (2021, \emph{Journal of the American Statistical Association})，“Matrix Completion Methods for Causal Panel Data Models”。
+
+\subsection{处理组 × 处理后块 \texorpdfstring{$I_1$}{I1} 的结构}
+
+数据矩阵按“处理组/控制组 × 处理前/处理后”分成四块，只有右上块缺失 $y(0)$：
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm,font=\small]
+\fill[red!12] (4.2,1.2) rectangle (7.6,2.4);
+\draw (0,0) rectangle (7.6,2.4);
+\draw (4.2,0) -- (4.2,2.4);
+\draw (0,1.2) -- (7.6,1.2);
+\node at (2.1,1.8) {处理前：\checkmark\ 观测 $y_{it}(0)$};
+\node[align=center] at (5.9,1.8) {$I_1$：? $y_{it}(0)$ 缺失\\ 观测到 $y_{it}(1)$};
+\node at (2.1,0.6) {处理前：\checkmark};
+\node at (5.9,0.6) {处理后：\checkmark};
+\node[anchor=east] at (0,1.8) {处理单位};
+\node[anchor=east] at (0,0.6) {控制单位};
+\node at (2.1,-0.3) {pre（$t\le T_0$）};
+\node at (5.9,-0.3) {post（$t>T_0$）};
+\draw[thick,dashed,green!50!black] (0.08,0.08) rectangle (4.12,2.32);
+\node[green!50!black] at (2.1,2.65) {处理前数据 $\Rightarrow\hat\lambda_i$（含处理单位）};
+\draw[thick,blue] (-0.05,-0.05) rectangle (7.65,1.15);
+\node[blue,anchor=west,align=left] at (7.75,0.6) {控制单位全部时期\\ $\Rightarrow\hat f_t$};
+\end{tikzpicture}
+\captionof{figure}{矩阵补全的数据结构：控制单位行（蓝框）识别 $f_t$，处理前列（绿框）识别 $\lambda_i$}
+\end{center}
+控制单位在全部时期都未受处理，用来估计因子（包括处理后的 $f_t$）；处理前各期所有单位都未受处理，用来估计处理单位的载荷。两块的交集是控制单位的处理前数据。
+
+\subsection{因子模型插补的四步}\label{sec:U16-mc-steps}
+
+\subsubsection{四个步骤}
+
+\begin{method}[因子模型插补（矩阵补全）]
+\begin{enumerate}
+  \item \key{估计因子}：用控制单位在全部 $T$ 期的数据（$N_0\times T$，无缺失）做主成分分析（第 13 章），得到 $\hat f_t$，$t=1,\dots,T$。处理后的 $\hat f_t$（$t>T_0$）正是插补所需。
+  \item \key{估计处理单位的载荷}：用处理前数据。最简便的做法是把处理单位 $i$ 的处理前结果对第 1 步的 $\hat f_t$ 做时间序列回归：
+  \[
+  \hat\lambda_i=\Big(\sum_{t\le T_0}\hat f_t\hat f_t\T\Big)\inv\sum_{t\le T_0}\hat f_ty_{it}.
+  \]
+  \item \key{插补}：$\hat y_{it}(0)=\hat\lambda_i\T\hat f_t$，$(i,t)\in I_1$（反事实）。
+  \item \key{处理效应}：$\hat\Delta_{it}=y_{it}-\hat y_{it}(0)$；可再对 $i$、$t$ 平均得到 ATT。
+\end{enumerate}
+\end{method}
+步骤也可以先写载荷、后写因子（先用处理前全部数据估计 $\lambda_i$，再用控制单位数据估计 $f_t$），实质相同：$\lambda_i$ 针对处理单位，$f_t$ 针对处理后时期。
+
+\subsubsection{旋转不确定性：为什么第 2 步用“对 \texorpdfstring{$\hat f_t$}{f-hat} 回归”}
+
+若第 2 步也做 PCA（例如对处理前全部单位的数据做 PCA），会遇到旋转问题。因子与载荷只识别到一个旋转（第 13 章）：对任意 $r\times r$ 可逆矩阵 $H$，
+\begin{align*}
+(H\inv\lambda_i)\T(H\T f_t) &= \lambda_i\T(H\inv)\T H\T f_t \why{$(AB)\T=B\T A\T$}\\
+&= \lambda_i\T(HH\inv)\T f_t \why{$(H\inv)\T H\T=(HH\inv)\T$}\\
+&= \lambda_i\T f_t. \why{$HH\inv=I_r$}
+\end{align*}
+两次独立 PCA 得到的 $\hat f_t$ 与 $\hat\lambda_i$ 不一定是同一个旋转，不能直接相乘。Bai \& Ng (2021) 的 TW（tall--wide）算法利用两块数据的重叠部分（控制单位的处理前数据）把两者对齐。上面第 2 步用“对 $\hat f_t$ 回归”估计载荷，自动与 $\hat f_t$ 的旋转一致（这也是 Xu 2017 广义合成控制 gsynth 的做法）。
+
+\begin{thm}[回归法插补的旋转不变性]\UXVIlabel{thm:U16-rot}
+若把第 1 步的因子换成任意旋转 $g_t=H\T\hat f_t$（$H$ 可逆），第 2 步得到的载荷变为 $H\inv\hat\lambda_i$，插补值 $\hat\lambda_i\T\hat f_t$ 不变。
+\end{thm}
+
+\begin{align*}
+\tilde\lambda_i &= \Big(\sum_{t\le T_0}g_tg_t\T\Big)\inv\sum_{t\le T_0}g_ty_{it} \why{用 $g_t$ 回归}\\
+&= \Big(H\T\sum_{t\le T_0}\hat f_t\hat f_t\T H\Big)\inv H\T\sum_{t\le T_0}\hat f_ty_{it} \why{代入 $g_t=H\T\hat f_t$}\\
+&= H\inv\Big(\sum_{t\le T_0}\hat f_t\hat f_t\T\Big)\inv(H\T)\inv H\T\sum_{t\le T_0}\hat f_ty_{it} \why{$(ABC)\inv=C\inv B\inv A\inv$}\\
+&= H\inv\hat\lambda_i \why{$(H\T)\inv H\T=I_r$}\\
+\tilde\lambda_i\T g_t &= \hat\lambda_i\T(H\inv)\T H\T\hat f_t=\hat\lambda_i\T\hat f_t. \why{同上旋转恒等式}
+\end{align*}
+所以插补值、进而 $\hat\Delta_{it}$ 都不受 PCA 标准化方式的影响。
+
+\subsection{性质：\texorpdfstring{$\hat\Delta_{it}$}{Delta-hat\_it} 无偏但不一致}
+
+\subsubsection{误差分解}
+
+\begin{align*}
+\hat\Delta_{it}-\Delta_{it} &= \big(y_{it}(1)-\hat\lambda_i\T\hat f_t\big)-\big(y_{it}(1)-y_{it}(0)\big) \why{代入 $\hat\Delta_{it}$ 与 $\Delta_{it}$}\\
+&= y_{it}(0)-\hat\lambda_i\T\hat f_t \why{$y_{it}(1)$ 抵消}\\
+&= \lambda_i\T f_t+u_{it}-\hat\lambda_i\T\hat f_t \why{代入 $y_{it}(0)=\lambda_i\T f_t+u_{it}$}\\
+&= u_{it}-\big(\hat\lambda_i\T\hat f_t-\lambda_i\T f_t\big). \why{整理}
+\end{align*}
+
+\subsubsection{共同成分的估计误差随 \texorpdfstring{$N_0,T_0\to\infty$}{N0, T0 to infinity} 消失}
+
+第二项是共同成分 $\lambda_i\T f_t$ 的估计误差。$\hat f_t$ 的精度靠截面维度（需 $N_0$ 大），$\hat\lambda_i$ 的精度靠时间维度（需 $T_0$ 大）（第 13、14 章）。当 $N_0,T_0\to\infty$ 时它趋于 0。
+
+\subsubsection{特异误差 \texorpdfstring{$u_{it}$}{u\_it} 不消失：无偏但不一致}
+
+第一项 $u_{it}$ 是单个单元格的特异误差，样本再大也不会消失，所以 $\hat\Delta_{it}$ 对 $\Delta_{it}$ \key{不一致}；但 $\E(u_{it})=0$，所以 $\hat\Delta_{it}$（渐近）\key{无偏}。一句话：\key{$\hat\Delta_{it}$ inconsistent, but unbiased}。
+
+\subsubsection{平均效应可以一致估计}
+
+对许多处理单元格求平均：
+\begin{align*}
+\frac{1}{|I_1|}\sum_{(i,t)\in I_1}(\hat\Delta_{it}-\Delta_{it}) &= \frac{1}{|I_1|}\sum_{(i,t)\in I_1}u_{it}-\frac{1}{|I_1|}\sum_{(i,t)\in I_1}\big(\hat\lambda_i\T\hat f_t-\lambda_i\T f_t\big) \why{对分解式求平均}\\
+&\pto 0, \why{$|I_1|\to\infty$ 时 LLN；第二项趋于 0}
+\end{align*}
+$|I_1|$ 为处理单元格个数。$u_{it}$ 被平均掉，平均效应（ATT）可以一致估计。
+
+\subsubsection{与少数处理单位 DiD、PDA 单期效应同理}
+
+这与第 15 章“处理单位很少时 DiD 估计量无偏但不一致”、本章 PDA 的单期 $\hat\Delta_t$ 是同一个道理：个体层面的效应总带着个体层面的噪声，只有平均才能把噪声消掉。
+
+\subsection{推断：bootstrap 置信区间}
+
+单元格层面的置信区间要同时反映共同成分的估计误差与 $u_{it}$ 的分布。做法：用未处理单元格的残差 $\hat u_{it}=y_{it}-\hat\lambda_i\T\hat f_t$ 重抽样构造自助样本，重复四步，得到 $\hat\Delta_{it}^*$ 的分布（类似预测区间）。平均效应的区间可用对单位重抽样的块自助法（Xu 2017 等）。
+
+\subsection{水平预测与垂直预测}\label{sec:U16-hv}
+
+\subsubsection{图示}
+
+把数据矩阵的行看成单位、列看成时期（Athey et al. 2021 的术语）：
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=1cm,font=\small,>={Stealth[length=2mm]}]
+\fill[red!12] (4.4,2.2) rectangle (5.8,2.9);
+\draw (0,0) rectangle (5.8,2.9);
+\draw (4.4,0) -- (4.4,2.9);
+\draw (0,2.2) -- (5.8,2.2);
+\node at (5.1,2.55) {?};
+\draw[->,thick,blue] (0.3,2.5) -- (4.75,2.5);
+\node[blue,anchor=south west] at (0.25,2.9) {水平（horizontal）：沿行，用时间模式};
+\draw[->,thick,green!50!black] (5.1,0.2) -- (5.1,2.25);
+\node[green!50!black,anchor=west,align=left] at (6.0,1.1) {垂直（vertical）：\\ 沿列，用截面模式};
+\node[anchor=east] at (0,2.55) {处理单位};
+\node[anchor=east] at (0,1.1) {控制单位};
+\node at (2.2,-0.3) {pre};
+\node at (5.1,-0.3) {post};
+\end{tikzpicture}
+\captionof{figure}{水平预测与垂直预测}
+\end{center}
+
+\subsubsection{水平回归：以单位为观测，用时间模式}
+
+\term{水平回归}{horizontal regression}（水平预测）以\key{单位}为观测，用处理前各期的结果预测处理后的结果：在控制单位上估计“时间模式”（处理后结果如何依赖处理前结果），再用到处理单位上。这对应非混杂（unconfoundedness）/匹配类方法，适合“瘦长”矩阵（$N$ 大、$T_0$ 小）。
+
+\subsubsection{垂直回归：以时期为观测，用截面模式}
+
+\term{垂直回归}{vertical regression}（垂直预测）以\key{时期}为观测，用控制单位的同期结果预测处理单位：在处理前估计“截面模式”（处理单位如何依赖控制单位），再延伸到处理后。这就是 SCM 与 PDA（时间序列估计），适合“矮胖”矩阵（$T_0$ 大、$N$ 小）。
+
+\subsubsection{矩阵补全兼用两个方向}
+
+矩阵补全同时利用两个方向：$\hat f_t$ 来自控制单位的截面信息（垂直），$\hat\lambda_i$ 来自处理单位自身的处理前时间序列（水平）；插补时沿处理单位所在的行向处理后延伸，是一种\key{水平预测}（horizontal prediction）。
+
+\subsection{核范数正则化的矩阵补全（Athey et al. 2021，拓展）}
+
+\subsubsection{核范数惩罚的目标函数}
+
+不预先指定因子个数 $r$，而是对低秩近似矩阵 $L$（可再加个体、时间固定效应）施加\term{核范数}{nuclear norm}惩罚：
+\[
+\hat L=\argmin_L\ \frac{1}{|\mathcal O|}\sum_{(i,t)\in\mathcal O}\big(y_{it}-L_{it}\big)^2+\lambda_L\|L\|_*,\qquad \|L\|_*=\sum_k\sigma_k(L),
+\]
+$\mathcal O$ 为观测到 $y(0)$ 的单元格集合，$\sigma_k(L)$ 为 $L$ 的第 $k$ 个奇异值。$\|L\|_*$ 是奇异值之和，惩罚它会把小奇异值压为 0，促使 $\hat L$ 低秩（类似 LASSO 把小系数压为 0）。
+
+\subsubsection{算法与软件}
+
+算法（soft-impute）：用当前 $\hat L$ 填补缺失格 → 对完整矩阵做 SVD → 奇异值软阈值收缩（$\sigma_k\mapsto\max(\sigma_k-c,0)$，$c$ 与 $\lambda_L$ 成正比）→ 迭代至收敛；$\lambda_L$ 用交叉验证选择。R 包 \texttt{MCPanel}；\texttt{gsynth}/\texttt{fect}（Xu 等）也提供 MC 估计量。
+
+\subsection{数值例：秩 1 的矩阵补全}
+
+\begin{exmp}[四步插补]\UXVIlabel{ex:U16-mc}
+因子 $f_t=(1,2,3,4)$，$T_0=2$。两个控制单位的载荷分别为 1、2：$y_2=(1,2,3,4)$，$y_3=(2,4,6,8)$（无噪声）。处理单位处理前 $y_1=(1.5,3)$，处理后观测 $(8.5,10)$。求 $\hat\Delta_{1t}$（$t=3,4$）。
+\solution
+\begin{align*}
+&\text{第 1 步：}\ \hat f_t=c\cdot(1,2,3,4) \why{控制单位矩阵秩为 1；$c\ne0$ 为标准化常数}\\
+&\text{第 2 步：}\ \hat\lambda_1=\frac{\sum_{t\le2}\hat f_ty_{1t}}{\sum_{t\le2}\hat f_t^2}=\frac{c(1\times1.5+2\times3)}{c^2(1+4)}=\frac{7.5}{5c}=\frac{1.5}{c} \why{处理前对 $\hat f_t$ 回归}\\
+&\text{第 3 步：}\ \hat y_{1t}(0)=\hat\lambda_1\hat f_t=\frac{1.5}{c}\cdot c\cdot(3,4)=(4.5,\ 6) \why{$c$ 被约掉：旋转不变}\\
+&\text{第 4 步：}\ \hat\Delta_{1t}=(8.5-4.5,\ 10-6)=(4,\ 4). \why{处理效应}
+\end{align*}
+第 3 步中 $c$ 被约掉，是结论~\ref{thm:U16-rot} 在 $r=1$ 时的体现（$H=c$）。
+\end{exmp}
+
+\subsection{即时练习：矩阵补全的步骤与性质}
+
+\begin{prac}[矩阵补全的步骤与性质]\UXVIlabel{pr:U16-mc}
+(a) 为什么第 1 步只用控制单位而不用处理单位的全部数据？(b) 为什么第 2 步只能用处理前数据？(c) 写出 $\hat\Delta_{it}-\Delta_{it}$ 的分解，说明“无偏但不一致”。
+\answer
+(a) 处理单位在处理后观测到的是 $y_{it}(1)$，含处理效应；若用于 PCA，估计的因子会被处理效应污染。控制单位全部时期都是 $y(0)$，且覆盖处理后时期，能给出插补所需的 $\hat f_t$（$t>T_0$）。
+
+(b) 处理单位只有处理前的 $y_{it}=y_{it}(0)=\lambda_i\T f_t+u_{it}$ 不含处理效应，才能用来估计其载荷 $\lambda_i$。
+
+(c) $\hat\Delta_{it}-\Delta_{it}=u_{it}-(\hat\lambda_i\T\hat f_t-\lambda_i\T f_t)$。第二项随 $N_0,T_0\to\infty$ 趋于 0；第一项均值为 0 但方差不随样本增大而变小，所以单元格效应无偏但不一致；对许多单元格平均后 $u_{it}$ 被平均掉，平均效应一致。
+\end{prac}
+
+\begin{english}
+Matrix completion treats the untreated potential outcomes of treated cells as missing entries of an $N\times T$ matrix with a low-rank (factor) structure. Factors are estimated by principal components from the control units over all periods, loadings of the treated units are estimated from their pre-treatment data, and the missing entries are imputed as $\hat y_{it}(0)=\hat\lambda_i'\hat f_t$, giving $\hat\Delta_{it}=y_{it}-\hat y_{it}(0)$. Because $\hat\Delta_{it}-\Delta_{it}=u_{it}-(\hat\lambda_i'\hat f_t-\lambda_i'f_t)$ and the idiosyncratic error $u_{it}$ does not vanish, each $\hat\Delta_{it}$ is unbiased but inconsistent, while averages over many cells are consistent. Confidence intervals are obtained by the bootstrap. The method combines horizontal (time-series) and vertical (cross-sectional) information.
+\end{english}
+
+%======================================================================
+\section{SUTVA 与溢出：个体效应方法同样需要}\label{sec:U16-sutva}
+
+\subsection{三种方法都用控制单位构造反事实}
+
+SCM、PDA、MC 都用控制单位的结果构造处理单位的反事实，因此都要求控制单位不受政策影响，即\term{个体处理值稳定假设}{stable unit treatment value assumption, SUTVA}（第 15 章）。政策应只作用于处理单位；若政策\term{溢出}{spillover}到控制单位，反事实就被污染。
+
+\subsection{溢出导致的偏误方向}
+
+设处理后控制单位受到溢出 $s_{jt}$：$y_{jt}=y_{jt}(0)+s_{jt}$（$t>T_0$）。以 SCM 为例（PDA 同理，把 $\hat w$ 换成 $\hat a$）：
+\begin{align*}
+\hat\Delta_t-\Delta_t &= \Big(y_{1t}-\sum_j\hat w_jy_{jt}\Big)-\big(y_{1t}-y_{1t}(0)\big) \why{代入 $\hat\Delta_t$ 与 $\Delta_t$}\\
+&= y_{1t}(0)-\sum_j\hat w_j\big(y_{jt}(0)+s_{jt}\big) \why{$y_{1t}$ 抵消；代入溢出}\\
+&= \Big(y_{1t}(0)-\sum_j\hat w_jy_{jt}(0)\Big)-\sum_j\hat w_js_{jt} \why{拆项}\\
+&\approx v_t-\sum_j\hat w_js_{jt}. \why{$\hat w\approx w$，SCM 模型}
+\end{align*}
+所以偏误约为 $-\sum_j\hat w_js_{jt}$。例如一个省的改革吸引了邻省的资本和劳动力，邻省结果被压低（$s_{jt}<0$），$\hat\Delta_t$ 被\key{高估}；若政策带动了邻省（$s_{jt}>0$），$\hat\Delta_t$ 被\key{低估}。MC 中受溢出的控制单位还会污染第 1 步估计的 $\hat f_t$。
+
+\subsection{实践对策：清理捐赠池与稳健性检验}
+
+\begin{enumerate}
+  \item 从捐赠池中剔除可能受溢出影响的邻近单位，以及同期受到其他大冲击的单位；
+  \item 比较剔除前后的结果，作为稳健性检验。
+\end{enumerate}
+
+\begin{english}
+SCM, PDA and matrix completion all construct the counterfactual from control units, so they require SUTVA: the policy must not spill over to the donor pool. If neighboring control units are affected, the synthetic counterfactual is contaminated and the estimated effect is biased by approximately $-\sum_j\hat w_js_{jt}$, where $s_{jt}$ is the spillover. Units that may be affected by spillovers or by other large contemporaneous shocks should be excluded from the donor pool, and results with and without them should be compared.
+\end{english}
+
+%======================================================================
+\section{处理效应方法总表：从 DiD 到矩阵补全}\label{sec:U16-table}
+
+下表汇总第 15 章与本章的处理效应方法（Stata/R 列中带“拓展”的为参考工具）。
+
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.4cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{2.7cm}>{\raggedright\arraybackslash}p{3.0cm}}
+\caption{处理效应方法总表}\label{tab:U16-all}\\
+\toprule
+方法 & 估计目标 & 关键假设 & 数据要求 & 推断方法 & Stata / R\\
+\midrule
+\endfirsthead
+\toprule
+方法 & 估计目标 & 关键假设 & 数据要求 & 推断方法 & Stata / R\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+$2\times2$ DiD / TWFE & ATT（同质或平均） & SUTVA、无预期、平行趋势；加 $x$ 则为条件平行趋势 & 处理组与控制组的处理前后数据；$N_1$ 大 & 聚类稳健标准误（按单位/组）；$N_1$ 小时置换推断 & \texttt{reg y i.d\#\#i.post}；\texttt{xtreg y D i.year, fe}；\texttt{reghdfe}\\
+时变 / 个体异质效应 & $\tau_s$、$\beta_j$ & 同上 & 每期 / 每个处理单位有足够观测 & 聚类标准误；Wald 检验同质性 & 交互项 + \texttt{xtreg} / \texttt{reghdfe}\\
+事件研究 & 动态效应 $\beta_e$；事前检验 & 同上；参照期 $e=-1$ & 足够多的处理前期 & 聚类标准误；前导系数联合 Wald 检验 & \texttt{reghdfe} + \texttt{coefplot}；\texttt{HonestDiD}（拓展）\\
+交错 DiD & $\tau_{rs}$ 及其聚合 & 所有 cohort 与（从未/尚未）处理组平行趋势；无预期 & 有从未处理或尚未处理单位 & 聚类标准误；乘子 bootstrap（CS） & \texttt{jwdid}、\texttt{csdid}、\texttt{eventstudyinteract}、\texttt{did\_imputation}、\texttt{did\_multiplegt\_dyn}；R：\texttt{did}、\texttt{fixest}\\
+SCM & 单个处理单位的 $\Delta_t$ & 因子模型；$\lambda_1$ 在控制单位载荷凸包内；SUTVA & 大 $T_0$；捐赠池足够大 & 空间/时间安慰剂，按秩 $p$ 值，RMSPE 比 & \texttt{synth}、\texttt{synth\_runner}；R：\texttt{Synth}、\texttt{augsynth}\\
+PDA / RCM & 单个处理单位的 $\Delta_t$ & 因子模型；秩条件 $N-1>r$；处理前后关系稳定 & 大 $T_0$（大于所用控制单位数） & 大 $T_0$ 渐近区间；bootstrap 区间；Jiang et al. (2025) 预测区间 & \texttt{rcm}；R：\texttt{pampe}\\
+矩阵补全 MC & 每个单元格 $\Delta_{it}$ 及平均 & 低秩因子结构；缺失与 $u_{it}$ 无关（随机缺失） & $N_0$、$T_0$ 都较大 & bootstrap 区间 & R：\texttt{MCPanel}、\texttt{gsynth}、\texttt{fect}\\
+\end{longtable}
+}
+
+\subsection{如何使用总表：三个判断}
+
+\begin{enumerate}
+  \item \key{处理单位有多少？} 很多 → DiD 家族（第 15 章）；一个或极少 → SCM / PDA。
+  \item \key{处理时点是否相同？} 相同 → 普通 DiD/TWFE 与事件研究；交错 → 异质性稳健的交错 DiD，或矩阵补全。
+  \item \key{平行趋势是否可信？} 载荷可能异质（单位对共同冲击反应不同）时，改用以因子模型为基础的 SCM / PDA / MC，并保证处理前期足够长。
+\end{enumerate}
+
+\begin{english}
+The choice among treatment effect estimators depends on the number of treated units, the timing of treatment and the credibility of parallel trends. With many treated units and a common adoption date, DiD or TWFE with clustered standard errors is appropriate; with staggered adoption, heterogeneity-robust estimators should be used. With a single treated unit and a long pre-treatment period, synthetic control or the panel data approach estimates the unit-specific effect, with inference based on placebo tests or the bootstrap. Matrix completion delivers cell-level effects under a low-rank factor structure.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U16-summary}
+
+\subsection{核心公式与结论}
+
+\begin{center}
+\small
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}L}
+\toprule
+主题 & 公式 / 结论\\
+\midrule
+设定 & 单位 1 处理，$j=2,\dots,N$ 控制；无处理时 $y_{it}(0)=\lambda_i\T f_t+u_{it}$；$\Delta_t=y_{1t}-y_{1t}(0)$，$t>T_0$\\
+TWFE 与平行趋势 & $\lambda_i=(\alpha_i,1)\T$、$f_t=(1,\lambda_t)\T$ 给出 $\alpha_i+\lambda_t$；平行趋势 $\Leftrightarrow(\bar\lambda_T-\bar\lambda_C)\T(f_t-f_{t-1})=0$\\
+SCM 推导 & $\lambda_1=\sum_jw_j\lambda_j\Rightarrow y_{1t}=\sum_jw_jy_{jt}+v_t$，$v_t=u_{1t}-\sum_jw_ju_{jt}$\\
+SCM 估计 & 处理前约束最小二乘，$w_j\ge0$、$\sum_{j=2}^Nw_j=1$；$\hat\Delta_t=y_{1t}-\sum_j\hat w_jy_{jt}$\\
+两个控制单位 & $\hat w_2=\min\{\max\{\tilde w_2,0\},1\}$，$\tilde w_2=\sum_tz_te_t/\sum_tz_t^2$，$z=y_2-y_3$，$e=y_1-y_3$\\
+SCM 三个问题 & 需大 $T_0$；样本内拟合 → cherry picking；约束回归棘手（角点、不唯一、边界参数）→ 推断用安慰剂\\
+安慰剂 $p$ 值 & $p=N\inv\sum_{i=1}^N\mathbf{1}\{|\hat\Delta^{(i)}|\ge|\hat\Delta^{(1)}|\}$ = 排名$/N$；最小 $1/N$；可用 RMSPE 比排序\\
+PDA 推导 & $\tilde Y_t=\Lambda f_t+\tilde u_t$；$\rank(\Lambda)=r$（$N-1>r$）；$f_t=(\Lambda\T\Lambda)\inv\Lambda\T(\tilde Y_t-\tilde u_t)$；$y_{1t}=a\T\tilde Y_t+v_t$，$a\T=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T$，$v_t=u_{1t}-a\T\tilde u_t$\\
+PDA 估计与推断 & 处理前 OLS（含截距）；$\hat\Delta_t-\Delta_t=v_t+(a-\hat a)\T\tilde Y_t$：无偏、不一致；区间 $\hat\Delta_t\pm z_{\alpha/2}\sqrt{\hat\sigma_v^2+\tilde Y_t\T\widehat{\Var}(\hat a)\tilde Y_t}$ 或 bootstrap\\
+矩阵补全 & 控制单位全期 PCA → $\hat f_t$；处理前对 $\hat f_t$ 回归 → $\hat\lambda_i$；$\hat y_{it}(0)=\hat\lambda_i\T\hat f_t$；$\hat\Delta_{it}-\Delta_{it}=u_{it}-(\hat\lambda_i\T\hat f_t-\lambda_i\T f_t)$：无偏、不一致；平均效应一致；bootstrap 区间\\
+旋转不变 & $(H\inv\lambda_i)\T(H\T f_t)=\lambda_i\T f_t$；回归法得到的 $\hat\lambda_i\T\hat f_t$ 不受 PCA 标准化影响\\
+两个方向 & 垂直预测（SCM/PDA，时期为观测）与水平预测（单位为观测）；MC 兼用\\
+SUTVA & 溢出 $s_{jt}$ 使 $\hat\Delta_t-\Delta_t\approx v_t-\sum_j\hat w_js_{jt}$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 16 章核心公式与结论}\label{tab:U16-core}
+\end{center}
+
+\subsection{方法对照与选择要点}
+
+\begin{itemize}
+  \item 处理单位多、处理时点相同、平行趋势可信 → DiD/TWFE；处理时点交错 → 异质性稳健的交错 DiD（第 15 章）。
+  \item 只有一个（或很少）处理单位、处理前期长、处理单位落在控制单位凸包内 → SCM，安慰剂推断。
+  \item 一个处理单位但水平极端（凸包外） → PDA（含截距）或去均值 / 增广 SCM。
+  \item 多个处理单位、交错时点、需要逐单元格效应或灵活的交互结构 → 矩阵补全 / 因子模型插补（gsynth、MC-NNM）。
+  \item 一句话：只有一个（或很少）处理单位时，用因子模型刻画无处理结果，SCM 以凸组合、PDA 以无约束回归、MC 以“因子 × 载荷”插补处理单位的反事实；个体效应无偏但不一致，推断依靠安慰剂、大 $T_0$ 或 bootstrap。
+\end{itemize}
+
+\subsection{常见错误}
+
+\begin{enumerate}
+  \item 说“SCM 用 OLS 估计 $w_j$”。SCM 是带 $w_j\ge0$、$\sum_jw_j=1$ 的约束最小二乘；无约束 OLS（加截距）是 PDA。
+  \item 把约束写成 $\sum_{j=1}^Nw_j=1$。求和只对控制单位：$\sum_{j=2}^Nw_j=1$。
+  \item 认为 SCM 能处理水平差。SCM 无截距、不外推，处理单位在凸包外时拟合差、反事实有偏。
+  \item 认为 SCM 有常规标准误。权重常在边界上，常规渐近正态不适用，推断用安慰剂检验。
+  \item 计算安慰剂 $p$ 值时漏掉处理单位本身，或忽视最小可达 $p$ 值 $1/N$（单位少于 20 个时 5\% 水平永远不能拒绝）。
+  \item 混淆两种维数要求：秩条件比较的是控制单位个数与因子个数（$N-1>r$）；OLS 可行性比较的是处理前期数与回归元个数（$T_0>N$）。
+  \item 断言 PDA 的 OLS 收敛到 $a\T=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T$。因 $v_t$ 与 $\tilde Y_t$ 相关，OLS 收敛到线性投影系数；但只要关系平稳，反事实预测仍近似无偏。
+  \item 说单期 $\hat\Delta_t$ 或单元格 $\hat\Delta_{it}$ 一致。它们无偏但不一致（$v_t$、$u_{it}$ 不消失），只有平均效应一致。
+  \item 矩阵补全第 1 步把处理单位的处理后数据放进 PCA。这会让因子被处理效应污染。
+  \item 把两次独立 PCA 得到的 $\hat f_t$ 与 $\hat\lambda_i$ 直接相乘。两者旋转不一致；应对 $\hat f_t$ 回归求 $\hat\lambda_i$，或用 TW 算法对齐。
+  \item 忽视 SUTVA：捐赠池中保留受溢出影响的邻近单位，使效应被高估或低估。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[Synthetic control weights and placebo inference]\UXVIlabel{pr:U16-c1}
+A region (unit 1) adopted a policy after period $T_0=3$. Two control regions have pre-treatment outcomes $y_2=(4,6,8)$ and $y_3=(10,10,10)$; the treated region has $y_1=(7,8,9)$. In period 4 the outcomes are $y_2=10$, $y_3=10$, $y_1=14$. (a) Derive the SCM representation $y_{1t}=\sum_jw_jy_{jt}+v_t$ from the factor model and state the constraints. (b) Estimate the weights and the treatment effect in period 4. (c) With 25 regions in total, the treated region's effect ranks 2nd among all placebo and actual effects. Compute the placebo p-value and conclude at the 5\% level.
+\answer
+(a) 由因子模型，$y_{1t}=\lambda_1\T f_t+u_{1t}$，$\sum_jw_jy_{jt}=(\sum_jw_j\lambda_j)\T f_t+\sum_jw_ju_{jt}$，两式相减：
+\[
+y_{1t}-\sum_jw_jy_{jt}=\Big(\lambda_1-\sum_jw_j\lambda_j\Big)\T f_t+\Big(u_{1t}-\sum_jw_ju_{jt}\Big).
+\]
+若 $\lambda_1=\sum_jw_j\lambda_j$，因子项为 0，得 $y_{1t}=\sum_jw_jy_{jt}+v_t$，$v_t=u_{1t}-\sum_jw_ju_{jt}$，$\E(v_t)=0$。约束：$w_j\ge0$，$\sum_{j=2}^Nw_j=1$。
+
+(b) $z=y_2-y_3=(-6,-4,-2)$，$e=y_1-y_3=(-3,-2,-1)$，
+\[
+\tilde w_2=\frac{18+8+2}{36+16+4}=\frac{28}{56}=0.5\in[0,1],\qquad \hat w_2=\hat w_3=0.5 .
+\]
+处理前拟合 $0.5y_2+0.5y_3=(7,8,9)$，完美。反事实 $\hat y_{1,4}(0)=0.5\times10+0.5\times10=10$，$\hat\Delta_4=14-10=4$。
+
+(c) $p=2/25=8\%>5\%$，在 5\% 水平不能拒绝“无效应”；在 10\% 水平显著。
+\end{prac}
+
+\begin{prac}[Panel data approach]\UXVIlabel{pr:U16-c2}
+Suppose untreated outcomes follow $y_{it}=\lambda_i'f_t+u_{it}$ with $r$ factors, unit 1 is treated after $T_0$, and units $2,\dots,N$ are controls. (a) Show that $y_{1t}=a'\tilde Y_t+v_t$ and give $a$ and $v_t$. What rank condition is required? (b) Explain how to estimate the individual treatment effect and construct a confidence interval. (c) Contrast PDA with SCM.
+\answer
+(a) 叠起控制单位：$\tilde Y_t=\Lambda f_t+\tilde u_t$。左乘 $\Lambda\T$ 得 $\Lambda\T\tilde Y_t=\Lambda\T\Lambda f_t+\Lambda\T\tilde u_t$，在 $\rank(\Lambda)=r$ 下解出 $f_t=(\Lambda\T\Lambda)\inv\Lambda\T(\tilde Y_t-\tilde u_t)$。代入 $y_{1t}=\lambda_1\T f_t+u_{1t}$：
+\[
+y_{1t}=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T\tilde Y_t+u_{1t}-\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T\tilde u_t=a\T\tilde Y_t+v_t,
+\]
+其中 $a\T=\lambda_1\T(\Lambda\T\Lambda)\inv\Lambda\T$，$v_t=u_{1t}-a\T\tilde u_t$，$\E(v_t)=0$。需要 $\rank(\Lambda)=r$，即控制单位多于因子：$N-1>r$（至少 $N-1\ge r$）。
+
+(b) 处理前对 $y_{1t}$ 关于 $(1,\tilde Y_t)$ 做 OLS 得 $(\hat a_0,\hat a)$；处理后 $\hat y_{1t}(0)=\hat a_0+\hat a\T\tilde Y_t$，$\hat\Delta_t=y_{1t}-\hat y_{1t}(0)$。由 $\hat\Delta_t-\Delta_t=v_t+(a-\hat a)\T\tilde Y_t$，$T_0$ 大时 $\hat\Delta_t-\Delta_t\approx v_t$，用 $\hat\sigma_v$ 构造区间：单期效应为预测区间 $\hat\Delta_t\pm z_{\alpha/2}\sqrt{\hat\sigma_v^2+\tilde Y_t\T\widehat{\Var}(\hat a)\tilde Y_t}$（要求 $v_t$ 近似正态）；处理后平均效应在 $T_1$ 大时用 HAC 方差构造渐近区间；或用处理前残差 bootstrap 构造区间。
+
+(c) PDA 无约束、含截距、用 OLS，能处理水平差，但可能过拟合、需要选择控制单位；SCM 约束为凸组合、无截距，权重可解释、不外推，处理单位在凸包外时失效。SCM 的推断用安慰剂检验，PDA 用大 $T_0$ 渐近或 bootstrap。
+\end{prac}
+
+\begin{prac}[Matrix completion]\UXVIlabel{pr:U16-c3}
+Describe the matrix completion (factor-model imputation) estimator of $\Delta_{it}$ for treated units after treatment. Which data block identifies $f_t$ and which identifies $\lambda_i$? Why is $\hat\Delta_{it}$ unbiased but inconsistent? What is meant by ``horizontal'' versus ``vertical'' prediction?
+\answer
+四步：(1) 用控制单位全部时期的数据做 PCA 得 $\hat f_t$（含处理后各期）；(2) 用处理单位的处理前数据对 $\hat f_t$ 回归（或 PCA 后对齐旋转）得 $\hat\lambda_i$；(3) 插补 $\hat y_{it}(0)=\hat\lambda_i\T\hat f_t$，$(i,t)\in I_1$；(4) $\hat\Delta_{it}=y_{it}-\hat y_{it}(0)$。$f_t$ 由控制单位块（全部时期）识别，$\lambda_i$ 由处理前块识别。
+
+误差分解 $\hat\Delta_{it}-\Delta_{it}=u_{it}-(\hat\lambda_i\T\hat f_t-\lambda_i\T f_t)$：估计误差项随 $N_0,T_0\to\infty$ 消失；$u_{it}$ 不消失但均值为 0，故无偏、不一致。
+
+水平预测以单位为观测、利用时间模式（沿行方向）；垂直预测以时期为观测、利用截面模式（沿列方向，SCM/PDA）；MC 同时用两者：$\hat f_t$ 来自垂直方向，$\hat\lambda_i$ 来自水平方向。
+\end{prac}
+
+\begin{prac}[Choosing a method]\UXVIlabel{pr:U16-c4}
+For each setting, choose among DiD/TWFE, heterogeneity-robust staggered DiD, SCM, PDA and matrix completion, and justify briefly: (a) 40 states adopt a law in different years between 2005 and 2015; 10 states never adopt; annual data 1995--2020. (b) One province implements a reform in 2016; 30 other provinces; annual data 1990--2022; the province's pre-reform GDP per capita is the highest in the country. (c) 200 treated firms and 2000 control firms, all treated in 2018; data 2014--2022. (d) Several units are treated at different dates, and the researcher wants unit-by-period effects with a flexible interactive structure.
+\answer
+(a) 交错处理、处理单位多：用异质性稳健的交错 DiD——扩展 TWFE（\texttt{jwdid}）、Callaway--Sant'Anna、Sun--Abraham 或 Borusyak--Jaravel--Spiess 插补估计量；先用 Goodman-Bacon 分解诊断普通 TWFE 的问题；以从未处理州和尚未处理州为控制组。
+
+(b) 单个处理单位，处理前期 1990--2015 共 $T_0=26$ 年，较长：适合个体效应方法。但该省水平最高，落在控制单位凸包之外，标准 SCM 难以拟合；宜用 PDA（含截距）或去均值 / 增广 SCM，并用安慰剂检验做推断。
+
+(c) 共同处理时点、处理组大：普通 TWFE/DiD 即可（共同时点下 TWFE 等于 DiD），用事件研究检验事前趋势，按企业聚类标准误。
+
+(d) 矩阵补全 / 因子模型插补（如 \texttt{gsynth}、MC-NNM）：允许单位对共同冲击反应不同，给出每个 $(i,t)$ 的效应，再按需要平均。
+\end{prac}

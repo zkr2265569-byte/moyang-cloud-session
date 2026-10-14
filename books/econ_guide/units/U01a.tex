@@ -1,0 +1,2074 @@
+\chapter{数学与统计工具箱}
+\label{ch:U01a-tools}
+
+本章是全书的工具库。后面各章的推导——OLS 的矩阵写法、稳健标准误的“夹心”、Wald 统计量为何服从 $\chi^2$、面板组内变换中的 $M_T$ 与 $I_N\otimes M_T$、随机效应的 $\Omega^{-1}$、主成分分析的迹最大化——所用到的数学与概率工具都集中在这里一次讲清。前十节是矩阵代数：从求和号与矩阵的互译出发，经转置、逆、秩、迹、正定性、投影矩阵、分块求逆、Kronecker 积与特征分解，到矩阵微分与约束优化；其后各节是概率与统计工具。每个工具按“是什么 $\to$ 怎么推 $\to$ 小例子 $\to$ 后面在哪里用到”的顺序给出。第一遍通读，掌握结论与用法；以后在任何一章读到看不懂的一步，按该步右侧〔理由〕中的工具名回到本章查找。
+
+Hansen 教材的对应内容：附录 A（A.5 迹、A.6 秩与逆、A.9 特征值、A.10 正定矩阵、A.11 幂等矩阵、A.15 二次型的极值、A.20 矩阵微分、A.21 Kronecker 积）；第 2.7 节与第 2.12 节（迭代期望律、条件方差）；第 5.2–5.3 节（正态与多元正态分布）；第 6 章（大样本渐近理论回顾）。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.9cm}>{\raggedright\arraybackslash}p{3.3cm}L}
+\toprule
+工具 & 本章位置 & 后文主要用途\\
+\midrule
+$\sum_i x_ix_i\T=X\T X$，面板堆叠 & 第 \ref{sec:U01a-notation} 节 & 求和式与矩阵式互换：OLS、GMM、WG（第 3、8、10 章）\\
+转置、逆、秩 & 第 \ref{sec:U01a-inverse} 节 & 展开目标函数；识别与完全多重共线性（第 3、4 章）\\
+迹及循环性 & 第 \ref{sec:U01a-trace} 节 & $\E(u\T Mu)=\sigma^2(n-K)$（第 4 章）；PCA（第 13 章）\\
+正定、二次型、矩阵序 & 第 \ref{sec:U01a-pd} 节 & Gauss--Markov、有效 GMM、Hausman（第 4、8、11 章）\\
+$P$、$M$、幂等 & 第 \ref{sec:U01a-proj} 节 & 残差、$R^2$、2SLS、自由度（第 3、4、8 章）\\
+分块求逆 & 第 \ref{sec:U01a-block} 节 & FWL、LSDV $=$ WG、CCE（第 3、10、14 章）\\
+Kronecker 积、$M_T$、$P_T$ & 第 \ref{sec:U01a-kron} 节 & 组内变换、双向固定效应（第 10、11、15 章）\\
+特征分解、$A^{-1/2}$ & 第 \ref{sec:U01a-eigen} 节 & 随机效应 $\Omega^{-1}$、Wald 标准化（第 6、11 章）\\
+矩阵微分 & 第 \ref{sec:U01a-diff} 节 & OLS/GLS/GMM 一阶条件、因子载荷（第 3、8、13 章）\\
+拉格朗日、瑞利商、迹最大化 & 第 \ref{sec:U01a-opt} 节 & 受约束回归、PCA、SCM 权重（第 6、13、16 章）\\
+期望、方差、协方差 & “随机变量、期望与方差”节 & 聚类与截面相关的方差（第 5、13 章）\\
+条件期望、LIE、方差分解 & “条件期望”节 & 外生性、矩条件、序列外生（第 2、5、8、12 章）\\
+协方差矩阵、$\Var(AZ)$ & “随机向量”节 & 夹心方差、误差结构（第 4、5、11 章）\\
+正态、$\chi^2$、$t$、$F$、二次型 & “常用分布”节 & $t$/$F$/Wald/$J$/Hausman/CSD 检验（第 6、9、11、14 章）\\
+无偏、MSE、一致、渐近正态 & “估计量的评价标准”节 & 各估计量性质的表述（全书）\\
+LLN、CLT、CMT、Slutsky、Delta 方法、$O_p$ & “大样本工具”节 & 所有渐近证明（第 5、8、10--14 章）\\
+维度检查、夹心、符号表 & “读懂推导的技巧”节 & 读推导、查记号（全书）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章工具与后文用途索引}
+\end{center}
+
+%======================================================================
+\section{向量与矩阵记号：从求和号到矩阵}\label{sec:U01a-notation}
+
+计量推导不断在“求和式”与“矩阵式”之间切换：求和式便于套用大数定律、中心极限定理，矩阵式便于代数运算。本节先约定记号，再证明两者之间最核心的对应 $\sum_i x_ix_i\T=X\T X$、$\sum_i x_iy_i=X\T Y$，最后把它推广到面板数据。
+
+\subsection{标量、列向量、矩阵与维度约定}
+
+\subsubsection{基本对象：标量、向量、矩阵与转置}
+
+\begin{defn}[记号约定]\label{def:U01a-notation}
+\begin{itemize}
+  \item \term{标量}{scalar}：单个数，如 $y_i$、$\sigma^2$。
+  \item \term{向量}{vector}：本书中\key{一律指列向量}。$a\in\R^k$ 即 $k\times1$ 的一列数；行向量写成转置 $a\T$（$1\times k$）。
+  \item \term{矩阵}{matrix}：$m\times n$ 的数表 $A=(a_{ij})$，$a_{ij}$ 为第 $i$ 行第 $j$ 列元素。$A\T$（也写作 $A^{\top}$）为 $A$ 的\term{转置}{transpose}：$(A\T)_{ij}=a_{ji}$，是 $n\times m$ 矩阵——行变列、列变行。
+\end{itemize}
+\end{defn}
+
+\subsubsection{特殊矩阵：\texorpdfstring{$I_n$、$\one_n$、$J_n$}{I, 1, J}、对角阵与零矩阵}
+
+\begin{itemize}
+  \item 单位阵 $I_n$：$n\times n$，对角元为 1，其余为 0；
+  \item 全 1 列向量 $\one_n=(1,\dots,1)\T$（$n\times 1$）；
+  \item 全 1 矩阵 $J_n=\one_n\one_n\T$（$n\times n$，每个元素都是 1）；
+  \item 对角阵 $\diag(d_1,\dots,d_n)$：对角元依次为 $d_1,\dots,d_n$，其余为 0；
+  \item 零矩阵 $0$：维度由上下文确定。
+\end{itemize}
+注意 $\one_n\T\one_n=\sum_{i=1}^n 1\cdot 1=n$ 是标量，而 $\one_n\one_n\T=J_n$ 是 $n\times n$ 矩阵——同样两个因子，次序不同，结果完全不同（见下文内积与外积）。
+
+\subsubsection{观测向量 \texorpdfstring{$x_i$}{x\_i} 是 \texorpdfstring{$K\times1$}{K x 1} 列向量，\texorpdfstring{$x_i'\beta$}{x'beta} 是标量}
+
+计量中最重要的约定：第 $i$ 个观测的 $K$ 个解释变量排成\key{列向量}
+\[
+x_i=(x_{i1},x_{i2},\dots,x_{iK})\T\quad(K\times1),\qquad\text{通常 }x_{i1}=1\ \text{（常数项）}.
+\]
+于是
+\[
+x_i\T\beta=\sum_{k=1}^K x_{ik}\beta_k\qquad(1\times K\ \text{乘}\ K\times 1\ \text{得}\ 1\times1)
+\]
+是标量，线性回归模型写作 $y_i=x_i\T\beta+u_i$。本书的向量、矩阵\key{不加粗}，以大小写区分：小写 $x_i$ 为第 $i$ 个观测的向量，大写 $X$ 为数据矩阵（与 Hansen 记号的对照见本章“读懂推导的技巧与符号速查”一节）。
+
+\subsection{矩阵乘法：“行乘列”与维度相容规则}
+
+\subsubsection{乘法定义与相容规则 \texorpdfstring{$(m\times n)(n\times p)=m\times p$}{(m x n)(n x p) = m x p}}
+
+若 $A$ 为 $m\times n$、$B$ 为 $n\times p$，则 $AB$ 为 $m\times p$，元素
+\[
+(AB)_{ij}=\sum_{k=1}^n a_{ik}b_{kj}\qquad(A\ \text{的第 } i \text{ 行与 } B \text{ 的第 } j \text{ 列对应相乘再相加}).
+\]
+\key{相容规则}：内侧维度相等才能乘，结果取外侧维度：$(m\times \underline{n})(\underline{n}\times p)=m\times p$。
+
+\subsubsection{乘法一般不可交换：\texorpdfstring{$AB\neq BA$}{AB != BA}}
+
+一般 $AB\neq BA$；$BA$ 甚至可能没有定义（如 $A$ 为 $2\times3$、$B$ 为 $3\times1$ 时 $AB$ 为 $2\times1$，而 $BA$ 的内侧维度 $1\neq2$）。即使都是方阵也不能交换：
+\[
+A=\begin{pmatrix}1&1\\0&0\end{pmatrix},\quad B=\begin{pmatrix}1&0\\1&0\end{pmatrix}:\qquad
+AB=\begin{pmatrix}1\cdot1+1\cdot1&1\cdot0+1\cdot0\\0&0\end{pmatrix}=\begin{pmatrix}2&0\\0&0\end{pmatrix},\qquad
+BA=\begin{pmatrix}1&1\\1&1\end{pmatrix}.
+\]
+
+\subsubsection{内积、范数与正交}
+
+同维向量 $a,b\in\R^k$ 的\term{内积}{inner product}
+\[
+a\T b=\sum_{k} a_kb_k
+\]
+是标量（$1\times k$ 乘 $k\times1$）。特别地 $a\T a=\sum_k a_k^2=\|a\|^2$，$\|a\|$ 为 $a$ 的长度（欧氏范数）。若 $a\T b=0$，称 $a$、$b$ \term{正交}{orthogonal}。
+
+\subsubsection{外积 \texorpdfstring{$ab'$}{ab'} 是矩阵}
+
+$a$ 为 $k\times1$、$b$ 为 $m\times1$ 时，\term{外积}{outer product} $ab\T$ 是 $k\times m$ 矩阵（$k\times1$ 乘 $1\times m$），第 $(j,l)$ 元为 $a_jb_l$。内积要求两向量同维，外积不要求。
+
+\subsection{数据矩阵 \texorpdfstring{$X$}{X}：按行看是观测，按列看是变量}
+
+\subsubsection{\texorpdfstring{$X$、$Y$、$u$}{X, Y, u} 的排列与维度}
+
+把 $n$ 个观测的 $x_i\T$ 一行一行叠起来，得到 $n\times K$ 的数据矩阵：
+\[
+\underset{n\times K}{X}=\begin{pmatrix}x_1\T\\x_2\T\\\vdots\\x_n\T\end{pmatrix}
+=\begin{pmatrix}x_{11}&x_{12}&\cdots&x_{1K}\\\vdots&&&\vdots\\x_{n1}&x_{n2}&\cdots&x_{nK}\end{pmatrix},\qquad
+\underset{n\times 1}{Y}=\begin{pmatrix}y_1\\\vdots\\y_n\end{pmatrix},\qquad
+\underset{n\times 1}{u}=\begin{pmatrix}u_1\\\vdots\\u_n\end{pmatrix}.
+\]
+第 $i$ 行是第 $i$ 个观测 $x_i\T$；第 $k$ 列是变量 $k$ 的全部 $n$ 个观测。
+
+\subsubsection{\texorpdfstring{$n$}{n} 个方程一次写成 \texorpdfstring{$Y=X\beta+u$}{Y = X beta + u}}
+
+由乘法定义，$X\beta$ 的第 $i$ 个元素是 $X$ 的第 $i$ 行乘 $\beta$，即 $x_i\T\beta$。所以 $n$ 个方程 $y_i=x_i\T\beta+u_i$ 可一次写成
+\[
+Y=X\beta+u,\qquad (n\times 1)=(n\times K)(K\times 1)+(n\times 1).
+\]
+
+\subsection{核心对应：\texorpdfstring{$\sum_i x_ix_i'=X'X$ 与 $\sum_i x_iy_i=X'Y$}{sum x x' = X'X and sum x y = X'Y}}
+
+这是读懂全书推导的第一把钥匙。OLS 估计量既写成求和式 $\hat\beta=\big(\sum_i x_ix_i\T\big)\inv\sum_i x_iy_i$，又写成矩阵式 $\hat\beta=(X\T X)\inv X\T Y$；证明一致性时又要把矩阵式改回求和式，以便使用大数定律（第 5 章）。二者为何相等？
+
+\subsubsection{关键：\texorpdfstring{$X'$}{X'} 的各列就是 \texorpdfstring{$x_1,\dots,x_n$}{x\_1, ..., x\_n}}
+
+转置把行变成列。$X$ 的第 $i$ 行是 $x_i\T$，所以 $X\T$ 的第 $i$ 列是 $x_i$：
+\[
+\underset{K\times n}{X\T}=(x_1,\ x_2,\ \dots,\ x_n).
+\]
+
+\subsubsection{推导：\texorpdfstring{$X'Y=\sum_i x_iy_i$ 与 $X'X=\sum_i x_ix_i'$}{X'Y = sum x y and X'X = sum x x'}}
+
+要证：两个矩阵式分别等于对应的求和式。思路：把 $X\T$ 看成 $1\times n$ 个“块”（每块是一个 $K\times1$ 的 $x_i$），按“行乘列”做分块乘法。
+\begin{align*}
+X\T Y &= (x_1,\dots,x_n)\begin{pmatrix}y_1\\\vdots\\y_n\end{pmatrix} \why{$X\T$ 的列为 $x_i$}\\
+&= x_1y_1+\cdots+x_ny_n \why{分块“行乘列”}\\
+&= \sum_{i=1}^n x_iy_i \why{$K\times1$：列向量乘标量再相加}\\[4pt]
+X\T X &= (x_1,\dots,x_n)\begin{pmatrix}x_1\T\\\vdots\\x_n\T\end{pmatrix} \why{$X$ 的行为 $x_i\T$}\\
+&= x_1x_1\T+\cdots+x_nx_n\T \why{分块“行乘列”}\\
+&= \sum_{i=1}^n x_ix_i\T \why{$K\times K$：每项是外积}
+\end{align*}
+所以 $(X\T X)\inv X\T Y=\big(\sum_i x_ix_i\T\big)\inv\sum_ix_iy_i$，两种写法是同一个估计量。
+
+\subsubsection{逐元素看：\texorpdfstring{$(X'X)_{jk}$}{(X'X)\_jk} 是交叉乘积和}
+
+由乘法定义，
+\[
+(X\T X)_{jk}=\sum_{i=1}^n x_{ij}x_{ik},\qquad (X\T Y)_k=\sum_{i=1}^n x_{ik}y_i,
+\]
+即变量 $j$ 与变量 $k$ 的交叉乘积和。含常数项（$x_{i1}=1$）时，$(X\T X)_{11}=\sum_i 1\cdot1=n$，$(X\T X)_{1k}=\sum_i x_{ik}$。
+
+\begin{note}[区分 $x_i'x_i$ 与 $x_ix_i'$]
+$x_i\T x_i=\sum_k x_{ik}^2$ 是标量（内积）；$x_ix_i\T$ 是 $K\times K$ 矩阵（外积）。$X\T X$ 对应的是外积之和 $\sum_i x_ix_i\T$，而不是 $\sum_i x_i\T x_i$——后者是一个数，等于 $\tr(X\T X)$（见第 \ref{sec:U01a-trace} 节）。
+\end{note}
+
+\subsubsection{例：\texorpdfstring{$n=3$、$K=2$}{n=3, K=2} 手算 \texorpdfstring{$X'X$、$X'Y$ 与 $\hat\beta$}{X'X, X'Y and beta-hat}}\label{ss:U01a-n3}
+
+\begin{exmp}[$n=3$、$K=2$ 手算]\label{ex:U01a-n3}
+设 $x_i=(1,x_{i2})\T$，$x_{i2}=1,2,3$，$y_i=2,3,5$。分别用外积之和与矩阵乘法计算 $X\T X$，再求 $X\T Y$ 与 $\hat\beta$。
+
+\solution 逐个外积再相加：
+\[
+x_1x_1\T=\begin{pmatrix}1&1\\1&1\end{pmatrix},\quad
+x_2x_2\T=\begin{pmatrix}1&2\\2&4\end{pmatrix},\quad
+x_3x_3\T=\begin{pmatrix}1&3\\3&9\end{pmatrix}
+\ \Rightarrow\ \sum_i x_ix_i\T=\begin{pmatrix}3&6\\6&14\end{pmatrix}.
+\]
+直接用矩阵乘法：
+\[
+X=\begin{pmatrix}1&1\\1&2\\1&3\end{pmatrix},\qquad
+X\T X=\begin{pmatrix}1+1+1&1+2+3\\1+2+3&1+4+9\end{pmatrix}=\begin{pmatrix}3&6\\6&14\end{pmatrix},
+\]
+二者一致。同理 $X\T Y=\sum_ix_iy_i=(2+3+5,\ 2+6+15)\T=(10,23)\T$。用 $2\times2$ 求逆公式 \eqref{eq:U01a-inv22}：
+\begin{align*}
+(X\T X)\inv &= \frac{1}{3\cdot14-6\cdot6}\begin{pmatrix}14&-6\\-6&3\end{pmatrix}=\frac16\begin{pmatrix}14&-6\\-6&3\end{pmatrix} \why{$2\times2$ 求逆公式}\\
+\hat\beta=(X\T X)\inv X\T Y &= \frac16\begin{pmatrix}14\cdot10-6\cdot23\\-6\cdot10+3\cdot23\end{pmatrix}=\frac16\begin{pmatrix}2\\9\end{pmatrix}=\begin{pmatrix}1/3\\3/2\end{pmatrix} \why{矩阵乘法}
+\end{align*}
+本例在第 \ref{sec:U01a-proj} 节（投影矩阵）与第 \ref{sec:U01a-block} 节（分块回归）中继续使用。
+\end{exmp}
+
+\subsubsection{求和式与矩阵式对照表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{llL}
+\toprule
+求和式 & 矩阵式 & 出现场合\\
+\midrule
+$\sum_i u_i^2$ & $u\T u$ & OLS 目标函数\\
+$\sum_i x_iu_i$ & $X\T u$（$K\times1$） & 一致性证明（第 5 章）\\
+$\sum_i x_ix_i\T$ & $X\T X$（$K\times K$） & OLS 的“分母”\\
+$\sum_i x_ix_i\T\hat u_i^2$ & $X\T\hat DX$，$\hat D=\diag(\hat u_1^2,\dots,\hat u_n^2)$ & 异方差稳健方差的“肉”（第 5 章）\\
+$\sum_i z_ix_i\T$ & $Z\T X$（$L\times K$） & IV/GMM（第 8 章）\\
+$\sum_g X_g\T\hat u_g\hat u_g\T X_g$ & （按聚类分块） & 聚类稳健方差（第 5 章）\\
+$\sum_i\sum_t x_{it}x_{it}\T$ & $\sum_i X_i\T X_i=X\T X$ & 面板（第 10 章）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{求和式与矩阵式对照}
+\end{center}
+表中第四行用同样的分块乘法得到：$X\T\hat DX=(x_1,\dots,x_n)\diag(\hat u_1^2,\dots,\hat u_n^2)(x_1,\dots,x_n)\T=\sum_i x_i\hat u_i^2x_i\T$。
+
+\subsection{面板数据的堆叠：\texorpdfstring{$Y_i$、$X_i$ 与 $\sum_i X_i'X_i$}{Y\_i, X\_i and sum X\_i'X\_i}}
+
+\subsubsection{个体块 \texorpdfstring{$Y_i$（$T\times1$）与 $X_i$（$T\times K$）}{Y\_i (T x 1) and X\_i (T x K)}}
+
+面板模型 $y_{it}=x_{it}\T\beta+\alpha_i+u_{it}$（$i=1,\dots,N$，$t=1,\dots,T$）中，先对每个个体把 $T$ 期叠起来：
+\[
+\underset{T\times1}{Y_i}=\begin{pmatrix}y_{i1}\\\vdots\\y_{iT}\end{pmatrix},\qquad
+\underset{T\times K}{X_i}=\begin{pmatrix}x_{i1}\T\\\vdots\\x_{iT}\T\end{pmatrix},\qquad
+Y_i=X_i\beta+\alpha_i\one_T+U_i,
+\]
+其中 $U_i=(u_{i1},\dots,u_{iT})\T$。$\alpha_i\one_T$ 表示个体效应 $\alpha_i$ 在该个体的每一期都出现一次。
+
+\subsubsection{“先个体、后时间”的堆叠顺序}
+
+再把 $N$ 个个体叠起来：$Y=(Y_1\T,\dots,Y_N\T)\T$（$NT\times1$），$X=(X_1\T,\dots,X_N\T)\T$（$NT\times K$）。排列顺序是\key{先个体、后时间}：
+\[
+Y=(y_{11},\dots,y_{1T},\ y_{21},\dots,y_{2T},\ \dots,\ y_{N1},\dots,y_{NT})\T.
+\]
+这一顺序决定了第 \ref{sec:U01a-kron} 节中 Kronecker 积 $I_N\otimes M_T$ 的写法。
+
+\subsubsection{\texorpdfstring{$X'X=\sum_iX_i'X_i=\sum_i\sum_tx_{it}x_{it}'$}{X'X = sum X\_i'X\_i = sum sum x x'}}
+
+同样的分块“行乘列”论证，只是每块换成 $X_i\T$ 与 $X_i$：
+\begin{align*}
+X\T X &= (X_1\T,\dots,X_N\T)\begin{pmatrix}X_1\\\vdots\\X_N\end{pmatrix}=\sum_{i=1}^N X_i\T X_i \why{分块“行乘列”}\\
+&= \sum_{i=1}^N\sum_{t=1}^T x_{it}x_{it}\T \why{对每个 $X_i$ 用核心对应}\\
+X\T Y &= \sum_{i=1}^N X_i\T Y_i=\sum_{i=1}^N\sum_{t=1}^T x_{it}y_{it} \why{同理}
+\end{align*}
+
+\subsection{练习：求和式与矩阵式互译}
+
+\begin{prac}[求和式与矩阵式互译]\label{pr:U01a-sum}
+(1) 写出 $\sum_{i=1}^n(y_i-x_i\T b)^2$ 的矩阵形式。(2) 证明 $\sum_i x_i\hat u_i=0$ 与 $X\T\hat u=0$ 是同一组方程，并说明其中含几个标量方程。(3) 在面板中写出 $\sum_i\sum_t x_{it}u_{it}$ 的两种矩阵形式。
+
+\answer (1) 令 $e=Y-Xb$，其第 $i$ 个元素为 $y_i-x_i\T b$，故 $\sum_i(y_i-x_i\T b)^2=e\T e=(Y-Xb)\T(Y-Xb)$。
+
+(2) $X\T\hat u=(x_1,\dots,x_n)(\hat u_1,\dots,\hat u_n)\T=\sum_i x_i\hat u_i$，二者相同。它是 $K\times1$ 向量方程，含 $K$ 个标量方程，第 $k$ 个为 $\sum_i x_{ik}\hat u_i=0$；若含常数项，第 1 个方程即“残差之和为零”。
+
+(3) $\sum_i\sum_t x_{it}u_{it}=\sum_i X_i\T U_i=X\T U$，其中 $U_i=(u_{i1},\dots,u_{iT})\T$，$U=(U_1\T,\dots,U_N\T)\T$。
+\end{prac}
+
+\begin{english}
+Stack the $n$ observations as $Y=X\beta+u$, where $X$ is the $n\times K$ matrix whose $i$-th row is $x_i'$. Since $X'X=\sum_{i=1}^n x_ix_i'$ and $X'Y=\sum_{i=1}^n x_iy_i$, the OLS estimator can be written either as $(X'X)^{-1}X'Y$ or as $\big(\sum_i x_ix_i'\big)^{-1}\sum_i x_iy_i$. The summation form is convenient for applying the law of large numbers. In a panel stacked by individual, $X'X=\sum_i X_i'X_i=\sum_i\sum_t x_{it}x_{it}'$.
+\end{english}
+
+%======================================================================
+\section{转置、逆、秩与可逆性}\label{sec:U01a-inverse}
+
+展开目标函数要用转置规则；解出估计量要用逆矩阵；矩阵能否求逆取决于它的秩——这正是识别条件的代数含义。
+
+\subsection{转置的运算规则与 \texorpdfstring{$(AB)'=B'A'$}{(AB)' = B'A'}}
+
+\subsubsection{五条转置规则}
+
+\begin{thm}[转置规则]\label{thm:U01a-transpose}
+$(A\T)\T=A$；$(A+B)\T=A\T+B\T$；$(cA)\T=cA\T$；$(AB)\T=B\T A\T$（\key{反序}）；推广 $(ABC)\T=C\T B\T A\T$。
+\end{thm}
+
+\subsubsection{逐元素证明 \texorpdfstring{$(AB)'=B'A'$}{(AB)' = B'A'}}
+
+设 $A$ 为 $m\times n$、$B$ 为 $n\times p$。比较两边的第 $(i,j)$ 元：
+\begin{align*}
+[(AB)\T]_{ij} &= (AB)_{ji} \why{转置定义}\\
+&= \sum_k a_{jk}b_{ki} \why{乘法定义}\\
+&= \sum_k (B\T)_{ik}(A\T)_{kj} \why{$b_{ki}=(B\T)_{ik}$，$a_{jk}=(A\T)_{kj}$}\\
+&= (B\T A\T)_{ij} \why{乘法定义}
+\end{align*}
+三个因子时反复使用两因子的结论：
+\begin{align*}
+(ABC)\T &= \big((AB)C\big)\T = C\T(AB)\T \why{两因子反序}\\
+&= C\T B\T A\T \why{再用一次}
+\end{align*}
+
+\subsubsection{常用实例：\texorpdfstring{$(X\beta)'$、$(X'X)'$ 与 $[(X'X)^{-1}X'Y]'$}{(X beta)', (X'X)' and [(X'X)\^{}-1 X'Y]'}}
+
+展开、化简目标函数时最常用的几个转置实例：
+\begin{align*}
+(X\beta)\T &= \beta\T X\T \why{反序}\\
+(Y-X\beta)\T &= Y\T-\beta\T X\T \why{加法与反序}\\
+(X\T X)\T &= X\T (X\T)\T = X\T X \why{反序；$(A\T)\T=A$，故 $X\T X$ 对称}\\
+\big[(X\T X)\inv X\T Y\big]\T &= Y\T X\big[(X\T X)\inv\big]\T \why{三因子反序}\\
+&= Y\T X(X\T X)\inv \why{$(X\T X)\inv$ 对称（本节练习）}
+\end{align*}
+
+\subsection{标量的转置等于自身：\texorpdfstring{$Y'X\beta=\beta'X'Y$}{Y'X beta = beta'X'Y}}
+
+\subsubsection{\texorpdfstring{$1\times1$}{1 x 1} 矩阵转置不变}
+
+$1\times1$ 矩阵就是一个数，转置不改变它：$c\T=c$。检查维度：$\underset{1\times n}{Y\T}\ \underset{n\times K}{X}\ \underset{K\times1}{\beta}$ 是 $1\times1$，所以
+\[
+Y\T X\beta=(Y\T X\beta)\T=\beta\T X\T Y.
+\]
+同理，同维向量 $a\T b=b\T a$。
+
+\subsubsection{应用：展开 OLS 目标函数 \texorpdfstring{$S(\beta)$}{S(beta)}}
+
+这是展开 OLS 目标函数的关键一步：
+\begin{align*}
+S(\beta) &= \sum_i (y_i-x_i\T\beta)^2=(Y-X\beta)\T(Y-X\beta) \why{$\sum_iu_i^2=u\T u$}\\
+&= (Y\T-\beta\T X\T)(Y-X\beta) \why{$(X\beta)\T=\beta\T X\T$}\\
+&= Y\T Y-Y\T X\beta-\beta\T X\T Y+\beta\T X\T X\beta \why{逐项相乘，保持次序}\\
+&= Y\T Y-2\beta\T X\T Y+\beta\T X\T X\beta \why{$Y\T X\beta$ 是标量，等于 $\beta\T X\T Y$}
+\end{align*}
+第 \ref{sec:U01a-diff} 节对这一表达式求导得到正规方程。
+
+\begin{note}[只有 $1\times1$ 的量才能“转置合并”]
+$X\T Y$（$K\times1$）与 $Y\T X$（$1\times K$）不相等，只是互为转置；外积 $ab\T\neq ba\T$。“$-Y\T X\beta-\beta\T X\T Y=-2\beta\T X\T Y$”能成立，是因为这两项都是 $1\times1$。
+\end{note}
+
+\subsection{逆矩阵及其运算规则}
+
+\subsubsection{逆矩阵的定义}
+
+\begin{defn}[逆矩阵]\label{def:U01a-inverse}
+$k\times k$ 方阵 $A$ 若存在 $B$ 使 $AB=BA=I_k$，称 $A$ \term{可逆}{invertible}（或\term{非奇异}{nonsingular}），$B=A\inv$ 为其\term{逆矩阵}{inverse}。
+\end{defn}
+逆矩阵唯一：若 $B$、$C$ 都是 $A$ 的逆，则 $B=BI_k=B(AC)=(BA)C=I_kC=C$。
+
+\subsubsection{逆的五条运算规则（含 \texorpdfstring{$2\times2$}{2 x 2} 求逆公式）}
+
+\begin{thm}[逆的运算规则]\label{thm:U01a-invrules}
+设 $A$、$B$ 为同阶可逆方阵。
+\begin{enumerate}
+  \item $(AB)\inv=B\inv A\inv$（\key{反序}）；
+  \item $(A\T)\inv=(A\inv)\T$，故对称阵的逆仍对称；
+  \item $(cA)\inv=c^{-1}A\inv$（$c\neq0$）；
+  \item $\diag(d_1,\dots,d_k)\inv=\diag(d_1^{-1},\dots,d_k^{-1})$（各 $d_j\neq0$）；
+  \item $2\times2$ 公式：
+  \begin{equation}\label{eq:U01a-inv22}
+  \begin{pmatrix}a&b\\c&d\end{pmatrix}^{-1}=\frac1{ad-bc}\begin{pmatrix}d&-b\\-c&a\end{pmatrix},\qquad ad-bc\neq0.
+  \end{equation}
+\end{enumerate}
+\end{thm}
+
+\subsubsection{验证：反序规则、转置与求逆可交换、\texorpdfstring{$2\times2$}{2 x 2} 公式}
+
+只需验证候选矩阵满足逆的定义。
+\begin{align*}
+(AB)(B\inv A\inv) &= A(BB\inv)A\inv \why{结合律}\\
+&= AA\inv=I \why{逆的定义}\\[3pt]
+AA\inv=I\ \Rightarrow\ (AA\inv)\T &= I\T=I \why{两边转置}\\
+\Rightarrow\ (A\inv)\T A\T &= I \why{反序}\\
+\Rightarrow\ (A\inv)\T &= (A\T)\inv \why{逆的定义与唯一性}\\[3pt]
+\begin{pmatrix}a&b\\c&d\end{pmatrix}\begin{pmatrix}d&-b\\-c&a\end{pmatrix} &= \begin{pmatrix}ad-bc&-ab+ba\\cd-dc&-cb+da\end{pmatrix}=(ad-bc)I_2 \why{直接相乘}
+\end{align*}
+若 $A$ 对称，则 $(A\inv)\T=(A\T)\inv=A\inv$，即 $A\inv$ 也对称。
+
+\subsubsection{例：\texorpdfstring{$n=3$}{n=3} 例中的 \texorpdfstring{$(X'X)^{-1}$}{(X'X)\^{}-1}}
+
+第 \ref{ss:U01a-n3} 小节的例子中 $X\T X=\begin{pmatrix}3&6\\6&14\end{pmatrix}$，$ad-bc=42-36=6\neq0$，由 \eqref{eq:U01a-inv22}，$(X\T X)\inv=\frac16\begin{pmatrix}14&-6\\-6&3\end{pmatrix}$，仍是对称矩阵。
+
+\begin{note}[求逆的三个常见错误]
+(i) 矩阵不能“相除”：$\frac{B}{A}$ 无定义，必须写成 $B\inv A$ 或 $AB\inv$（二者一般不同）。
+(ii) $(X\T X)\inv\neq X\inv(X\T)\inv$：$X$ 是 $n\times K$ 非方阵，没有逆；反序规则只对可逆方阵成立。
+(iii) $(A+B)\inv\neq A\inv+B\inv$。
+\end{note}
+
+\subsection{秩、线性无关与满列秩}
+
+\subsubsection{线性无关、秩与满列秩的定义}
+
+\begin{defn}[秩]\label{def:U01a-rank}
+向量 $a_1,\dots,a_K$ \term{线性无关}{linearly independent}：$c_1a_1+\cdots+c_Ka_K=0$ 只有零解 $c=0$；矩阵形式：记 $A=(a_1,\dots,a_K)$，则 $Ac=0\Rightarrow c=0$。矩阵的\term{秩}{rank} $\rank(A)$ 是线性无关列的最大个数（也等于线性无关行的最大个数）。$n\times K$ 矩阵若 $\rank=K$，称为\term{满列秩}{full column rank}（必须 $n\ge K$）。
+\end{defn}
+
+\subsubsection{秩的常用性质}
+
+\begin{itemize}
+  \item $A$ 为 $m\times n$ 时 $\rank(A)\le\min(m,n)$；
+  \item $\rank(A)=\rank(A\T)=\rank(A\T A)=\rank(AA\T)$；
+  \item $\rank(AB)\le\min\{\rank A,\rank B\}$；
+  \item 左乘或右乘可逆矩阵不改变秩。
+\end{itemize}
+
+\subsubsection{例：虚拟变量陷阱}
+
+\begin{exmp}[虚拟变量陷阱]\label{ex:U01a-dummytrap}
+回归中同时放入常数项 $\one_n$、男性虚拟变量 $d$ 与女性虚拟变量 $\one_n-d$，即 $X=(\one_n,\ d,\ \one_n-d)$。判断 $X$ 是否满列秩。
+
+\solution 第三列是前两列的线性组合。取 $c=(1,-1,-1)\T$：
+\begin{align*}
+Xc &= 1\cdot\one_n-1\cdot d-1\cdot(\one_n-d) \why{按列展开 $Xc$}\\
+&= 0 \why{合并同类项}
+\end{align*}
+存在 $c\neq0$ 使 $Xc=0$，列线性相关，$\rank(X)=2<3$，不满列秩。同理，LSDV 中若放入全部 $N$ 个个体虚拟变量（它们之和恰为 $\one$），就不能再放常数项（第 10 章）。
+\end{exmp}
+
+\subsection{方阵可逆的等价条件}
+
+\subsubsection{可逆的六条等价刻画}\label{ss:U01a-invequiv}
+
+\begin{thm}[可逆的等价刻画]\label{thm:U01a-invequiv}
+对 $k\times k$ 方阵 $A$，下列命题等价：
+(1) $A$ 可逆；(2) $\rank(A)=k$；(3) $\det(A)\neq0$；(4) $Ac=0$ 只有解 $c=0$；(5) $A$ 没有零特征值（第 \ref{sec:U01a-eigen} 节）。若 $A$ 对称半正定，还等价于 (6) $A$ 正定（第 \ref{sec:U01a-pd} 节）。
+\end{thm}
+
+\subsubsection{行列式速览}
+
+\term{行列式}{determinant}只需记住以下事实：
+\begin{itemize}
+  \item $2\times2$ 时 $\det\begin{pmatrix}a&b\\c&d\end{pmatrix}=ad-bc$；对角阵、三角阵的行列式等于对角元之积；
+  \item $\det(AB)=\det A\det B$；$\det(A\T)=\det A$；$\det(A\inv)=1/\det A$；$\det(cA)=c^k\det A$（$A$ 为 $k\times k$）；
+  \item $\det A$ 等于特征值之积（第 \ref{sec:U01a-eigen} 节）。
+\end{itemize}
+多元正态密度中出现 $\det(\Sigma)^{-1/2}$，其对数似然中即为 $-\frac12\log\det\Sigma$（本章“常用分布与正态二次型”一节）。
+
+\subsection{满列秩、\texorpdfstring{$X'X$}{X'X} 可逆与识别}
+
+\subsubsection{结论：\texorpdfstring{$X'X$}{X'X} 可逆 \texorpdfstring{$\iff$}{iff} \texorpdfstring{$\rank(X)=K$}{rank(X)=K} \texorpdfstring{$\iff$}{iff} 无完全多重共线性}
+
+\begin{thm}[满列秩与 $X'X$ 可逆]\label{thm:U01a-fullrank}
+设 $X$ 为 $n\times K$。则
+\[
+X\T X\ (K\times K)\ \text{可逆}\iff\rank(X)=K\iff X\ \text{的列之间没有精确的线性关系},
+\]
+后者称为没有\term{完全多重共线性}{perfect multicollinearity}。因此 OLS 中：$\beta$ 被唯一识别 $\iff$ $\sum_i x_ix_i\T$ 满秩 $\iff$ $X$ 满列秩（无完全多重共线性）。
+\end{thm}
+
+\subsubsection{证明：由 \texorpdfstring{$X'Xc=0$}{X'Xc=0} 推出 \texorpdfstring{$c=0$}{c=0}}
+
+思路：把“$X\T Xc=0$”与“$Xc=0$”联系起来，再用等价条件 (4)。设 $X$ 满列秩，$X\T Xc=0$：
+\begin{align*}
+X\T Xc=0\ &\Rightarrow\ c\T X\T Xc=0 \why{两边左乘 $c\T$}\\
+&\Rightarrow\ (Xc)\T(Xc)=\|Xc\|^2=0 \why{$(Xc)\T=c\T X\T$}\\
+&\Rightarrow\ Xc=0 \why{平方和为零则每个分量为零}\\
+&\Rightarrow\ c=0 \why{$X$ 满列秩}
+\end{align*}
+所以 $X\T X$ 的零空间只有 $0$，由可逆的等价刻画（第 \ref{ss:U01a-invequiv} 小节）中的 (4) 知其可逆。反之，若存在 $c\neq0$ 使 $Xc=0$，则 $X\T Xc=X\T 0=0$，$X\T X$ 不可逆。
+
+\subsubsection{识别失败与“高度相关”的区别}
+
+完全多重共线性破坏的是\key{识别}；高度相关不破坏识别。例如 $\Corr(x_1,x_2)=0.9$ 时 $X$ 仍满列秩，$\beta$ 仍可识别，只是 $\Var(\hat\beta)$ 被放大，这用\term{方差膨胀因子}{variance inflation factor, VIF}衡量（经验法则：VIF $>10$ 视为严重，第 3 章）。
+
+\subsubsection{例：参数多于观测必不满秩}
+
+\begin{exmp}[每人一个截距的截面回归]\label{ex:U01a-alphai}
+截面数据中若每人有自己的截距：$y_i=\alpha_i+x_i\T\beta+u_i$（$i=1,\dots,N$），说明 $(\alpha_1,\dots,\alpha_N,\beta)$ 不可识别。
+
+\solution 参数共 $N+K$ 个，观测只有 $N$ 个。把模型写成 $Y=(I_N,\ X)\begin{pmatrix}\alpha\\\beta\end{pmatrix}+u$，回归矩阵 $(I_N,X)$ 为 $N\times(N+K)$：
+\begin{align*}
+\rank(I_N,\ X) &\le \min(N,\ N+K)=N \why{秩不超过行数}\\
+&< N+K \why{$K\ge1$}
+\end{align*}
+不满列秩，参数不可识别。面板数据为每个个体提供 $T$ 期观测，才使 $\alpha_i$ 可以被消去或估计（第 10 章）。
+\end{exmp}
+
+\subsection{练习：\texorpdfstring{$(X'X)^{-1}X'X=I_K$}{(X'X)\^{}-1 X'X = I} 与 \texorpdfstring{$(X'X)^{-1}$}{(X'X)\^{}-1} 的对称性}
+
+\begin{prac}[逆与对称]\label{pr:U01a-inv}
+(1) 证明 $(X\T X)\inv X\T X=I_K$，但当 $n>K$ 时 $X(X\T X)\inv X\T\neq I_n$。(2) 证明 $(X\T X)\inv$ 对称。
+
+\answer (1) 第一式即逆的定义（$A\inv A=I$，$A=X\T X$）。第二式用秩比较：
+\begin{align*}
+\rank\big(X(X\T X)\inv X\T\big) &\le \rank(X)=K \why{$\rank(AB)\le\rank A$}\\
+&< n=\rank(I_n) \why{$n>K$}
+\end{align*}
+秩不同，二者不可能相等。$X(X\T X)\inv X\T$ 就是第 \ref{sec:U01a-proj} 节的投影矩阵 $P_X$。
+
+(2)
+\begin{align*}
+\big[(X\T X)\inv\big]\T &= \big[(X\T X)\T\big]\inv \why{$(A\inv)\T=(A\T)\inv$}\\
+&= (X\T X)\inv \why{$X\T X$ 对称}
+\end{align*}
+\end{prac}
+
+\begin{english}
+Since $X$ has full column rank $K$, the matrix $X'X$ is positive definite and hence invertible, so $\hat\beta=(X'X)^{-1}X'Y$ is uniquely defined. Perfect multicollinearity means $Xc=0$ for some $c\neq0$; this violates the rank condition and $\beta$ is not identified. High (but imperfect) correlation among regressors does not affect identification; it only inflates the variance of $\hat\beta$. Note that $Y'X\beta$ is a scalar and therefore equals its transpose $\beta'X'Y$.
+\end{english}
+
+%======================================================================
+\section{迹}\label{sec:U01a-trace}
+
+迹把一个方阵变成一个数。它最有用的性质是循环性 $\tr(AB)=\tr(BA)$：既能把“大矩阵”的迹换成“小矩阵”的迹，又能把随机二次型变成可以取期望的形式。
+
+\subsection{迹的定义与线性性质}
+
+\subsubsection{迹的定义：对角元之和}
+
+\begin{defn}[迹]\label{def:U01a-trace}
+方阵 $A$（$k\times k$）的\term{迹}{trace}是对角元之和：$\tr(A)=\sum_{i=1}^k a_{ii}$。
+\end{defn}
+
+\subsubsection{六条基本性质}
+
+\begin{thm}[迹的基本性质]\label{thm:U01a-trbasic}
+(1) $\tr(A+B)=\tr(A)+\tr(B)$；(2) $\tr(cA)=c\,\tr(A)$；(3) $\tr(A\T)=\tr(A)$；(4) $\tr(I_n)=n$；(5) 标量的迹就是它自己；(6) 迹是线性运算，可与期望交换：$\E[\tr(A)]=\tr(\E A)$（$A$ 为随机矩阵）。
+\end{thm}
+(1)(2) 由“对角元相加、数乘”直接得到；(3) 因为转置不改变对角元；(6) 因为 $\tr(A)=\sum_i a_{ii}$ 是元素的线性组合，而期望是线性的：$\E\sum_ia_{ii}=\sum_i\E a_{ii}$。
+
+\subsection{\texorpdfstring{$\tr(AB)=\tr(BA)$}{tr(AB) = tr(BA)} 与循环性}
+
+\subsubsection{结论：交换性与循环性}
+
+\begin{thm}[迹的交换性与循环性]\label{thm:U01a-trcyc}
+若 $A$ 为 $m\times n$、$B$ 为 $n\times m$，则 $\tr(AB)=\tr(BA)$（尽管 $AB$ 是 $m\times m$、$BA$ 是 $n\times n$）。推论（循环性）：$\tr(ABC)=\tr(BCA)=\tr(CAB)$；但一般 $\tr(ABC)\neq\tr(ACB)$——只能“整体轮转”，不能任意交换。
+\end{thm}
+
+\subsubsection{证明：交换求和次序}
+
+要证两边的对角元之和相等。思路：写成双重求和后交换次序。
+\begin{align*}
+\tr(AB) &= \sum_{i=1}^m (AB)_{ii}=\sum_{i=1}^m\sum_{k=1}^n a_{ik}b_{ki} \why{迹与乘法的定义}\\
+&= \sum_{k=1}^n\sum_{i=1}^m b_{ki}a_{ik} \why{交换求和次序}\\
+&= \sum_{k=1}^n (BA)_{kk}=\tr(BA) \why{乘法与迹的定义}
+\end{align*}
+循环性：把 $BC$ 看成一个矩阵，用两次交换性：
+\begin{align*}
+\tr(ABC) &= \tr\big(A(BC)\big)=\tr\big((BC)A\big)=\tr(BCA) \why{交换性，取 $A$ 与 $BC$}\\
+\tr(BCA) &= \tr\big(B(CA)\big)=\tr\big((CA)B\big)=\tr(CAB) \why{交换性，取 $B$ 与 $CA$}
+\end{align*}
+
+\subsubsection{例：投影矩阵的迹等于 \texorpdfstring{$K$}{K}（把 \texorpdfstring{$n\times n$}{n x n} 化成 \texorpdfstring{$K\times K$}{K x K}）}
+
+\begin{exmp}[投影矩阵的迹]\label{ex:U01a-trP}
+$X$ 为 $n\times K$ 满列秩，求 $\tr\big(X(X\T X)\inv X\T\big)$。
+
+\solution
+\begin{align*}
+\tr\big(X(X\T X)\inv X\T\big) &= \tr\big((X\T X)\inv X\T X\big) \why{交换性：$A=X$，$B=(X\T X)\inv X\T$}\\
+&= \tr(I_K)=K \why{逆的定义；$\tr(I_K)=K$}
+\end{align*}
+$n\times n$ 矩阵的迹被换成了 $K\times K$ 矩阵的迹。这一结果给出第 \ref{sec:U01a-proj} 节的 $\tr(P_X)=K$。
+\end{exmp}
+
+\subsubsection{例：主成分分析中把 \texorpdfstring{$N\times N$}{N x N} 的迹换成 \texorpdfstring{$r\times r$}{r x r} 的迹}
+
+主成分分析（第 13 章）中，$U$ 为 $N\times T$、$F$ 为 $T\times r$，需要处理 $\tr(UFF\T U\T)$（$N\times N$ 矩阵的迹）。取 $A=UF$（$N\times r$）、$B=F\T U\T$（$r\times N$）：
+\[
+\tr(\underbrace{UF}_{A}\,\underbrace{F\T U\T}_{B})=\tr(\underbrace{F\T U\T}_{B}\,\underbrace{UF}_{A})=\tr(F\T U\T UF)\qquad(r\times r).
+\]
+后者是 $\tr(F\T AF)$ 的形式（$A=U\T U$），才能用特征分解求解（第 \ref{sec:U01a-opt} 节的迹最大化）。
+
+\subsection{迹技巧：把二次型写成迹}
+
+\subsubsection{\texorpdfstring{$a'Aa=\tr(Aaa')$}{a'Aa = tr(Aaa')}}
+
+$a$ 为 $k\times1$、$A$ 为 $k\times k$ 时，二次型 $a\T Aa$ 是标量，因此
+\begin{align*}
+a\T Aa &= \tr(a\T Aa) \why{标量等于其迹}\\
+&= \tr(Aaa\T) \why{交换性：取 $a\T$ 与 $Aa$}
+\end{align*}
+当 $a$ 是随机向量时，这一步把“随机的二次型”变成“常数矩阵乘随机外积”，期望就可以移进去。
+
+\subsubsection{推导：\texorpdfstring{$\E(u'Au)=\sigma^2\tr(A)$}{E(u'Au) = sigma\^{}2 tr(A)}}
+
+设 $u$ 为 $n\times1$ 随机向量，$A$ 为 $n\times n$ 非随机矩阵，$\E(uu\T)=\sigma^2I_n$（例如 $\E u=0$、$\Var(u)=\sigma^2I_n$）。
+\begin{align*}
+\E(u\T Au) &= \E\big[\tr(u\T Au)\big] \why{标量等于其迹}\\
+&= \E\big[\tr(Auu\T)\big] \why{循环性}\\
+&= \tr\big(A\,\E(uu\T)\big) \why{迹与期望可交换，$A$ 非随机}\\
+&= \tr(A\,\sigma^2I_n)=\sigma^2\tr(A) \why{$\E(uu\T)=\sigma^2I_n$}
+\end{align*}
+
+\subsubsection{例：\texorpdfstring{$\E(u'M_Xu\mid X)=\sigma^2(n-K)$}{E(u'M u | X) = sigma\^{}2 (n-K)}}
+
+\begin{exmp}[$\E(u'M_Xu)=\sigma^2(n-K)$]\label{ex:U01a-EuMu}
+设 $\E(uu\T\mid X)=\sigma^2I_n$，$M_X=I_n-X(X\T X)\inv X\T$（第 \ref{sec:U01a-proj} 节，$\tr M_X=n-K$）。求 $\E(u\T M_Xu\mid X)$。
+
+\solution 条件于 $X$，$M_X$ 是非随机矩阵，上面的推导逐步适用：
+\begin{align*}
+\E(u\T M_Xu\mid X) &= \tr\big(M_X\,\E(uu\T\mid X)\big) \why{迹技巧，$M_X$ 给定 $X$ 时非随机}\\
+&= \sigma^2\tr(M_X) \why{$\E(uu\T\mid X)=\sigma^2I_n$}\\
+&= \sigma^2(n-K) \why{$\tr M_X=n-K$}
+\end{align*}
+第 4 章用它说明 $s^2=\hat u\T\hat u/(n-K)$ 是 $\sigma^2$ 的无偏估计——因为 $\hat u\T\hat u=u\T M_Xu$（第 \ref{sec:U01a-proj} 节）。
+\end{exmp}
+
+\subsection{\texorpdfstring{$\tr(A'A)$}{tr(A'A)} 等于全部元素的平方和}
+
+\subsubsection{\texorpdfstring{$\tr(A'A)=\tr(AA')=\sum_i\sum_j a_{ij}^2$}{tr(A'A) = tr(AA') = sum of squares}}
+
+$A$ 为 $m\times n$。$A\T A$ 的第 $j$ 个对角元是第 $j$ 列与自身的内积：
+\begin{align*}
+(A\T A)_{jj} &= \sum_{i=1}^m (A\T)_{ji}a_{ij}=\sum_{i=1}^m a_{ij}^2 \why{乘法定义}\\
+\tr(A\T A) &= \sum_{j=1}^n\sum_{i=1}^m a_{ij}^2 \why{对角元相加}\\
+\tr(AA\T) &= \tr(A\T A) \why{交换性}
+\end{align*}
+特别地，向量 $u$ 满足 $u\T u=\tr(uu\T)$。
+
+\subsubsection{应用：因子模型最小二乘的目标函数 \texorpdfstring{$\tr(VV')$}{tr(VV')}}
+
+若 $V$ 为 $N\times T$ 残差矩阵、第 $i$ 行为 $V_i\T$（$V_i$ 为 $T\times1$），则
+\[
+\sum_{i=1}^N\sum_{t=1}^T v_{it}^2=\tr(VV\T)=\tr(V\T V)=\sum_{i=1}^N V_i\T V_i,
+\]
+这就是因子模型最小二乘的目标函数（第 13 章；第 \ref{sec:U01a-opt} 节的 PCA 衔接表）。
+
+\subsection{练习：验证 \texorpdfstring{$\tr(AB)=\tr(BA)$}{tr(AB)=tr(BA)}；均值非零时 \texorpdfstring{$\E(u'Au)$}{E(u'Au)}}
+
+\begin{prac}[迹的计算与迹技巧]\label{pr:U01a-trace}
+(1) 设 $A=\begin{pmatrix}1&2&0\\0&1&1\end{pmatrix}$，$B=\begin{pmatrix}1&0\\0&1\\1&1\end{pmatrix}$，验证 $\tr(AB)=\tr(BA)$。
+(2) 设 $\E u=\mu$，$\Var(u)=\Sigma$，$A$ 非随机，证明 $\E(u\T Au)=\tr(A\Sigma)+\mu\T A\mu$。
+
+\answer (1)
+\[
+AB=\begin{pmatrix}1&2\\1&2\end{pmatrix},\ \tr(AB)=1+2=3;\qquad
+BA=\begin{pmatrix}1&2&0\\0&1&1\\1&3&1\end{pmatrix},\ \tr(BA)=1+1+1=3.
+\]
+二者相等，尽管一个是 $2\times2$、一个是 $3\times3$。
+
+(2) 先由 $\Var(u)=\E(uu\T)-\mu\mu\T$ 得 $\E(uu\T)=\Sigma+\mu\mu\T$（本章“随机向量”一节）。于是
+\begin{align*}
+\E(u\T Au) &= \tr\big(A\,\E(uu\T)\big) \why{迹技巧}\\
+&= \tr\big(A(\Sigma+\mu\mu\T)\big)=\tr(A\Sigma)+\tr(A\mu\mu\T) \why{代入；迹的线性}\\
+&= \tr(A\Sigma)+\mu\T A\mu \why{循环性：$\tr(A\mu\mu\T)=\mu\T A\mu$}
+\end{align*}
+$\mu=0$、$\Sigma=\sigma^2I$ 时回到 $\E(u\T Au)=\sigma^2\tr(A)$。
+\end{prac}
+
+\begin{english}
+Because $u'Au$ is a scalar, $u'Au=\operatorname{tr}(u'Au)=\operatorname{tr}(Auu')$ by the cyclic property of the trace. Taking expectations, $E(u'Au)=\operatorname{tr}\big(A\,E(uu')\big)=\sigma^2\operatorname{tr}(A)$ when $E(uu')=\sigma^2I_n$. In particular, $E(\hat u'\hat u\mid X)=E(u'M_Xu\mid X)=\sigma^2(n-K)$ because $\operatorname{tr}(M_X)=n-K$.
+\end{english}
+
+%======================================================================
+\section{对称矩阵、二次型与正定性}\label{sec:U01a-pd}
+
+方差是“非负的数”；协方差矩阵是“非负的矩阵”——这个“非负”就是半正定。本节给出正定性的定义与判别，并用它定义矩阵之间的大小比较，这是表述有效性（Gauss--Markov、有效 GMM、Hausman）的语言。
+
+\subsection{对称矩阵}
+
+\subsubsection{定义与计量中常见的对称矩阵}
+
+满足 $A=A\T$ 的方阵称为\term{对称矩阵}{symmetric matrix}。计量中几乎所有核心矩阵都对称：$X\T X$、$(X\T X)\inv$、协方差矩阵、$P_X$、$M_X$、$M_T$、$J_n$。
+
+\subsubsection{\texorpdfstring{$A'A$、$AA'$ 与 $B'AB$}{A'A, AA' and B'AB}（\texorpdfstring{$A$}{A} 对称）总是对称}
+
+用三因子反序规则逐一验证：
+\begin{align*}
+(A\T A)\T &= A\T(A\T)\T=A\T A \why{反序；$(A\T)\T=A$}\\
+(AA\T)\T &= (A\T)\T A\T=AA\T \why{同上}\\
+(B\T AB)\T &= B\T A\T (B\T)\T=B\T AB \why{三因子反序；$A\T=A$}
+\end{align*}
+
+\subsection{二次型 \texorpdfstring{$x'Ax$}{x'Ax}}
+
+\subsubsection{二次型的定义与 \texorpdfstring{$2\times2$}{2 x 2} 展开}
+
+\begin{defn}[二次型]\label{def:U01a-qf}
+$x\in\R^k$，$A$ 为 $k\times k$，\term{二次型}{quadratic form} $x\T Ax=\sum_i\sum_j a_{ij}x_ix_j$（标量）。
+\end{defn}
+$2\times2$ 且 $A$ 对称（$a_{12}=a_{21}$）时：
+\[
+x\T Ax=a_{11}x_1^2+a_{12}x_1x_2+a_{21}x_2x_1+a_{22}x_2^2=a_{11}x_1^2+2a_{12}x_1x_2+a_{22}x_2^2.
+\]
+
+\subsubsection{不妨设 \texorpdfstring{$A$}{A} 对称：\texorpdfstring{$x'Ax=x'\frac{A+A'}{2}x$}{x'Ax = x'[(A+A')/2]x}}
+
+二次型只依赖 $A$ 的对称部分：
+\begin{align*}
+x\T Ax &= (x\T Ax)\T \why{标量等于其转置}\\
+&= x\T A\T x \why{三因子反序}\\
+\Rightarrow\ x\T Ax &= \tfrac12\big(x\T Ax+x\T A\T x\big)=x\T\tfrac{A+A\T}{2}x \why{两式取平均}
+\end{align*}
+所以讨论二次型时总可以假设 $A$ 对称。
+
+\subsubsection{计量中常见的二次型：SSR、Wald、GMM 目标函数、Hausman}
+
+\begin{itemize}
+  \item 残差平方和 $u\T u$（$A=I$）；
+  \item Wald 统计量 $W=n(R\hat\beta-r)\T(R\hat VR\T)\inv(R\hat\beta-r)$（第 6 章）；
+  \item GMM 目标函数 $J(\beta)=\bar g_n(\beta)\T W\bar g_n(\beta)$（第 8 章）；
+  \item Hausman 统计量（第 11 章）。
+\end{itemize}
+
+\subsection{正定与半正定：定义与判别}
+
+\subsubsection{正定与半正定的定义}
+
+\begin{defn}[正定、半正定]\label{def:U01a-pd}
+对称矩阵 $A$ 称为\term{正定}{positive definite}（记 $A>0$），若对一切 $x\neq0$ 有 $x\T Ax>0$；称为\term{半正定}{positive semi-definite}（记 $A\ge0$），若对一切 $x$ 有 $x\T Ax\ge0$。
+\end{defn}
+
+\subsubsection{判别法与六条常用事实}
+
+\begin{thm}[正定性的判别与常用事实]\label{thm:U01a-pdfacts}
+\begin{enumerate}
+  \item $A>0\iff$ 全部特征值 $>0$；$A\ge0\iff$ 全部特征值 $\ge0$（第 \ref{sec:U01a-eigen} 节）。
+  \item $2\times2$：$A>0\iff a_{11}>0$ 且 $\det A=a_{11}a_{22}-a_{12}^2>0$（一般地：各阶顺序主子式 $>0$）。
+  \item $X\T X\ge0$ 恒成立；$X\T X>0\iff X$ 满列秩。
+  \item 协方差矩阵半正定：$a\T\Var(z)a=\Var(a\T z)\ge0$（本章“随机向量”一节）。
+  \item $A>0\Rightarrow A$ 可逆且 $A\inv>0$；正定阵的对角元都 $>0$。
+  \item $A\ge0\Rightarrow B\T AB\ge0$；$A>0$ 且 $B$ 满列秩 $\Rightarrow B\T AB>0$。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{证明：\texorpdfstring{$X'X\ge0$}{X'X >= 0}、\texorpdfstring{$B'AB\ge0$}{B'AB >= 0} 与正定阵的逆}
+
+(3)：对任意 $c$，
+\begin{align*}
+c\T X\T Xc &= (Xc)\T(Xc)=\|Xc\|^2\ge0 \why{$(Xc)\T=c\T X\T$}\\
+c\T X\T Xc=0 &\iff Xc=0 \iff c=0 \why{平方和为零；$X$ 满列秩}
+\end{align*}
+(6)：对任意 $x$，记 $y=Bx$，
+\begin{align*}
+x\T(B\T AB)x &= (Bx)\T A(Bx)=y\T Ay\ge0 \why{$A\ge0$}\\
+x\neq0 &\Rightarrow y=Bx\neq0\Rightarrow y\T Ay>0 \why{$B$ 满列秩；$A>0$}
+\end{align*}
+(5)：$A>0$ 时特征值全为正，没有零特征值，故可逆；$A\inv$ 的特征值为 $1/\lambda_j>0$（第 \ref{sec:U01a-eigen} 节），故 $A\inv>0$；取 $x=e_j$（第 $j$ 个单位向量）得 $a_{jj}=e_j\T Ae_j>0$。
+
+\subsubsection{例：判定两个 \texorpdfstring{$2\times2$}{2 x 2} 矩阵的正定性}
+
+\begin{exmp}[正定与不定]\label{ex:U01a-pd}
+判断 $A=\begin{pmatrix}2&1\\1&2\end{pmatrix}$ 与 $B=\begin{pmatrix}1&2\\2&1\end{pmatrix}$ 是否正定。
+
+\solution 对 $A$ 配方：
+\begin{align*}
+x\T Ax &= 2x_1^2+2x_1x_2+2x_2^2 \why{$2\times2$ 展开}\\
+&= (x_1+x_2)^2+x_1^2+x_2^2>0\quad(x\neq0) \why{配方}
+\end{align*}
+$A$ 正定；用判别法 (2) 亦可：$a_{11}=2>0$，$\det A=4-1=3>0$。对 $B$ 取 $x=(1,-1)\T$：$x\T Bx=1-4+1=-2<0$，$B$ 连半正定都不是（$\det B=1-4=-3<0$）。
+\end{exmp}
+
+\subsection{用半正定比较矩阵大小：\texorpdfstring{$A\ge B$}{A >= B}}
+
+\subsubsection{矩阵的半正定序}
+
+\begin{defn}[矩阵的半正定序]\label{def:U01a-loewner}
+对称矩阵 $A\ge B$ 指 $A-B\ge0$，即对任意 $c$ 有 $c\T Ac\ge c\T Bc$。
+\end{defn}
+
+\subsubsection{含义：任意线性组合的方差都不小}
+
+若 $A=\Var(\tilde\theta)$、$B=\Var(\hat\theta)$ 是两个估计量的协方差矩阵，则 $A\ge B$ 的含义是
+\[
+\Var(c\T\tilde\theta)=c\T Ac\ \ge\ c\T Bc=\Var(c\T\hat\theta)\qquad\text{对一切 }c,
+\]
+即“任意线性组合 $c\T\theta$ 的估计方差都不小”；取 $c=e_j$ 即得每个系数的方差（对角元）都不小。
+
+\subsubsection{用途：Gauss--Markov、有效 GMM、Hausman 检验}
+
+\begin{itemize}
+  \item Gauss--Markov 定理：$\Var(\tilde\beta\mid X)\ge\Var(\hat\beta_{OLS}\mid X)$（第 4 章）；
+  \item 有效 GMM：最优权重矩阵下的渐近方差最小（第 8 章）；
+  \item Hausman 检验：原假设下 $\Var(\hat\beta_{FE})-\Var(\hat\beta_{RE})\ge0$（第 11 章）。
+\end{itemize}
+
+\subsubsection{求逆反转次序：\texorpdfstring{$A\ge B>0\Rightarrow B^{-1}\ge A^{-1}$}{A >= B > 0 implies B\^{}-1 >= A\^{}-1}}
+
+常用事实：若 $A\ge B>0$，则 $B\inv\ge A\inv$。“方差大”等价于“精度（逆矩阵）小”。证明用到第 \ref{sec:U01a-eigen} 节的对称平方根 $B^{1/2}$、$B^{-1/2}$。令 $C=B^{-1/2}AB^{-1/2}$：
+\begin{align*}
+A-B\ge0 &\Rightarrow B^{-1/2}(A-B)B^{-1/2}=C-I\ge0 \why{事实 (6)；$B^{-1/2}BB^{-1/2}=I$}\\
+&\Rightarrow C \text{ 的特征值 }\mu_j\ge1 \why{$Ch=\mu h$ 时 $h\T(C-I)h=\mu-1$}\\
+&\Rightarrow C\inv \text{ 的特征值 }1/\mu_j\le1,\ \text{即 } I-C\inv\ge0 \why{逆矩阵特征值取倒数}\\
+&\Rightarrow I-B^{1/2}A\inv B^{1/2}\ge0 \why{$C\inv=B^{1/2}A\inv B^{1/2}$}\\
+&\Rightarrow B\inv-A\inv\ge0 \why{左右乘 $B^{-1/2}$，事实 (6)}
+\end{align*}
+
+\subsection{练习：判定正定；\texorpdfstring{$\sigma^2(X'X)^{-1}>0$}{sigma\^{}2 (X'X)\^{}-1 > 0}；GMM 目标函数非负}
+
+\begin{prac}[正定性的应用]\label{pr:U01a-pd}
+(1) 判断 $\begin{pmatrix}4&2\\2&3\end{pmatrix}$ 是否正定。(2) 设 $X$ 满列秩、$\sigma^2>0$，证明 $\sigma^2(X\T X)\inv>0$。(3) 设 $W>0$，证明 GMM 目标函数 $J(\beta)=\bar g_n(\beta)\T W\bar g_n(\beta)\ge0$，且等号当且仅当 $\bar g_n(\beta)=0$。
+
+\answer (1) $a_{11}=4>0$，$\det=12-4=8>0$，由判别法 (2)，正定。
+
+(2) $X$ 满列秩 $\Rightarrow X\T X>0$（事实 (3)）$\Rightarrow (X\T X)\inv>0$（事实 (5)）；再乘正数 $\sigma^2$：$c\T\sigma^2(X\T X)\inv c=\sigma^2\cdot c\T(X\T X)\inv c>0$（$c\neq0$），仍正定。
+
+(3) 由正定定义，对任意向量 $g$ 有 $g\T Wg\ge0$，且 $g\T Wg=0$ 当且仅当 $g=0$。取 $g=\bar g_n(\beta)$ 即得。
+\end{prac}
+
+\begin{english}
+A symmetric matrix $A$ is positive definite if $c'Ac>0$ for all $c\neq0$, and positive semi-definite if $c'Ac\ge0$ for all $c$. For two estimators, $\operatorname{Var}(\tilde\beta)-\operatorname{Var}(\hat\beta)\ge0$ (positive semi-definite) means that $\hat\beta$ is at least as efficient as $\tilde\beta$: every linear combination $c'\hat\beta$ has a variance no larger than that of $c'\tilde\beta$. If $X$ has full column rank, $X'X$ is positive definite, and so is its inverse.
+\end{english}
+
+%======================================================================
+\section{幂等矩阵、投影矩阵 \texorpdfstring{$P$}{P} 与残差制造矩阵 \texorpdfstring{$M$}{M}}\label{sec:U01a-proj}
+
+OLS 的全部代数都可以用两个矩阵表达：$P_X$ 把 $Y$ 变成拟合值，$M_X$ 把 $Y$ 变成残差。它们都是对称幂等矩阵。本节先讲幂等矩阵的一般性质，再讲 $P_X$、$M_X$，最后给出几何图像、数值例与 2SLS 中的一般投影 $P_Z$。
+
+\subsection{幂等矩阵：特征值只能是 0 或 1，秩等于迹}
+
+\subsubsection{幂等矩阵的定义}
+
+\begin{defn}[幂等矩阵]\label{def:U01a-idem}
+方阵 $A$ 若满足 $A^2=AA=A$，称为\term{幂等矩阵}{idempotent matrix}。计量中遇到的幂等阵几乎都同时对称；对称幂等阵就是\term{正交投影矩阵}{orthogonal projection matrix}。
+\end{defn}
+直觉：“投影两次等于投影一次”——已经落在子空间里的向量，再投影也不动。
+
+\subsubsection{幂等矩阵的五条性质}
+
+\begin{thm}[幂等矩阵的性质]\label{thm:U01a-idem}
+(1) 特征值只能是 0 或 1；(2) 对称幂等阵满足 $\rank(A)=\tr(A)$；(3) $A$ 幂等 $\Rightarrow I-A$ 幂等，且 $A(I-A)=0$；(4) 除 $I$ 外的幂等阵都不可逆；(5) 对称幂等阵半正定：$x\T Ax=x\T A\T Ax=\|Ax\|^2\ge0$。
+\end{thm}
+
+\subsubsection{证明：\texorpdfstring{$\lambda^2=\lambda$}{lambda\^{}2 = lambda}、秩等于迹、\texorpdfstring{$I-A$}{I-A} 幂等}
+
+(1) 设 $Av=\lambda v$（$v\neq0$）：
+\begin{align*}
+\lambda v=Av &= A^2v=A(Av) \why{$A=A^2$}\\
+&= A(\lambda v)=\lambda Av=\lambda^2v \why{再用一次 $Av=\lambda v$}\\
+\Rightarrow\ (\lambda^2-\lambda)v &= 0\ \Rightarrow\ \lambda\in\{0,1\} \why{$v\neq0$}
+\end{align*}
+(2) 由谱分解（第 \ref{sec:U01a-eigen} 节）$A=H\Lambda H\T$，$\Lambda$ 的对角元为 0 或 1：
+\[
+\rank(A)=\text{非零特征值个数}=\text{“1”的个数}=\text{特征值之和}=\tr(A).
+\]
+(3)
+\begin{align*}
+(I-A)^2 &= I-2A+A^2 \why{展开}\\
+&= I-2A+A=I-A \why{$A^2=A$}\\
+A(I-A) &= A-A^2=0 \why{$A^2=A$}
+\end{align*}
+(4) 若幂等阵 $A$ 可逆，则 $A=A\inv A^2=A\inv A=I$；所以 $A\neq I$ 时不可逆（它有特征值 0）。
+
+(5) $A$ 对称幂等时 $A=A^2=A\T A$，于是 $x\T Ax=x\T A\T Ax=(Ax)\T(Ax)=\|Ax\|^2\ge0$。
+
+\subsection{投影矩阵 \texorpdfstring{$P_X=X(X'X)^{-1}X'$}{P = X(X'X)\^{}-1 X'}}
+
+\subsubsection{投影矩阵（帽子矩阵）的定义}
+
+\begin{defn}[投影矩阵]\label{def:U01a-PX}
+设 $X$ 为 $n\times K$ 满列秩，\term{投影矩阵}{projection matrix}（又称\term{帽子矩阵}{hat matrix}）
+\[
+P_X=X(X\T X)\inv X\T\qquad(n\times n).
+\]
+\end{defn}
+
+\subsubsection{\texorpdfstring{$P_X$}{P} 的四条性质}
+
+\begin{thm}[$P_X$ 的性质]\label{thm:U01a-PX}
+(1) 对称；(2) 幂等；(3) $P_XX=X$，更一般地 $P_X(Xb)=Xb$（$X$ 列空间中的向量投影后不变）；(4) $\tr(P_X)=\rank(P_X)=K$。
+\end{thm}
+
+\subsubsection{证明：对称、幂等、\texorpdfstring{$P_XX=X$}{PX = X}}
+
+把定义代入，利用 $(X\T X)\inv$ 的对称性与“中间相消”：
+\begin{align*}
+P_X\T &= \big[X(X\T X)\inv X\T\big]\T=X\big[(X\T X)\inv\big]\T X\T \why{$(ABC)\T=C\T B\T A\T$}\\
+&= X(X\T X)\inv X\T=P_X \why{$(X\T X)\inv$ 对称}\\
+P_XP_X &= X(X\T X)\inv\underbrace{X\T X(X\T X)\inv}_{=I_K}X\T \why{结合律}\\
+&= X(X\T X)\inv X\T=P_X \why{中间相消}\\
+P_XX &= X\underbrace{(X\T X)\inv X\T X}_{=I_K}=X \why{同上}
+\end{align*}
+于是 $P_X(Xb)=(P_XX)b=Xb$。(4)：$\tr(P_X)=K$ 见第 \ref{sec:U01a-trace} 节投影矩阵之迹的例子；对称幂等阵秩等于迹，故 $\rank(P_X)=K$。
+
+\subsubsection{\texorpdfstring{$P_XY=\hat Y$}{PY = Y-hat}：把 \texorpdfstring{$Y$}{Y} 投影成拟合值}
+
+由定义直接相乘：
+\[
+P_XY=X(X\T X)\inv X\T Y=X\hat\beta=\hat Y.
+\]
+$P_X$ 把 $Y$ “投影”成拟合值，给 $Y$ 戴上“帽子”，故名帽子矩阵。
+
+\subsection{残差制造矩阵 \texorpdfstring{$M_X=I_n-P_X$}{M = I - P} 的性质（\texorpdfstring{$M_XX=0$、$P_XM_X=0$}{MX = 0, PM = 0}）}
+
+\subsubsection{\texorpdfstring{$M_X$}{M} 的五条性质}
+
+\begin{thm}[$M_X$ 的性质]\label{thm:U01a-MX}
+记 $M_X=I_n-P_X$，称为\term{残差制造矩阵}{residual maker matrix}。
+(1) 对称；(2) 幂等；(3) $M_XX=0$（又称\term{零化矩阵}{annihilator matrix}：消灭 $X$ 列空间中的一切）；(4) $P_XM_X=M_XP_X=0$；(5) $\tr(M_X)=\rank(M_X)=n-K$。
+\end{thm}
+
+\subsubsection{证明：\texorpdfstring{$M_X$}{M} 幂等、零化 \texorpdfstring{$X$}{X}、与 \texorpdfstring{$P_X$}{P} 正交}
+
+对称性由 $I_n$、$P_X$ 都对称得到。其余：
+\begin{align*}
+M_XM_X &= (I-P_X)(I-P_X)=I-2P_X+P_XP_X \why{展开}\\
+&= I-P_X=M_X \why{$P_X$ 幂等}\\
+M_XX &= X-P_XX=X-X=0 \why{$P_XX=X$}\\
+P_XM_X &= P_X-P_XP_X=P_X-P_X=0 \why{$P_X$ 幂等}\\
+M_XP_X &= (P_XM_X)\T=0 \why{二者对称}\\
+\tr(M_X) &= \tr(I_n)-\tr(P_X)=n-K \why{迹的线性}
+\end{align*}
+
+\subsubsection{秩等于迹的含义：自由度}
+
+$\tr P_X=K$ 是拟合用掉的\term{自由度}{degrees of freedom}，$\tr M_X=n-K$ 是残差的自由度——残差向量被限制在 $n-K$ 维的空间里，所以 $s^2$ 除以 $n-K$（第 4 章）；正态误差 $u\mid X\sim N(0,\sigma^2I_n)$ 下还有 $\hat u\T\hat u/\sigma^2\sim\chi^2_{n-K}$（本章“常用分布与正态二次型”一节）。
+
+\subsection{拟合值、残差与平方和分解}
+
+\subsubsection{\texorpdfstring{$\hat Y=P_XY$}{Y-hat = PY}，\texorpdfstring{$\hat u=M_XY=M_Xu$}{u-hat = MY = Mu}}
+
+把 $\hat\beta$ 的公式与模型 $Y=X\beta+u$ 代入：
+\begin{align*}
+\hat Y &= X\hat\beta=P_XY \why{$\hat\beta=(X\T X)\inv X\T Y$}\\
+\hat u &= Y-\hat Y=(I-P_X)Y=M_XY \why{$M_X$ 的定义}\\
+&= M_X(X\beta+u)=M_XX\beta+M_Xu=M_Xu \why{代入模型；$M_XX=0$}
+\end{align*}
+残差只依赖误差 $u$，与 $\beta$ 无关。
+
+\subsubsection{正规方程 \texorpdfstring{$X'\hat u=0$}{X'u-hat = 0} 与 \texorpdfstring{$\hat Y'\hat u=0$}{Y-hat'u-hat = 0}}
+
+残差与回归元正交、与拟合值正交，都是 $M_X$ 性质的直接推论：
+\begin{align*}
+X\T\hat u &= X\T M_XY=(M_XX)\T Y \why{$M_X$ 对称：$X\T M_X=(M_XX)\T$}\\
+&= 0 \why{$M_XX=0$，即正规方程}\\
+\hat Y\T\hat u &= (P_XY)\T M_XY=Y\T P_XM_XY \why{$P_X$ 对称}\\
+&= 0 \why{$P_XM_X=0$}
+\end{align*}
+
+\subsubsection{平方和分解 \texorpdfstring{$Y'Y=\hat Y'\hat Y+\hat u'\hat u$}{Y'Y = Y-hat'Y-hat + u-hat'u-hat}（勾股定理）}
+
+由 $Y=\hat Y+\hat u$ 与上面的正交性：
+\begin{align*}
+Y\T Y &= (\hat Y+\hat u)\T(\hat Y+\hat u) \why{$Y=\hat Y+\hat u$}\\
+&= \hat Y\T\hat Y+2\hat Y\T\hat u+\hat u\T\hat u \why{展开；$\hat u\T\hat Y=\hat Y\T\hat u$ 是标量}\\
+&= \hat Y\T\hat Y+\hat u\T\hat u \why{交叉项为零（勾股定理）}
+\end{align*}
+即：$X\T\hat u=0\Rightarrow\hat y$ 与 $\hat u$ 正交 $\Rightarrow\sum_iy_i^2=\sum_i\hat y_i^2+\sum_i\hat u_i^2$。含常数项时的去均值版本（SST $=$ SSE $+$ SSR）与 $R^2$ 见第 3 章。
+
+\subsubsection{残差平方和的二次型写法：\texorpdfstring{$\hat u'\hat u=Y'M_XY=u'M_Xu$}{u-hat'u-hat = Y'MY = u'Mu}}
+
+由 $M_X$ 对称幂等，$\hat u\T\hat u=(M_XY)\T(M_XY)=Y\T M_X\T M_XY=Y\T M_XY$；把 $Y$ 换成 $u$（因 $M_XY=M_Xu$）同理得 $\hat u\T\hat u=u\T M_Xu$（本节练习 (1)）。这正是第 \ref{sec:U01a-trace} 节中计算 $\E(\hat u\T\hat u\mid X)=\sigma^2(n-K)$ 的出发点。
+
+\subsection{几何图像：\texorpdfstring{$Y$}{Y} 在 \texorpdfstring{$X$}{X} 列空间上的正交投影}
+
+\begin{center}
+\begin{tikzpicture}[>={Stealth[length=2.2mm]},scale=1]
+\fill[blue!8] (-0.6,-0.6) -- (4.8,-0.6) -- (5.8,0.9) -- (0.4,0.9) -- cycle;
+\node[blue!60!black,font=\small] at (5.3,0.6) {$X$ 的列空间};
+\coordinate (O) at (0,0);
+\coordinate (Yh) at (3.8,0.3);
+\coordinate (Y) at (3.8,2.6);
+\draw[->,thick] (O) -- (Y) node[above] {$Y$};
+\draw[->,thick,blue!70!black] (O) -- (Yh) node[midway,below,font=\small] {$\hat Y=P_XY$};
+\draw[->,thick,red!70!black] (Yh) -- (Y) node[midway,right,font=\small] {$\hat u=M_XY$};
+\draw (3.8,0.55) -- (3.55,0.53) -- (3.55,0.28);
+\node[below left] at (O) {$0$};
+\end{tikzpicture}
+\captionof{figure}{OLS 的几何：正交投影}
+\end{center}
+$\hat Y$ 是列空间中离 $Y$ 最近的点；$\hat u$ 与整个列空间垂直（$X\T\hat u=0$）。一句话：\key{最小二乘 $=$ 正交投影}。
+
+\subsection{特例：只对常数项投影就是求均值}
+
+\subsubsection{\texorpdfstring{$P_1=\frac1nJ_n$}{P\_1 = J/n}，\texorpdfstring{$P_1Y=\bar y\one_n$}{P\_1 Y = y-bar 1}，\texorpdfstring{$M_1Y$}{M\_1 Y} 为离差}
+
+取 $X=\one_n$（只有截距），$\one_n\T\one_n=n$：
+\begin{align*}
+P_1 &= \one_n(\one_n\T\one_n)\inv\one_n\T=\tfrac1n\one_n\one_n\T=\tfrac1nJ_n \why{$\one_n\T\one_n=n$}\\
+P_1Y &= \one_n\cdot\tfrac1n\one_n\T Y=\bar y\,\one_n \why{$\one_n\T Y=\sum_iy_i$}\\
+M_1Y &= Y-\bar y\one_n=(y_1-\bar y,\dots,y_n-\bar y)\T \why{$M_1=I-P_1$}
+\end{align*}
+即“对常数投影 $=$ 取均值，残差 $=$ 去均值”。
+
+\subsubsection{\texorpdfstring{$\tr(M_1)=n-1$}{tr(M\_1) = n-1}：样本方差为何除以 \texorpdfstring{$n-1$}{n-1}}
+
+$\tr(M_1)=n-\tr(P_1)=n-1$：去均值用掉一个自由度，这解释了样本方差为何除以 $n-1$（本节练习 (2)，本章“估计量的评价标准”一节）。把 $n$ 换成 $T$ 就是面板的 $P_T$、$M_T$（第 \ref{sec:U01a-kron} 节）。
+
+\subsection{数值例：\texorpdfstring{$n=3$}{n=3} 的 \texorpdfstring{$P_X$}{P} 与 \texorpdfstring{$M_X$}{M}}
+
+\begin{exmp}[$n=3$ 的 $P_X$ 与 $M_X$]\label{ex:U01a-PM3}
+续第 \ref{ss:U01a-n3} 小节的例子：$X$ 的两列为 $(1,1,1)\T$ 与 $(1,2,3)\T$，$Y=(2,3,5)\T$。求 $P_X$、$M_X$、$\hat Y$、$\hat u$，并验证各项性质与平方和分解。
+
+\solution 先算 $X(X\T X)\inv$，再右乘 $X\T$：
+\begin{align*}
+X(X\T X)\inv &= \begin{pmatrix}1&1\\1&2\\1&3\end{pmatrix}\frac16\begin{pmatrix}14&-6\\-6&3\end{pmatrix}=\frac16\begin{pmatrix}8&-3\\2&0\\-4&3\end{pmatrix} \why{$(X\T X)\inv$ 见前例}\\
+P_X &= \frac16\begin{pmatrix}8&-3\\2&0\\-4&3\end{pmatrix}\begin{pmatrix}1&1&1\\1&2&3\end{pmatrix}=\frac16\begin{pmatrix}5&2&-1\\2&2&2\\-1&2&5\end{pmatrix} \why{矩阵乘法}\\
+M_X &= I_3-P_X=\frac16\begin{pmatrix}1&-2&1\\-2&4&-2\\1&-2&1\end{pmatrix} \why{$M_X=I-P_X$}
+\end{align*}
+验证：$\tr P_X=(5+2+5)/6=2=K$，$\tr M_X=(1+4+1)/6=1=n-K$；$M_X$ 的每一列都与 $(1,1,1)\T$、$(1,2,3)\T$ 正交（如第一列：$1-2+1=0$，$1-4+3=0$），故 $M_XX=0$。拟合值与残差：
+\begin{align*}
+\hat Y &= P_XY=\tfrac16(10+6-5,\ 4+6+10,\ -2+6+25)\T=\tfrac16(11,20,29)\T \why{$P_XY$}\\
+\hat u &= M_XY=\tfrac16(2-6+5,\ -4+12-10,\ 2-6+5)\T=\tfrac16(1,-2,1)\T \why{$M_XY$}\\
+\hat u\T\hat u &= \tfrac{1+4+1}{36}=\tfrac16,\qquad \hat Y\T\hat Y=\tfrac{121+400+841}{36}=\tfrac{227}{6} \why{逐项平方}\\
+Y\T Y &= 4+9+25=38=\tfrac{228}{6}=\tfrac{227}{6}+\tfrac16 \why{平方和分解成立}
+\end{align*}
+也可用例中 $\hat\beta=(1/3,3/2)\T$ 核对：$\hat y_1=1/3+3/2=11/6$。
+\end{exmp}
+
+\subsection{一般投影 \texorpdfstring{$P_Z$}{P\_Z}：两阶段最小二乘的代数}
+
+\subsubsection{\texorpdfstring{$P_Z=Z(Z'Z)^{-1}Z'$}{P\_Z = Z(Z'Z)\^{}-1 Z'} 同样对称幂等}
+
+上述全部性质对任何满列秩矩阵 $Z$（$n\times L$）构造的 $P_Z=Z(Z\T Z)\inv Z\T$ 同样成立：对称、幂等、$P_ZZ=Z$、$\tr P_Z=L$；$M_Z=I_n-P_Z$ 满足 $M_ZZ=0$。
+
+\subsubsection{推导：\texorpdfstring{$X'P_ZX=\hat X'\hat X$、$X'P_ZY=\hat X'Y$}{X'P\_Z X = X-hat'X-hat, X'P\_Z Y = X-hat'Y}}
+
+令 $\hat X=P_ZX$（$X$ 的每一列对 $Z$ 回归的拟合值，$n\times K$）。
+\begin{align*}
+X\T P_ZX &= X\T P_Z\T P_ZX \why{$P_Z=P_Z\T P_Z$（对称幂等）}\\
+&= (P_ZX)\T(P_ZX)=\hat X\T\hat X \why{反序}\\
+X\T P_ZY &= X\T P_Z\T Y=(P_ZX)\T Y=\hat X\T Y \why{$P_Z$ 对称}
+\end{align*}
+
+\subsubsection{2SLS \texorpdfstring{$=$}{=} 第二阶段用拟合值 \texorpdfstring{$\hat X$}{X-hat} 作 OLS}
+
+于是 2SLS 估计量
+\[
+\hat\beta_{2SLS}=(X\T P_ZX)\inv X\T P_ZY=(\hat X\T\hat X)\inv\hat X\T Y,
+\]
+恰是“第一阶段把 $X$ 对 $Z$ 回归得 $\hat X$，第二阶段把 $Y$ 对 $\hat X$ 作 OLS”（第 8 章）。
+
+\subsubsection{外生回归元不被 \texorpdfstring{$P_Z$}{P\_Z} 改变；CCE 中的 \texorpdfstring{$M_{\bar Z}$}{M\_Zbar}}
+
+若 $X$ 的某列本身就是 $Z$ 的列（外生回归元作自己的工具），由 $P_ZZ=Z$ 知 $P_Z$ 不改变它：该列的“第一阶段拟合值”就是它自己。共同相关效应（CCE）估计中的 $M_{\bar Z}=I_T-\bar Z(\bar Z\T\bar Z)\inv\bar Z\T$ 也是同一构造（第 14 章）。
+
+\subsection{练习：\texorpdfstring{$\hat u'\hat u=u'M_Xu$}{u-hat'u-hat = u'Mu}；样本方差无偏；秩 1 的 \texorpdfstring{$M_X$}{M}}
+
+\begin{prac}[投影矩阵的应用]\label{pr:U01a-proj}
+(1) 证明 $\hat u\T\hat u=Y\T M_XY=u\T M_Xu$。(2) 设 $y_i=\mu+u_i$，$\E(uu\T)=\sigma^2I_n$，$X=\one_n$。证明 $\hat u\T\hat u=\sum_i(y_i-\bar y)^2$，且 $\E\sum_i(y_i-\bar y)^2=(n-1)\sigma^2$。(3) 说明上面数值例中 $M_X=vv\T/(v\T v)$，$v=(1,-2,1)\T$，并解释。
+
+\answer (1)
+\begin{align*}
+\hat u\T\hat u &= (M_XY)\T(M_XY)=Y\T M_X\T M_XY \why{反序}\\
+&= Y\T M_XY \why{$M_X$ 对称幂等}\\
+\hat u\T\hat u &= (M_Xu)\T(M_Xu)=u\T M_X\T M_Xu \why{$M_XY=M_Xu$；反序}\\
+&= u\T M_Xu \why{$M_X$ 对称幂等}
+\end{align*}
+
+(2) $\hat u=M_1Y$ 的元素为 $y_i-\bar y$，故 $\hat u\T\hat u=\sum_i(y_i-\bar y)^2$。又 $Y=\mu\one_n+u$，$M_1\one_n=0$，所以 $M_1Y=M_1u$，$\hat u\T\hat u=u\T M_1u$。由迹技巧：
+\begin{align*}
+\E\textstyle\sum_i(y_i-\bar y)^2 &= \E(u\T M_1u)=\sigma^2\tr(M_1) \why{迹技巧}\\
+&= (n-1)\sigma^2 \why{$\tr M_1=n-1$}
+\end{align*}
+故样本方差 $\frac1{n-1}\sum_i(y_i-\bar y)^2$ 无偏。
+
+(3) $v\T v=1+4+1=6$，$vv\T/6=\frac16\begin{pmatrix}1&-2&1\\-2&4&-2\\1&-2&1\end{pmatrix}$，恰为上面的 $M_X$。$v$ 与 $X$ 的两列都正交（$1-2+1=0$，$1-4+3=0$），而 $n-K=1$：残差空间就是 $v$ 张成的一维空间，$M_X$ 正是对 $v$ 方向的投影，秩为 1。
+\end{prac}
+
+\begin{keypt}[英文试卷常见问法]
+“Show that $M$ is symmetric and idempotent and that $MX=0$”“Show that $\hat u=Mu$ and $E(s^2\mid X)=\sigma^2$”——前者按本节 $M_X$ 性质的证明逐行写出；后者合并本节 $\hat u=M_Xu$ 与第 \ref{sec:U01a-trace} 节的迹技巧。
+\end{keypt}
+
+\begin{english}
+Let $P=X(X'X)^{-1}X'$ and $M=I_n-P$. Both matrices are symmetric and idempotent, $PX=X$, $MX=0$ and $PM=0$. Hence the fitted values are $\hat Y=PY$, the residuals are $\hat u=MY=Mu$, and $X'\hat u=0$, so that $Y'Y=\hat Y'\hat Y+\hat u'\hat u$. Since $M$ is symmetric and idempotent, its rank equals its trace, $\operatorname{tr}(M)=n-K$.
+\end{english}
+
+%======================================================================
+\section{分块矩阵及其求逆}\label{sec:U01a-block}
+
+回归元分成两组 $X=[X_1\ X_2]$ 时，我们常常只关心其中一组的系数。分块求逆公式给出这组系数的显式表达——这就是 FWL 定理的代数来源，也是“LSDV $=$ 组内估计”“CCE”等结论的共同基础。
+
+\subsection{分块乘法与分块转置}
+
+\subsubsection{分块乘法：\texorpdfstring{$X\beta=X_1\beta_1+X_2\beta_2$ 与 $X'X$}{X beta = X1 beta1 + X2 beta2 and X'X} 的四块}
+
+把 $X$ 按列分成两组 $X=[X_1\ X_2]$（$n\times K_1$、$n\times K_2$，$K_1+K_2=K$），$\beta=(\beta_1\T,\beta_2\T)\T$。只要各块维度相容，就可以把块当成“元素”相乘，但\key{次序不能交换}：
+\[
+X\beta=X_1\beta_1+X_2\beta_2,\qquad
+X\T X=\begin{pmatrix}X_1\T\\X_2\T\end{pmatrix}(X_1\ X_2)=\begin{pmatrix}X_1\T X_1&X_1\T X_2\\X_2\T X_1&X_2\T X_2\end{pmatrix},\qquad
+X\T Y=\begin{pmatrix}X_1\T Y\\X_2\T Y\end{pmatrix}.
+\]
+$X\T X$ 的四块维度依次为 $K_1\times K_1$、$K_1\times K_2$、$K_2\times K_1$、$K_2\times K_2$。
+
+\subsubsection{分块转置：块的位置转置、每块本身也转置}
+
+块的位置整体转置，每一块自身也要转置：
+\[
+\begin{pmatrix}A&B\\C&D\end{pmatrix}\T=\begin{pmatrix}A\T&C\T\\B\T&D\T\end{pmatrix}.
+\]
+例如 $[X_1\ X_2]\T=\begin{pmatrix}X_1\T\\X_2\T\end{pmatrix}$，这正是上面计算 $X\T X$ 时用到的。
+
+\subsection{分块对角矩阵的逆}
+
+\subsubsection{逐块求逆}
+
+分块对角矩阵的逆就是逐块求逆（各 $A_g$ 为可逆方阵）：
+\[
+\diag(A_1,\dots,A_G)\inv=\diag(A_1\inv,\dots,A_G\inv).
+\]
+验证：按分块乘法，$\diag(A_1,\dots,A_G)\diag(A_1\inv,\dots,A_G\inv)=\diag(A_1A_1\inv,\dots,A_GA_G\inv)=\diag(I,\dots,I)=I$。
+
+\subsubsection{应用：面板 GLS 中 \texorpdfstring{$X'\Var(U\mid X)^{-1}X=\sum_iX_i'\Omega_i^{-1}X_i$}{X'Var(U|X)\^{}-1 X = sum X\_i' Omega\_i\^{}-1 X\_i}}
+
+面板中各个体误差相互独立时 $\Var(U\mid X)=\diag(\Omega_1,\dots,\Omega_N)$（每块 $T\times T$）。于是
+\begin{align*}
+X\T\Var(U\mid X)\inv X &= (X_1\T,\dots,X_N\T)\diag(\Omega_1\inv,\dots,\Omega_N\inv)\begin{pmatrix}X_1\\\vdots\\X_N\end{pmatrix} \why{逐块求逆}\\
+&= \sum_{i=1}^N X_i\T\Omega_i\inv X_i \why{分块乘法}
+\end{align*}
+随机效应 GLS（第 11 章）与聚类误差（第 5 章）都用到这一结构。
+
+\subsection{一般分块求逆公式与 Schur 补}
+
+\subsubsection{结论：分块求逆公式}
+
+设分块方阵的右下块可逆，则逆矩阵的四块都可以用 Schur 补显式写出：
+\begin{thm}[分块求逆]\label{thm:U01a-blockinv}
+设 $A=\begin{pmatrix}A_{11}&A_{12}\\A_{21}&A_{22}\end{pmatrix}$ 与 $A_{22}$ 可逆，记 \term{Schur 补}{Schur complement} $A_{11\cdot2}=A_{11}-A_{12}A_{22}\inv A_{21}$，则
+\begin{equation}\label{eq:U01a-blockinv}
+A\inv=\begin{pmatrix}A_{11\cdot2}\inv & -A_{11\cdot2}\inv A_{12}A_{22}\inv\\[3pt]
+-A_{22}\inv A_{21}A_{11\cdot2}\inv & A_{22}\inv+A_{22}\inv A_{21}A_{11\cdot2}\inv A_{12}A_{22}\inv\end{pmatrix}.
+\end{equation}
+右下块也等于 $A_{22\cdot1}\inv$，其中 $A_{22\cdot1}=A_{22}-A_{21}A_{11}\inv A_{12}$（Hansen 附录 A.6 节）。
+\end{thm}
+最常用的是\key{左上块} $[A\inv]_{11}=A_{11\cdot2}\inv$：大矩阵之逆的一块，等于“对应块减去经另一块调整后的部分”再求逆。
+
+\subsubsection{推导：解方程组 \texorpdfstring{$Ab=c$}{Ab = c}，读出 \texorpdfstring{$A^{-1}$}{A\^{}-1} 的各块}
+
+思路：$b=A\inv c$，所以只要把 $b$ 解成 $c$ 的线性函数，$c_1$、$c_2$ 前面的系数矩阵就是 $A\inv$ 的各块。
+\begin{align*}
+A_{11}b_1+A_{12}b_2 &= c_1,\qquad A_{21}b_1+A_{22}b_2=c_2 \why{分块写出 $Ab=c$}\\
+b_2 &= A_{22}\inv(c_2-A_{21}b_1) \why{由第二式解出 $b_2$}\\
+A_{11}b_1+A_{12}A_{22}\inv(c_2-A_{21}b_1) &= c_1 \why{代入第一式}\\
+(A_{11}-A_{12}A_{22}\inv A_{21})\,b_1 &= c_1-A_{12}A_{22}\inv c_2 \why{合并 $b_1$ 项}\\
+b_1 &= A_{11\cdot2}\inv c_1-A_{11\cdot2}\inv A_{12}A_{22}\inv c_2 \why{左乘 $A_{11\cdot2}\inv$}
+\end{align*}
+$b_1$ 中 $c_1$、$c_2$ 的系数矩阵就是 $A\inv$ 第一行的两块。把 $b_1$ 代回 $b_2$ 的表达式：
+\begin{align*}
+b_2 &= A_{22}\inv c_2-A_{22}\inv A_{21}\big(A_{11\cdot2}\inv c_1-A_{11\cdot2}\inv A_{12}A_{22}\inv c_2\big) \why{代入 $b_1$}\\
+&= -A_{22}\inv A_{21}A_{11\cdot2}\inv\,c_1+\big(A_{22}\inv+A_{22}\inv A_{21}A_{11\cdot2}\inv A_{12}A_{22}\inv\big)\,c_2 \why{按 $c_1$、$c_2$ 整理}
+\end{align*}
+即得第二行的两块。
+
+\subsection{应用：分块回归系数与 FWL 定理的代数来源}
+
+\subsubsection{推导：\texorpdfstring{$\hat\beta_1=(X_1'M_2X_1)^{-1}X_1'M_2Y$}{beta1-hat = (X1'M2X1)\^{}-1 X1'M2 Y}}
+
+目标：求 $\hat\beta=(X\T X)\inv X\T Y$ 中对应 $X_1$ 的子向量 $\hat\beta_1$。取 $A=X\T X$，即 $A_{11}=X_1\T X_1$、$A_{12}=X_1\T X_2$、$A_{21}=X_2\T X_1$、$A_{22}=X_2\T X_2$，并记
+\[
+M_2=I_n-X_2(X_2\T X_2)\inv X_2\T\qquad(\text{对 }X_2\text{ 的残差制造矩阵}).
+\]
+\begin{align*}
+A_{11\cdot2} &= X_1\T X_1-X_1\T X_2(X_2\T X_2)\inv X_2\T X_1 \why{代入各块}\\
+&= X_1\T\big[I_n-X_2(X_2\T X_2)\inv X_2\T\big]X_1=X_1\T M_2X_1 \why{提出 $X_1\T$ 与 $X_1$}\\
+\hat\beta_1 &= A_{11\cdot2}\inv X_1\T Y-A_{11\cdot2}\inv X_1\T X_2(X_2\T X_2)\inv X_2\T Y \why{分块求逆第一行乘 $X\T Y$}\\
+&= (X_1\T M_2X_1)\inv X_1\T\big[I_n-X_2(X_2\T X_2)\inv X_2\T\big]Y \why{提出公因子}\\
+&= (X_1\T M_2X_1)\inv X_1\T M_2Y \why{$M_2$ 的定义}
+\end{align*}
+
+\subsubsection{FWL 定理的含义：先剔除 \texorpdfstring{$X_2$}{X2}，再回归}
+
+由于 $M_2$ 对称幂等，$X_1\T M_2X_1=(M_2X_1)\T(M_2X_1)$，$X_1\T M_2Y=(M_2X_1)\T(M_2Y)$，所以
+\[
+\hat\beta_1=\big[(M_2X_1)\T(M_2X_1)\big]\inv(M_2X_1)\T(M_2Y).
+\]
+即：$\hat\beta_1$ 等于“先用 $M_2$ 把 $X_1$、$Y$ 中能被 $X_2$ 解释的部分剔除，再用剔除后的残差做 OLS”——这就是 \term{Frisch--Waugh--Lovell 定理}{Frisch--Waugh--Lovell theorem}（FWL；几何解释见第 3 章）。
+
+\subsubsection{同方差下 \texorpdfstring{$\Var(\hat\beta_1\mid X)=\sigma^2(X_1'M_2X_1)^{-1}$}{Var(beta1-hat|X) = sigma\^{}2 (X1'M2X1)\^{}-1}}
+
+同方差时 $\Var(\hat\beta\mid X)=\sigma^2(X\T X)\inv$（第 4 章），取其左上块：
+\[
+\Var(\hat\beta_1\mid X)=\sigma^2\big[(X\T X)\inv\big]_{11}=\sigma^2A_{11\cdot2}\inv=\sigma^2(X_1\T M_2X_1)\inv.
+\]
+
+\subsubsection{FWL 的后续应用：LSDV \texorpdfstring{$=$}{=} 组内估计、CCE}
+
+FWL 是两个重要结论的共同代数基础：
+\begin{itemize}
+  \item “LSDV $=$ 组内估计量”：$X_2$ 取个体虚拟变量，此时 $M_2=I_N\otimes M_T$（第 \ref{sec:U01a-kron} 节，第 10 章）；
+  \item CCE 估计量：用 $M_{\bar Z}$ 剔除截面均值所代表的共同因子（第 14 章）。
+\end{itemize}
+
+\subsection{练习：用分块公式求 \texorpdfstring{$2\times2$}{2 x 2} 逆；单回归元的斜率公式}
+
+\begin{prac}[分块求逆与 FWL]\label{pr:U01a-block}
+(1) 把 $\begin{pmatrix}3&6\\6&14\end{pmatrix}$ 看成 $1\times1$ 分块，用分块求逆公式 \eqref{eq:U01a-blockinv} 求逆，并与 $2\times2$ 公式对照。(2) 取 $X_2=\one_n$、$X_1=x$（单个回归元），证明斜率 $\hat\beta_1=\sum_i(x_i-\bar x)(y_i-\bar y)/\sum_i(x_i-\bar x)^2$，并用第 \ref{ss:U01a-n3} 小节的 $n=3$ 数据验算。
+
+\answer (1) $A_{11}=3$，$A_{12}=A_{21}=6$，$A_{22}=14$。
+\begin{align*}
+A_{11\cdot2} &= 3-6\cdot\tfrac1{14}\cdot6=3-\tfrac{18}{7}=\tfrac37 \why{Schur 补}\\
+\text{左上} &= A_{11\cdot2}\inv=\tfrac73=\tfrac{14}{6} \why{公式左上块}\\
+\text{右上} &= -\tfrac73\cdot6\cdot\tfrac1{14}=-1=-\tfrac66 \why{公式右上块}\\
+\text{右下} &= \tfrac1{14}+\tfrac1{14}\cdot6\cdot\tfrac73\cdot6\cdot\tfrac1{14}=\tfrac1{14}+\tfrac37=\tfrac12=\tfrac36 \why{公式右下块}
+\end{align*}
+左下块与右上块对称，也是 $-\frac66$。与 $\frac16\begin{pmatrix}14&-6\\-6&3\end{pmatrix}$ 一致。
+
+(2) $M_1=I_n-\frac1n\one_n\one_n\T$ 去均值且对称幂等：
+\begin{align*}
+x\T M_1x &= (M_1x)\T(M_1x)=\textstyle\sum_i(x_i-\bar x)^2 \why{对称幂等；$M_1x$ 为离差}\\
+x\T M_1Y &= (M_1x)\T Y=\textstyle\sum_i(x_i-\bar x)y_i \why{$M_1$ 对称}\\
+&= \textstyle\sum_i(x_i-\bar x)(y_i-\bar y) \why{$\sum_i(x_i-\bar x)\bar y=0$}
+\end{align*}
+代入 FWL 式 $\hat\beta_1=(x\T M_1x)\inv x\T M_1Y$ 即得。数据：$\bar x=2$，$\bar y=10/3$，$\sum(x_i-\bar x)^2=1+0+1=2$，$\sum(x_i-\bar x)(y_i-\bar y)=(-1)(-\frac43)+0+(1)(\frac53)=3$，$\hat\beta_1=3/2$，与第 \ref{ss:U01a-n3} 小节的结果一致。
+\end{prac}
+
+\begin{english}
+Partition $X=[X_1\ X_2]$ and let $M_2=I_n-X_2(X_2'X_2)^{-1}X_2'$. By the partitioned inverse formula, the upper-left block of $(X'X)^{-1}$ is $(X_1'M_2X_1)^{-1}$, so the OLS coefficient on $X_1$ is $\hat\beta_1=(X_1'M_2X_1)^{-1}X_1'M_2Y$ (Frisch--Waugh--Lovell theorem): it can be obtained by regressing the residuals of $Y$ on the residuals of $X_1$ after partialling out $X_2$. Under homoskedasticity, $\operatorname{Var}(\hat\beta_1\mid X)=\sigma^2(X_1'M_2X_1)^{-1}$.
+\end{english}
+
+%======================================================================
+\section{Kronecker 积与面板数据矩阵}\label{sec:U01a-kron}
+
+面板数据按“先个体、后时间”堆叠后，“对每个个体做同一变换”“同一时期跨个体平均”都可以用 Kronecker 积一行写出。本节给出定义与运算性质，再构造面板中最常用的几个矩阵：平均矩阵 $P_T$、去均值矩阵 $M_T$、个体虚拟变量矩阵 $I_N\otimes\one_T$、单向与双向组内变换 $I_N\otimes M_T$、$M_N\otimes M_T$。
+
+\subsection{Kronecker 积的定义}
+
+\subsubsection{定义：用 \texorpdfstring{$A$}{A} 的每个元素去乘整个 \texorpdfstring{$B$}{B}}
+
+\begin{defn}[Kronecker 积]\label{def:U01a-kron}
+$A=(a_{ij})$ 为 $m\times n$，$B$ 为 $p\times q$，\term{Kronecker 积}{Kronecker product}
+\[
+A\otimes B=\begin{pmatrix}a_{11}B&\cdots&a_{1n}B\\\vdots&&\vdots\\a_{m1}B&\cdots&a_{mn}B\end{pmatrix}\qquad(mp\times nq),
+\]
+即“用 $A$ 的每个元素去乘整个 $B$，再排成大矩阵”。
+\end{defn}
+
+\subsubsection{例：\texorpdfstring{$A\otimes B\neq B\otimes A$}{A x B != B x A} 与 \texorpdfstring{$I_2\otimes B$}{I x B} 为分块对角}
+
+两个小例子说明 Kronecker 积的排列方式：
+\[
+\begin{pmatrix}1&2\\3&4\end{pmatrix}\otimes\begin{pmatrix}1\\1\end{pmatrix}=\begin{pmatrix}1&2\\1&2\\3&4\\3&4\end{pmatrix},\qquad
+\begin{pmatrix}1\\1\end{pmatrix}\otimes\begin{pmatrix}1&2\\3&4\end{pmatrix}=\begin{pmatrix}1&2\\3&4\\1&2\\3&4\end{pmatrix},\qquad
+I_2\otimes B=\begin{pmatrix}B&0\\0&B\end{pmatrix}.
+\]
+前两个结果维度相同但元素排列不同，所以一般 $A\otimes B\neq B\otimes A$；$I_N\otimes B$ 是把 $B$ 沿对角线重复 $N$ 次的分块对角矩阵。
+
+\subsection{Kronecker 积的运算性质（混合积等）}
+
+\subsubsection{六条运算性质}
+
+\begin{thm}[Kronecker 积的性质]\label{thm:U01a-kronprop}
+（以下矩阵乘法均相容、求逆的矩阵均可逆）
+\begin{enumerate}
+  \item 混合积：$(A\otimes B)(C\otimes D)=(AC)\otimes(BD)$——最常用；
+  \item $(A\otimes B)\T=A\T\otimes B\T$（\key{不反序}）；
+  \item $(A\otimes B)\inv=A\inv\otimes B\inv$（\key{不反序}）；
+  \item $\tr(A\otimes B)=\tr(A)\tr(B)$；$\rank(A\otimes B)=\rank(A)\rank(B)$；
+  \item $(A+B)\otimes C=A\otimes C+B\otimes C$，$A\otimes(B+C)=A\otimes B+A\otimes C$；$I_N\otimes I_T=I_{NT}$；标量 $c$：$(cA)\otimes B=A\otimes(cB)=c(A\otimes B)$；
+  \item $A$、$B$ 对称幂等 $\Rightarrow A\otimes B$ 对称幂等；$A\otimes B$ 的特征值是 $A$、$B$ 特征值的两两乘积。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{证明：混合积按块比较；逆与幂等由混合积推出}
+
+设 $A$ 为 $m\times n$、$C$ 为 $n\times k$。$A\otimes B$ 的第 $(i,l)$ 块是 $a_{il}B$，$C\otimes D$ 的第 $(l,j)$ 块是 $c_{lj}D$。按分块乘法，乘积的第 $(i,j)$ 块为
+\begin{align*}
+\sum_{l=1}^n (a_{il}B)(c_{lj}D) &= \Big(\sum_{l=1}^n a_{il}c_{lj}\Big)BD \why{标量可提出}\\
+&= (AC)_{ij}\,BD \why{乘法定义}
+\end{align*}
+这恰是 $(AC)\otimes(BD)$ 的第 $(i,j)$ 块。由混合积立即得到 (3) 与 (6) 的幂等部分：
+\begin{align*}
+(A\otimes B)(A\inv\otimes B\inv) &= (AA\inv)\otimes(BB\inv)=I\otimes I=I \why{混合积}\\
+(A\otimes B)(A\otimes B) &= (AA)\otimes(BB)=A\otimes B \why{混合积；$A$、$B$ 幂等}
+\end{align*}
+对称性由 (2)：$(A\otimes B)\T=A\T\otimes B\T=A\otimes B$。(4) 的迹：$A\otimes B$ 的对角块是 $a_{ii}B$，其迹之和为 $\sum_ia_{ii}\tr(B)=\tr(A)\tr(B)$。
+
+\subsubsection{例：\texorpdfstring{$(I_N\otimes M_T)(I_N\otimes M_T)=I_N\otimes M_T$}{(I x M)(I x M) = I x M}}
+
+混合积的典型用法——验证组内变换矩阵幂等：
+\begin{align*}
+(I_N\otimes M_T)(I_N\otimes M_T) &= (I_NI_N)\otimes(M_TM_T) \why{混合积}\\
+&= I_N\otimes M_T \why{$M_T$ 幂等}
+\end{align*}
+
+\subsection{面板的堆叠顺序与 \texorpdfstring{$I_N\otimes A$、$A\otimes I_T$}{I x A, A x I} 的作用}
+
+\subsubsection{\texorpdfstring{$(I_N\otimes A_T)Y$}{(I x A\_T)Y}：对每个个体的 \texorpdfstring{$T$}{T} 期做同一变换}
+
+按“先个体、后时间”的顺序 $Y=(Y_1\T,\dots,Y_N\T)\T$。$A_T$ 为 $T\times T$ 矩阵，$I_N\otimes A_T=\diag(A_T,\dots,A_T)$ 是分块对角的，于是
+\[
+(I_N\otimes A_T)\,Y=\begin{pmatrix}A_TY_1\\\vdots\\A_TY_N\end{pmatrix}\qquad(\text{对每个个体的 } T \text{ 期做同一变换}).
+\]
+
+\subsubsection{\texorpdfstring{$(A_N\otimes I_T)Y$}{(A\_N x I)Y}：在同一时期跨个体组合}
+
+$A_N=(a_{ij})$ 为 $N\times N$ 矩阵。$A_N\otimes I_T$ 的第 $(i,j)$ 块是 $a_{ij}I_T$，所以 $(A_N\otimes I_T)Y$ 的第 $i$ 块为 $\sum_ja_{ij}Y_j$，其第 $t$ 个元素即第 $(i,t)$ 个元素为
+\[
+\big[(A_N\otimes I_T)Y\big]_{it}=\sum_{j=1}^N a_{ij}y_{jt}\qquad(\text{在同一时期 } t \text{ 上跨个体组合}).
+\]
+
+\subsubsection{记忆口诀：右因子管时间维，左因子管个体维}
+
+在“先个体、后时间”的堆叠下：\key{右边因子作用在时间维，左边因子作用在个体维}。若改成“先时间、后个体”的堆叠，两个因子的角色互换。
+
+\subsection{平均矩阵 \texorpdfstring{$P_T$}{P\_T} 与去均值矩阵 \texorpdfstring{$M_T$}{M\_T}}
+
+\subsubsection{定义：对 \texorpdfstring{$\one_T$}{1\_T} 的投影及其残差制造矩阵}
+
+\begin{defn}[平均矩阵与去均值矩阵]\label{def:U01a-PTMT}
+\term{平均矩阵}{averaging matrix} $P_T=\frac1T\one_T\one_T\T=\one_T(\one_T\T\one_T)\inv\one_T\T$（即对常数向量 $\one_T$ 的投影，第 \ref{sec:U01a-proj} 节“只对常数项投影”）；\term{去均值矩阵}{demeaning matrix} $M_T=I_T-P_T$。
+\end{defn}
+
+\subsubsection{作用：\texorpdfstring{$P_TY_i=\bar y_i\one_T$，$M_TY_i$}{P\_T Y\_i = y-bar\_i 1, M\_T Y\_i} 为个体内离差；\texorpdfstring{$T=3$}{T=3} 的样子}
+
+把定义代入，逐个元素看：
+\begin{align*}
+P_TY_i &= \one_T\cdot\tfrac1T\one_T\T Y_i=\bar y_i\one_T \why{$\tfrac1T\one_T\T Y_i=\tfrac1T\sum_ty_{it}=\bar y_i$}\\
+M_TY_i &= Y_i-\bar y_i\one_T=(y_{i1}-\bar y_i,\dots,y_{iT}-\bar y_i)\T \why{$M_T=I_T-P_T$}
+\end{align*}
+即 $P_T$ 把每个元素换成个体均值，$M_T$ 把每个元素减去个体均值。$T=3$ 时
+\[
+P_3=\frac13\begin{pmatrix}1&1&1\\1&1&1\\1&1&1\end{pmatrix},\qquad
+M_3=\frac13\begin{pmatrix}2&-1&-1\\-1&2&-1\\-1&-1&2\end{pmatrix}.
+\]
+
+\subsubsection{\texorpdfstring{$P_T$、$M_T$}{P\_T, M\_T} 的五条性质}
+
+\begin{thm}[$P_T$、$M_T$ 的性质]\label{thm:U01a-PTMT}
+(1) 均对称幂等；(2) $P_T\one_T=\one_T$，$M_T\one_T=0$；(3) $P_TM_T=0$，$P_T+M_T=I_T$；(4) $\tr P_T=\rank P_T=1$，$\tr M_T=\rank M_T=T-1$；
+(5) $X_i\T M_TX_i=(M_TX_i)\T(M_TX_i)=\sum_t(x_{it}-\bar x_i)(x_{it}-\bar x_i)\T$，$X_i\T M_TY_i=\sum_t(x_{it}-\bar x_i)(y_{it}-\bar y_i)$，其中 $\bar x_i=\frac1T\sum_tx_{it}$。
+\end{thm}
+(1)–(4) 是第 \ref{sec:U01a-proj} 节 $P_X$、$M_X$ 性质取 $X=\one_T$（$K=1$）的特例。(5)：
+\begin{align*}
+X_i\T M_TX_i &= X_i\T M_T\T M_TX_i=(M_TX_i)\T(M_TX_i) \why{$M_T$ 对称幂等}\\
+&= \sum_{t=1}^T(x_{it}-\bar x_i)(x_{it}-\bar x_i)\T \why{$M_TX_i$ 的第 $t$ 行为 $(x_{it}-\bar x_i)\T$；核心对应}
+\end{align*}
+$X_i\T M_TY_i$ 同理。
+
+\subsubsection{关键推论：\texorpdfstring{$M_T$}{M\_T} 消去个体效应与一切时不变回归元}
+
+要证：$M_T$ 作用于任何在时间维上为常数的向量都得零。
+\begin{align*}
+M_T(\alpha_i\one_T) &= \alpha_iM_T\one_T=0 \why{$\alpha_i$ 是标量；$M_T\one_T=0$}
+\end{align*}
+个体效应被 $M_T$ 消掉——这就是组内变换消去 $\alpha_i$ 的代数本质（第 10 章）。同理，任何不随时间变化的回归元 $z_i$（$L\times1$）在个体块中对应 $\one_Tz_i\T$（$T\times L$），也被消掉：$M_T\one_Tz_i\T=0$。所以组内估计量不能识别时不变变量的系数（第 11 章）。
+
+\subsection{\texorpdfstring{$I_N\otimes\one_T$}{I x 1\_T}：个体虚拟变量矩阵（\texorpdfstring{$N=2$，$T=3$}{N=2, T=3}）}
+
+\subsubsection{LSDV 的矩阵写法 \texorpdfstring{$Y=D\alpha+X\beta+U$}{Y = D alpha + X beta + U}}
+
+\term{最小二乘虚拟变量}{least squares dummy variable, LSDV}估计把 $\alpha_i$ 写成虚拟变量回归 $Y=D\alpha+X\beta+U$，其中 $\alpha=(\alpha_1,\dots,\alpha_N)\T$，个体虚拟变量矩阵 $D=I_N\otimes\one_T$（$NT\times N$）：第 $j$ 列是“个体 $j$”的虚拟变量。$N=2$、$T=3$ 时
+\[
+D=I_2\otimes\one_3=\begin{pmatrix}1&0\\1&0\\1&0\\0&1\\0&1\\0&1\end{pmatrix},\qquad
+D\alpha=(\alpha_1,\alpha_1,\alpha_1,\alpha_2,\alpha_2,\alpha_2)\T=\alpha\otimes\one_3.
+\]
+一般地 $D\alpha=(I_N\otimes\one_T)(\alpha\otimes1)=(I_N\alpha)\otimes(\one_T\cdot1)=\alpha\otimes\one_T$（混合积，把 $\alpha$ 看成 $\alpha\otimes1$）。
+
+\subsubsection{推导：\texorpdfstring{$D'D=TI_N$、$P_D=I_N\otimes P_T$、$M_D=I_N\otimes M_T$}{D'D = T I, P\_D = I x P\_T, M\_D = I x M\_T}}
+
+用混合积求 $D$ 的投影矩阵与零化矩阵：
+\begin{align*}
+D\T D &= (I_N\otimes\one_T\T)(I_N\otimes\one_T) \why{性质 (2)：转置不反序}\\
+&= (I_NI_N)\otimes(\one_T\T\one_T)=I_N\otimes T=TI_N \why{混合积；$\one_T\T\one_T=T$}\\
+P_D &= D(D\T D)\inv D\T=\tfrac1T(I_N\otimes\one_T)(I_N\otimes\one_T\T) \why{$(TI_N)\inv=\tfrac1TI_N$}\\
+&= I_N\otimes\tfrac1T\one_T\one_T\T=I_N\otimes P_T \why{混合积}\\
+M_D &= I_{NT}-I_N\otimes P_T=I_N\otimes I_T-I_N\otimes P_T \why{$I_{NT}=I_N\otimes I_T$}\\
+&= I_N\otimes(I_T-P_T)=I_N\otimes M_T \why{性质 (5)：分配律}
+\end{align*}
+
+\subsubsection{LSDV 的 \texorpdfstring{$\hat\beta$}{beta-hat} 就是组内估计量}
+
+在 $Y=D\alpha+X\beta+U$ 中取 $X_2=D$、$X_1=X$，由 FWL（第 \ref{sec:U01a-block} 节），$M_2=M_D=I_N\otimes M_T$：
+\begin{equation}\label{eq:U01a-lsdv}
+\hat\beta_{LSDV}=\big[X\T(I_N\otimes M_T)X\big]\inv X\T(I_N\otimes M_T)Y,
+\end{equation}
+即组内估计量（第 10 章）。
+
+\begin{note}[维度检查：括号里必须是方阵]
+\eqref{eq:U01a-lsdv} 中求逆的是 $X\T(I_N\otimes M_T)X$（$K\times K$）。若漏写右边的 $X$，写成 $\big[X\T(I_N\otimes M_T)\big]\inv$，括号内是 $K\times NT$ 的非方阵，不能求逆——逐项标出维度即可发现这类错误。
+\end{note}
+
+\subsection{\texorpdfstring{$I_N\otimes M_T$ 与 $I_N\otimes P_T$}{I x M\_T and I x P\_T} 的具体样子}
+
+\subsubsection{\texorpdfstring{$N=2$、$T=3$}{N=2, T=3} 时的两个 \texorpdfstring{$6\times6$}{6 x 6} 矩阵}
+
+两种变换都是分块对角的，对角块分别为 $M_3$ 与 $P_3$：
+\[
+I_2\otimes M_3=\frac13\left(\begin{array}{rrr|rrr}2&-1&-1&0&0&0\\-1&2&-1&0&0&0\\-1&-1&2&0&0&0\\\hline0&0&0&2&-1&-1\\0&0&0&-1&2&-1\\0&0&0&-1&-1&2\end{array}\right),\qquad
+I_2\otimes P_3=\frac13\left(\begin{array}{rrr|rrr}1&1&1&0&0&0\\1&1&1&0&0&0\\1&1&1&0&0&0\\\hline0&0&0&1&1&1\\0&0&0&1&1&1\\0&0&0&1&1&1\end{array}\right).
+\]
+
+\subsubsection{组内变换 \texorpdfstring{$\tilde y_{it}=y_{it}-\bar y_i$}{y-tilde = y - y-bar\_i} 与组内估计量 \texorpdfstring{$\hat\beta_{WG}$}{beta\_WG}}
+
+$(I_N\otimes M_T)Y$ 把每个个体的 $T$ 期分别去均值，得到 $\tilde y_{it}=y_{it}-\bar y_i$。由于 $I_N\otimes M_T=\diag(M_T,\dots,M_T)$ 对称幂等且分块对角：
+\begin{align*}
+X\T(I_N\otimes M_T)X &= \sum_{i=1}^N X_i\T M_TX_i \why{分块乘法（本节练习 (2)）}\\
+&= \sum_i\sum_t\tilde x_{it}\tilde x_{it}\T \why{$P_T$、$M_T$ 性质 (5)，$\tilde x_{it}=x_{it}-\bar x_i$}
+\end{align*}
+于是
+\[
+\hat\beta_{WG}=\Big(\sum_iX_i\T M_TX_i\Big)\inv\sum_iX_i\T M_TY_i=\Big(\sum_i\sum_t\tilde x_{it}\tilde x_{it}\T\Big)\inv\sum_i\sum_t\tilde x_{it}\tilde y_{it}
+\]
+（第 10 章）。
+
+\subsubsection{自由度：\texorpdfstring{$\tr(I_N\otimes M_T)=N(T-1)$}{tr(I x M\_T) = N(T-1)}}
+
+$\tr(I_N\otimes M_T)=\tr(I_N)\tr(M_T)=N(T-1)$：组内变换后剩下 $N(T-1)$ 个自由度，再减去 $K$ 得 FE 残差自由度 $NT-N-K$。
+
+\subsection{双向去均值：\texorpdfstring{$M_N\otimes M_T$}{M\_N x M\_T}}
+
+\subsubsection{双向固定效应的堆叠形式 \texorpdfstring{$Y=\alpha\otimes\one_T+\one_N\otimes\lambda+X\beta+U$}{Y = alpha x 1 + 1 x lambda + X beta + U}}
+
+双向固定效应模型 $y_{it}=\alpha_i+\lambda_t+x_{it}\T\beta+u_{it}$（平衡面板），记 $\lambda=(\lambda_1,\dots,\lambda_T)\T$，堆叠形式为
+\[
+Y=\alpha\otimes\one_T+\one_N\otimes\lambda+X\beta+U.
+\]
+检查第 $(i,t)$ 个元素：$\alpha\otimes\one_T$ 的第 $i$ 块是 $\alpha_i\one_T$，第 $t$ 个元素为 $\alpha_i$；$\one_N\otimes\lambda$ 的每一块都是 $\lambda$，第 $t$ 个元素为 $\lambda_t$。
+
+\subsubsection{结论：双向组内变换 \texorpdfstring{$Q=M_N\otimes M_T$}{Q = M\_N x M\_T}}
+
+\begin{thm}[双向组内变换]\label{thm:U01a-twoway}
+\term{双向组内变换}{two-way within transformation} $Q=M_N\otimes M_T$ 对称幂等，$\rank Q=(N-1)(T-1)$；
+\[
+(QY)_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot};
+\]
+$Q$ 同时消去 $\alpha_i$ 与 $\lambda_t$。
+\end{thm}
+
+\subsubsection{推导：展开 \texorpdfstring{$Q$}{Q} 的四项与 \texorpdfstring{$(QY)_{it}$}{(QY)\_it}}
+
+先用分配律把 $Q$ 展开成四项：
+\begin{align*}
+M_N\otimes M_T &= (I_N-P_N)\otimes(I_T-P_T) \why{定义}\\
+&= I_N\otimes I_T-I_N\otimes P_T-P_N\otimes I_T+P_N\otimes P_T \why{对加法分配}
+\end{align*}
+四项作用于 $Y$ 后的第 $(i,t)$ 元依次为：
+\begin{itemize}
+  \item $(I_N\otimes I_T)Y$：$y_{it}$；
+  \item $(I_N\otimes P_T)Y$：$\bar y_{i\cdot}=\frac1T\sum_sy_{is}$（个体均值；对每个个体做 $P_T$）；
+  \item $(P_N\otimes I_T)Y$：$\bar y_{\cdot t}=\frac1N\sum_jy_{jt}$（时期均值；左因子跨个体平均，$a_{ij}=1/N$）；
+  \item $(P_N\otimes P_T)Y=(P_N\otimes I_T)(I_N\otimes P_T)Y$（混合积）：先取个体均值再跨个体平均，得 $\bar y_{\cdot\cdot}=\frac1{NT}\sum_j\sum_sy_{js}$（总均值）。
+\end{itemize}
+相加即得 $(QY)_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$。
+
+\subsubsection{推导：\texorpdfstring{$Q$}{Q} 同时消去 \texorpdfstring{$\alpha_i$ 与 $\lambda_t$}{alpha\_i and lambda\_t}}
+
+用混合积，把 $Q$ 的两个因子分别作用在效应向量的两个因子上：
+\begin{align*}
+Q(\alpha\otimes\one_T) &= (M_N\alpha)\otimes(M_T\one_T) \why{混合积}\\
+&= (M_N\alpha)\otimes0=0 \why{$M_T\one_T=0$}\\
+Q(\one_N\otimes\lambda) &= (M_N\one_N)\otimes(M_T\lambda) \why{混合积}\\
+&= 0\otimes(M_T\lambda)=0 \why{$M_N\one_N=0$}
+\end{align*}
+个体效应在时间维上是常数，被右因子 $M_T$ 消去；时间效应在个体维上是常数，被左因子 $M_N$ 消去。
+
+\subsubsection{双向固定效应估计量 \texorpdfstring{$\hat\beta_{TWFE}=(X'QX)^{-1}X'QY$}{beta\_TWFE = (X'QX)\^{}-1 X'QY}}
+
+对堆叠模型左乘 $Q$：$QY=QX\beta+QU$ 中两类固定效应都消失了，于是
+\[
+\hat\beta_{TWFE}=(X\T QX)\inv X\T QY.
+\]
+注意：非平衡面板中这一双向去均值不再精确（第 10 章）。
+
+\begin{keypt}[2025 年真题]
+\tagexam\ 2025 年真题第 1 题要求“写出同时消去 $\alpha_i$ 与 $\lambda_t$ 的组内变换及 $\hat\beta_{FE}$”，所需工具正是本小节：$Q=M_N\otimes M_T$、$(QY)_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$、$\hat\beta=(X\T QX)\inv X\T QY$。完整作答见第 10、15、17 章。
+\end{keypt}
+
+\subsubsection{例：\texorpdfstring{$N=2$、$T=3$}{N=2, T=3} 的单向与双向去均值}
+
+\begin{exmp}[$N=2$、$T=3$ 数值]\label{ex:U01a-twoway}
+$Y_1=(1,2,6)\T$，$Y_2=(4,4,7)\T$。求 $(I_2\otimes M_3)Y$ 与 $(M_2\otimes M_3)Y$。
+
+\solution 先算三类均值：
+\begin{align*}
+\bar y_{1\cdot} &= (1+2+6)/3=3,\qquad \bar y_{2\cdot}=(4+4+7)/3=5 \why{个体均值}\\
+(\bar y_{\cdot1},\bar y_{\cdot2},\bar y_{\cdot3}) &= \big(\tfrac{1+4}2,\tfrac{2+4}2,\tfrac{6+7}2\big)=(2.5,\ 3,\ 6.5) \why{时期均值}\\
+\bar y_{\cdot\cdot} &= (9+15)/6=4 \why{总均值}
+\end{align*}
+单向去均值（减个体均值）：
+\[
+(I_2\otimes M_3)Y=(1-3,\ 2-3,\ 6-3,\ 4-5,\ 4-5,\ 7-5)\T=(-2,-1,3,-1,-1,2)\T.
+\]
+双向去均值 $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$，如 $y_{11}-3-2.5+4=-0.5$，$y_{12}-3-3+4=0$，$y_{13}-3-6.5+4=0.5$，$y_{21}-5-2.5+4=0.5$，…，全部为
+\[
+(M_2\otimes M_3)Y=(-0.5,\ 0,\ 0.5,\ 0.5,\ 0,\ -0.5)\T.
+\]
+核对：每个个体内三项之和为 0（$\alpha_i$ 被消去），每个时期两个个体之和也为 0（$\lambda_t$ 被消去）。
+\end{exmp}
+
+\subsection{练习：\texorpdfstring{$M_N\otimes M_T$}{M\_N x M\_T} 对称幂等且秩为 \texorpdfstring{$(N-1)(T-1)$}{(N-1)(T-1)}；\texorpdfstring{$X'(I_N\otimes M_T)X=\sum_iX_i'M_TX_i$}{X'(I x M\_T)X = sum X\_i'M\_T X\_i}}
+
+\begin{prac}[Kronecker 积的运用]\label{pr:U01a-kron}
+(1) 证明 $M_N\otimes M_T$ 对称幂等，且 $\rank=(N-1)(T-1)$。(2) 证明 $X\T(I_N\otimes M_T)X=\sum_iX_i\T M_TX_i$。
+
+\answer (1)
+\begin{align*}
+(M_N\otimes M_T)\T &= M_N\T\otimes M_T\T=M_N\otimes M_T \why{转置不反序；$M$ 对称}\\
+(M_N\otimes M_T)(M_N\otimes M_T) &= M_N^2\otimes M_T^2=M_N\otimes M_T \why{混合积；$M$ 幂等}\\
+\rank(M_N\otimes M_T) &= \tr(M_N\otimes M_T)=\tr(M_N)\tr(M_T) \why{对称幂等阵秩 $=$ 迹}\\
+&= (N-1)(T-1) \why{$\tr M_N=N-1$}
+\end{align*}
+(2) $I_N\otimes M_T=\diag(M_T,\dots,M_T)$，$X\T=(X_1\T,\dots,X_N\T)$，按分块乘法：
+\[
+X\T(I_N\otimes M_T)X=(X_1\T M_T,\dots,X_N\T M_T)\begin{pmatrix}X_1\\\vdots\\X_N\end{pmatrix}=\sum_iX_i\T M_TX_i.
+\]
+\end{prac}
+
+\begin{english}
+Stack the data by individual and let $M_T=I_T-T^{-1}\mathbf 1_T\mathbf 1_T'$. Because $M_T\mathbf 1_T=0$, premultiplying by $I_N\otimes M_T$ removes the individual effects, and the within estimator is $\hat\beta_{WG}=\big(\sum_iX_i'M_TX_i\big)^{-1}\sum_iX_i'M_TY_i$; it coincides with the LSDV estimator because the annihilator of $D=I_N\otimes\mathbf 1_T$ is $I_N\otimes M_T$. In a balanced panel, $M_N\otimes M_T$ transforms $y_{it}$ into $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$ and eliminates both the individual and the time effects.
+\end{english}
+
+%======================================================================
+\section{特征值、特征向量与谱分解}\label{sec:U01a-eigen}
+
+对称矩阵可以“对角化”：换一组正交坐标，它就只是在各个方向上做伸缩。由此得到迹与行列式的特征值表示、正定性与幂等性的判别、矩阵的平方根 $A^{1/2}$ 与 $A^{-1/2}$，以及随机效应协方差矩阵 $\Omega^{-1}$ 的显式公式。
+
+\subsection{特征值与特征向量的定义与求法}
+
+\subsubsection{定义：只伸缩、不转向的方向}
+
+\begin{defn}[特征值与特征向量]\label{def:U01a-eig}
+对方阵 $A$，若 $Av=\lambda v$ 且 $v\neq0$，称 $\lambda$ 为\term{特征值}{eigenvalue}，$v$ 为对应的\term{特征向量}{eigenvector}。几何意义：$A$ 作用在 $v$ 上只伸缩、不转向。特征值是\term{特征方程}{characteristic equation} $\det(A-\lambda I)=0$ 的根；特征向量通常标准化为 $v\T v=1$（符号仍可正可负）。
+\end{defn}
+为什么是 $\det(A-\lambda I)=0$：$Av=\lambda v\iff(A-\lambda I)v=0$ 有非零解 $\iff A-\lambda I$ 不可逆 $\iff\det(A-\lambda I)=0$（可逆的等价刻画）。
+
+\subsubsection{例：\texorpdfstring{$\begin{psmallmatrix}2&1\\1&2\end{psmallmatrix}$}{[2 1; 1 2]} 的特征值与特征向量}
+
+\begin{exmp}[$2\times2$ 特征分解]\label{ex:U01a-eig22}
+求 $A=\begin{pmatrix}2&1\\1&2\end{pmatrix}$ 的特征值与单位特征向量。
+
+\solution
+\begin{align*}
+\det(A-\lambda I) &= (2-\lambda)^2-1=0 \why{$2\times2$ 行列式}\\
+\Rightarrow\ 2-\lambda &= \pm1\ \Rightarrow\ \lambda_1=3,\ \lambda_2=1 \why{解方程}\\
+\lambda_1=3:\ (A-3I)v &= \begin{pmatrix}-1&1\\1&-1\end{pmatrix}v=0\ \Rightarrow\ v_1=v_2,\ h_1=\tfrac1{\sqrt2}(1,1)\T \why{解齐次方程并标准化}\\
+\lambda_2=1:\ (A-I)v &= \begin{pmatrix}1&1\\1&1\end{pmatrix}v=0\ \Rightarrow\ v_1=-v_2,\ h_2=\tfrac1{\sqrt2}(1,-1)\T \why{同上}
+\end{align*}
+二者正交：$h_1\T h_2=\frac12(1-1)=0$。
+\end{exmp}
+
+\subsection{对称矩阵的正交对角化}
+
+\subsubsection{谱定理：\texorpdfstring{$A=H\Lambda H'$，$H'H=I$}{A = H Lambda H', H'H = I}}
+
+\begin{thm}[谱定理]\label{thm:U01a-spectral}
+$A$ 为 $k\times k$ 实对称矩阵，则其特征值全为实数；可取 $k$ 个两两正交的单位特征向量 $h_1,\dots,h_k$。令 $H=(h_1,\dots,h_k)$、$\Lambda=\diag(\lambda_1,\dots,\lambda_k)$，有
+\[
+A=H\Lambda H\T,\qquad H\T H=HH\T=I_k,\qquad H\T AH=\Lambda.
+\]
+$H$ 称为\term{正交矩阵}{orthogonal matrix}，$H\inv=H\T$。
+\end{thm}
+$AH=(Ah_1,\dots,Ah_k)=(\lambda_1h_1,\dots,\lambda_kh_k)=H\Lambda$，右乘 $H\T$ 即得 $A=H\Lambda H\T$。
+
+\subsubsection{正交变换不改变向量长度}
+
+用 $H$ 变换不改变向量长度：$\|Hx\|^2=x\T H\T Hx=x\T x=\|x\|^2$。所以“换到特征向量坐标系”只是旋转（或反射）坐标轴。
+
+\subsection{谱分解 \texorpdfstring{$A=\sum_j\lambda_jh_jh_j'$}{A = sum lambda h h'}}
+
+\subsubsection{推导：按“列乘行之和”展开 \texorpdfstring{$H\Lambda H'$}{H Lambda H'}}
+
+与第 \ref{sec:U01a-notation} 节 $X\T X=\sum_ix_ix_i\T$ 的论证完全相同：
+\begin{align*}
+A=H\Lambda H\T &= (\lambda_1h_1,\dots,\lambda_kh_k)\begin{pmatrix}h_1\T\\\vdots\\h_k\T\end{pmatrix} \why{$H\Lambda$ 的第 $j$ 列为 $\lambda_jh_j$}\\
+&= \sum_{j=1}^k\lambda_jh_jh_j\T \why{分块“列乘行”之和}
+\end{align*}
+称为\term{谱分解}{spectral decomposition}。
+
+\subsubsection{每个 \texorpdfstring{$h_jh_j'$}{h h'} 是秩 1 投影，\texorpdfstring{$\sum_jh_jh_j'=I$}{sum h h' = I}}
+
+$h_jh_j\T$ 对称且 $(h_jh_j\T)^2=h_j(h_j\T h_j)h_j\T=h_jh_j\T$，是对 $h_j$ 方向的秩 1 投影；把同样的展开用于 $HH\T$ 得 $\sum_jh_jh_j\T=HH\T=I$。谱分解即：$A$ 把向量拆到各特征方向上，每个方向乘以对应的 $\lambda_j$。
+
+\subsubsection{例：\texorpdfstring{$\begin{psmallmatrix}2&1\\1&2\end{psmallmatrix}$}{[2 1; 1 2]} 的谱分解}
+
+续上例：
+\[
+\begin{pmatrix}2&1\\1&2\end{pmatrix}=3\cdot\frac12\begin{pmatrix}1&1\\1&1\end{pmatrix}+1\cdot\frac12\begin{pmatrix}1&-1\\-1&1\end{pmatrix}.
+\]
+右边第一项 $(1,1)$ 元为 $\frac32+\frac12=2$，$(1,2)$ 元为 $\frac32-\frac12=1$，与左边一致。
+
+\subsubsection{因子模型中的写法：\texorpdfstring{$U'U=\sum_{k=1}^Te_kg_kg_k'$}{U'U = sum e g g'}}
+
+因子模型（第 13 章）中，$U$ 为 $N\times T$，把 $U\T U$ 写成谱分解
+\[
+U\T U=e_1g_1g_1\T+e_2g_2g_2\T+\cdots+e_Tg_Tg_T\T,
+\]
+$e_k$ 为特征值、$g_k$ 为单位正交特征向量。$U\T U$ 是 $T\times T$ 矩阵，所以恰有 $T$ 项（最后一项的下标是 $T$，不是 $N$）。
+
+\subsection{迹等于特征值之和，行列式等于特征值之积}
+
+\subsubsection{推导：\texorpdfstring{$\tr A=\sum_j\lambda_j$，$\det A=\prod_j\lambda_j$}{tr A = sum lambda, det A = prod lambda}}
+
+要证：迹与行列式在正交变换下不变，于是等于 $\Lambda$ 的迹与行列式。
+\begin{align*}
+\tr(A) &= \tr(H\Lambda H\T)=\tr(\Lambda H\T H) \why{循环性}\\
+&= \tr(\Lambda)=\textstyle\sum_j\lambda_j \why{$H\T H=I$}\\
+\det(A) &= \det(H)\det(\Lambda)\det(H\T) \why{$\det(ABC)=\det A\det B\det C$}\\
+&= \det(\Lambda)=\textstyle\prod_j\lambda_j \why{$\det H\det H\T=\det(HH\T)=1$}
+\end{align*}
+此外，对称阵的秩 $=$ 非零特征值的个数（左右乘可逆的 $H$、$H\T$ 不改变秩，而 $\rank\Lambda$ 就是非零对角元个数）。
+
+\subsubsection{核对：\texorpdfstring{$2\times2$}{2 x 2} 例子}
+
+上例中 $\tr A=2+2=4=3+1$，$\det A=4-1=3=3\times1$。
+
+\subsection{用特征值判断正定、可逆与幂等}
+
+\subsubsection{三条判别：正定、可逆、幂等}
+
+对称阵 $A=H\Lambda H\T$，令 $c=H\T x$（$x\neq0\iff c\neq0$）：
+\begin{align*}
+x\T Ax &= x\T H\Lambda H\T x=c\T\Lambda c \why{谱定理；$c=H\T x$}\\
+&= \textstyle\sum_j\lambda_jc_j^2=\sum_j\lambda_j(h_j\T x)^2 \why{$\Lambda$ 为对角阵}
+\end{align*}
+所以：
+\begin{itemize}
+  \item $A>0\iff$ 全部 $\lambda_j>0$（取 $x=h_j$ 得必要性；上式给出充分性）；$A\ge0\iff$ 全部 $\lambda_j\ge0$；
+  \item $A$ 可逆 $\iff$ 无零特征值（$\det A=\prod_j\lambda_j\neq0$）；
+  \item $A$ 幂等 $\iff$ 全部 $\lambda_j\in\{0,1\}$（$A^2=H\Lambda^2H\T=H\Lambda H\T\iff\Lambda^2=\Lambda$）。
+\end{itemize}
+
+\subsubsection{\texorpdfstring{$A^{-1}$、$A+cI$、$cA$}{A\^{}-1, A+cI, cA} 的特征值}
+
+在同一组特征向量下：
+\begin{align*}
+Ah_j=\lambda_jh_j\ &\Rightarrow\ A\inv h_j=\lambda_j^{-1}h_j \why{两边左乘 $A\inv$，再除以 $\lambda_j$}\\
+&\Rightarrow\ (A+cI)h_j=(\lambda_j+c)h_j \why{$cIh_j=ch_j$}\\
+&\Rightarrow\ (cA)h_j=c\lambda_jh_j \why{数乘}
+\end{align*}
+即 $A\inv$、$A+cI$、$cA$ 的特征值分别为 $1/\lambda_j$、$\lambda_j+c$、$c\lambda_j$。
+
+\subsubsection{例：\texorpdfstring{$M_T$}{M\_T} 的特征值与 \texorpdfstring{$\tr M_T=T-1$}{tr M\_T = T-1}}
+
+$M_T$ 的特征值：$\one_T/\sqrt T$ 对应 $0$（因 $M_T\one_T=0$）；任何与 $\one_T$ 正交的 $v$ 满足 $P_Tv=\frac1T\one_T(\one_T\T v)=0$，从而 $M_Tv=v$，对应特征值 $1$；与 $\one_T$ 正交的方向构成 $T-1$ 维空间，所以特征值 1 的重数为 $T-1$。故 $\tr M_T=0+(T-1)\cdot1=T-1$。
+
+\subsection{矩阵函数：\texorpdfstring{$A^{-1}$、$A^{1/2}$、$A^{-1/2}$}{A\^{}-1, A\^{}1/2, A\^{}-1/2}}
+
+\subsubsection{定义 \texorpdfstring{$A^s=H\Lambda^sH'$}{A\^{}s = H Lambda\^{}s H'}}
+
+对 $A=H\Lambda H\T>0$，定义 $A^s=H\Lambda^sH\T$，其中 $\Lambda^s=\diag(\lambda_1^s,\dots,\lambda_k^s)$。$s=\frac12$ 即\term{矩阵平方根}{matrix square root}：
+\[
+A\inv=H\Lambda^{-1}H\T,\qquad A^{1/2}=H\Lambda^{1/2}H\T\ (A^{1/2}A^{1/2}=A),\qquad A^{-1/2}=H\Lambda^{-1/2}H\T\ (A^{-1/2}AA^{-1/2}=I).
+\]
+它们都对称（$(H\Lambda^sH\T)\T=H\Lambda^sH\T$）。例：$\diag(4,9)^{-1/2}=\diag(\frac12,\frac13)$。
+
+\subsubsection{验证 \texorpdfstring{$A^{-1/2}AA^{-1/2}=I$}{A\^{}-1/2 A A\^{}-1/2 = I}}
+
+把三个矩阵都写成谱分解，利用 $H\T H=I$ 逐步相消：
+\begin{align*}
+A^{-1/2}AA^{-1/2} &= H\Lambda^{-1/2}H\T\,H\Lambda H\T\,H\Lambda^{-1/2}H\T \why{代入定义}\\
+&= H\Lambda^{-1/2}(H\T H)\Lambda(H\T H)\Lambda^{-1/2}H\T \why{结合律}\\
+&= H\Lambda^{-1/2}\Lambda\Lambda^{-1/2}H\T=HH\T=I \why{$H\T H=I$；对角阵相乘}
+\end{align*}
+$A^{1/2}A^{1/2}=H\Lambda^{1/2}(H\T H)\Lambda^{1/2}H\T=H\Lambda H\T=A$ 同理。
+
+\subsubsection{用途：标准化随机向量 \texorpdfstring{$\Var(\Sigma^{-1/2}z)=I$}{Var(Sigma\^{}-1/2 z) = I}}
+
+若 $\Var(z)=\Sigma>0$，则（本章“随机向量”一节的 $\Var(Az)=A\Var(z)A\T$）
+\[
+\Var(\Sigma^{-1/2}z)=\Sigma^{-1/2}\,\Sigma\,(\Sigma^{-1/2})\T=\Sigma^{-1/2}\Sigma\Sigma^{-1/2}=I.
+\]
+这是把相关的随机向量变成“各分量方差为 1、互不相关”的标准化工具，用于证明 Wald 统计量服从 $\chi^2$（本章“常用分布与正态二次型”一节，第 6 章）。
+
+\subsubsection{Wald 统计量的规范写法：矩阵不能作分母}
+
+把标量 $t$ 比率 $\frac{\hat\theta-\theta}{\mathrm{se}}$ 类比到向量时，常见“$\dfrac{R\hat\beta-R\beta}{\sqrt{\frac1nR\Var(\hat\beta)R\T}}\sim N(0,I_q)$”这样的写法。这只是直觉：\key{矩阵不能作分母}。规范写法是左乘矩阵的 $-\frac12$ 次方：
+\[
+\Big(\tfrac1nRVR\T\Big)^{-1/2}(R\hat\beta-R\beta)\ \overset{a}{\sim}\ N(0,I_q),
+\]
+其中 $V$ 是 $\sqrt n(\hat\beta-\beta)$ 的渐近方差（若用 $\Var(\hat\beta)$ 本身，$\frac1n$ 就会重复计入）。这个标准化向量与自身的内积即 Wald 统计量
+\[
+W=n(R\hat\beta-r)\T(RVR\T)\inv(R\hat\beta-r)
+\]
+（原假设下 $R\beta=r$；注意第一个因子带转置号，$W$ 才是标量；第 6 章）。
+
+\subsection{正交幂等分解的求逆：\texorpdfstring{$(aM+bP)^{-1}=a^{-1}M+b^{-1}P$}{(aM+bP)\^{}-1 = M/a + P/b}}
+
+\subsubsection{结论与证明}
+
+\begin{thm}[正交幂等分解的逆与幂]\label{thm:U01a-aMbP}
+若 $M$、$P$ 对称幂等，$M+P=I$，$MP=0$，$a,b\neq0$，则
+\[
+(aM+bP)\inv=a^{-1}M+b^{-1}P;\qquad\text{更一般地（}a,b>0\text{）}\ (aM+bP)^s=a^sM+b^sP.
+\]
+\end{thm}
+验证逆：
+\begin{align*}
+(aM+bP)(a^{-1}M+b^{-1}P) &= M^2+\tfrac abMP+\tfrac baPM+P^2 \why{展开}\\
+&= M+0+0+P=I \why{幂等；$MP=PM=0$；$M+P=I$}
+\end{align*}
+一般的 $s$：$M$ 的列空间与 $P$ 的列空间互相正交且合起来是全空间；$aM+bP$ 在前者上的特征值为 $a$、在后者上为 $b$（如对 $M$ 列空间中的 $v$，$(aM+bP)v=aMv+bPMv=av$）。按 $A^s=H\Lambda^sH\T$ 的定义，特征值分别变成 $a^s$、$b^s$，特征向量不变，即 $(aM+bP)^s=a^sM+b^sP$。
+
+\subsubsection{例：随机效应误差协方差矩阵的逆 \texorpdfstring{$\Omega_v^{-1}$}{Omega\^{}-1}}
+
+\begin{exmp}[随机效应误差协方差矩阵的逆]\label{ex:U01a-REinv}
+随机效应模型中复合误差 $v_{it}=\alpha_i+u_{it}$，个体块的协方差矩阵为 $\Omega_v=\sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T$（推导见本章“随机向量”一节与第 11 章）。求 $\Omega_v\inv$，并就 $T=3$、$\sigma_u^2=\sigma_\alpha^2=1$ 验算。
+
+\solution 用 $\one_T\one_T\T=TP_T$ 与 $I_T=M_T+P_T$ 把 $\Omega_v$ 写成正交幂等分解：
+\begin{align*}
+\Omega_v &= \sigma_u^2(M_T+P_T)+T\sigma_\alpha^2P_T \why{$I_T=M_T+P_T$，$\one_T\one_T\T=TP_T$}\\
+&= \sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T \why{合并 $P_T$ 项}\\
+\Omega_v\inv &= \frac1{\sigma_u^2}M_T+\frac1{\sigma_u^2+T\sigma_\alpha^2}P_T \why{本结论，$a=\sigma_u^2$，$b=\sigma_u^2+T\sigma_\alpha^2$}\\
+&= \frac1{\sigma_u^2}\Big[M_T+\frac1{1+T\sigma_\alpha^2/\sigma_u^2}P_T\Big] \why{提出 $1/\sigma_u^2$}
+\end{align*}
+数值：$T=3$，$\sigma_u^2=\sigma_\alpha^2=1$，记 $J=J_3$：
+\begin{align*}
+\Omega_v &= I_3+J_3,\qquad \Omega_v\inv=M_3+\tfrac14P_3=I_3-\tfrac34P_3=I_3-\tfrac14J_3 \why{$P_3=\tfrac13J_3$}\\
+(I+J)(I-\tfrac14J) &= I+\tfrac34J-\tfrac14J^2=I+\tfrac34J-\tfrac34J=I \why{$J_3^2=3J_3$}
+\end{align*}
+$T\to\infty$ 时 $P_T$ 的权重 $1/(\sigma_u^2+T\sigma_\alpha^2)\to0$，$P_T$ 项相对 $M_T$ 项可以忽略，GLS 趋近组内估计（第 11 章）。
+\end{exmp}
+
+\begin{note}[$M_T$ 前的系数不含 $\sigma_\alpha^2$]
+$\Omega_v\inv$ 中 $M_T$ 的系数是 $1/\sigma_u^2$，与 $\sigma_\alpha^2$ 无关；$\sigma_\alpha^2$ 只出现在 $P_T$ 的系数 $1/(\sigma_u^2+T\sigma_\alpha^2)$ 中。直觉：个体效应只影响个体均值方向（$P_T$），不影响个体内离差方向（$M_T$）。
+\end{note}
+
+\subsection{练习：特征分解、\texorpdfstring{$J_T$}{J\_T} 的特征值与随机效应的“部分去均值”}
+
+\begin{prac}[特征值的计算与应用]\label{pr:U01a-eig}
+(1) 求 $\begin{pmatrix}4&2\\2&1\end{pmatrix}$ 的特征值与特征向量，并判断其正定性与可逆性。(2) 求 $J_T=\one_T\one_T\T$ 的特征值。(3) 用 $(aM+bP)^s$ 求 $\Omega_v^{-1/2}$，证明 $\sigma_u\Omega_v^{-1/2}Y_i=Y_i-\theta\bar y_i\one_T$，$\theta=1-\sigma_u/\sqrt{\sigma_u^2+T\sigma_\alpha^2}$。
+
+\answer (1) $\tr=5$，$\det=4-4=0$，故 $\lambda_1+\lambda_2=5$、$\lambda_1\lambda_2=0$，$\lambda=5,0$。$\lambda=5$：$(A-5I)v=0\Rightarrow-v_1+2v_2=0$，$h_1=(2,1)\T/\sqrt5$；$\lambda=0$：$2v_1+v_2=0$，$h_2=(1,-2)\T/\sqrt5$。特征值非负，半正定但不正定；有零特征值，不可逆，秩为 1。
+
+(2) $J_T=TP_T$。$P_T$ 对称幂等、秩 1，特征值为 1（一次，特征向量 $\one_T/\sqrt T$）和 0（$T-1$ 次），故 $J_T$ 的特征值为 $T$（一次）与 0（$T-1$ 次）。
+
+(3) 取 $s=-\frac12$，$a=\sigma_u^2$，$b=\sigma_u^2+T\sigma_\alpha^2$：
+\begin{align*}
+\Omega_v^{-1/2} &= \sigma_u^{-1}M_T+(\sigma_u^2+T\sigma_\alpha^2)^{-1/2}P_T \why{$(aM+bP)^s=a^sM+b^sP$}\\
+\sigma_u\Omega_v^{-1/2} &= M_T+\frac{\sigma_u}{\sqrt{\sigma_u^2+T\sigma_\alpha^2}}P_T=M_T+(1-\theta)P_T \why{乘 $\sigma_u$；$\theta$ 的定义}\\
+&= I_T-P_T+(1-\theta)P_T=I_T-\theta P_T \why{$M_T=I_T-P_T$}\\
+\sigma_u\Omega_v^{-1/2}Y_i &= Y_i-\theta P_TY_i=Y_i-\theta\bar y_i\one_T \why{$P_TY_i=\bar y_i\one_T$}
+\end{align*}
+随机效应 GLS 等价于“部分去均值”（\term{准去均值}{quasi-demeaning}）后做 OLS（第 11 章）；$\theta=1$ 即组内变换。
+\end{prac}
+
+\begin{english}
+Since $A$ is real and symmetric, it admits the spectral decomposition $A=H\Lambda H'=\sum_j\lambda_jh_jh_j'$ with $H'H=I$. Hence $\operatorname{tr}(A)=\sum_j\lambda_j$, $\det(A)=\prod_j\lambda_j$, and $A$ is positive definite if and only if all eigenvalues are positive. For $A>0$ we define $A^{s}=H\Lambda^{s}H'$, so that $\operatorname{Var}(\Sigma^{-1/2}z)=I$. For the random-effects covariance matrix, $\Omega=\sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T$, so $\Omega^{-1}=\sigma_u^{-2}M_T+(\sigma_u^2+T\sigma_\alpha^2)^{-1}P_T$.
+\end{english}
+
+%======================================================================
+\section{矩阵微分}\label{sec:U01a-diff}
+
+估计量大多是某个目标函数的最优点：OLS 最小化残差平方和，GLS 最小化加权残差平方和，GMM 最小化矩条件的二次型，因子模型最小化 $\tr(VV\T)$。求最优点就要对向量或矩阵求导。本节给出记号、三条基本公式和对矩阵求导的公式，并逐一推导 OLS、GMM、GLS 与因子载荷的一阶条件。
+
+\subsection{记号：梯度（\texorpdfstring{$K\times1$}{K x 1}）、Hessian 与雅可比矩阵}
+
+\subsubsection{梯度、Hessian 与雅可比矩阵的定义}
+
+\begin{defn}[梯度、Hessian、雅可比矩阵]\label{def:U01a-grad}
+$f(\beta)$ 为 $\beta\in\R^K$ 的标量函数。\term{梯度}{gradient}把各偏导排成\key{与 $\beta$ 同形状的列向量}；\term{海塞矩阵}{Hessian matrix}为二阶偏导矩阵：
+\[
+\frac{\partial f}{\partial\beta}=\begin{pmatrix}\partial f/\partial\beta_1\\\vdots\\\partial f/\partial\beta_K\end{pmatrix}\ (K\times1),\qquad
+\frac{\partial f}{\partial\beta\T}=\Big(\frac{\partial f}{\partial\beta}\Big)\T\ (1\times K),\qquad
+\frac{\partial^2f}{\partial\beta\partial\beta\T}=\Big(\frac{\partial^2f}{\partial\beta_j\partial\beta_k}\Big)\ (K\times K).
+\]
+向量值函数 $g(\beta)\in\R^m$ 的\term{雅可比矩阵}{Jacobian matrix}为 $\partial g/\partial\beta\T$（$m\times K$，第 $j$ 行为 $\partial g_j/\partial\beta\T$）。
+\end{defn}
+
+\subsubsection{形状约定：对 \texorpdfstring{$\beta$}{beta} 求导得列，对 \texorpdfstring{$\beta'$}{beta'} 求导得行}
+
+本书始终把 $\partial f(\beta)/\partial\beta$ 写成 $K\times1$ 的列向量。记忆：分母是列 $\beta$，结果就是列；分母是行 $\beta\T$，结果就是行。Hessian 是“先对 $\beta$ 求梯度（列），再对 $\beta\T$ 求导（行）”，所以是 $K\times K$。
+
+\subsection{三条基本公式：\texorpdfstring{$\partial a'x/\partial x$、$\partial Ax/\partial x'$、$\partial x'Ax/\partial x$}{d(a'x)/dx, d(Ax)/dx', d(x'Ax)/dx}}
+
+\subsubsection{结论：向量求导三公式}
+
+\begin{thm}[向量求导]\label{thm:U01a-vecdiff}
+（$a$、$A$ 不依赖 $x$）
+\begin{enumerate}
+  \item $\dfrac{\partial(a\T x)}{\partial x}=\dfrac{\partial(x\T a)}{\partial x}=a$；
+  \item $\dfrac{\partial(Ax)}{\partial x\T}=A$；
+  \item $\dfrac{\partial(x\T Ax)}{\partial x}=(A+A\T)x$，$A$ 对称时 $=2Ax$；Hessian $\dfrac{\partial^2(x\T Ax)}{\partial x\partial x\T}=A+A\T$（$A$ 对称时 $=2A$）。
+\end{enumerate}
+\end{thm}
+记忆：与标量 $\frac{d}{dx}(ax)=a$、$\frac{d}{dx}(ax^2)=2ax$ 完全类比。
+
+\subsubsection{证明：逐个分量求偏导}
+
+(1)：$a\T x=\sum_ka_kx_k$，对 $x_j$ 求偏导得 $a_j$，排成列即 $a$；$x\T a=a\T x$（标量）。
+
+(2)：$Ax$ 的第 $j$ 个分量是 $A$ 的第 $j$ 行（记为 $a_{(j)}\T$）乘 $x$，即 $a_{(j)}\T x$；它对 $x\T$ 的导数是行向量 $a_{(j)}\T$。把各行叠起来就是 $A$。
+
+(3)：$x\T Ax=\sum_i\sum_ja_{ij}x_ix_j$。对 $x_k$ 求偏导时，$x_k$ 出现在 $i=k$ 与 $j=k$ 两类项中：
+\begin{align*}
+\frac{\partial(x\T Ax)}{\partial x_k} &= \sum_ja_{kj}x_j+\sum_ia_{ik}x_i \why{乘积求导，两类项各求一次}\\
+&= (Ax)_k+(A\T x)_k \why{乘法定义}
+\end{align*}
+排成列即 $(A+A\T)x$。再对 $x\T$ 求导，由 (2) 得 Hessian $A+A\T$。
+
+\subsubsection{验证：\texorpdfstring{$2\times2$}{2 x 2} 对称情形}
+
+$A$ 对称时 $x\T Ax=a_{11}x_1^2+2a_{12}x_1x_2+a_{22}x_2^2$，于是
+\[
+\frac{\partial(x\T Ax)}{\partial x}=\begin{pmatrix}2a_{11}x_1+2a_{12}x_2\\2a_{12}x_1+2a_{22}x_2\end{pmatrix}=2Ax.
+\]
+
+\subsubsection{常用组合：\texorpdfstring{$\partial(c-B\beta)'W(c-B\beta)/\partial\beta=-2B'W(c-B\beta)$}{d/d beta (c-B beta)'W(c-B beta) = -2B'W(c-B beta)}}
+
+$W$ 对称，$c$、$B$ 不依赖 $\beta$ 时，先展开再用 (1)(3)：
+\begin{align*}
+(c-B\beta)\T W(c-B\beta) &= c\T Wc-c\T WB\beta-\beta\T B\T Wc+\beta\T B\T WB\beta \why{展开，保持次序}\\
+&= c\T Wc-2\beta\T B\T Wc+\beta\T B\T WB\beta \why{$c\T WB\beta$ 是标量，转置合并}\\
+\frac{\partial}{\partial\beta}(\cdot) &= -2B\T Wc+2B\T WB\beta \why{公式 (1) 取 $a=B\T Wc$；(3) 取对称 $A=B\T WB$}\\
+&= -2B\T W(c-B\beta) \why{提出 $-2B\T W$}
+\end{align*}
+OLS（$c=Y$，$B=X$，$W=I$）、GLS（$W=\Omega\inv$）、GMM（$c=Z\T Y$，$B=Z\T X$）都是它的特例。
+
+\subsection{例：OLS 一阶条件（求和与矩阵两条路线）}
+
+\subsubsection{求和路线：对每一项用链式法则}
+
+$f(\beta)=\sum_i(y_i-x_i\T\beta)^2$。对每一项用链式法则，$\partial(x_i\T\beta)/\partial\beta=x_i$：
+\begin{align*}
+\frac{\partial f}{\partial\beta} &= \sum_{i=1}^n2(y_i-x_i\T\beta)\cdot(-x_i) \why{链式法则；公式 (1)}\\
+&= -2\sum_{i=1}^nx_i(y_i-x_i\T\beta)\overset{\text{令}}{=}0 \why{标量与向量可交换次序}\\
+\Rightarrow\ \Big(\sum_ix_ix_i\T\Big)\hat\beta &= \sum_ix_iy_i \why{$x_i(x_i\T\beta)=(x_ix_i\T)\beta$}
+\end{align*}
+
+\subsubsection{矩阵路线：展开后用公式 (1)(3)}
+
+由第 \ref{sec:U01a-inverse} 节，$S(\beta)=Y\T Y-2\beta\T X\T Y+\beta\T X\T X\beta$：
+\begin{align*}
+\frac{\partial S}{\partial\beta} &= 0-2X\T Y+2X\T X\beta \why{公式 (1) 取 $a=X\T Y$；(3) 取对称 $A=X\T X$}\\
+&= -2X\T(Y-X\beta)\overset{\text{令}}{=}0 \why{提出 $-2X\T$}\\
+\Rightarrow\ X\T X\hat\beta &= X\T Y\ \Rightarrow\ \hat\beta=(X\T X)\inv X\T Y \why{正规方程；$X\T X$ 可逆}
+\end{align*}
+两条路线由核心对应 $X\T X=\sum_ix_ix_i\T$、$X\T Y=\sum_ix_iy_i$ 联系起来。
+
+\subsubsection{二阶条件：Hessian \texorpdfstring{$2X'X>0$}{2X'X > 0}}
+
+Hessian $=\partial(-2X\T Y+2X\T X\beta)/\partial\beta\T=2X\T X$（公式 (2)），$X$ 满列秩时正定（第 \ref{sec:U01a-pd} 节）。目标函数严格凸，驻点即唯一最小值点。
+
+\begin{note}[梯度前的负号不能丢]
+正确的梯度是 $-2\sum_ix_i(y_i-x_i\T\beta)=-2X\T(Y-X\beta)$。写成 $2\sum_ix_i(y_i-x_i\T\beta)$ 或 $2X\T(Y-X\beta)$ 都漏了内层导数 $\partial(y_i-x_i\T\beta)/\partial\beta=-x_i$ 带来的负号。令梯度为 0 时符号不影响正规方程，但会使 Hessian 的符号出错（变成负定，误判为极大值）。
+\end{note}
+
+\subsection{例：GMM 目标函数求导}
+
+\subsubsection{一阶条件与 \texorpdfstring{$\hat\beta_{GMM}$}{beta\_GMM}}
+
+线性 GMM（第 8 章）的目标函数（省略常数 $1/n^2$）为
+\[
+J(\beta)=(Z\T Y-Z\T X\beta)\T W(Z\T Y-Z\T X\beta),
+\]
+$Z$ 为 $n\times L$ 工具矩阵，$W$ 为 $L\times L$ 对称正定权重矩阵。用常用组合公式（$c=Z\T Y$，$B=Z\T X$）：
+\begin{align*}
+\frac{\partial J}{\partial\beta} &= -2(Z\T X)\T W(Z\T Y-Z\T X\beta) \why{组合公式}\\
+&= -2X\T ZW(Z\T Y-Z\T X\beta)\overset{\text{令}}{=}0 \why{$(Z\T X)\T=X\T Z$}\\
+\Rightarrow\ X\T ZWZ\T X\hat\beta &= X\T ZWZ\T Y \why{移项}\\
+\Rightarrow\ \hat\beta_{GMM} &= (X\T ZWZ\T X)\inv X\T ZWZ\T Y \why{左乘逆矩阵}
+\end{align*}
+
+\subsubsection{维度检查与 2SLS 特例}
+
+维度：$X\T Z$（$K\times L$）$W$（$L\times L$）$Z\T X$（$L\times K$）为 $K\times K$，可逆；$X\T ZWZ\T Y$ 为 $K\times1$；结果 $K\times1$（维度检查的一般方法见本章“读懂推导的技巧与符号速查”一节）。取 $W=(Z\T Z)\inv$：$ZWZ\T=Z(Z\T Z)\inv Z\T=P_Z$，得 $\hat\beta=(X\T P_ZX)\inv X\T P_ZY$，即 2SLS（第 \ref{sec:U01a-proj} 节一般投影 $P_Z$）。
+
+\subsection{对矩阵求导与迹的导数}
+
+\subsubsection{定义：对 \texorpdfstring{$m\times n$}{m x n} 矩阵求导得同形矩阵}
+
+\begin{defn}[对矩阵求导]\label{def:U01a-matdiff}
+标量函数 $f(A)$ 对 $m\times n$ 矩阵 $A$ 的导数 $\partial f/\partial A$ 是同为 $m\times n$ 的矩阵，第 $(i,j)$ 元为 $\partial f/\partial a_{ij}$。
+\end{defn}
+
+\subsubsection{四条常用矩阵导数}
+
+\begin{thm}[常用矩阵导数]\label{thm:U01a-matdiff}
+\begin{enumerate}
+  \item $\dfrac{\partial\tr(BA)}{\partial A}=\dfrac{\partial\tr(AB)}{\partial A}=B\T$；
+  \item $\dfrac{\partial\tr(X\T AX)}{\partial X}=(A+A\T)X$；
+  \item $\dfrac{\partial\tr(XBX\T)}{\partial X}=X(B+B\T)$；
+  \item $\dfrac{\partial\log\det A}{\partial A}=(A\inv)\T$。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{证明与用途}
+
+(1)：$\tr(BA)=\sum_i\sum_jb_{ij}a_{ji}$，对 $a_{ji}$ 求导得 $b_{ij}$，即导数矩阵的 $(j,i)$ 元为 $b_{ij}$，故导数为 $B\T$；$\tr(AB)=\tr(BA)$。
+
+(2)：记 $x_j$ 为 $X$ 的第 $j$ 列，$\tr(X\T AX)=\sum_jx_j\T Ax_j$；对每列用向量公式 (3) 得 $\partial/\partial x_j=(A+A\T)x_j$，排回各列即 $(A+A\T)X$。
+
+(3)：记 $r_i\T$ 为 $X$ 的第 $i$ 行，$\tr(XBX\T)=\sum_ir_i\T Br_i$；对每行求导得 $(B+B\T)r_i$，转置后排回各行，即 $X(B+B\T)$。
+
+(4) 用于多元正态极大似然；标量情形 $\frac{d}{d\sigma^2}\log\sigma^2=\frac1{\sigma^2}$ 给出正态回归的 $\hat\sigma^2_{MLE}$（第 4 章）。
+
+\subsubsection{例：给定 \texorpdfstring{$F$}{F} 求因子载荷 \texorpdfstring{$\hat\Lambda=UF(F'F)^{-1}$}{Lambda-hat = UF(F'F)\^{}-1}}
+
+\begin{exmp}[给定 $F$ 求因子载荷]\label{ex:U01a-loading}
+因子模型 $U=\Lambda F\T+V$（$U$：$N\times T$，$\Lambda$：$N\times r$，$F$：$T\times r$），给定 $F$，求最小化 $\tr(VV\T)$ 的 $\Lambda$。
+
+\solution 先展开目标函数，再对 $\Lambda$ 求导：
+\begin{align*}
+\tr(VV\T) &= \tr\big[(U-\Lambda F\T)(U-\Lambda F\T)\T\big] \why{$V=U-\Lambda F\T$}\\
+&= \tr(UU\T)-\tr(UF\Lambda\T)-\tr(\Lambda F\T U\T)+\tr(\Lambda F\T F\Lambda\T) \why{展开；迹的线性}\\
+&= \tr(UU\T)-2\tr(\Lambda F\T U\T)+\tr(\Lambda F\T F\Lambda\T) \why{$\tr(UF\Lambda\T)=\tr\big((UF\Lambda\T)\T\big)$}\\
+\frac{\partial\tr(VV\T)}{\partial\Lambda} &= -2UF+2\Lambda F\T F\overset{\text{令}}{=}0 \why{公式 (1) 取 $B=F\T U\T$；(3) 取 $B=F\T F$}\\
+\Rightarrow\ \hat\Lambda &= UF(F\T F)\inv \why{右乘 $(F\T F)\inv$}
+\end{align*}
+这相当于对每个个体 $i$ 把 $U$ 的第 $i$ 行对 $F$ 做 OLS（第 13 章）。
+\end{exmp}
+
+\subsection{练习：GLS 的一阶条件；非对称 \texorpdfstring{$A$}{A} 的求导；GMM 的 Hessian}
+
+\begin{prac}[矩阵微分]\label{pr:U01a-diff}
+(1) 求 $\min_\beta(Y-X\beta)\T\Omega\inv(Y-X\beta)$ 的解（$\Omega>0$ 已知）。(2) $A=\begin{pmatrix}1&2\\0&3\end{pmatrix}$ 不对称，直接展开验证 $\partial(\beta\T A\beta)/\partial\beta=(A+A\T)\beta$。(3) 求 $J(\beta)$ 的 Hessian，并说明 $W>0$、$Z\T X$ 满列秩时它正定。
+
+\answer (1) 用组合公式（$c=Y$，$B=X$，$W=\Omega\inv$，对称）：
+\begin{align*}
+-2X\T\Omega\inv(Y-X\beta) &\overset{\text{令}}{=}0 \why{组合公式}\\
+\Rightarrow\ \hat\beta_{GLS} &= (X\T\Omega\inv X)\inv X\T\Omega\inv Y \why{移项、求逆}
+\end{align*}
+（第 4、11 章）。
+
+(2) $\beta\T A\beta=\beta_1^2+2\beta_1\beta_2+3\beta_2^2$，梯度为 $(2\beta_1+2\beta_2,\ 2\beta_1+6\beta_2)\T$；而 $(A+A\T)\beta=\begin{pmatrix}2&2\\2&6\end{pmatrix}\beta$，相同。若误用 $2A\beta=(2\beta_1+4\beta_2,\ 6\beta_2)\T$ 则错——$2A\beta$ 只对对称 $A$ 成立。
+
+(3) $\partial J/\partial\beta=-2X\T ZWZ\T Y+2X\T ZWZ\T X\beta$，再对 $\beta\T$ 求导（公式 (2)）得 Hessian $2X\T ZWZ\T X=2B\T WB$，$B=Z\T X$。由第 \ref{sec:U01a-pd} 节事实 (6)，$W>0$ 且 $B$ 满列秩时 $B\T WB>0$，故 $J$ 严格凸、解唯一。
+\end{prac}
+
+\begin{english}
+The OLS objective is $S(\beta)=(Y-X\beta)'(Y-X\beta)=Y'Y-2\beta'X'Y+\beta'X'X\beta$. Using $\partial(a'\beta)/\partial\beta=a$ and $\partial(\beta'A\beta)/\partial\beta=2A\beta$ for symmetric $A$, the first-order condition is $-2X'(Y-X\hat\beta)=0$, i.e.\ the normal equations $X'X\hat\beta=X'Y$. The Hessian $2X'X$ is positive definite, so $\hat\beta$ is the unique minimizer. The same argument applied to $J(\beta)=(Z'Y-Z'X\beta)'W(Z'Y-Z'X\beta)$ gives $\hat\beta_{GMM}=(X'ZWZ'X)^{-1}X'ZWZ'Y$.
+\end{english}
+
+%======================================================================
+\section{约束优化：拉格朗日乘子法、瑞利商与迹最大化}\label{sec:U01a-opt}
+
+带约束的最优化在计量中反复出现：受约束最小二乘（$F$ 检验的 $SSR_r$）、最小方差加权、主成分分析（单位长度约束下最大化方差）。本节先讲拉格朗日乘子法，再把它用于二次型：瑞利商的最优点是特征向量，迹最大化的最优点是前 $r$ 个特征向量——这是 PCA 的数学核心。
+
+\subsection{拉格朗日乘子法与逆方差加权}
+
+\subsubsection{拉格朗日函数与一阶条件}
+
+\begin{defn}[拉格朗日乘子法]\label{def:U01a-lagrange}
+问题 $\min_xf(x)$ s.t. $g(x)=0$（$g$ 为 $m$ 维）。构造\term{拉格朗日函数}{Lagrangian}
+\[
+\mathcal L(x,\lambda)=f(x)+\lambda\T g(x),
+\]
+$\lambda$ 为 $m\times1$ 的\term{拉格朗日乘子}{Lagrange multiplier}。最优解满足 $\partial\mathcal L/\partial x=0$ 与 $g(x)=0$。
+\end{defn}
+
+\subsubsection{标准四步与直觉：梯度共线、乘子是影子价格}
+
+\begin{method}[拉格朗日乘子法的标准四步]
+\begin{enumerate}
+  \item 写出 $\mathcal L$；
+  \item 对 $x$ 求导令其为零，把 $x$ 表示成 $\lambda$ 的函数；
+  \item 代入约束 $g(x)=0$，解出 $\lambda$；
+  \item 回代得 $x$。
+\end{enumerate}
+\end{method}
+直觉：最优点处目标函数的梯度是约束梯度的线性组合（$\partial f/\partial x=-\sum_k\lambda_k\,\partial g_k/\partial x$），沿约束面已找不到下降方向；$\lambda$ 衡量约束放松一点时最优值的变化（“影子价格”）。
+
+\subsubsection{例：最小方差权重——逆方差加权}
+
+\begin{exmp}[最小方差权重：逆方差加权]\label{ex:U01a-ivw}
+用两个不相关的无偏估计量 $\hat\mu_1$、$\hat\mu_2$（协方差矩阵 $\Sigma=\diag(1,4)$）的加权平均 $w\T\hat\mu$ 估计 $\mu$。无偏要求 $\one\T w=1$。求 $\min_ww\T\Sigma w$ s.t. $\one\T w=1$。
+
+\solution 一般 $\Sigma>0$ 下按四步求解：
+\begin{align*}
+\mathcal L &= w\T\Sigma w+\lambda(1-\one\T w) \why{第一步：拉格朗日函数}\\
+\partial\mathcal L/\partial w &= 2\Sigma w-\lambda\one=0\ \Rightarrow\ w=\tfrac\lambda2\Sigma\inv\one \why{第二步：向量求导公式 (1)(3)}\\
+\one\T w &= \tfrac\lambda2\one\T\Sigma\inv\one=1\ \Rightarrow\ \tfrac\lambda2=(\one\T\Sigma\inv\one)\inv \why{第三步：代入约束}\\
+w^* &= \frac{\Sigma\inv\one}{\one\T\Sigma\inv\one} \why{第四步：回代}\\
+\min w\T\Sigma w &= \frac{\one\T\Sigma\inv\Sigma\Sigma\inv\one}{(\one\T\Sigma\inv\one)^2}=\frac1{\one\T\Sigma\inv\one} \why{代入 $w^*$}
+\end{align*}
+数值：$\Sigma\inv\one=(1,0.25)\T$，$\one\T\Sigma\inv\one=1.25$，$w^*=(0.8,0.2)\T$，最小方差 $1/1.25=0.8<1$（比单用较精确的 $\hat\mu_1$ 还小）。
+\end{exmp}
+
+\subsubsection{逆方差加权的推广：GLS、有效 GMM 与合成控制权重}
+
+结论：\key{越精确的信息权重越大}（逆方差加权）。这正是 GLS（第 4、11 章）与有效 GMM 取 $W=\Omega\inv$（第 8 章）的逻辑；合成控制法的权重也带 $\sum_jw_j=1$ 约束（另加 $w_j\ge0$，第 16 章）。
+
+\subsection{瑞利商：\texorpdfstring{$\max x'Ax$ s.t. $x'x=1$}{max x'Ax s.t. x'x=1} 与特征向量}
+
+\subsubsection{结论：最大值是最大特征值，最优点是对应特征向量}
+
+比值 $x\T Ax/x\T x$ 称为\term{瑞利商}{Rayleigh quotient}。它对 $x$ 的长度不敏感（$x$ 换成 $cx$ 比值不变），所以最大化瑞利商等价于在单位球面 $x\T x=1$ 上最大化 $x\T Ax$。
+
+\begin{thm}[瑞利商（Hansen 附录 A.15 节）]\label{thm:U01a-rayleigh}
+$A$ 为 $k\times k$ 对称阵，特征值 $\lambda_1\ge\cdots\ge\lambda_k$，对应单位特征向量 $h_1,\dots,h_k$。则
+\[
+\max_{x\T x=1}x\T Ax=\max_{x\neq0}\frac{x\T Ax}{x\T x}=\lambda_1\ (\text{在 }x=h_1\text{ 处}),\qquad
+\min_{x\T x=1}x\T Ax=\lambda_k\ (\text{在 }x=h_k\text{ 处}).
+\]
+\end{thm}
+
+\subsubsection{拉格朗日证明：驻点必为特征向量}
+
+写出拉格朗日函数，对 $x$ 求导：
+\begin{align*}
+\mathcal L &= x\T Ax-\lambda(x\T x-1) \why{拉格朗日函数}\\
+\partial\mathcal L/\partial x &= 2Ax-2\lambda x=0\ \Rightarrow\ Ax=\lambda x \why{驻点必为特征向量，乘子即特征值}\\
+x\T Ax &= \lambda x\T x=\lambda \why{代回目标；约束 $x\T x=1$}
+\end{align*}
+候选值就是各特征值，最大者为 $\lambda_1$，最小者为 $\lambda_k$。
+
+\subsubsection{谱分解证明：\texorpdfstring{$\sum_j\lambda_jc_j^2\le\lambda_1$}{sum lambda c\^{}2 <= lambda\_1}}
+
+令 $c=H\T x$，则 $c\T c=x\T HH\T x=x\T x=1$：
+\begin{align*}
+x\T Ax &= c\T\Lambda c=\textstyle\sum_j\lambda_jc_j^2 \why{谱分解}\\
+&\le \lambda_1\textstyle\sum_jc_j^2=\lambda_1 \why{$\lambda_j\le\lambda_1$；$c\T c=1$}
+\end{align*}
+等号在 $c=(1,0,\dots,0)\T$ 即 $x=h_1$ 时取到；同理 $x\T Ax\ge\lambda_k$。
+
+\subsubsection{例与应用：最小特征值版本用于因子模型的变换估计}
+
+例：$A=\begin{pmatrix}2&1\\1&2\end{pmatrix}$，最大值 3 在 $(1,1)\T/\sqrt2$ 处取到，最小值 1 在 $(1,-1)\T/\sqrt2$ 处取到（第 \ref{sec:U01a-eigen} 节的例子）。最小特征值版本用于因子模型的“变换估计”：寻找 $w$ 使 $w\T F=0$（第 14 章）。
+
+\subsection{迹最大化：\texorpdfstring{$\max\tr(F'AF)$ s.t. $F'F=I_r$}{max tr(F'AF) s.t. F'F = I}}
+
+\subsubsection{结论：前 \texorpdfstring{$r$}{r} 大特征值之和，最优点为对应特征向量}
+
+\begin{thm}[迹最大化（Hansen 附录 A.15 节）]\label{thm:U01a-trmax}
+$A$ 为 $k\times k$ 对称阵（特征值、特征向量同上），$r\le k$。则
+\[
+\max_{F:\ k\times r,\ F\T F=I_r}\tr(F\T AF)=\lambda_1+\cdots+\lambda_r,
+\]
+在 $F=(h_1,\dots,h_r)$ 处取到；对任意 $r\times r$ 正交阵 $C$，$FC$ 也是最优解。
+\end{thm}
+这是瑞利商的多维推广：$r=1$ 时就是 $\max_{x\T x=1}x\T Ax=\lambda_1$。
+
+\subsubsection{最优点的值：\texorpdfstring{$\tr(F'AF)=\sum_{j\le r}\lambda_j$}{tr(F'AF) = sum of top r eigenvalues}}
+
+$F=(h_1,\dots,h_r)$ 时，$F\T AF$ 的第 $j$ 个对角元为 $h_j\T Ah_j$：
+\begin{align*}
+\tr(F\T AF) &= \sum_{j=1}^rh_j\T Ah_j \why{对角元之和}\\
+&= \sum_{j=1}^r\lambda_jh_j\T h_j=\sum_{j=1}^r\lambda_j \why{$Ah_j=\lambda_jh_j$；$h_j\T h_j=1$}
+\end{align*}
+在因子模型的记号下（$A=U\T U=\sum_ke_kg_kg_k\T$，$F=(g_1,\dots,g_r)$），即 $\max\tr(F\T U\T UF)=\sum_{j=1}^re_jg_j\T g_jg_j\T g_j=e_1+\cdots+e_r$。
+
+\subsubsection{为何最大：对称乘子矩阵 \texorpdfstring{$\Theta$}{Theta} 与特征值}
+
+约束 $F\T F=I_r$ 是对称的 $r\times r$ 矩阵方程，用对称乘子矩阵 $\Theta$（$r\times r$）：
+\begin{align*}
+\mathcal L &= \tr(F\T AF)-\tr\big[\Theta(F\T F-I_r)\big] \why{拉格朗日函数}\\
+\frac{\partial\mathcal L}{\partial F} &= 2AF-2F\Theta=0\ \Rightarrow\ AF=F\Theta \why{矩阵导数公式 (2)(3)；$\tr(\Theta F\T F)=\tr(F\Theta F\T)$}\\
+\tr(F\T AF) &= \tr(F\T F\Theta)=\tr(\Theta) \why{代回；$F\T F=I_r$}
+\end{align*}
+把 $\Theta$ 正交对角化 $\Theta=C\diag(\theta_1,\dots,\theta_r)C\T$，令 $G=FC$，则
+\begin{align*}
+AG &= AFC=F\Theta C=FC\diag(\theta_1,\dots,\theta_r)C\T C=G\diag(\theta_1,\dots,\theta_r) \why{$AF=F\Theta$；$C\T C=I$}\\
+G\T G &= C\T F\T FC=C\T C=I_r \why{$F\T F=I_r$}
+\end{align*}
+所以 $G$ 的各列是 $A$ 的单位特征向量，$\theta_j$ 是 $A$ 的特征值。目标值 $\tr\Theta=\sum_j\theta_j$ 是 $A$ 的某 $r$ 个特征值之和，选最大的 $r$ 个即得最大值。
+
+\subsubsection{旋转不唯一：只有 \texorpdfstring{$F$}{F} 张成的空间被确定}
+
+对任意 $r\times r$ 正交阵 $C$：
+\begin{align*}
+\tr\big((FC)\T A(FC)\big) &= \tr(C\T F\T AFC)=\tr(F\T AF\,CC\T) \why{循环性}\\
+&= \tr(F\T AF) \why{$CC\T=I_r$}
+\end{align*}
+且 $(FC)\T(FC)=C\T C=I_r$ 仍满足约束。所以最优解只确定到一个旋转，只有 $F$ 张成的空间被唯一确定——这对应因子模型的旋转不定性，需加标准化才能识别（第 13 章）。
+
+\subsubsection{标准化的尺度：约束 \texorpdfstring{$\frac1TF'F=I_r$}{F'F/T = I} 时 \texorpdfstring{$F=\sqrt T(h_1,\dots,h_r)$}{F = sqrt(T)(h\_1,...,h\_r)}}
+
+若约束改为 $\frac1TF\T F=I_r$（因子模型的常用标准化），令 $G=F/\sqrt T$，则 $G\T G=I_r$，$\tr(F\T AF)=T\tr(G\T AG)$。由本结论，解为 $F=\sqrt T(h_1,\dots,h_r)$，最大值为 $T(\lambda_1+\cdots+\lambda_r)$。
+
+\subsection{与主成分分析（PCA）的衔接}
+
+\subsubsection{集中化：代入 \texorpdfstring{$\hat\Lambda$}{Lambda-hat} 后化为迹最大化}
+
+把第 \ref{sec:U01a-diff} 节的 $\hat\Lambda=UF(F\T F)\inv$ 代回目标函数。记 $P_F=F(F\T F)\inv F\T$（$T\times T$，对称幂等），$M_F=I_T-P_F$：
+\begin{align*}
+\hat V &= U-\hat\Lambda F\T=U-UF(F\T F)\inv F\T=UM_F \why{代入 $\hat\Lambda$}\\
+\tr(\hat V\hat V\T) &= \tr(UM_FM_F\T U\T)=\tr(UM_FU\T) \why{$M_F$ 对称幂等}\\
+&= \tr(UU\T)-\tr\big(UF(F\T F)\inv F\T U\T\big) \why{$M_F=I_T-P_F$；迹的线性}\\
+&= \tr(UU\T)-\tr(F\T U\T UF)\quad(\text{当 }F\T F=I_r) \why{循环性}
+\end{align*}
+$\tr(UU\T)$ 与 $F$ 无关，所以 $\min_F\tr(\hat V\hat V\T)\iff\max_F\tr(F\T U\T UF)$ s.t. $F\T F=I_r$——正是迹最大化（$A=U\T U$），解为 $U\T U$ 前 $r$ 大特征值的特征向量。
+
+\subsubsection{PCA 推导的五步与所用工具}
+
+第 13 章 PCA 推导的每一步及所用工具：
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{llL}
+\toprule
+步骤 & 式子 & 工具\\
+\midrule
+1. 目标 & $\min\sum_i\sum_tv_{it}^2=\min\tr(VV\T)$ & 平方和写成迹（第 \ref{sec:U01a-trace} 节）\\
+2. 给定 $F$ 解 $\Lambda$ & $\hat\Lambda=UF(F\T F)\inv$ & 对矩阵求导（第 \ref{sec:U01a-diff} 节）\\
+3. 集中化 & $\tr(UU\T)-\tr\big(UF(F\T F)\inv F\T U\T\big)$ & 代回、展开\\
+4. 换成小矩阵 & $\max\tr(F\T U\T UF)$ s.t. $F\T F=I_r$ & 循环性（第 \ref{sec:U01a-trace} 节）\\
+5. 求解 & $\hat F=$ $U\T U$ 前 $r$ 大特征值的特征向量 & 迹最大化（本节）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{PCA 推导的步骤与工具}
+\end{center}
+
+\begin{keypt}[英文试卷常见问法]
+“Show that the principal components estimator of $F$ maximizes $\operatorname{tr}(F'U'UF)$ subject to $F'F/T=I_r$ and is given by $\sqrt T$ times the eigenvectors of the $r$ largest eigenvalues of $U'U$”——按上表五步作答，每步注明所用工具；别忘了说明解只确定到旋转。
+\end{keypt}
+
+\subsection{练习：受约束最小二乘（\texorpdfstring{$F$}{F} 检验中 \texorpdfstring{$SSR_r$}{SSR\_r} 的来源）}
+
+\begin{prac}[受约束最小二乘]\label{pr:U01a-rls}
+求 $\min_b(Y-Xb)\T(Y-Xb)$ s.t. $Rb=r$（$R$ 为 $q\times K$、行满秩）。
+
+\answer 按四步求解（乘子写成 $2\lambda$ 只为消去系数 2）：
+\begin{align*}
+\mathcal L &= (Y-Xb)\T(Y-Xb)+2\lambda\T(Rb-r) \why{第一步}\\
+\partial\mathcal L/\partial b &= -2X\T(Y-Xb)+2R\T\lambda=0 \why{组合公式；公式 (1)}\\
+\Rightarrow\ X\T Xb &= X\T Y-R\T\lambda\ \Rightarrow\ b=\hat\beta-(X\T X)\inv R\T\lambda \why{第二步；$\hat\beta$ 为无约束 OLS}\\
+R\hat\beta-R(X\T X)\inv R\T\lambda &= r\ \Rightarrow\ \lambda=\big[R(X\T X)\inv R\T\big]\inv(R\hat\beta-r) \why{第三步：代入约束}\\
+\tilde\beta &= \hat\beta-(X\T X)\inv R\T\big[R(X\T X)\inv R\T\big]\inv(R\hat\beta-r) \why{第四步：回代}
+\end{align*}
+其中 $R(X\T X)\inv R\T$ 为 $q\times q$ 正定（第 \ref{sec:U01a-pd} 节事实 (6)：$(X\T X)\inv>0$ 且 $R\T$ 满列秩），故可逆。若 $\hat\beta$ 已满足约束（$R\hat\beta=r$），则 $\tilde\beta=\hat\beta$。受约束残差平方和 $SSR_r$ 由 $\tilde\beta$ 算出（第 6 章）。
+\end{prac}
+
+\subsection{练习：对角矩阵的瑞利商与迹最大化}
+
+\begin{prac}[瑞利商与迹最大化的计算]\label{pr:U01a-trmax}
+$A=\diag(5,2,1)$。求 $\max_{x\T x=1}x\T Ax$、$\min_{x\T x=1}x\T Ax$，以及 $\max\tr(F\T AF)$ s.t. $F\T F=I_2$；并验证 $F=(e_1,e_2)C$（$C$ 为旋转 $45^\circ$ 的正交阵）给出同样的值。
+
+\answer 对角阵的特征值就是对角元 $5,2,1$，特征向量为单位向量 $e_1,e_2,e_3$。$\max x\T Ax=5$（$x=e_1$），$\min=1$（$x=e_3$）；$\max\tr(F\T AF)=5+2=7$（$F=(e_1,e_2)$）。取 $C=\frac1{\sqrt2}\begin{pmatrix}1&-1\\1&1\end{pmatrix}$，$FC$ 的两列为 $g_1=\frac1{\sqrt2}(1,1,0)\T$、$g_2=\frac1{\sqrt2}(-1,1,0)\T$：
+\begin{align*}
+\tr\big((FC)\T A(FC)\big) &= g_1\T Ag_1+g_2\T Ag_2 \why{对角元之和}\\
+&= \tfrac{5+2}2+\tfrac{5+2}2=7 \why{$g\T Ag=\sum_ja_{jj}g_j^2$}
+\end{align*}
+相同，印证了旋转不唯一。
+\end{prac}
+
+\begin{english}
+Maximizing $x'Ax$ subject to $x'x=1$ gives the Lagrangian first-order condition $Ax=\lambda x$, so the solution is the eigenvector associated with the largest eigenvalue, and the maximum equals that eigenvalue. Likewise, $\max\operatorname{tr}(F'AF)$ subject to $F'F=I_r$ is attained by the eigenvectors of the $r$ largest eigenvalues of $A$, and the maximum is their sum; the solution is unique only up to an orthogonal rotation, so a normalization is needed. Minimizing $w'\Sigma w$ subject to $\mathbf 1'w=1$ gives the inverse-variance weights $w^*=\Sigma^{-1}\mathbf 1/(\mathbf 1'\Sigma^{-1}\mathbf 1)$.
+\end{english}

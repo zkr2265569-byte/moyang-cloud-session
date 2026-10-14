@@ -1,0 +1,871 @@
+%======================================================================
+\section{误差序列相关与设定检验}\label{sec:U12c-spec}
+
+本章前文的 Anderson--Hsiao、Arellano--Bond、系统 GMM 与 FOD GMM 有一个共同前提：\key{$u_{it}$ 无序列相关}。正是这一假设决定了哪些滞后可以作工具。本节回答三个问题：(1) 误差序列相关时工具应该怎样改；(2) 如何检验误差是否序列相关（Arellano--Bond AR(1)/AR(2) 检验）；(3) 如何检验全部矩条件是否成立（Sargan / Hansen 过度识别检验），以及工具过多时这些检验为何失效。
+
+%----------------------------------------------------------------------
+\subsection{无序列相关假设决定工具从哪一期开始}
+
+\subsubsection{差分误差只涉及 \texorpdfstring{$t$}{t} 与 \texorpdfstring{$t-1$}{t-1} 两期}
+
+一阶差分方程为
+\[
+\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it},\qquad \Delta u_{it}=u_{it}-u_{i,t-1},
+\]
+误差 $\Delta u_{it}$ 只涉及 $t$ 与 $t-1$ 两期的冲击。由递归代入，$y_{is}$ 只含 $s$ 期及以前的冲击。若 $u_{it}$ 无序列相关（$u_{it}$ 与 $u_{i,t-1}$ 不相关），则对 $s\le t-2$，$y_{is}$ 与 $u_{it}$、$u_{i,t-1}$ 都不相关，第 $t$ 个差分方程的有效工具为
+\[
+(y_{i,t-2},\ y_{i,t-3},\ \dots,\ y_{i0}).
+\]
+一旦 $u_{it}$ 序列相关，$\Delta u_{it}$ 的“污染范围”就向更早的时期延伸，最近的滞后会失效。下面看最常见的情形：MA(1) 误差。
+
+%----------------------------------------------------------------------
+\subsection{误差为 MA(1) 时：工具从 \texorpdfstring{$y_{i,t-3}$}{y(i,t-3)} 开始}\label{sec:U12c-ma1}
+
+\subsubsection{MA(1) 误差及其自协方差}
+
+\begin{defn}[MA(1) 误差]
+设
+\[
+u_{it}=e_{it}+\theta\,e_{i,t-1},\qquad e_{it}\ \iid\ (0,\sigma_e^2),
+\]
+$e_{it}$ 称为\term{新息}{innovation}，与 $\alpha_i$、$y_{i0}$ 及所有更早的新息独立。此时称 $u_{it}$ 为 \term{MA(1) 过程}{MA(1) process}，即“一阶相关”（correlated of order 1）：$u_{it}$ 与 $u_{i,t-1}$ 相关，与 $u_{i,t-2}$ 不相关。
+\end{defn}
+
+记 $\gamma_u(j)=\Cov(u_{it},u_{i,t-j})$。逐阶计算：
+\begin{align*}
+\gamma_u(0) &= \E\big(e_{it}+\theta e_{i,t-1}\big)^2 \why{均值为 0}\\
+&= \E(e_{it}^2)+2\theta\,\E(e_{it}e_{i,t-1})+\theta^2\E(e_{i,t-1}^2) \why{展开平方}\\
+&= (1+\theta^2)\sigma_e^2 \why{新息 i.i.d.}\\[3pt]
+\gamma_u(1) &= \E\big[(e_{it}+\theta e_{i,t-1})(e_{i,t-1}+\theta e_{i,t-2})\big] \why{均值为 0}\\
+&= \theta\,\E(e_{i,t-1}^2)=\theta\sigma_e^2 \why{只有共同的 $e_{i,t-1}$ 贡献}\\[3pt]
+\gamma_u(j) &= \E\big[(e_{it}+\theta e_{i,t-1})(e_{i,t-j}+\theta e_{i,t-j-1})\big]=0,\quad j\ge2 \why{没有共同的新息}
+\end{align*}
+
+\subsubsection{差分误差涉及 \texorpdfstring{$t$}{t}、\texorpdfstring{$t-1$}{t-1}、\texorpdfstring{$t-2$}{t-2} 三期的新息}
+
+把 MA(1) 形式代入一阶差分：
+\begin{align*}
+\Delta u_{it} &= u_{it}-u_{i,t-1} \why{差分}\\
+&= (e_{it}+\theta e_{i,t-1})-(e_{i,t-1}+\theta e_{i,t-2}) \why{代入 MA(1)}\\
+&= e_{it}+(\theta-1)\,e_{i,t-1}-\theta\,e_{i,t-2} \why{合并同类项}
+\end{align*}
+与无序列相关时相比，$\Delta u_{it}$ 多含了 $t-2$ 期的新息 $e_{i,t-2}$。
+
+\subsubsection{\texorpdfstring{$y_{i,t-2}$}{y(i,t-2)} 失效：\texorpdfstring{$\E(y_{i,t-2}\Delta u_{it})=-\theta\sigma_e^2$}{E(y(t-2) Delta u(t)) = -theta sigma\_e\^2}}
+
+要证：$\theta\neq0$ 时 $y_{i,t-2}$ 与 $\Delta u_{it}$ 相关。思路：$y_{i,t-2}$ 含 $e_{i,t-2}$，而 $\Delta u_{it}$ 也含 $e_{i,t-2}$。由模型，
+\[
+y_{i,t-2}=\alpha_i+\rho\,y_{i,t-3}+e_{i,t-2}+\theta\,e_{i,t-3},
+\]
+其中 $e_{i,t-2}$ 的系数为 1，而 $y_{i,t-3}$ 只含 $t-3$ 期及以前的新息，不含 $e_{i,t-2}$。于是
+\begin{align*}
+\E(y_{i,t-2}\Delta u_{it}) &= \E\big[y_{i,t-2}(e_{it}+\theta e_{i,t-1})\big]-\E\big[y_{i,t-2}(e_{i,t-1}+\theta e_{i,t-2})\big] \why{$\Delta u_{it}=u_{it}-u_{i,t-1}$}\\
+&= 0-\theta\,\E(y_{i,t-2}e_{i,t-2}) \why{$y_{i,t-2}$ 不含 $e_{it},e_{i,t-1}$}\\
+&= -\theta\,\E\big[(\alpha_i+\rho y_{i,t-3}+e_{i,t-2}+\theta e_{i,t-3})\,e_{i,t-2}\big] \why{代入 $y_{i,t-2}$}\\
+&= -\theta\sigma_e^2\neq0. \why{只有 $e_{i,t-2}^2$ 一项非零}
+\end{align*}
+所以 MA(1) 误差下 $y_{i,t-2}$ 不满足外生性，不再是有效工具。
+
+\subsubsection{\texorpdfstring{$y_{i,t-3}$}{y(i,t-3)} 及更早的滞后仍然有效}
+
+$y_{i,t-3}$ 只含 $t-3$ 期及以前的新息（以及 $\alpha_i$、$y_{i0}$），与 $e_{it},e_{i,t-1},e_{i,t-2}$ 都不相关：
+\begin{align*}
+\E(y_{i,t-3}\Delta u_{it}) &= \E(y_{i,t-3}e_{it})+(\theta-1)\E(y_{i,t-3}e_{i,t-1})-\theta\,\E(y_{i,t-3}e_{i,t-2}) \why{代入 $\Delta u_{it}$ 的展开}\\
+&= 0+0-0=0. \why{新息与更早的变量独立}
+\end{align*}
+更早的 $y_{i,t-4},\dots,y_{i0}$ 同理。故 MA(1) 误差下的\key{有效工具为 $(y_{i,t-3},y_{i,t-4},\dots,y_{i0})$}。相关性仍然成立：$y_{i,t-3}$ 与 $\Delta y_{i,t-1}$ 共享更早的历史，只是比 $y_{i,t-2}$ 弱。
+
+\begin{center}
+\begin{tikzpicture}[x=2.3cm,y=1cm]
+\draw[-Stealth] (-0.4,0) -- (4.6,0) node[right]{\small 时间};
+\foreach \x/\l in {0/t-4,1/t-3,2/t-2,3/t-1,4/t}{
+  \draw (\x,0.08) -- (\x,-0.08) node[below]{\small $\l$};}
+\node[draw=green!50!black,rounded corners,fill=green!8,inner sep=3pt] at (0,0.62) {\small $y_{i,t-4}$};
+\node[draw=green!50!black,rounded corners,fill=green!8,inner sep=3pt] at (1,0.62) {\small $y_{i,t-3}$};
+\draw[red!70!black,thick,rounded corners=9pt] (1.62,0.22) rectangle (4.38,1.02);
+\node[red!70!black] at (3,0.62) {\small MA(1) 下 $\Delta u_{it}$ 含 $e_{i,t-2},\,e_{i,t-1},\,e_{it}$};
+\draw[gray,densely dashed,rounded corners=6pt] (2.62,-0.62) rectangle (4.38,-1.12);
+\node[gray] at (3.5,-0.87) {\scriptsize 无序列相关时只涉及 $t-1,\,t$};
+\end{tikzpicture}
+\captionof{figure}{误差为 MA(1) 时，$\Delta u_{it}$ 的“污染范围”扩大到 $t-2$，工具必须从 $y_{i,t-3}$ 开始}\label{fig:U12c-ma1}
+\end{center}
+
+\subsubsection{例：MA(1) 误差下 \texorpdfstring{$T=4$}{T=4} 的工具矩阵}
+
+\begin{exmp}[MA(1) 误差下 $T=4$ 的工具矩阵]\label{ex:U12c-WMA}
+观测 $y_{i0},\dots,y_{i4}$，差分方程为 $t=2,3,4$，误差为 MA(1)。写出工具矩阵 $W_i^{MA}$，并求一般 $T$ 下的矩条件个数。
+\solution 第 $t$ 个方程的工具从 $y_{i,t-3}$ 开始：$t=2$ 需要 $y_{i,-1}$，没有可用工具；$t=3$ 用 $y_{i0}$；$t=4$ 用 $y_{i0},y_{i1}$。按块对角排列（行对应 $t=2,3,4$）：
+\[
+W_i^{MA}=\left(\begin{array}{c|cc}
+0 & 0 & 0\\ \hline
+y_{i0} & 0 & 0\\ \hline
+0 & y_{i0} & y_{i1}
+\end{array}\right)\quad(3\times3).
+\]
+$t=2$ 那一行全为 0，相当于丢弃该方程。一般地，第 $t$ 个方程（$t=3,\dots,T$）有 $t-2$ 个工具：
+\begin{align*}
+\sum_{t=3}^{T}(t-2) &= \sum_{j=1}^{T-2}j \why{令 $j=t-2$}\\
+&= \frac{(T-2)(T-1)}{2}. \why{等差数列求和}
+\end{align*}
+$T=4$ 时为 3。与无序列相关时的 $\frac{T(T-1)}{2}$ 相比，少了
+\[
+\frac{T(T-1)}{2}-\frac{(T-1)(T-2)}{2}=\frac{(T-1)\,[T-(T-2)]}{2}=T-1
+\]
+个矩条件，正好是每个方程中“二阶滞后” $y_{i,t-2}$ 对应的那一个。在 \texttt{xtabond2} 中写 \texttt{gmm(L.y, laglimits(2 .))}，即从 \texttt{L.y} 的二阶滞后 $y_{i,t-3}$ 开始（选项含义见本章 Stata 实现一节）。
+\end{exmp}
+
+\subsubsection{误差为 AR(1) 时任何滞后都无效：应重新设定动态}
+
+\begin{note}[AR(1) 误差：改模型，而不是改工具]
+若 $u_{it}=\phi\,u_{i,t-1}+e_{it}$（$0<|\phi|<1$），$u_{it}$ 含有全部过去的新息。把 $u_{it}$ 向前递推到 $s$ 期（$s<t$）：$u_{it}=\phi^{t-s}u_{is}+\sum_{k=0}^{t-s-1}\phi^ke_{i,t-k}$，其中的新息都晚于 $s$ 期，与 $y_{is}$ 不相关。于是
+\begin{align*}
+\E(y_{is}u_{it}) &= \phi^{\,t-s}\,\E(y_{is}u_{is}) \why{递推式；新息晚于 $s$ 期}\\
+\E(y_{is}\Delta u_{it}) &= \phi^{\,t-s}\E(y_{is}u_{is})-\phi^{\,t-1-s}\E(y_{is}u_{is}) \why{$s\le t-1$ 时同理}\\
+&= \phi^{\,t-1-s}(\phi-1)\,\E(y_{is}u_{is})\neq0 . \why{提出公因子}
+\end{align*}
+相关随 $t-s$ 几何衰减，但永远不为 0：\key{任何滞后都不再是有效工具}。此时应重新设定动态。把 $u_{it}=y_{it}-\alpha_i-\rho y_{i,t-1}$ 代入 $u_{it}-\phi u_{i,t-1}=e_{it}$：
+\begin{align*}
+(y_{it}-\alpha_i-\rho y_{i,t-1})-\phi\,(y_{i,t-1}-\alpha_i-\rho y_{i,t-2}) &= e_{it} \why{代入 AR(1) 误差}\\
+y_{it} &= (1-\phi)\alpha_i+(\rho+\phi)\,y_{i,t-1}-\rho\phi\,y_{i,t-2}+e_{it} \why{移项整理}
+\end{align*}
+即加入 $y_{i,t-2}$、改用 AR(2) 模型后，误差 $e_{it}$ 无序列相关，标准的滞后工具重新有效。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{Arellano--Bond 序列相关检验：AR(1) 与 AR(2)}\label{sec:U12c-artest}
+
+\subsubsection{检验对象与原假设：差分残差 \texorpdfstring{$\Delta\hat u_{it}$}{Delta u-hat}}
+
+差分 GMM 估计的是差分方程，得到的是\key{差分残差} $\Delta\hat u_{it}=\Delta y_{it}-\hat\rho\,\Delta y_{i,t-1}$（水平残差含无法估计的 $\alpha_i$）。因此检验不直接针对 $u_{it}$，而是检验 $\Delta u_{it}$ 的各阶自相关，称 \term{Arellano--Bond 序列相关检验}{Arellano-Bond test for serial correlation}。$j$ 阶检验的原假设为
+\[
+H_0:\ \Delta u_{it}\ \text{与}\ \Delta u_{i,t-j}\ \text{不相关（no serial correlation of order $j$）}.
+\]
+若 $u_{it}$ i.i.d.，则 $\Delta u_{it}=u_{it}-u_{i,t-1}$ 机械地具有一阶相关、没有二阶相关；若 $u_{it}$ 本身一阶相关（MA(1)），$\Delta u_{it}$ 就会出现二阶相关。下表是 $u_{it}$ 无序列相关时的“标准答案”：
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+ & 问题 & 预期回答\\
+\midrule
+$\Delta u_{it}$ & 一阶相关吗（correlated of order 1）？ & 是\\
+$\Delta u_{it}$ & 二阶相关吗（correlated of order 2）？ & 否\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{差分误差的自协方差公式}
+
+设 $u_{it}$ 均值为 0、协方差平稳，$\gamma_u(j)=\Cov(u_{it},u_{i,t-j})$，$\gamma_u(-j)=\gamma_u(j)$。要证
+\begin{equation}\label{eq:U12c-covdu}
+\Cov(\Delta u_{it},\Delta u_{i,t-j})=2\gamma_u(j)-\gamma_u(j-1)-\gamma_u(j+1).
+\end{equation}
+\begin{align*}
+\Cov(\Delta u_{it},\Delta u_{i,t-j}) &= \E\big[(u_{it}-u_{i,t-1})(u_{i,t-j}-u_{i,t-j-1})\big] \why{均值为 0}\\
+&= \E(u_{it}u_{i,t-j})-\E(u_{it}u_{i,t-j-1})-\E(u_{i,t-1}u_{i,t-j})+\E(u_{i,t-1}u_{i,t-j-1}) \why{展开四项}\\
+&= \gamma_u(j)-\gamma_u(j+1)-\gamma_u(j-1)+\gamma_u(j) \why{按时间间隔读出}\\
+&= 2\gamma_u(j)-\gamma_u(j-1)-\gamma_u(j+1). \why{合并}
+\end{align*}
+$j=0$ 时得方差 $\Var(\Delta u_{it})=2\gamma_u(0)-2\gamma_u(1)$。
+
+\subsubsection{\texorpdfstring{$u_{it}$}{u} 无序列相关：一阶自相关为 \texorpdfstring{$-1/2$}{-1/2}，二阶为 0}
+
+$u_{it}$ i.i.d.\ 时 $\gamma_u(0)=\sigma_u^2$，$\gamma_u(j)=0$（$j\ge1$）。代入 \eqref{eq:U12c-covdu}：
+\begin{align*}
+\Cov(\Delta u_{it},\Delta u_{i,t-1}) &= 2\cdot0-\sigma_u^2-0=-\sigma_u^2 \why{$j=1$}\\
+\Corr(\Delta u_{it},\Delta u_{i,t-1}) &= \frac{-\sigma_u^2}{2\sigma_u^2}=-\frac12 \why{$\Var(\Delta u_{it})=2\sigma_u^2$}\\
+\Cov(\Delta u_{it},\Delta u_{i,t-2}) &= 2\cdot0-0-0=0 \why{$j=2$}
+\end{align*}
+所以 \key{AR(1) 检验应当拒绝}（且统计量为负）——这是差分机械造成的，不说明模型有问题；\key{AR(2) 检验不应拒绝}。
+
+\subsubsection{\texorpdfstring{$u_{it}$}{u} 为 MA(1)：二阶协方差为 \texorpdfstring{$-\theta\sigma_e^2$}{-theta sigma\_e\^2}}
+
+用上一小节的 $\gamma_u(0)=(1+\theta^2)\sigma_e^2$，$\gamma_u(1)=\theta\sigma_e^2$，$\gamma_u(j)=0$（$j\ge2$）：
+\begin{align*}
+\Cov(\Delta u_{it},\Delta u_{i,t-1}) &= 2\theta\sigma_e^2-(1+\theta^2)\sigma_e^2-0=-(1-\theta)^2\sigma_e^2 \why{$j=1$}\\
+\Cov(\Delta u_{it},\Delta u_{i,t-2}) &= 2\cdot0-\theta\sigma_e^2-0=-\theta\sigma_e^2\neq0 \why{$j=2$}\\
+\Cov(\Delta u_{it},\Delta u_{i,t-3}) &= 2\cdot0-0-0=0 \why{$j=3$}
+\end{align*}
+于是 \key{AR(2) 检验拒绝}，而 AR(3) 检验不拒绝。对照如下：
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+$\Cov(\Delta u_{it},\Delta u_{i,t-j})$ & $j=1$ & $j=2$ & $j=3$\\
+\midrule
+$u_{it}$ i.i.d. & $-\sigma_u^2$ & $0$ & $0$\\
+$u_{it}=e_{it}+\theta e_{i,t-1}$ & $-(1-\theta)^2\sigma_e^2$ & $-\theta\sigma_e^2$ & $0$\\
+\bottomrule
+\end{tabular}
+\captionof{table}{差分误差的自协方差}\label{tab:U12c-acov}
+\end{center}
+
+\subsubsection{检验规则}
+
+\begin{thm}[Arellano--Bond 序列相关检验的使用规则]\label{thm:U12c-arrule}
+\begin{enumerate}
+  \item AR(1) 显著（$p$ 值小）：预期之中，不构成问题。
+  \item AR(2) 不显著（$p$ 值大）：支持 $u_{it}$ 无序列相关，$y_{i,t-2}$ 及更早的滞后是有效工具。
+  \item AR(2) 显著：$u_{it}$ 存在序列相关，$y_{i,t-2}$ 无效。若 AR(3) 不显著（与 MA(1) 误差一致），改用 $y_{i,t-3}$ 及更早的滞后作工具（本节 MA(1) 一小节）；否则应重新设定动态（如加入更多滞后）。
+\end{enumerate}
+\end{thm}
+
+%----------------------------------------------------------------------
+\subsection{拓展：\texorpdfstring{$m_j$}{m\_j} 统计量与 Stata 输出}
+
+\subsubsection{\texorpdfstring{$m_j$}{m\_j} 的构造与渐近分布}
+
+\tagext\ Arellano \& Bond (1991) 的检验统计量是差分残差 $j$ 阶自协方差的标准化：
+\[
+m_j=\frac{\sum_i\sum_t\Delta\hat u_{it}\,\Delta\hat u_{i,t-j}}{\sqrt{\widehat{\Var}\big(\sum_i\sum_t\Delta\hat u_{it}\,\Delta\hat u_{i,t-j}\big)}}\ \dto\ N(0,1)\qquad(\text{在“无 $j$ 阶序列相关”的 $H_0$ 下}).
+\]
+分子是样本自协方差（对个体与时期求和），分母的方差估计要考虑 $\hat\rho$ 的估计误差，具体公式见 Arellano \& Bond (1991)。$m_j$ 是双侧 $z$ 检验：$|m_j|>1.96$ 时在 5\% 水平拒绝。$u_{it}$ i.i.d.\ 时 $m_1$ 应显著为负，$m_2$ 应不显著。
+
+\subsubsection{Stata 中的报告方式}
+
+\texttt{xtabond2} 在输出底部自动报告 “Arellano-Bond test for AR(1) in first differences” 与 “AR(2)” 的 $z$ 值与 $p$ 值；官方命令 \texttt{xtabond}、\texttt{xtdpdsys} 估计后用 \texttt{estat abond}。
+
+%----------------------------------------------------------------------
+\subsection{Sargan 与 Hansen 过度识别检验在动态面板中的使用}\label{sec:U12c-overid}
+
+\subsubsection{统计量、原假设与 \texorpdfstring{$\chi^2(L-K)$}{chi2(L-K)} 分布}
+
+AB、System、FOD GMM 都是过度识别的，可以直接用第 9 章的过度识别检验：
+\[
+J=N\,\bar g(\hat\theta)\T\,\hat\Omega\inv\,\bar g(\hat\theta)\ \dto\ \chi^2(L-K),\qquad H_0:\ \text{全部 $L$ 个矩条件成立},
+\]
+$L$ 为工具（矩条件）个数，$K$ 为参数个数。以差分 GMM 为例，样本矩为 $\bar g(\hat\rho)=\frac1N\sum_iW_i\T\Delta\hat U_i$，权重中的 $\hat\Omega=\frac1N\sum_i\hat\Omega_i$（$\hat\Omega_i$ 是第 $i$ 个个体矩条件方差的估计）。代入后 $N$ 全部约去：
+\begin{align*}
+J &= N\Big(\frac1N\sum_iW_i\T\Delta\hat U_i\Big)\T\Big(\frac1N\sum_i\hat\Omega_i\Big)\inv\Big(\frac1N\sum_iW_i\T\Delta\hat U_i\Big) \why{代入定义}\\
+&= N\cdot\frac1N\cdot N\cdot\frac1N\Big(\sum_iW_i\T\Delta\hat U_i\Big)\T\Big(\sum_i\hat\Omega_i\Big)\inv\Big(\sum_iW_i\T\Delta\hat U_i\Big) \why{$(cA)\inv=c\inv A\inv$}\\
+&= \Big(\sum_iW_i\T\Delta\hat U_i\Big)\T\Big(\sum_i\hat\Omega_i\Big)\inv\Big(\sum_iW_i\T\Delta\hat U_i\Big). \why{常数相乘为 1}
+\end{align*}
+
+\subsubsection{Sargan 检验与 Hansen \texorpdfstring{$J$}{J} 检验：一步权重与两步稳健权重}
+
+两种检验的区别只在 $\hat\Omega_i$：
+\begin{itemize}
+  \item \term{Sargan 检验}{Sargan test}：用一步（同方差）权重 $\hat\Omega_i=\hat\sigma_u^2W_i\T HW_i$，即
+  \[
+  S=\Big(\sum_iW_i\T\Delta\hat U_i\Big)\T\Big(\hat\sigma_u^2\sum_iW_i\T HW_i\Big)\inv\Big(\sum_iW_i\T\Delta\hat U_i\Big).
+  \]
+  只在条件同方差下渐近服从 $\chi^2(L-K)$，\key{异方差下不稳健}；但权重不含残差，\key{不受工具过多削弱}。
+  \item \term{Hansen $J$ 检验}{Hansen J test}：用两步稳健权重 $\hat\Omega_i=W_i\T\Delta\hat U_i^{(1)}\Delta\hat U_i^{(1)\prime}W_i$（$\Delta\hat U_i^{(1)}$ 为一步残差）。\key{异方差稳健}，但\key{会被过多的工具削弱}（见下一小节）。
+\end{itemize}
+
+\subsubsection{自由度举例：差分 GMM 为 9，系统 GMM 为 13}
+
+$T=5$、不含 $x$ 时，参数只有 $\rho$，$K=1$：
+\begin{align*}
+\text{AB：}\quad L &= \frac{T(T-1)}{2}=\frac{5\times4}{2}=10,\quad J\sim\chi^2(10-1)=\chi^2(9); \why{$W_i$ 的列数}\\
+\text{System（非合并）：}\quad L &= \frac{T(T-1)}{2}+(T-1)=10+4=14,\quad J\sim\chi^2(13). \why{加 $T-1$ 个水平矩条件}
+\end{align*}
+系统 GMM 的 $K=1$ 不计常数项；含常数项时参数与工具各加 1，自由度不变。
+
+\subsubsection{拒绝原假设意味着什么}
+
+拒绝 $H_0$ 意味着某些工具无效，可能的原因包括：误差序列相关（$y_{i,t-2}$ 失效）、动态设定错误（漏掉滞后项）、System GMM 的初始条件不成立（水平矩条件失效）等。但 $J$ 检验本身\key{无法指出是哪一个}工具无效；不拒绝也只说明各矩条件之间相互一致（第 9 章）。
+
+%----------------------------------------------------------------------
+\subsection{拓展：工具过多使 \texorpdfstring{$J$}{J} 检验失效（Roodman, 2009）}\label{sec:U12c-toomany}
+
+\tagext\ Roodman (2009, \emph{Oxford Bulletin of Economics and Statistics}) 专门讨论了\term{工具过多}{too many instruments}问题。差分 GMM 的工具数 $L=T(T-1)/2\approx T^2/2$，随 $T$ 平方增长，系统 GMM 更多。工具过多有三个后果。
+
+\subsubsection{后果一：过度拟合，估计被拉向未加工具的有偏估计}
+
+工具数 $L$ 接近个体数 $N$ 时，第一阶段几乎完美地拟合内生回归元，GMM 估计被拉向不加工具的估计。极端情形可以直接验证：若工具多到能张成回归元（第一阶段拟合值等于回归元本身，$P_ZX=X$），则
+\begin{align*}
+\hat\beta_{2SLS} &= (X\T P_ZX)\inv X\T P_Zy \why{2SLS 公式}\\
+&= \big((P_ZX)\T X\big)\inv(P_ZX)\T y \why{$P_Z$ 对称}\\
+&= (X\T X)\inv X\T y=\hat\beta_{OLS}. \why{$P_ZX=X$}
+\end{align*}
+在动态面板中，差分 GMM 被拉向有偏的 FD-OLS（概率极限 $(\rho-1)/2$），系统 GMM 被拉向混合 OLS（向上偏）。
+
+\subsubsection{后果二：Hansen \texorpdfstring{$J$}{J} 被削弱，\texorpdfstring{$p$}{p} 值接近 1 是警告信号}
+
+两步权重 $\hat\Omega_2=\sum_iW_i\T\Delta\hat U_i\Delta\hat U_i\T W_i$ 是 $L\times L$ 的，却只用 $N$ 个个体估计。记 $a_i=W_i\T\Delta\hat U_i$（$L\times1$），则
+\[
+\hat\Omega_2=\sum_{i=1}^Na_ia_i\T,\qquad \rank(\hat\Omega_2)\le\sum_{i=1}^N\rank(a_ia_i\T)\le N .
+\]
+$L>N$ 时 $\hat\Omega_2$ 必然奇异；$L$ 虽小于 $N$ 但很大时它也很不精确。结果 Hansen $J$ 被严重压低，$p$ 值高得“不可信”（如 $p=1.000$）——\key{这不是“通过检验”，而是警告信号}。
+
+\subsubsection{后果三：两步标准误偏小，需 Windmeijer 校正}
+
+两步 GMM 的常规标准误忽略了权重矩阵的估计误差，工具越多低估越严重，必须使用 Windmeijer (2005) 校正后的标准误。
+
+\subsubsection{经验法则：报告工具数，工具数不超过个体数}
+
+\begin{method}[控制工具数的经验法则]
+\begin{enumerate}
+  \item 报告工具个数 $L$ 与个体数 $N$；
+  \item 工具数不应超过个体数：$L<N$；
+  \item 用 \texttt{collapse}、限制滞后阶数（\texttt{laglimits()}）做稳健性检验（见本章 Stata 实现一节），Hansen §17.39 也建议“限制用作工具的滞后数”作为折中；
+  \item Hansen $J$ 的 $p$ 值接近 1 时，先怀疑工具过多，再谈模型设定。
+\end{enumerate}
+\end{method}
+
+\subsubsection{Difference-in-Hansen 检验：检验一个工具子集}
+
+\term{Difference-in-Hansen 检验}{difference-in-Hansen test}（即第 9 章的 \term{$C$ 统计量}{C statistic}）比较“全部工具”与“去掉某一子集”两次估计的 $J$ 之差：
+\[
+C=J_{\text{全部}}-J_{\text{去掉子集}}\ \dto\ \chi^2(L-L_a),
+\]
+其中 $L_a$ 为保留的工具数，$L-L_a$ 为被检验子集的工具数。原假设是：在其余工具有效的前提下，该子集也有效。它最常用于检验 System GMM 新增的\key{水平方程工具}，即均值平稳初始条件。例如 $T=5$ 的非合并系统 GMM，水平工具有 $T-1=4$ 个，$C\sim\chi^2(4)$。
+
+%----------------------------------------------------------------------
+\subsection{即时练习：序列相关与检验}
+
+\begin{prac}[序列相关与检验]\label{pr:U12c-serial}
+(1) 设 $u_{it}=e_{it}+\theta e_{i,t-1}$。计算 $\Cov(\Delta u_{it},\Delta u_{i,t-1})$、$\Cov(\Delta u_{it},\Delta u_{i,t-2})$、$\Cov(\Delta u_{it},\Delta u_{i,t-3})$。\\
+(2) 某 AB 估计报告：AR(1) $p=0.000$，AR(2) $p=0.003$，AR(3) $p=0.61$。你如何解读？应如何修改工具？\\
+(3) 某 System GMM 报告 $N=80$，工具数 $=126$，Hansen $p=1.000$。这说明模型设定很好吗？
+\answer
+(1) 先求 $\gamma_u(0)=(1+\theta^2)\sigma_e^2$，$\gamma_u(1)=\theta\sigma_e^2$，$\gamma_u(j)=0$（$j\ge2$）。用 \eqref{eq:U12c-covdu}：
+\begin{align*}
+j=1:&\quad 2\theta\sigma_e^2-(1+\theta^2)\sigma_e^2-0=-(1-\theta)^2\sigma_e^2; \why{$1-2\theta+\theta^2=(1-\theta)^2$}\\
+j=2:&\quad 0-\theta\sigma_e^2-0=-\theta\sigma_e^2; \why{只剩 $-\gamma_u(1)$}\\
+j=3:&\quad 0-0-0=0. \why{$\gamma_u(2)=\gamma_u(3)=\gamma_u(4)=0$}
+\end{align*}
+(2) AR(1) 显著是正常的；AR(2) 显著说明 $u_{it}$ 有序列相关，$y_{i,t-2}$ 无效；AR(3) 不显著与 MA(1) 误差一致。应把工具改为 $y_{i,t-3},y_{i,t-4},\dots$（\texttt{gmm(L.y, laglimits(2 .))}），再看 Hansen 检验。\\
+(3) 不能。工具数 126 远超个体数 80，$\hat\Omega$ 奇异、不可靠，Hansen 检验被严重削弱，$p=1.000$ 是工具过多的警告信号。应合并（\texttt{collapse}）并限制滞后阶数，使工具数明显小于 80，再重新检验。
+\end{prac}
+
+\begin{keypt}[设定检验的常考点]
+用 \eqref{eq:U12c-covdu} 说明“AR(1) 应显著、AR(2) 不应显著”；由 MA(1) 误差推出 $\E(y_{i,t-2}\Delta u_{it})=-\theta\sigma_e^2$，因而工具从 $y_{i,t-3}$ 开始；写出 $J\sim\chi^2(L-K)$ 并数自由度；解释 Hansen $p=1.000$ 为何是警告。
+\end{keypt}
+
+\begin{english}
+\textbf{Specification tests.} If $u_{it}$ is serially uncorrelated, $\Delta u_{it}$ is MA(1) with first-order autocorrelation $-1/2$: the Arellano--Bond test should detect first-order serial correlation in the differenced residuals but not second-order correlation. Rejection of the AR(2) test indicates that $u_{it}$ is serially correlated, so $y_{i,t-2}$ is not a valid instrument; if $u_{it}$ is MA(1), $E(y_{i,t-2}\Delta u_{it})=-\theta\sigma_e^2$ and only $y_{i,t-3}$ and earlier lags remain valid. The overidentifying restrictions are tested by the Sargan test (not robust to heteroskedasticity) or the Hansen $J$ test, which is asymptotically $\chi^2(L-K)$. Because the number of instruments grows quadratically in $T$, the Hansen test can be severely weakened by instrument proliferation, so a $p$-value close to one is a warning sign rather than evidence of a good model. The number of instruments should be reported and kept below the number of groups, and the level instruments of system GMM should be checked by a difference-in-Hansen test.
+\end{english}
+
+%======================================================================
+\section{Stata 实现：xtabond2}\label{sec:U12c-stata}
+
+本章的三种动态面板 GMM 估计量——差分 GMM、系统 GMM、FOD GMM——都可以用同一条命令 \texttt{xtabond2} 实现，区别只在两个选项。本节先讲语法，再讲三种估计量的选项、限制工具数的方法、输出解读，最后给出完整的实证流程模板。
+
+%----------------------------------------------------------------------
+\subsection{基本语法：gmmstyle() 与 ivstyle()}
+
+\subsubsection{命令格式与准备工作}
+
+面板 AR(1) 加一个外生变量 $x$ 的基本写法为
+\begin{center}
+\texttt{xtabond2 y L.y x, gmmstyle(L.y) ivstyle(x)}
+\end{center}
+其中 \texttt{L.} 是滞后算子（\texttt{L.y} 即 $y_{i,t-1}$），\texttt{D.} 是差分算子；\texttt{gmmstyle()}、\texttt{ivstyle()} 可简写为 \texttt{gmm()}、\texttt{iv()}。逗号前列出回归元，逗号后的两个选项告诉 Stata \key{用什么作工具、怎样作工具}。\texttt{xtabond2} 是用户编写的命令（Roodman, 2009, \emph{Stata Journal}），使用前需先 \texttt{ssc install xtabond2}，并用 \texttt{xtset id year} 声明面板结构。
+
+\subsubsection{gmmstyle()：内生或前定变量，每个滞后、每个时期各占一列}
+
+\texttt{gmmstyle()} 放内生或前定的变量。它的滞后以“GMM 方式”作工具：\key{每个滞后、每个时期各占一列}，生成的正是 Arellano--Bond 的块对角工具矩阵 $W_i$。
+\begin{itemize}
+  \item 差分方程：\texttt{gmm(L.y)} 使用 \texttt{L.y} 的一阶及以上滞后，即 $y_{i,t-2},y_{i,t-3},\dots$（\texttt{L.y} 本身是 $y_{i,t-1}$，其一阶滞后是 $y_{i,t-2}$）；
+  \item 水平方程（系统 GMM）：使用 $\Delta y_{i,t-1}$。
+\end{itemize}
+
+\subsubsection{ivstyle()：严格外生变量，每个变量只占一列}
+
+\texttt{ivstyle()} 放严格外生的变量，以普通 IV 方式作工具：\key{每个变量一列}（各期共用这一列）。差分方程中用 $\Delta x_{it}$，水平方程中用 $x_{it}$。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLLL}
+\toprule
+写法 & 适用变量 & 差分方程中的工具 & 水平方程中的工具\\
+\midrule
+\texttt{gmm(L.y)} & 滞后被解释变量（前定） & $y_{i,t-2},y_{i,t-3},\dots,y_{i0}$，每期每个滞后一列 & $\Delta y_{i,t-1}$\\
+\texttt{iv(x)} & 严格外生 $x$ & $\Delta x_{it}$，共一列 & $x_{it}$\\
+\texttt{gmm(x, laglimits(1 .))} & 前定 $x$ & $x_{i,t-1},x_{i,t-2},\dots$ & —\\
+\texttt{gmm(x, laglimits(2 .))} & 内生 $x$ & $x_{i,t-2},x_{i,t-3},\dots$ & —\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{\texttt{xtabond2} 的工具写法（三类 $x$ 的工具推导见本章差分 GMM 一节）}\label{tab:U12c-ivgmm}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{三种估计量的选项：noleveleq、默认与 noleveleq orthogonal}
+
+\subsubsection{选项对照表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{llL}
+\toprule
+估计量 & \texttt{xtabond2} 选项 & 说明\\
+\midrule
+Arellano--Bond 差分 GMM & \texttt{noleveleq} & 只用差分方程，不用水平方程\\
+Blundell--Bond 系统 GMM & （不加选项，默认） & 加入水平方程 $\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$\\
+FOD GMM & \texttt{noleveleq orthogonal} & 用 FOD 代替一阶差分，不用水平方程\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{\texttt{xtabond2} 中三种估计量的选项}\label{tab:U12c-options}
+\end{center}
+
+\subsubsection{noleveleq 关掉的正是水平方程矩条件}
+
+系统 GMM 比差分 GMM 多出的一组矩条件是水平方程矩条件
+\[
+\E\big[(y_{it}-\rho\,y_{i,t-1})\cdot\Delta y_{i,t-1}\big]=0,\qquad t=2,\dots,T .
+\]
+\texttt{noleveleq}（no level equation）就是关掉这一组矩条件：不加选项时 \texttt{xtabond2} 默认带水平方程，即系统 GMM；加 \texttt{noleveleq} 只剩差分方程，即差分 GMM；再加 \texttt{orthogonal}（可简写为 \texttt{orth}），变换由一阶差分改为前向正交离差，即 FOD GMM。AB 与 FOD 不用水平方程矩条件，System 用它。
+
+\subsubsection{易错：水平方程的工具是 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y(i,t-1)}，不是 \texorpdfstring{$\Delta y_{it}$}{Delta y(i,t)}}
+
+水平方程的误差是 $\alpha_i+u_{it}$。若误用 $\Delta y_{it}$ 作工具：
+\begin{align*}
+\E\big[\Delta y_{it}(\alpha_i+u_{it})\big] &= \E(\alpha_i\Delta y_{it})+\E(y_{it}u_{it})-\E(y_{i,t-1}u_{it}) \why{期望线性性}\\
+&= 0+\sigma_u^2-0=\sigma_u^2\neq0 . \why{初始条件；$y_{it}$ 含 $u_{it}$}
+\end{align*}
+$\Delta y_{it}$ 含当期冲击 $u_{it}$，不是有效工具；$\Delta y_{i,t-1}$ 只含 $t-1$ 期及以前的冲击，才是有效工具。
+
+%----------------------------------------------------------------------
+\subsection{拓展：限制工具数——laglimits() 与 collapse}\label{sec:U12c-collapse}
+
+\tagext\ 这两个选项写在 \texttt{gmmstyle()} 的括号内，用来应对上一节的工具过多问题。
+
+\subsubsection{laglimits(a b)：只用第 a 到第 b 阶滞后}
+
+\texttt{laglimits(a b)}（可简写为 \texttt{lag(a b)}）表示只用 \texttt{gmm()} 中变量的第 $a$ 阶到第 $b$ 阶滞后；$b$ 写成 \texttt{.} 表示不设上限。阶数是相对于括号中的变量计算的：
+\begin{itemize}
+  \item \texttt{gmm(L.y, laglimits(1 3))}：\texttt{L.y} 的第 1--3 阶滞后，即只用 $y_{i,t-2},y_{i,t-3},y_{i,t-4}$；
+  \item \texttt{gmm(L.y, laglimits(2 .))}：从 \texttt{L.y} 的第 2 阶滞后 $y_{i,t-3}$ 开始（MA(1) 误差时使用）；
+  \item 默认相当于 \texttt{laglimits(1 .)}：$y_{i,t-2},y_{i,t-3},\dots,y_{i0}$ 全部使用。
+\end{itemize}
+
+\subsubsection{collapse：每个滞后只占一列}
+
+\texttt{collapse} 把“每个滞后、每个时期一列”合并为“每个滞后一列”。合并后，矩条件由逐期成立变为对 $t$ 求和的形式：
+\[
+\sum_t\E(y_{i,t-2}\Delta u_{it})=0,\qquad \sum_t\E(y_{i,t-3}\Delta u_{it})=0,\qquad\dots
+\]
+合并后的每个矩条件都是原矩条件之和，所以只要原矩条件成立，合并后的也成立：估计仍然一致，只损失一些效率，换来工具数由 $O(T^2)$ 降为 $O(T)$。
+
+\subsubsection{例：\texorpdfstring{$T=4$}{T=4} 的合并工具矩阵}
+
+\begin{exmp}[$T=4$ 的合并工具矩阵]\label{ex:U12c-collapse}
+观测 $y_{i0},\dots,y_{i4}$，差分方程 $t=2,3,4$。写出 \texttt{collapse} 前后的工具矩阵，并验证合并后的矩条件。
+\solution 合并前是 AB 块对角矩阵（$3\times6$）；合并时把“同一阶滞后”放进同一列，没有该滞后的位置填 0：
+\[
+W_i=\left(\begin{array}{c|cc|ccc}
+y_{i0} & 0 & 0 & 0 & 0 & 0\\ \hline
+0 & y_{i0} & y_{i1} & 0 & 0 & 0\\ \hline
+0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2}
+\end{array}\right)
+\ \xrightarrow{\ \texttt{collapse}\ }\
+W_i^c=\begin{pmatrix}
+y_{i0} & 0 & 0\\
+y_{i1} & y_{i0} & 0\\
+y_{i2} & y_{i1} & y_{i0}
+\end{pmatrix}\ (3\times3).
+\]
+$W_i^c$ 的第 1 列是“二阶滞后” $y_{i,t-2}$，第 2 列是“三阶滞后” $y_{i,t-3}$，第 3 列是“四阶滞后” $y_{i,t-4}$。以 $\Delta U_i=(\Delta u_{i2},\Delta u_{i3},\Delta u_{i4})\T$ 验证：
+\begin{align*}
+W_i^{c\prime}\Delta U_i &= \begin{pmatrix}y_{i0} & y_{i1} & y_{i2}\\ 0 & y_{i0} & y_{i1}\\ 0 & 0 & y_{i0}\end{pmatrix}\begin{pmatrix}\Delta u_{i2}\\ \Delta u_{i3}\\ \Delta u_{i4}\end{pmatrix} \why{转置}\\
+&= \begin{pmatrix}y_{i0}\Delta u_{i2}+y_{i1}\Delta u_{i3}+y_{i2}\Delta u_{i4}\\ y_{i0}\Delta u_{i3}+y_{i1}\Delta u_{i4}\\ y_{i0}\Delta u_{i4}\end{pmatrix}
+=\begin{pmatrix}\sum_t y_{i,t-2}\Delta u_{it}\\ \sum_t y_{i,t-3}\Delta u_{it}\\ \sum_t y_{i,t-4}\Delta u_{it}\end{pmatrix}. \why{逐行相乘}
+\end{align*}
+$\E(W_i^{c\prime}\Delta U_i)=0$ 正是上面对 $t$ 求和的矩条件；矩条件由 6 个减为 3 个（$=T-1$）。
+\end{exmp}
+
+\subsubsection{工具数对照：\texorpdfstring{$T=10$}{T=10} 与 \texorpdfstring{$T=20$}{T=20}}
+
+不含 $x$ 的差分 GMM，第 $t$ 个差分方程（$t=2,\dots,T$）在默认设定下有 $t-1$ 个工具；\texttt{laglimits(1 3)} 时有 $\min(t-1,3)$ 个；合并后每阶滞后一列。
+\begin{align*}
+\text{全部滞后：}\quad &\sum_{t=2}^T(t-1)=\frac{T(T-1)}{2} \why{等差数列}\\
+\texttt{laglimits(1 3)}\text{：}\quad &1+2+3(T-3)=3T-6\quad(T\ge3) \why{$t=2,3$ 各 1、2 个，其余各 3 个}\\
+\texttt{collapse}\text{：}\quad &T-1 \why{滞后 $2,\dots,T$ 阶各一列}\\
+\texttt{laglimits(1 3) collapse}\text{：}\quad &3 \why{三阶滞后各一列}
+\end{align*}
+例如 $T=20$、\texttt{laglimits(1 3)}：$1+2+3\times17=54$。
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\toprule
+AB 工具数（无 $x$） & $T=10$ & $T=20$\\
+\midrule
+全部滞后（默认） & 45 & 190\\
+\texttt{laglimits(1 3)} & 24 & 54\\
+\texttt{collapse} & 9 & 19\\
+\texttt{laglimits(1 3) collapse} & 3 & 3\\
+\bottomrule
+\end{tabular}
+\captionof{table}{限制工具数的效果}\label{tab:U12c-count}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{拓展：其他常用选项、输出解读与官方命令}
+
+\subsubsection{twostep、robust 与 small}
+
+\tagext
+\begin{itemize}
+  \item \texttt{twostep}：两步 GMM（默认是一步）；
+  \item \texttt{robust}：稳健标准误；与 \texttt{twostep} 连用时报告 Windmeijer 校正后的标准误；
+  \item \texttt{small}：报告小样本 $t$、$F$ 统计量（而不是 $z$、Wald $\chi^2$）。
+\end{itemize}
+
+\subsubsection{输出中的诊断信息}
+
+\texttt{xtabond2} 的输出依次报告：工具个数（Number of instruments）、个体数（Number of groups）、Arellano-Bond test for AR(1)/AR(2) in first differences、Sargan test、Hansen test、Difference-in-Hansen tests。读输出时按本章设定检验一节的规则：AR(1) 应显著、AR(2) 不应显著；工具数应小于个体数；Hansen $p$ 值合理且不接近 1；系统 GMM 的水平工具子集的 Difference-in-Hansen 检验不应拒绝。
+
+\subsubsection{官方命令与面板单位根检验}
+
+Stata 官方命令：\texttt{xtabond}（Arellano--Bond）、\texttt{xtdpdsys}（Blundell--Bond）、\texttt{xtdpd}（通用），估计后用 \texttt{estat abond} 报告 AR 检验。面板单位根检验：\texttt{xtunitroot llc y}、\texttt{xtunitroot ips y}（见本章面板单位根一节）。
+
+%----------------------------------------------------------------------
+\subsection{完整的实证流程模板}
+
+\subsubsection{Stata 代码模板}
+
+下面的模板依次估计两个“有偏的界”、三种 GMM、限制工具数的稳健性检验，以及 $x$ 为前定或内生时的写法（\texttt{yr*} 为年份虚拟变量，用以控制时间效应）。
+\begin{lstlisting}
+* ---------- preparation ----------
+ssc install xtabond2                  // user-written command (Roodman 2009)
+xtset id year
+tab year, gen(yr)                     // year dummies (time effects)
+xtunitroot ips y                      // when T is large: panel unit-root test first
+* ---------- two biased bounds ----------
+reg   y L.y x yr*, vce(cluster id)         // pooled OLS: rho biased upward
+xtreg y L.y x yr*, fe vce(cluster id)      // WG: rho biased downward (Nickell)
+* ---------- (1) Arellano-Bond difference GMM ----------
+xtabond2 y L.y x yr*, gmmstyle(L.y) ivstyle(x yr*) noleveleq twostep robust
+* ---------- (2) Blundell-Bond system GMM (level equation by default) ----------
+xtabond2 y L.y x yr*, gmmstyle(L.y) ivstyle(x yr*) twostep robust
+* ---------- (3) FOD GMM ----------
+xtabond2 y L.y x yr*, gmmstyle(L.y) ivstyle(x yr*) noleveleq orthogonal twostep robust
+* ---------- (4) robustness: fewer instruments ----------
+xtabond2 y L.y x yr*, gmmstyle(L.y, laglimits(1 3) collapse) ivstyle(x yr*) twostep robust
+* ---------- (5) x predetermined / endogenous ----------
+xtabond2 y L.y x yr*, gmmstyle(L.y) gmmstyle(x, laglimits(1 .)) ivstyle(yr*) twostep robust
+xtabond2 y L.y x yr*, gmmstyle(L.y) gmmstyle(x, laglimits(2 .)) ivstyle(yr*) twostep robust
+* ---------- official commands ----------
+xtabond y x, lags(1) twostep vce(robust)
+estat abond                           // AR(1)/AR(2) tests
+xtdpdsys y x, lags(1) twostep vce(robust)
+\end{lstlisting}
+
+\subsubsection{报告清单}
+
+\begin{method}[动态面板 GMM 的报告清单]
+\begin{enumerate}
+  \item $\hat\rho$ 与关键系数，附 Windmeijer 稳健标准误；
+  \item 个体数 $N$、工具数 $L$（应 $<N$）；
+  \item AR(1)/AR(2) 检验的 $p$ 值；
+  \item Hansen（及 Sargan）检验的 $p$ 值；系统 GMM 还要报告水平工具的 Difference-in-Hansen $p$ 值；
+  \item 说明 $\hat\rho$ 是否落在 WG 与混合 OLS 之间。
+\end{enumerate}
+\end{method}
+
+\begin{english}
+\textbf{Stata.} The dynamic panel GMM estimators are implemented by \texttt{xtabond2 y L.y x, gmmstyle(L.y) ivstyle(x)}. Endogenous or predetermined variables enter \texttt{gmmstyle()}, which creates one instrument column for each lag and each period; strictly exogenous variables enter \texttt{ivstyle()}, one column per variable. The option \texttt{noleveleq} gives Arellano--Bond difference GMM, the default (with the level equation) gives Blundell--Bond system GMM, and \texttt{noleveleq orthogonal} gives FOD GMM. The options \texttt{collapse} and \texttt{laglimits()} reduce the instrument count, and \texttt{twostep robust} gives two-step estimates with Windmeijer-corrected standard errors. The output reports the number of instruments and groups, the AR(1)/AR(2) tests and the Sargan/Hansen tests.
+\end{english}
+
+%======================================================================
+\section{估计量对比总表与模拟比较}\label{sec:U12c-compare}
+
+本节把本章出现的七个估计量放在一起比较：先用两张表汇总它们的变换、工具、假设与性质，再用一个蒙特卡洛模拟直观检验前面的理论结论，最后给出实务中的决策流程。
+
+%----------------------------------------------------------------------
+\subsection{估计量对比总表}
+
+以面板 AR(1) 模型 $y_{it}=\alpha_i+\rho\,y_{i,t-1}+u_{it}$ 为准，观测 $y_{i0},\dots,y_{iT}$。记 $\sigma_v^2=\sigma_u^2/(1-\rho^2)$，$m=\sigma_\alpha^2/(1-\rho)^2$。
+
+\subsubsection{变换、工具与矩条件个数}
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.75cm}>{\raggedright\arraybackslash}p{1.45cm}L>{\raggedright\arraybackslash}p{2.45cm}>{\raggedright\arraybackslash}p{3.3cm}}
+\toprule
+估计量 & 模型变换 & 工具 / 矩条件 & 矩条件数 & Stata\\
+\midrule
+混合 OLS & 无 & 无（OLS） & — & \texttt{reg y L.y}\\
+WG / FE & 组内离差 & 无（OLS） & — & \texttt{xtreg y L.y, fe}\\
+FD-OLS & 一阶差分 & 无（OLS） & — & \texttt{reg D.y LD.y, nocons}\\
+Anderson--Hsiao & 一阶差分 & $y_{i,t-2}$ 作 $\Delta y_{i,t-1}$ 的工具 & 1（恰好识别） & \texttt{ivregress 2sls D.y (LD.y = L2.y), nocons}\\
+Arellano--Bond（差分 GMM） & 一阶差分 & $y_{i0},\dots,y_{i,t-2}$；块对角 $W_i$；$\E(W_i\T\Delta U_i)=0$；权重 $\sum_iW_i\T HW_i$ & $\frac{T(T-1)}{2}$ & \texttt{xtabond2 ..., noleveleq}；\texttt{xtabond}\\
+Blundell--Bond（系统 GMM） & 一阶差分 $+$ 水平 & AB 矩条件 $+$ $\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$；$W_i^*$ & $\frac{T(T-1)}{2}+(T-1)$ & \texttt{xtabond2}（默认）；\texttt{xtdpdsys}\\
+FOD GMM & 前向正交离差 & $y_{i0},\dots,y_{i,t-1}$（含 $y_{i,t-1}$）；$Z_t$、$P_t$；2SLS & $\frac{T(T-1)}{2}$ & \texttt{xtabond2 ..., noleveleq orthogonal}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{动态面板估计量对比（一）：变换、工具与命令}\label{tab:U12c-comp1}
+\end{center}
+
+\subsubsection{关键假设、优点与缺点}
+
+\begin{center}
+\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.75cm}>{\raggedright\arraybackslash}p{3.6cm}>{\raggedright\arraybackslash}p{3.6cm}L}
+\toprule
+估计量 & 关键假设 & 优点 & 缺点 / 性质\\
+\midrule
+混合 OLS & 需 $\E(\alpha_iy_{i,t-1})=0$（不成立） & 简单 & 不一致，向上偏：$\plim=\rho+\frac{(1-\rho)m}{m+\sigma_v^2}$\\
+WG / FE & 需严格外生（不成立） & $T$ 大时一致 & Nickell 偏误 $\approx-\frac{1+\rho}{T-1}$；$T$ 大时渐近有偏，$\pm1.96$ 失效\\
+FD-OLS & — & — & 不一致：$\plim=\frac{\rho-1}{2}$，不随 $T$ 改善\\
+Anderson--Hsiao & 序贯外生；$u_{it}$ 无序列相关 & 简单；$N\to\infty$ 一致、渐近正态 & 非有效；$\rho\to1$ 或 $\sigma_\alpha^2/\sigma_u^2$ 大时弱工具\\
+Arellano--Bond & 同上（一步估计有效还需条件同方差） & 有效 GMM；不需要初始条件假设 & 多个弱工具 $\Rightarrow$ 渐近偏误（依赖 $T/N$）；工具数 $\sim T^2$；计算量大\\
+Blundell--Bond & 同上 $+$ 均值平稳初始条件（有 $x$ 时还需 $\E(\alpha_i\Delta x_{it})=0$） & 强工具；有限样本表现好，$\rho$ 近 1 时尤甚 & 初始条件不成立则有偏；工具更多；须谨慎使用\\
+FOD GMM & 同 AB & 误差保持 i.i.d.；$y_{i,t-1}$ 可作工具；2SLS 形式、只需小矩阵求逆；非平衡面板损失少 & 全工具时与一步 AB 数值相同，偏误性质相同；$\sqrt{NT}(\hat\rho-\rho)\dto N(0,1-\rho^2)$ 需 $T/N\to0$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{动态面板估计量对比（二）：假设与性质}\label{tab:U12c-comp2}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{蒙特卡洛模拟：各估计量的表现}\label{sec:U12c-mc}
+
+\subsubsection{模拟设定}
+
+为直观检验本章的理论结论，本书做了如下模拟：$N=500$，观测 $y_{i0},\dots,y_{i5}$（$T=5$），$\alpha_i\sim N(0,1)$，$u_{it}\sim N(0,1)$，$y_{i0}$ 取自平稳分布 $y_{i0}=\frac{\alpha_i}{1-\rho}+v_{i0}$，$v_{i0}\sim N(0,\sigma_v^2)$（均值平稳，System GMM 的假设成立），重复 300 次；AB、System 为一步估计，全部使用可用滞后作工具。
+
+\subsubsection{模拟结果}
+
+\begin{center}
+\small
+\begin{tabular}{lccccccc}
+\toprule
+真值 & 混合 OLS & WG & FD-OLS & AH & AB & System & FOD\\
+\midrule
+$\rho=0.5$ & 0.875 & 0.170 & $-0.248$ & 0.503 & 0.494 & 0.508 & 0.494\\
+ & (0.009) & (0.023) & (0.020) & (0.068) & (0.061) & (0.046) & (0.061)\\
+$\rho=0.9$ & 0.995 & 0.437 & $-0.050$ & 0.943 & 0.714 & 0.924 & 0.714\\
+ & (0.002) & (0.021) & (0.021) & (1.210) & (0.217) & (0.050) & (0.217)\\
+\addlinespace
+理论 plim & 0.875 / 0.995 & 0.169 / 0.437 & $-0.25$ / $-0.05$ & \multicolumn{4}{c}{一致（$N\to\infty$）}\\
+\bottomrule
+\end{tabular}
+\captionof{table}{各估计量的模拟均值（括号内为标准差），$N=500$，$T=5$，300 次重复}\label{tab:U12c-mc}
+\end{center}
+
+\subsubsection{解读一：失效估计量的模拟均值与理论概率极限吻合}
+
+混合 OLS、WG、FD-OLS 的模拟均值与本章推出的概率极限吻合。以 $\rho=0.5$（$\sigma_\alpha^2=\sigma_u^2=1$）为例：
+\begin{align*}
+m &= \frac{\sigma_\alpha^2}{(1-\rho)^2}=\frac{1}{0.25}=4,\qquad \sigma_v^2=\frac{1}{1-0.25}=\frac43 \why{定义}\\
+\plim\hat\rho_{\text{POLS}} &= 0.5+\frac{0.5\times4}{4+4/3}=0.5+0.375=0.875 \why{混合 OLS 公式}\\
+\plim\hat\rho_{WG} &= 0.5-0.331=0.169 \why{精确 Nickell 偏误，$T=5$}\\
+\plim\hat\rho_{FD} &= \frac{0.5-1}{2}=-0.25 \why{$(\rho-1)/2$}
+\end{align*}
+$\rho=0.9$ 时同理：$m=100$，$\sigma_v^2=1/0.19\approx5.263$，混合 OLS 为 $0.9+\frac{0.1\times100}{105.263}\approx0.995$；WG 为 $0.9-0.463=0.437$；FD-OLS 为 $-0.05$。
+
+混合 OLS 在上、WG 在下，\key{真值夹在两者之间}。实务中常用这一点检查 GMM 估计是否可信：可信的 $\hat\rho$ 应大致落在 WG 与混合 OLS 之间（\tagext\ Bond, 2002）。
+
+\subsubsection{解读二：\texorpdfstring{$\rho=0.5$}{rho=0.5} 时 IV/GMM 估计量都近似无偏，System 最精确}
+
+$\rho=0.5$ 时 AH、AB、System、FOD 四个估计量的均值都接近 0.5；System 的标准差最小（0.046），因为它多用了 $T-1$ 个强的水平矩条件。
+
+\subsubsection{解读三：\texorpdfstring{$\rho=0.9$}{rho=0.9} 时弱工具问题暴露}
+
+\begin{itemize}
+  \item \key{AH 极其分散}：标准差高达 1.21。$\rho=0.9$、$\sigma_\alpha^2/\sigma_u^2=1$ 时 AH 第一阶段系数只有 $\gamma\approx-0.005$（见本章前文 Anderson--Hsiao 第一阶段系数的计算），弱工具下 AH 估计量近乎没有有限矩，均值与标准差随模拟种子剧烈变化——换种子重做，标准差在 0.5 到 7 之间波动，但中位数稳定在 0.9 附近、四分位距约为 $[0.70,1.14]$，“极其分散”这一结论不变。
+  \item \key{AB 明显向下偏}：均值 0.714，偏向 WG 的方向。原因是弱工具时 GMM 估计量偏向未加工具的估计——这里是有偏的 FD-OLS，与本章设定检验一节“工具过多”的过度拟合机制相同。
+  \item \key{System GMM 依然表现良好}：均值 0.924，标准差 0.050——这正是 Blundell--Bond 的卖点：水平方程的工具 $\Delta y_{i,t-1}$ 在 $\rho$ 接近 1 时仍然是强工具。
+\end{itemize}
+
+\subsubsection{解读四：AB 与 FOD 在每次重复中完全相同}
+
+AB 与 FOD 的结果在每一次重复中都完全相同（差异在 $10^{-15}$ 量级），印证了 Arellano--Bover 的数值等价结论：使用全部可用滞后作工具时，一步差分 GMM 与 FOD GMM 给出同一个估计值。
+
+%----------------------------------------------------------------------
+\subsection{实务决策流程}\label{sec:U12c-flow}
+
+\subsubsection{五步决策流程}
+
+\begin{method}[动态面板估计的实务决策流程]
+\begin{enumerate}
+  \item \key{先看 $T$}：$T$ 较大时先做面板单位根检验（LLC / IPS）；$T\gg N$ 时考虑偏误修正的 WG，而不是 GMM。
+  \item \key{算两个“界”}：混合 OLS（上界）与 WG（下界）。
+  \item \key{基准：AB 差分 GMM}（加时间虚拟变量，两步 $+$ Windmeijer 稳健标准误）。检查：AR(2) 不显著；Hansen $p$ 值合理且不接近 1；工具数 $<N$。
+  \item \key{若 AB 估计接近甚至低于 WG}，或序列高度持续（$\hat\rho$ 接近 1），怀疑弱工具 $\Rightarrow$ 改用 System GMM；论证初始条件的合理性，并用 Difference-in-Hansen 检验水平工具。
+  \item \key{稳健性}：\texttt{collapse}、\texttt{laglimits()}、一步 vs 两步、FOD vs FD；把 $x$ 分别视为严格外生 / 前定 / 内生。
+\end{enumerate}
+\end{method}
+
+\subsubsection{为什么“AB 低于 WG”是弱工具的信号}
+
+WG 的概率极限低于真值（Nickell 偏误），FD-OLS 的概率极限 $(\rho-1)/2$ 更低。弱工具时 GMM 被拉向 FD-OLS，所以 AB 估计会向下偏；若它接近甚至低于 WG 这个“下界”，说明弱工具偏误已经很严重。模拟中 $\rho=0.9$ 时 AB 的均值 0.714 明显低于真值 0.9，向 WG（0.437）的方向偏移；System 则回到了 0.924。
+
+\begin{keypt}[估计量比较的常考点]
+给出各估计量的方向：混合 OLS 向上偏、WG 向下偏、FD-OLS 收敛到 $(\rho-1)/2$；说明 AB 在 $\rho$ 接近 1 时因弱工具向下偏、System GMM 为何更好、代价是什么（初始条件）；能根据一组估计结果判断哪个可信。
+\end{keypt}
+
+\begin{english}
+\textbf{Comparing estimators.} Pooled OLS is biased upward because $y_{i,t-1}$ is positively correlated with $\alpha_i$, while the within-group estimator is biased downward (Nickell bias of order $1/T$), so a credible estimate of $\rho$ should lie between these two bounds. First-differenced OLS converges to $(\rho-1)/2$ and does not improve as $T$ grows. The Anderson--Hsiao and Arellano--Bond estimators are consistent as $N\to\infty$, but when $\rho$ is close to one the lagged levels are weak instruments: in our simulation with $\rho=0.9$ the Anderson--Hsiao estimator is extremely dispersed and difference GMM is biased toward the within-group estimate. System GMM, which adds the level equation instrumented by $\Delta y_{i,t-1}$, remains nearly unbiased and precise, provided that the mean-stationarity initial condition holds. With all available lags as instruments, one-step difference GMM and FOD GMM are numerically identical.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U12c-summary}
+
+\subsection{核心公式与结论表}
+
+{\small
+\renewcommand{\arraystretch}{1.3}
+\begin{longtable}{>{\raggedright\arraybackslash}p{1.7cm}>{\raggedright\arraybackslash}p{8.0cm}>{\raggedright\arraybackslash}p{5.5cm}}
+\caption{第 12 章核心公式与结论（$\sigma_v^2=\sigma_u^2/(1-\rho^2)$，$m=\sigma_\alpha^2/(1-\rho)^2$）}\label{tab:U12c-core}\\
+\toprule
+主题 & 公式 / 结论 & 要点\\
+\midrule
+\endfirsthead
+\toprule
+主题 & 公式 / 结论 & 要点\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+模型与递归 & $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}\T\beta+u_{it}$；无 $x$ 时 $y_{it}=\rho^ty_{i0}+\frac{1-\rho^t}{1-\rho}\alpha_i+\sum_{s=0}^{t-1}\rho^su_{i,t-s}$ & 平稳需 $|\rho|<1$；长期效应 $\beta/(1-\rho)$；$y_{i,t-1}$ 含 $\alpha_i$\\
+\addlinespace
+序贯外生 & $\E(u_{it}\mid y_{i,t-1},\dots,y_{i0},\alpha_i)=0$；$\E(y_{is}u_{it})=\rho^{s-t}\sigma_u^2$（$s\ge t$），$=0$（$s<t$） & $y_{i,t-1}$ 只能序贯外生，不能严格外生\\
+\addlinespace
+混合 OLS 与 WG & $\plim\hat\rho_{\text{POLS}}=\rho+\frac{(1-\rho)m}{m+\sigma_v^2}$；$\plim(\hat\rho_{WG}-\rho)\approx-\frac{1+\rho}{T-1}$（$T=2$ 时精确为 $-\frac{1+\rho}{2}$）；$N/T\to\kappa$ 时 $\sqrt{NT}(\hat\rho_{WG}-\rho)\dto N\big(-\sqrt\kappa(1+\rho),1-\rho^2\big)$ & 混合 OLS 向上偏；WG 向下偏，阶为 $O(1/T)$；$T$ 大时一致但渐近有偏\\
+\addlinespace
+一阶差分 & $\Delta y_{it}=\rho\Delta y_{i,t-1}+\Delta x_{it}\T\beta+\Delta u_{it}$；$\E(\Delta y_{i,t-1}\Delta u_{it})=-\sigma_u^2$；$\plim\hat\rho_{FD}=\frac{\rho-1}{2}$ & 差分与滞后共损失两期，差分方程从 $t=2$ 开始\\
+\addlinespace
+滞后水平工具 & $\E(y_{i,t-s}\Delta u_{it})=0$（$s\ge2$）；$\E(\Delta y_{i,t-1}y_{i,t-1-k})=-(1-\rho)\rho^{k-1}\sigma_v^2$ & 远期滞后、$\rho\to1$ 时为弱工具\\
+\addlinespace
+Anderson--Hsiao & $\hat\theta=\big(\sum_i\sum_tz_{it}w_{it}\T\big)\inv\sum_i\sum_tz_{it}\Delta y_{it}$，$z_{it}=(y_{i,t-2},\Delta x_{it}\T)\T$，$w_{it}=(\Delta y_{i,t-1},\Delta x_{it}\T)\T$ & 恰好识别；一致、渐近正态、非有效\\
+\addlinespace
+Arellano--Bond & $W_i=\diag(q_{i0}\T,\dots,q_{i,T-2}\T)$，$(T-1)\times\frac{T(T-1)}{2}$；$\E(W_i\T\Delta U_i)=0$；$\E(\Delta U_i\Delta U_i\T)=\sigma_u^2H$；$\Omega=\sigma_u^2\E(W_i\T HW_i)$；$\hat\rho=\big(S_x\T\hat\Omega\inv S_x\big)\inv S_x\T\hat\Omega\inv S_y$，$S_x=\sum_iW_i\T\Delta Y_{i,-1}$，$S_y=\sum_iW_i\T\Delta Y_i$ & $H$ 三对角（2，$-1$）；工具数 $T=20\to190$，$T=50\to1225$；渐近偏误依赖 $T/N$\\
+\addlinespace
+System GMM & $y_{i0}=\frac{\alpha_i}{1-\rho}+v_{i0}\Rightarrow\E(\alpha_i\Delta y_{it})=0\Rightarrow\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$；$W_i^*=\diag\big(W_i,\diag(\Delta y_{i1},\dots,\Delta y_{i,T-1})\big)$ & 强工具；依赖初始条件；含 $x$ 时还需 $\E(\alpha_i\Delta x_{it})=0$\\
+\addlinespace
+FOD GMM & $y_{it}^f=c_t\big[y_{it}-\frac{1}{T-t}\sum_{s>t}y_{is}\big]$，$c_t^2=\frac{T-t}{T-t+1}$；工具 $y_{i0},\dots,y_{i,t-1}$；$\hat\rho=\big(\sum_tY_{t-1}^{f\prime}P_tY_{t-1}^f\big)\inv\sum_tY_{t-1}^{f\prime}P_tY_t^f$；$\sqrt{NT}(\hat\rho-\rho)\dto N(0,1-\rho^2)$ & 误差 i.i.d.；需 $T/N\to0$（$T/N\to\kappa>0$ 时中心为 $-\sqrt\kappa(1+\rho)$）；全工具时与一步 AB 数值相同\\
+\addlinespace
+设定检验 & $\Cov(\Delta u_{it},\Delta u_{i,t-j})=2\gamma_u(j)-\gamma_u(j-1)-\gamma_u(j+1)$；MA(1) 误差：$\E(y_{i,t-2}\Delta u_{it})=-\theta\sigma_e^2$；$J\dto\chi^2(L-K)$；$C=J-J_a\dto\chi^2(L-L_a)$ & AR(1) 应显著、AR(2) 不应显著；MA(1) 误差时工具从 $y_{i,t-3}$ 起；工具过多时 Hansen 检验失效\\
+\addlinespace
+Stata & \texttt{xtabond2 y L.y x, gmm(L.y) iv(x)} & \texttt{noleveleq}$\to$AB；默认$\to$System；\texttt{noleveleq orthogonal}$\to$FOD；\texttt{collapse}、\texttt{laglimits()} 限制工具数\\
+\end{longtable}
+}
+
+一句话：动态面板中 $y_{i,t-1}$ 与个体效应、与变换后的误差都相关，混合 OLS、WG、FD-OLS 全部不一致；正确做法是用差分（或 FOD）消去 $\alpha_i$，再以滞后水平值（System GMM 再加滞后差分）作工具做 GMM，并用 AR(2) 检验与 Hansen 检验把关。
+
+%----------------------------------------------------------------------
+\subsection{估计量的选择要点}
+
+\begin{itemize}
+  \item \key{看 $N$ 与 $T$}：GMM 的偏误主项约为 $-(1+\rho)/N$，WG 的约为 $-(1+\rho)/T$。微观面板（$N\gg T$）用 GMM；宏观面板（$T\gg N$）用偏误修正的 WG，$T$ 大时先做单位根检验。
+  \item \key{差分 GMM 还是系统 GMM}：$\rho$ 不大、工具强时用 AB（不需要初始条件假设，更稳健）；$\rho$ 接近 1、$\sigma_\alpha^2/\sigma_u^2$ 大，或 AB 估计接近甚至低于 WG 时用 System，但必须论证均值平稳初始条件并报告水平工具的 Difference-in-Hansen 检验。
+  \item \key{FD 还是 FOD}：平衡面板、全部滞后作工具时两者（一步）数值相同；非平衡、有缺口的面板，或工具矩阵很大时，FOD 损失的观测更少、计算更省。
+  \item \key{一步还是两步}：小样本、误差近似同方差时一步估计更稳定（配 Sargan 检验）；明显异方差时用两步 GMM，配 Windmeijer 校正标准误与 Hansen 检验。
+  \item \key{工具数}：报告工具数，保持 $L<N$；用 \texttt{collapse}、\texttt{laglimits()} 做稳健性检验。
+  \item \key{误差序列相关}：AR(2) 拒绝而 AR(3) 不拒绝 $\Rightarrow$ MA(1)，工具从 $y_{i,t-3}$ 起（\texttt{laglimits(2 .)}）；更高阶也拒绝 $\Rightarrow$ 重新设定动态。
+  \item \key{$x$ 的外生性}：严格外生 \texttt{iv(x)}；前定 \texttt{gmm(x, laglimits(1 .))}；内生 \texttt{gmm(x, laglimits(2 .))}。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{常见错误清单}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item 在 $T$ 不大的动态面板中用 FE/WG 估计 $\rho$。Nickell 偏误约为 $-(1+\rho)/(T-1)$，$T=10$、$\rho=0.5$ 时约为真值的 32\%，不随 $N$ 增大而消失。
+  \item 以为一阶差分消去 $\alpha_i$ 后就可以用 OLS。$\E(\Delta y_{i,t-1}\Delta u_{it})=-\sigma_u^2\neq0$，FD-OLS 收敛到 $(\rho-1)/2$。
+  \item 用 $y_{i,t-1}$ 作差分方程的工具。它含 $u_{i,t-1}$，与 $\Delta u_{it}$ 相关；只有在 FOD 方程中 $y_{i,t-1}$ 才是有效工具。
+  \item 数错矩条件：AB 第 $t$ 个方程有 $t-1$ 个工具，共 $T(T-1)/2$ 个；System 再加 $T-1$ 个；MA(1) 误差时为 $(T-1)(T-2)/2$ 个。
+  \item 写最优权重时漏掉期望、写成 $W_i\T HW_i\T$，或对 $W_i$ 条件化。正确的是 $\Omega=\sigma_u^2\E(W_i\T HW_i)$，且需要条件同方差。
+  \item 把 AR(1) 检验显著当作模型有问题。$\Delta u_{it}$ 的一阶相关是差分机械造成的，该看的是 AR(2)。
+  \item 把 Hansen $p=1.000$ 当作“模型设定很好”。它是工具过多的警告信号。
+  \item 系统 GMM 的水平方程用 $\Delta y_{it}$ 作工具（应为 $\Delta y_{i,t-1}$）；或不论证初始条件、不报告 Difference-in-Hansen 检验。
+  \item 两步 GMM 报告未经校正的标准误。应使用 \texttt{twostep robust}（Windmeijer 校正）。
+  \item 忘记 \texttt{noleveleq}：\texttt{xtabond2} 不加选项时估计的是系统 GMM，不是差分 GMM。
+  \item 误差 AR(1) 时仍试图换用更远的滞后作工具。此时任何滞后都无效，应加入 $y_{i,t-2}$ 等重新设定动态。
+  \item 用有偏的 $\hat\rho$ 计算长期效应 $\beta/(1-\rho)$。$\rho$ 越接近 1，$\hat\rho$ 的偏误被放大得越多。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{综合练习}
+
+\begin{prac}[Nickell bias with $T=2$]\label{pr:U12c-c1}
+Consider $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$, $|\rho|<1$, $i=1,\dots,N$, with $y_{i0},y_{i1},y_{i2}$ observed, $u_{it}$ i.i.d.\ $(0,\sigma_u^2)$ and independent of $\alpha_i$, and $y_{i0}$ drawn from the stationary distribution. (a) Show that the within-group estimator of $\rho$ equals the OLS estimator from regressing $\Delta y_{i2}$ on $\Delta y_{i1}$. (b) Derive $\plim_{N\to\infty}\hat\rho_{WG}$. (c) Explain why the bias does not vanish as $N\to\infty$ and how it behaves as $T$ grows.
+\answer
+(a) 两个方程 $t=1,2$，$\bar y_{i,-1}=\frac12(y_{i0}+y_{i1})$，$\bar y_i=\frac12(y_{i1}+y_{i2})$，于是
+\[
+y_{i0}-\bar y_{i,-1}=-\tfrac12\Delta y_{i1},\quad y_{i1}-\bar y_{i,-1}=\tfrac12\Delta y_{i1},\quad y_{i1}-\bar y_i=-\tfrac12\Delta y_{i2},\quad y_{i2}-\bar y_i=\tfrac12\Delta y_{i2}.
+\]
+\begin{align*}
+\hat\rho_{WG} &= \frac{\sum_i\big[(-\frac12\Delta y_{i1})(-\frac12\Delta y_{i2})+(\frac12\Delta y_{i1})(\frac12\Delta y_{i2})\big]}{\sum_i\big[\frac14\Delta y_{i1}^2+\frac14\Delta y_{i1}^2\big]} \why{代入离差}\\
+&= \frac{\frac12\sum_i\Delta y_{i1}\Delta y_{i2}}{\frac12\sum_i\Delta y_{i1}^2}=\frac{\sum_i\Delta y_{i1}\Delta y_{i2}}{\sum_i\Delta y_{i1}^2}, \why{合并后约去 $\frac12$}
+\end{align*}
+正是 $\Delta y_{i2}$ 对 $\Delta y_{i1}$ 的 OLS（FD-OLS）。\\
+(b) 记平稳分解 $y_{it}=\frac{\alpha_i}{1-\rho}+v_{it}$，$v_{it}=\rho v_{i,t-1}+u_{it}$，$\Var(v_{it})=\sigma_v^2=\frac{\sigma_u^2}{1-\rho^2}$。由 $\Delta y_{i2}=\rho\Delta y_{i1}+\Delta u_{i2}$：
+\begin{align*}
+\hat\rho_{WG}-\rho &= \frac{\sum_i\Delta y_{i1}\Delta u_{i2}}{\sum_i\Delta y_{i1}^2}\ \pto\ \frac{\E(\Delta y_{i1}\Delta u_{i2})}{\E(\Delta y_{i1}^2)} \why{WLLN 与 CMT}\\
+\E(\Delta y_{i1}\Delta u_{i2}) &= \E(y_{i1}u_{i2})-\E(y_{i1}u_{i1})-\E(y_{i0}u_{i2})+\E(y_{i0}u_{i1})=-\sigma_u^2 \why{只有 $y_{i1}$ 含 $u_{i1}$}\\
+\E(\Delta y_{i1}^2) &= \Var(v_{i1}-v_{i0})=2\sigma_v^2-2\rho\sigma_v^2 \why{$\alpha_i$ 被差分消去}\\
+&= 2\sigma_v^2(1-\rho)=\frac{2\sigma_u^2}{1+\rho} \why{$1-\rho^2=(1-\rho)(1+\rho)$}\\
+\plim\hat\rho_{WG} &= \rho-\frac{\sigma_u^2(1+\rho)}{2\sigma_u^2}=\rho-\frac{1+\rho}{2}=\frac{\rho-1}{2}. \why{相除并化简}
+\end{align*}
+(c) 偏误来自变换后回归元与误差的相关（$y_{i1}$ 含 $u_{i1}$），这是总体矩不为零，样本再大（$N\to\infty$）也不消失。$T$ 增大时，每个时间均值中单个冲击的权重为 $1/T$，相关被稀释，偏误为 $O(1/T)$，近似 $-(1+\rho)/(T-1)$；但 $T$ 大时仍渐近有偏（$N/T\to\kappa>0$ 时 $\sqrt{NT}(\hat\rho_{WG}-\rho)$ 的中心为 $-\sqrt\kappa(1+\rho)$）。
+\end{prac}
+
+\begin{prac}[Arellano--Bond GMM with $T=4$ and MA(1) errors]\label{pr:U12c-c2}
+Let $y_{i0},\dots,y_{i4}$ be observed and consider the first-differenced AR(1) panel model. (a) Write the stacked model $\Delta Y_i=\rho\Delta Y_{i,-1}+\Delta U_i$, the Arellano--Bond instrument matrix $W_i$, and the matrix $H$. How many moment conditions are there, and what is the degree of overidentification? (b) Derive the optimal weighting matrix under conditional homoskedasticity and give the closed form of the one-step estimator. (c) Now suppose $u_{it}=e_{it}+\theta e_{i,t-1}$ with $\theta\neq0$. Which moment conditions in (a) become invalid? Write the modified instrument matrix and count the moment conditions.
+\answer
+(a) $\Delta Y_i=(\Delta y_{i2},\Delta y_{i3},\Delta y_{i4})\T$，$\Delta Y_{i,-1}=(\Delta y_{i1},\Delta y_{i2},\Delta y_{i3})\T$，$\Delta U_i=(\Delta u_{i2},\Delta u_{i3},\Delta u_{i4})\T$；
+\[
+W_i=\begin{pmatrix}y_{i0} & 0 & 0 & 0 & 0 & 0\\ 0 & y_{i0} & y_{i1} & 0 & 0 & 0\\ 0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2}\end{pmatrix},\qquad
+H=\begin{pmatrix}2 & -1 & 0\\ -1 & 2 & -1\\ 0 & -1 & 2\end{pmatrix}.
+\]
+6 个矩条件、1 个参数，过度识别度 5。\\
+(b) 最优权重是矩条件方差的逆：
+\begin{align*}
+\Omega &= \Var(W_i\T\Delta U_i)=\E(W_i\T\Delta U_i\Delta U_i\T W_i) \why{矩条件均值为 0}\\
+&= \sigma_u^2\,\E(W_i\T HW_i) \why{逐块用 LIE 与条件同方差}
+\end{align*}
+样本中用 $\hat\Omega=\sum_iW_i\T HW_i$（$\sigma_u^2$ 可略）。记 $S_x=\sum_iW_i\T\Delta Y_{i,-1}$，$S_y=\sum_iW_i\T\Delta Y_i$，最小化 $J(\rho)=(S_y-\rho S_x)\T\hat\Omega\inv(S_y-\rho S_x)$：
+\begin{align*}
+\frac{dJ}{d\rho} &= -2S_x\T\hat\Omega\inv(S_y-\rho S_x)=0 \why{对标量 $\rho$ 求导}\\
+\hat\rho &= \big(S_x\T\hat\Omega\inv S_x\big)\inv S_x\T\hat\Omega\inv S_y. \why{解一阶条件}
+\end{align*}
+(c) MA(1) 时 $\E(y_{i,t-2}\Delta u_{it})=-\theta\sigma_e^2\neq0$，所有“二阶滞后”矩条件失效：$\E(y_{i0}\Delta u_{i2})$、$\E(y_{i1}\Delta u_{i3})$、$\E(y_{i2}\Delta u_{i4})$。仍有效的是 $\E(y_{i0}\Delta u_{i3})$、$\E(y_{i0}\Delta u_{i4})$、$\E(y_{i1}\Delta u_{i4})$：
+\[
+W_i^{MA}=\begin{pmatrix}0 & 0 & 0\\ y_{i0} & 0 & 0\\ 0 & y_{i0} & y_{i1}\end{pmatrix},
+\]
+3 个矩条件（$=\frac{(T-1)(T-2)}{2}$），过度识别度 2。此外 $\Delta U_i$ 不再是 $\sigma^2H$ 结构：由表~\ref{tab:U12c-acov}，$\Var(\Delta u_{it})=2(1-\theta+\theta^2)\sigma_e^2$，一阶协方差 $-(1-\theta)^2\sigma_e^2$，二阶协方差 $-\theta\sigma_e^2$，所以 $\sum_iW_i\T HW_i$ 不再是最优权重，应使用两步 GMM。
+\end{prac}
+
+\begin{prac}[System GMM and the initial condition]\label{pr:U12c-c3}
+Consider $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$ with $E(\alpha_iu_{it})=0$ and serially uncorrelated $u_{it}$. (a) Assume $y_{i0}=\alpha_i/(1-\rho)+v_{i0}$ with $E(\alpha_iv_{i0})=0$. Prove that $E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$ for $t=2,\dots,T$. (b) Suppose instead that every process starts at zero, $y_{i0}=0$. Compute $E(\alpha_i\Delta y_{it})$. Is the moment condition in (a) still valid? Are the Arellano--Bond moment conditions valid? (c) Explain why the condition in (a) is more questionable when the model contains regressors $x_{it}$, and how you would check it in practice.
+\answer
+(a) 先化简矩条件：
+\begin{align*}
+\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}] &= \E[(\alpha_i+u_{it})\Delta y_{i,t-1}] \why{代入模型}\\
+&= \E(\alpha_i\Delta y_{i,t-1})+\E(u_{it}y_{i,t-1})-\E(u_{it}y_{i,t-2}) \why{期望线性性}\\
+&= \E(\alpha_i\Delta y_{i,t-1}) \why{$y$ 只含更早的冲击}
+\end{align*}
+再证 $\E(\alpha_i\Delta y_{it})=0$ 对所有 $t\ge1$ 成立。$t=1$：
+\begin{align*}
+\E(\alpha_i\Delta y_{i1}) &= \E\big[\alpha_i\big((\rho-1)y_{i0}+\alpha_i+u_{i1}\big)\big] \why{$\Delta y_{i1}=y_{i1}-y_{i0}$}\\
+&= (\rho-1)\frac{\E(\alpha_i^2)}{1-\rho}+\E(\alpha_i^2)+0=0. \why{代入初始条件}
+\end{align*}
+归纳：由 $\Delta y_{it}=\rho\Delta y_{i,t-1}+\Delta u_{it}$，
+\[
+\E(\alpha_i\Delta y_{it})=\rho\,\E(\alpha_i\Delta y_{i,t-1})+\E(\alpha_i\Delta u_{it})=\rho\cdot0+0=0 .
+\]
+故矩条件对所有 $t\ge2$ 成立。\\
+(b) $y_{i0}=0$ 时 $\Delta y_{i1}=y_{i1}=\alpha_i+u_{i1}$，$\E(\alpha_i\Delta y_{i1})=\sigma_\alpha^2$；由同一递推，$\E(\alpha_i\Delta y_{it})=\rho^{t-1}\sigma_\alpha^2\neq0$，水平矩条件\key{不成立}（序列尚未到达稳态，变化中含有向个体均值收敛的部分，与 $\alpha_i$ 正相关）。AB 矩条件只需 $\E(y_{is}u_{it})=0$（$s<t$），\key{仍成立}。\\
+(c) 有 $x$ 时，平稳的初始值还含 $\sum_s\rho^sx_{i,-s}\T\beta$，
+\[
+\E(\alpha_i\Delta y_{i1})=\E(\alpha_ix_{i1}\T)\beta-(1-\rho)\sum_s\rho^s\E(\alpha_ix_{i,-s}\T)\beta,
+\]
+只有在 $x$ 与 $\alpha_i$ 的相关不随时间变化（$\E(\alpha_i\Delta x_{it})=0$）时才为 0。实践中：报告水平方程工具子集的 Difference-in-Hansen 检验，比较 AB 与 System 的估计，并检查 $\hat\rho$ 是否落在 WG 与混合 OLS 之间。
+\end{prac}
+
+\begin{prac}[Applied dynamic labour demand (hypothetical results)]\label{pr:U12c-c4}
+A researcher estimates $n_{it}=\alpha_i+\rho n_{i,t-1}+\beta w_{it}+\text{year effects}+u_{it}$ for $N=150$ firms over 16 years ($n$: log employment, $w$: log wage). The (hypothetical) results for $\rho$ are: pooled OLS 0.96; within-group 0.62; two-step Arellano--Bond with all available lags 0.55 (s.e.\ 0.08; 120 instruments; AR(1) $p=0.000$; AR(2) $p=0.48$; Hansen $p=1.000$); two-step system GMM with \texttt{collapse} and \texttt{laglimits(1 3)} 0.85 (s.e.\ 0.05; 12 instruments; AR(2) $p=0.52$; Hansen $p=0.31$; difference-in-Hansen for the level instruments $p=0.40$), with $\hat\beta=-0.30$. (a) Which estimates are inconsistent, and in which direction are they biased? (b) Is the Arellano--Bond estimate credible? Give two reasons. (c) Interpret the AR(1) and AR(2) tests. (d) Compute the long-run wage elasticity implied by the system GMM estimates. (e) Write the Stata commands for the two GMM estimates.
+\answer
+(a) 混合 OLS 因 $n_{i,t-1}$ 与 $\alpha_i$ 正相关而向上偏；WG 因 Nickell 偏误向下偏（16 年数据即 $T=15$ 个方程，偏误约 $-(1+\rho)/14$）。可信的估计应大致落在 0.62 与 0.96 之间。\\
+(b) 不可信：(i) 0.55 低于 WG 的下界 0.62，符合“$\rho$ 较大时 AB 弱工具、向下偏”的特征；(ii) 工具数 120 接近个体数 150，Hansen $p=1.000$ 是工具过多的警告信号，过度识别检验已失效。\\
+(c) AR(1) 显著（AB 报告 $p=0.000$）是差分误差 $\Delta u_{it}$ 的机械 MA(1) 结构所致，属正常；AR(2) 不显著（$p=0.48$、$0.52$），支持 $u_{it}$ 无序列相关，$n_{i,t-2}$ 及更早的滞后是有效工具。\\
+(d) 长期弹性
+\[
+\frac{\hat\beta}{1-\hat\rho}=\frac{-0.30}{1-0.85}=\frac{-0.30}{0.15}=-2.0;
+\]
+短期弹性为 $-0.30$。\\
+(e) 先 \texttt{tab year, gen(yr)}，然后
+\begin{lstlisting}
+xtabond2 n L.n w yr*, gmm(L.n) iv(w yr*) noleveleq twostep robust
+xtabond2 n L.n w yr*, gmm(L.n, laglimits(1 3) collapse) iv(w yr*) twostep robust
+\end{lstlisting}
+若认为工资是前定或内生的，应把 $w$ 放进 \texttt{gmm(w, laglimits(1 .))} 或 \texttt{gmm(w, laglimits(2 .))}。
+\end{prac}
+
+\begin{english}[Summary of dynamic panel estimation]
+In the dynamic panel model $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}'\beta+u_{it}$, the lagged dependent variable is correlated with $\alpha_i$ and with the transformed error, so pooled OLS (upward bias), within-group (Nickell bias of order $1/T$) and first-differenced OLS are all inconsistent for fixed $T$. The standard remedy is to remove $\alpha_i$ by first differencing (or forward orthogonal deviations) and to use lagged levels $y_{i,t-2},y_{i,t-3},\dots$ as instruments in GMM (Arellano--Bond); system GMM adds the level equation instrumented by $\Delta y_{i,t-1}$, which is valid under mean stationarity and much stronger when $\rho$ is close to one. The validity of the instruments rests on serially uncorrelated errors, checked by the Arellano--Bond AR(2) test, and on the overidentifying restrictions, checked by the Hansen $J$ test, whose power collapses when the number of instruments approaches the number of groups. In practice, report the number of instruments, the AR(2) and Hansen $p$-values, and verify that the estimate lies between the within-group and pooled OLS estimates.
+\end{english}

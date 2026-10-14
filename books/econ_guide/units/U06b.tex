@@ -1,0 +1,1374 @@
+%======================================================================
+% U06b  第 6 章（续）：Wald 检验、F 检验、二者关系、置信区间、三大检验、多重检验、本章小结
+%======================================================================
+\section{Wald 检验：多个约束的联合检验}\label{sec:U06b-wald}
+
+本章前文已经把文字假设写成线性约束 $H_0:R\beta=r$（$R$ 为 $q\times K$，$r$ 为 $q\times1$，$\rank(R)=q$），并用 t 检验处理了单个约束（$q=1$）。本节处理 $q$ 个约束同时检验的一般方法——Wald 检验。t 检验与下一节的 F 检验都是它的特例。
+
+本节记号：$\hat\beta$ 为 $K\times1$ 的 OLS 估计量；第 5 章给出 $\sqrt n(\hat\beta-\beta)\dto N(0,V)$，$V$ 为 $K\times K$ 正定的渐近方差，$\hat V\pto V$ 为其一致估计；$\widehat{\Var}(\hat\beta)=\hat V/n$ 为 $\hat\beta$ 本身的方差估计。
+
+%----------------------------------------------------------------------
+\subsection{思路：用“标准化长度”度量 \texorpdfstring{$R\hat\beta-r$}{R beta-hat - r} 离 0 有多远}
+
+若 $H_0:R\beta=r$ 为真，$R\hat\beta-r$ 应当接近 $\mathbf 0$。它是 $q$ 维向量，需要一个“长度”来衡量它离 $\mathbf 0$ 有多远。
+
+\begin{itemize}
+  \item 直接用欧氏长度 $\|R\hat\beta-r\|^2=\sum_{j=1}^q (R\hat\beta-r)_j^2$ \key{不行}：各分量的量纲不同、方差不同，而且彼此相关。
+  \item 合理的做法是\key{先标准化、再求平方和}——用 $R\hat\beta-r$ 的协方差矩阵的逆作权重，构造二次型。
+\end{itemize}
+这样得到的统计量称为 \term{Wald 统计量}{Wald statistic}，由 Wald（1943）提出。下面先准备一个分布结论，再完整推导它的极限分布。
+
+%----------------------------------------------------------------------
+\subsection{预备：正态二次型服从 \texorpdfstring{$\chi^2$}{chi-square} 分布}
+
+\subsubsection{标准正态向量的平方和：\texorpdfstring{$\chi^2_q$}{chi-square q} 的定义}
+
+$\chi^2_q$ 分布的定义（第 1 章）就是 $q$ 个独立标准正态变量的平方和。以 $q=2$ 为例：
+\[
+\begin{pmatrix}x_1\\x_2\end{pmatrix}\sim N(0,I_2)
+\quad\Longrightarrow\quad
+(x_1,\ x_2)\begin{pmatrix}x_1\\x_2\end{pmatrix}=x_1^2+x_2^2\sim\chi^2_2 .
+\]
+左边的向量写法 $x\T x$ 正是“二次型”：Wald 统计量就是把 $R\hat\beta-r$ 变成这种形式。
+
+\begin{thm}[正态二次型]\label{thm:U06b-quadform}
+\begin{enumerate}
+  \item[(1)] 若 $Z\sim N(0,I_q)$，则 $Z\T Z=\sum_{j=1}^q Z_j^2\sim\chi^2_q$（定义）。
+  \item[(2)] 若 $Z\sim N(0,\Sigma)$，$\Sigma$ 为 $q\times q$ 正定矩阵，则 $Z\T\Sigma\inv Z\sim\chi^2_q$。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{一般协方差：\texorpdfstring{$Z'\Sigma^{-1}Z\sim\chi^2_q$}{Z' Sigma-inverse Z ~ chi-square q} 的证明}
+
+思路：用 $\Sigma^{-1/2}$（$\Sigma\inv$ 的对称平方根，第 1 章）把 $Z$ 标准化成 $N(0,I_q)$，再用 (1)。令 $\tilde Z=\Sigma^{-1/2}Z$，则
+\begin{align*}
+\tilde Z &\sim N\bigl(0,\ \Sigma^{-1/2}\Sigma\,\Sigma^{-1/2}\bigr) \why{$AZ\sim N(0,A\Sigma A\T)$，$\Sigma^{-1/2}$ 对称}\\
+&= N(0,\ I_q) \why{$\Sigma^{-1/2}\Sigma\Sigma^{-1/2}=I_q$}\\
+Z\T\Sigma\inv Z &= Z\T\Sigma^{-1/2}\Sigma^{-1/2}Z \why{$\Sigma\inv=\Sigma^{-1/2}\Sigma^{-1/2}$}\\
+&= (\Sigma^{-1/2}Z)\T(\Sigma^{-1/2}Z)=\tilde Z\T\tilde Z \why{转置，$\Sigma^{-1/2}$ 对称}\\
+&\sim \chi^2_q . \why{结论 (1)}
+\end{align*}
+这说明：用协方差矩阵的逆作权重的二次型，等于“先标准化、再求平方和”，自由度等于向量的维数 $q$。
+
+%----------------------------------------------------------------------
+\subsection{Wald 统计量的完整推导}\label{sec:U06b-wald-deriv}
+
+\begin{thm}[Wald 统计量的渐近分布]\label{thm:U06b-wald}
+设 $\sqrt n(\hat\beta-\beta)\dto N(0,V)$，$V$ 正定，$\hat V\pto V$，$\rank(R)=q$。在 $H_0:R\beta=r$ 下，
+\begin{equation}\label{eq:U06b-wald-n}
+W\equiv\bigl[\sqrt n(R\hat\beta-r)\bigr]\T(R\hat VR\T)\inv\bigl[\sqrt n(R\hat\beta-r)\bigr]
+=n(R\hat\beta-r)\T(R\hat VR\T)\inv(R\hat\beta-r)\ \dto\ \chi^2_q .
+\end{equation}
+\end{thm}
+
+思路：$\hat\beta$ 渐近正态 $\Rightarrow$ 线性变换 $R\hat\beta$ 渐近正态 $\Rightarrow$ 标准化后的平方和渐近服从 $\chi^2_q$。
+
+\subsubsection{第一步：\texorpdfstring{$\sqrt n(R\hat\beta-r)$}{sqrt(n)(R beta-hat - r)} 的渐近正态性}
+
+\begin{align*}
+\sqrt n(\hat\beta-\beta) &\dto N(0,\ V) \why{第 5 章渐近正态性}\\
+R\sqrt n(\hat\beta-\beta) &\dto N(0,\ RVR\T) \why{$Z\sim N(0,V)\Rightarrow RZ\sim N(0,RVR\T)$；CMT}\\
+\sqrt n(R\hat\beta-r) &= \sqrt n(R\hat\beta-R\beta) \why{$H_0$：$r=R\beta$}\\
+&= R\sqrt n(\hat\beta-\beta)\ \dto\ Z_q\sim N(0,\ RVR\T). \why{上一行}
+\end{align*}
+其中 $V$ 是与误差结构相应的渐近方差：同方差时 $V=\sigma^2Q_{xx}\inv$，独立异方差时为 HC 型三明治 $Q_{xx}\inv\Omega Q_{xx}\inv$（$Q_{xx}=\E(x_ix_i\T)$，$\Omega=\E(x_ix_i\T u_i^2)$），聚类时为 CRVE 对应的三明治（第 5 章）。
+
+\subsubsection{第二步：方差估计的一致性与连续映射}
+
+先说明 $RVR\T$ 正定：对任意 $a\in\R^q$、$a\neq0$，因为 $R$ 的 $q$ 行线性无关，$R\T a\ne0$，于是 $a\T RVR\T a=(R\T a)\T V(R\T a)>0$。然后：
+\begin{align*}
+R\hat VR\T &\pto RVR\T\quad(q\times q\ \text{正定}) \why{$\hat V\pto V$；CMT}\\
+\bigl(\sqrt n(R\hat\beta-r),\ R\hat VR\T\bigr) &\dto \bigl(Z_q,\ RVR\T\bigr) \why{Slutsky：后者收敛到常数}\\
+W &\dto Z_q\T(RVR\T)\inv Z_q \why{CMT：$(a,A)\mapsto a\T A\inv a$ 连续}\\
+Z_q\T(RVR\T)\inv Z_q &\sim \chi^2_q . \why{正态二次型结论 (2)}
+\end{align*}
+映射 $(a,A)\mapsto a\T A\inv a$ 在 $A$ 正定处连续，这正是需要 $RVR\T$ 正定（即 $\rank(R)=q$）的原因。
+
+\subsubsection{实用形式：用 \texorpdfstring{$\widehat{\mathrm{Var}}(\hat\beta)$}{Var-hat(beta-hat)} 表示、不含 \texorpdfstring{$n$}{n}}
+
+由于 $\widehat{\Var}(\hat\beta)=\hat V/n$，
+\begin{align*}
+n(R\hat\beta-r)\T(R\hat VR\T)\inv(R\hat\beta-r)
+&=(R\hat\beta-r)\T\bigl[\tfrac1n R\hat VR\T\bigr]\inv(R\hat\beta-r) \why{$(cA)\inv=c\inv A\inv$}\\
+&=(R\hat\beta-r)\T\bigl[R\,\widehat{\Var}(\hat\beta)\,R\T\bigr]\inv(R\hat\beta-r). \why{$\hat V/n=\widehat{\Var}(\hat\beta)$}
+\end{align*}
+于是 Wald 统计量的实用形式为
+\begin{equation}\label{eq:U06b-wald}
+\boxed{\ W=(R\hat\beta-r)\T\bigl[R\,\widehat{\Var}(\hat\beta)\,R\T\bigr]\inv(R\hat\beta-r)\ \dto\ \chi^2_q\quad\text{under }H_0.\ }
+\end{equation}
+这说明：Wald 统计量是 $R\hat\beta-r$ 的“标准化长度的平方”；其极限分布\key{只依赖约束个数 $q$}，与回归元个数 $K$ 无关。
+
+\subsubsection{另一条推导路线：先标准化为 \texorpdfstring{$N(0,I_q)$}{N(0,I)} 再求平方和}
+
+同一结论也可以用“渐近服从”（$\overset{a}{\sim}$）的语言一步步写出，便于记忆：
+\begin{align*}
+\sqrt n(\hat\beta-\beta)\overset{a}{\sim}N(0,V)
+&\iff \hat\beta\overset{a}{\sim}N\bigl(\beta,\ \tfrac1n V\bigr) \why{两边除以 $\sqrt n$ 再加 $\beta$}\\
+&\Longrightarrow R\hat\beta\overset{a}{\sim}N\bigl(R\beta,\ \tfrac1n RVR\T\bigr) \why{线性变换}\\
+&\Longrightarrow \bigl(\tfrac1n RVR\T\bigr)^{-1/2}(R\hat\beta-R\beta)\overset{a}{\sim}N(0,\ I_q) \why{左乘协方差的 $-1/2$ 次方}\\
+&\Longrightarrow (R\hat\beta-R\beta)\T\bigl(\tfrac1n RVR\T\bigr)\inv(R\hat\beta-R\beta)\overset{a}{\sim}\chi^2_q \why{平方和；正态二次型 (1)}\\
+&\iff n(R\hat\beta-R\beta)\T(RVR\T)\inv(R\hat\beta-R\beta)\overset{a}{\sim}\chi^2_q . \why{$(\frac1n A)\inv=nA\inv$}
+\end{align*}
+要点：(i) 这里的 $V$ 是 $\sqrt n(\hat\beta-\beta)$ 的渐近方差，所以 $\hat\beta$ 的方差带因子 $\frac1n$；(ii) 向量不能“除以标准差”，矩阵情形的“标准化”是左乘 $\bigl(\frac1n RVR\T\bigr)^{-1/2}$；(iii) 在 $H_0$ 下把 $R\beta$ 换成 $r$、把 $V$ 换成其估计 $\hat V$（同方差 / HC / CRVE），就得到 \eqref{eq:U06b-wald-n}。$W\ge0$，$W$ 超过临界值即拒绝 $H_0$——被拒绝的正是经济理论所关心的那组约束。t 检验（$q=1$）和 F 检验（同方差）都是 $W$ 的特例，下文逐一说明。
+
+%----------------------------------------------------------------------
+\subsection{方差矩阵的选择：同方差、HC 与 CRVE}\label{sec:U06b-robustW}
+
+Wald 统计量是否有效，完全取决于 $\hat V$ 是否与误差结构相匹配。
+
+\subsubsection{独立异方差：用 HC 方差的稳健 Wald 检验}
+
+误差独立但可能异方差时，用 HC 方差估计 $\hat V^{\mathrm{HC}}$ 构造 $W$，称为\term{稳健 Wald 检验}{robust Wald test}。它在同方差、异方差下都渐近有效，是截面回归的默认选择。
+
+\subsubsection{聚类数据：用 CRVE，要求 \texorpdfstring{$G\to\infty$}{G to infinity} 且 \texorpdfstring{$q\le G-1$}{q <= G-1}}
+
+误差在簇内相关时用聚类稳健方差 $\hat V^{\mathrm{CR}}$（第 5 章）。两点限制：
+\begin{itemize}
+  \item 渐近理论要求簇数 $G\to\infty$，簇少时 $W$ 的 $\chi^2_q$ 近似很差；
+  \item $\hat V^{\mathrm{CR}}$ 的秩不超过 $G-1$，所以 $R\hat V^{\mathrm{CR}}R\T$ 要可逆，联合检验的约束个数 $q$ \key{不能超过 $G-1$}。
+\end{itemize}
+
+\subsubsection{用错方差矩阵的后果：通常过度拒绝}
+
+用错 $\hat V$（例如聚类数据却用 HC，或异方差数据却用同方差公式），$W$ 不再趋于 $\chi^2_q$，实际 size 偏离名义水平，通常是\key{过度拒绝}。
+
+Stata 中先 \texttt{reg y x1 x2 x3, robust}（或 \texttt{vce(cluster id)}），再 \texttt{test x1 x2}，得到的就是稳健 Wald 检验（以 $F=W/q$ 的形式报告，见下文“F 检验与 Wald 检验的关系”一节）。
+
+\subsubsection{同方差 Wald 统计量 \texorpdfstring{$W^0$}{W0}}
+
+同方差下 $\widehat{\Var}{}^0(\hat\beta)=s^2(X\T X)\inv$，其中 $X$ 为 $n\times K$ 数据矩阵，$s^2=\hat u\T\hat u/(n-K)$。代入 \eqref{eq:U06b-wald}：
+\begin{align*}
+W^0&=(R\hat\beta-r)\T\bigl[R\,s^2(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r) \why{代入同方差方差}\\
+&=(R\hat\beta-r)\T\bigl[s^2\,R(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r) \why{标量 $s^2$ 提出}\\
+&=\frac{(R\hat\beta-r)\T\bigl[R(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r)}{s^2}. \why{$(cA)\inv=c\inv A\inv$}
+\end{align*}
+\begin{equation}\label{eq:U06b-wald0}
+W^0=\frac{(R\hat\beta-r)\T\bigl[R(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r)}{s^2}\ \dto\ \chi^2_q\qquad(\text{同方差下}).
+\end{equation}
+称为\term{同方差 Wald 统计量}{homoskedastic Wald statistic}。它与下一节的两步 F 统计量只差一个因子 $q$：$F=W^0/q$（下文“F 检验与 Wald 检验的关系”一节证明）。
+
+%----------------------------------------------------------------------
+\subsection{决策规则、\texorpdfstring{$\chi^2$}{chi-square} 临界值与 \texorpdfstring{$p$}{p} 值}
+
+\subsubsection{拒绝域与 \texorpdfstring{$p$}{p} 值}
+
+记 $G_q(\cdot)$ 为 $\chi^2_q$ 的分布函数，$\chi^2_{q,1-\alpha}$ 为其 $1-\alpha$ 分位数。
+\begin{itemize}
+  \item 决策规则：$W>\chi^2_{q,1-\alpha}$ 时拒绝 $H_0$；该检验的渐近 size 为 $\alpha$。
+  \item 渐近 $p$ 值：$p=1-G_q(W)$；$p<\alpha$ 时拒绝。约束多时报告 $p$ 值比报告 $W$ 更易读（例如 $q=8$、$W=11.2$ 对应 $p=0.19$，一眼可知不显著）。
+  \item Wald 检验\key{天然是双侧的}：$W$ 对 $R\hat\beta-r$ 的正负对称，备择假设总是 $H_1:R\beta\ne r$。
+\end{itemize}
+
+\begin{center}
+\begin{minipage}[c]{0.36\linewidth}
+\centering\small
+\begin{tabular}{cccc}
+\toprule
+$q$ & 10\% & 5\% & 1\%\\
+\midrule
+1 & 2.71 & 3.84 & 6.63\\
+2 & 4.61 & 5.99 & 9.21\\
+3 & 6.25 & 7.81 & 11.34\\
+4 & 7.78 & 9.49 & 13.28\\
+5 & 9.24 & 11.07 & 15.09\\
+\bottomrule
+\end{tabular}
+\captionof{table}{$\chi^2_q$ 上侧临界值}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.6\linewidth}
+\centering
+\begin{tikzpicture}[xscale=0.55,yscale=10]
+\fill[cthm!30] (7.81,0) -- plot[domain=7.81:13,samples=40] (\x,{sqrt(\x)*exp(-\x/2)/2.5066}) -- (13,0) -- cycle;
+\draw[->] (0,0) -- (13.6,0) node[right,font=\small] {$w$};
+\draw[->] (0,0) -- (0,0.29);
+\draw[thick,smooth] plot[domain=0.002:13,samples=150] (\x,{sqrt(\x)*exp(-\x/2)/2.5066});
+\draw (7.81,0) -- (7.81,-0.012) node[below,font=\footnotesize] {7.81};
+\node[below,font=\footnotesize] at (0,-0.002) {0};
+\node[font=\footnotesize] at (3.2,0.06) {不拒绝};
+\node[font=\footnotesize,align=center] at (10.3,0.07) {拒绝域\\面积 5\%};
+\end{tikzpicture}
+\captionof{figure}{$\chi^2_3$ 密度与 5\% 拒绝域}
+\end{minipage}
+\end{center}
+
+\subsubsection{小的 \texorpdfstring{$W$}{W} 不是拒绝 \texorpdfstring{$H_0$}{H0} 的理由}
+
+\begin{note}[Wald 检验只在上尾拒绝]
+$W$ 很小（如 $q=1$、$W=0.34$）说明 $R\hat\beta$ 与 $r$ 非常接近，是支持（至少不反对）$H_0$ 的证据，\key{绝不能}因为“$W$ 落在 $\chi^2$ 分布的下尾”而拒绝。数值上，$\chi^2_1$ 的 1\% 分位数约为 0.00016，0.34 并不比它小；即便更小，也不应拒绝——拒绝域只在上尾。
+\end{note}
+
+\subsubsection{\texorpdfstring{$q=2$}{q=2} 时 \texorpdfstring{$p$}{p} 值的闭式 \texorpdfstring{$e^{-W/2}$}{exp(-W/2)}}
+
+$\chi^2_2$ 就是均值为 2 的指数分布，分布函数 $G_2(w)=1-e^{-w/2}$，所以 $q=2$ 时
+\[
+p=1-G_2(W)=e^{-W/2}.
+\]
+例如 $W=5.99$ 时 $p=e^{-2.995}=0.050$，与 5\% 临界值吻合。考场上没有软件时，这个闭式很方便。
+
+%----------------------------------------------------------------------
+\subsection{t 检验是 Wald 检验的特例：\texorpdfstring{$W=t^2$}{W = t squared}}\label{sec:U06b-wt2}
+
+取 $q=1$、$R=e_j\T$（第 $j$ 个位置为 1、其余为 0 的 $1\times K$ 行向量）、$r=\beta_j^0$，即检验 $H_0:\beta_j=\beta_j^0$：
+\begin{align*}
+W&=(\hat\beta_j-\beta_j^0)\bigl[e_j\T\,\widehat{\Var}(\hat\beta)\,e_j\bigr]\inv(\hat\beta_j-\beta_j^0) \why{代入 $R=e_j\T$}\\
+&=\frac{(\hat\beta_j-\beta_j^0)^2}{\widehat{\Var}(\hat\beta_j)} \why{$e_j\T\widehat{\Var}\,e_j$ 为第 $j$ 个对角元}\\
+&=\Bigl(\frac{\hat\beta_j-\beta_j^0}{\mathrm{se}(\hat\beta_j)}\Bigr)^2=t^2 . \why{$\mathrm{se}=\sqrt{\widehat{\Var}(\hat\beta_j)}$}
+\end{align*}
+又 $t\dto N(0,1)$，标准正态的平方服从 $\chi^2_1$，由 CMT 得 $t^2\dto\chi^2_1$；简记为“$t\overset{a}{\sim}N(0,1)$，$t^2\overset{a}{\sim}\chi^2_1$”。临界值也一致：$1.96^2=3.84=\chi^2_{1,0.95}$，所以
+\[
+|t|>1.96\iff W=t^2>3.84 ,
+\]
+\key{双侧 t 检验与 $q=1$ 的 Wald 检验结论完全相同}。单侧备择只能用 t 检验，因为 $W$ 丢掉了符号。
+
+%----------------------------------------------------------------------
+\subsection{例：四个典型线性假设的 Wald 检验}\label{sec:U06b-ex4}
+
+下面把 \eqref{eq:U06b-wald} 与 $W=t^2$ 用于四个典型假设：一个排除约束、一个联合取值约束、两个线性组合约束。
+
+\begin{exmp}[四个典型线性假设的数值计算]\label{ex:U06b-four}
+回归 $y=\beta_1x_1+\beta_2x_2+\beta_3x_3+u$，设 $\hat\beta=(1.30,\ 0.80,\ 0.50)\T$，稳健方差估计
+\[
+\widehat{\Var}(\hat\beta)=\begin{pmatrix}0.04&0.01&0\\0.01&0.09&0\\0&0&0.01\end{pmatrix}.
+\]
+在 5\% 水平下检验：(a) $\beta_1=0$；(b) $\beta_1=\beta_2=1$；(c) $\beta_1+2\beta_2=0$；(d) $2\beta_1+3\beta_2=4$。
+
+\solution
+(a) $q=1$，$R=(1,0,0)$，$r=0$。$\mathrm{se}(\hat\beta_1)=\sqrt{0.04}=0.20$，
+\begin{align*}
+t&=\frac{1.30-0}{0.20}=6.5 \why{t 统计量}\\
+W&=t^2=42.25>3.84 . \why{$q=1$ 时 $W=t^2$}
+\end{align*}
+拒绝 $H_0$。
+
+(b) $q=2$，$R=\begin{pmatrix}1&0&0\\0&1&0\end{pmatrix}$，$r=(1,1)\T$。
+\begin{align*}
+R\hat\beta-r&=\begin{pmatrix}1.30-1\\0.80-1\end{pmatrix}=\begin{pmatrix}0.30\\-0.20\end{pmatrix} \why{代入 $\hat\beta$}\\
+R\,\widehat{\Var}(\hat\beta)R\T&=\begin{pmatrix}0.04&0.01\\0.01&0.09\end{pmatrix} \why{$R$ 选出左上 $2\times2$ 块}\\
+\bigl[R\,\widehat{\Var}(\hat\beta)R\T\bigr]\inv&=\frac{1}{0.0036-0.0001}\begin{pmatrix}0.09&-0.01\\-0.01&0.04\end{pmatrix} \why{$2\times2$ 求逆，行列式 0.0035}\\
+W&=\frac{0.09(0.30)^2-2(0.01)(0.30)(-0.20)+0.04(-0.20)^2}{0.0035} \why{二次型展开}\\
+&=\frac{0.0081+0.0012+0.0016}{0.0035}=\frac{0.0109}{0.0035}=3.11 . \why{逐项计算}
+\end{align*}
+$3.11<5.99$，5\% 水平不拒绝；$p=e^{-3.11/2}=0.21$。单独看：$t_1=0.30/0.20=1.5$，$t_2=-0.20/0.30=-0.67$，也都不显著。
+
+(c) $q=1$，$R=(1,2,0)$，$r=0$。
+\begin{align*}
+R\hat\beta&=1.30+2(0.80)=2.90 \why{代入 $\hat\beta$}\\
+R\,\widehat{\Var}(\hat\beta)R\T&=0.04+4(0.09)+2\cdot1\cdot2\cdot(0.01)=0.44 \why{$\Var(a+2b)$ 展开}\\
+W&=\frac{2.90^2}{0.44}=19.11>3.84 . \why{$q=1$ 的 Wald}
+\end{align*}
+拒绝 $H_0$（等价地 $t=2.90/\sqrt{0.44}=4.37$）。
+
+(d) $q=1$，$R=(2,3,0)$，$r=4$。
+\begin{align*}
+R\hat\beta-r&=2(1.30)+3(0.80)-4=2.6+2.4-4=1.0 \why{代入 $\hat\beta$}\\
+R\,\widehat{\Var}(\hat\beta)R\T&=4(0.04)+9(0.09)+2\cdot2\cdot3\cdot(0.01)=1.09 \why{$\Var(2a+3b)$ 展开}\\
+W&=\frac{1.0^2}{1.09}=0.917<3.84 . \why{$q=1$ 的 Wald}
+\end{align*}
+不拒绝（$t=1/\sqrt{1.09}=0.958$，$p=0.34$）。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{非线性假设的 Wald 检验}\label{sec:U06b-nlwald}
+
+\subsubsection{Delta 方法给出的非线性 Wald 统计量}
+
+设 $H_0:r(\beta)=\theta_0$，$r:\R^K\to\R^q$ 连续可微，$\theta_0$ 为 $q\times1$ 已知向量。记雅可比矩阵 $R(\beta)=\partial r(\beta)/\partial\beta\T$（$q\times K$），$R=R(\beta)$，$\hat R=R(\hat\beta)$，并设 $\rank(R)=q$。思路与线性情形相同，只是用 Delta 方法（第 5 章）代替线性变换：
+\begin{align*}
+\sqrt n\bigl(r(\hat\beta)-\theta_0\bigr)&=\sqrt n\bigl(r(\hat\beta)-r(\beta)\bigr) \why{$H_0$：$\theta_0=r(\beta)$}\\
+&\dto N(0,\ RVR\T) \why{Delta 方法}\\
+\hat R\,\widehat{\Var}(\hat\beta)\,\hat R\T\cdot n=\hat R\hat V\hat R\T&\pto RVR\T \why{$\hat\beta\pto\beta$，CMT}
+\end{align*}
+再按上文第二步同样处理，得
+\begin{equation}\label{eq:U06b-nlwald}
+W=\bigl(r(\hat\beta)-\theta_0\bigr)\T\bigl[\hat R\,\widehat{\Var}(\hat\beta)\,\hat R\T\bigr]\inv\bigl(r(\hat\beta)-\theta_0\bigr)\ \dto\ \chi^2_q,\qquad \hat R=\frac{\partial r(\hat\beta)}{\partial\beta\T}.
+\end{equation}
+线性情形 $r(\beta)=R\beta$ 时 $\hat R=R$，\eqref{eq:U06b-nlwald} 退化为 \eqref{eq:U06b-wald}。注意 Hansen 把雅可比写成 $K\times q$ 的转置形式，约束写成 $R\T\beta=\theta_0$；本书 $R$ 为 $q\times K$，两者只差一个转置。
+
+\subsubsection{不变性问题：同一假设的不同写法给出不同的 \texorpdfstring{$W$}{W}}
+
+\term{Wald 检验的不变性问题}{non-invariance of the Wald test}（Hansen §9.17）：同一个零假设的不同代数写法，会给出数值不同的 $W$，有限样本表现也可能相差很大。
+
+经典例子：$y_i\sim\iid\ N(\beta,\sigma^2)$，$\hat\beta$、$\hat\sigma^2$ 为样本均值与样本方差，检验 $H_0:\beta=1$。对任意正整数 $s$，$H_0$ 等价于 $H_0(s):\beta^s=1$。取 $r(\beta)=\beta^s$：
+\begin{align*}
+R&=\frac{\partial\beta^s}{\partial\beta}=s\beta^{s-1},\qquad \widehat{\Var}(\hat\beta)=\hat\sigma^2/n \why{求导；样本均值的方差}\\
+W(s)&=\frac{(\hat\beta^s-1)^2}{(s\hat\beta^{s-1})^2\,\hat\sigma^2/n}=\frac{n(\hat\beta^s-1)^2}{\hat\sigma^2s^2\hat\beta^{2s-2}} . \why{代入 \eqref{eq:U06b-nlwald}}
+\end{align*}
+$H_0$ 不随 $s$ 改变，$W(s)$ 却随 $s$ 变化；而一阶渐近理论对所有 $s$ 都给出 $W(s)\dto\chi^2_1$，无法帮助选择 $s$。蒙特卡洛模拟显示只有 $s=1$ 时第一类错误率接近 5\%；例如 $n=20$、$\sigma=3$ 时，$s=2$ 的第一类错误率已达 0.14，$s=10$ 时达 0.35，样本增大时失真减小但不消失。
+
+比值型假设同样如此：检验 $\beta_1/\beta_2=\theta_0$，直接用比值写法的 t 统计量，在 $\beta_2$ 较小时单侧第一类错误率可高达 0.47；改写为线性形式 $\beta_1-\theta_0\beta_2=0$ 的 t 统计量则稳定在 0.05（Hansen §9.17 的模拟）。
+
+与之对照，\key{准则函数型统计量}（最小距离统计量、似然比统计量，见本章“三大检验”一节）只依赖约束所定义的参数集合，与代数写法无关，因此没有这一问题。
+
+\subsubsection{例：拐点检验的非线性写法与线性写法}
+
+\begin{exmp}[经验—工资曲线的拐点：两种写法的 t 值]\label{ex:U06b-turn}
+第 5 章 Delta 方法的拐点例子：$\log(wage)=\beta_1 exp+\beta_2 exp^2+\cdots$，$\hat\beta_1=0.08$，$\hat\beta_2=-0.002$，$\widehat{\Var}(\hat\beta_1)=10^{-4}$，$\widehat{\Var}(\hat\beta_2)=10^{-8}$，$\widehat{\Cov}(\hat\beta_1,\hat\beta_2)=-8\times10^{-7}$。拐点 $\theta=-\beta_1/(2\beta_2)$，$\hat\theta=20$，Delta 方法得 $\mathrm{se}(\hat\theta)=1.803$。检验 $H_0:\theta=25$。
+
+\solution
+非线性写法：
+\[
+t_{\mathrm{NL}}=\frac{\hat\theta-25}{\mathrm{se}(\hat\theta)}=\frac{20-25}{1.803}=-2.77 .
+\]
+线性写法：$-\beta_1/(2\beta_2)=25\iff\beta_1=-50\beta_2\iff\beta_1+50\beta_2=0$，$R=(1,50)$：
+\begin{align*}
+R\hat\beta&=0.08+50(-0.002)=-0.02 \why{代入估计值}\\
+R\,\widehat{\Var}R\T&=10^{-4}+50^2(10^{-8})+2(50)(-8\times10^{-7}) \why{$\Var(a+50b)$ 展开}\\
+&=1\times10^{-4}+0.25\times10^{-4}-0.8\times10^{-4}=0.45\times10^{-4} \why{逐项计算}\\
+t_{\mathrm L}&=\frac{-0.02}{\sqrt{0.45\times10^{-4}}}=\frac{-0.02}{0.00671}=-2.98 . \why{t 统计量}
+\end{align*}
+两种写法在 5\% 水平都拒绝 $H_0$，但统计量数值不同（$-2.77$ 与 $-2.98$），这就是不变性问题；线性写法更可靠。
+\end{exmp}
+
+\subsubsection{建议：能写成线性约束就写成线性约束}
+
+\begin{note}[非线性假设的改写原则]
+\begin{itemize}
+  \item 能写成线性约束的，一律写成线性约束再做 Wald（或 t）检验；
+  \item 比值型假设 $\beta_1/\beta_2=\theta_0$ 改写为 $\beta_1-\theta_0\beta_2=0$；两个比值相等 $\beta_1/\beta_2=\beta_3/\beta_4$ 改写为乘积形式 $\beta_1\beta_4-\beta_2\beta_3=0$，避免除以可能接近 0 的系数；
+  \item 必须检验非线性假设时，可用准则函数型检验，或用蒙特卡洛模拟检查有限样本 size。
+\end{itemize}
+\end{note}
+
+\begin{exmp}[比值相等的非线性假设]\label{ex:U06b-ratio}
+$y=x_1\beta_1+x_2\beta_2+x_3\beta_3+x_4\beta_4+u$，估计得 $\hat\beta=(0.6,\ 0.3,\ 0.4,\ 0.25)\T$，$\widehat{\Var}(\hat\beta)=\diag(0.01,\ 0.0025,\ 0.0049,\ 0.0016)$。在 5\% 水平检验 $H_0:\beta_1/\beta_2=\beta_3/\beta_4$，并说明约束如何写。
+
+\solution
+为避免除以可能接近 0 的系数，把约束改写为乘积形式 $r(\beta)=\beta_1\beta_4-\beta_2\beta_3=0$（$q=1$）。
+\begin{align*}
+r(\hat\beta)&=0.6\times0.25-0.3\times0.4=0.15-0.12=0.03 \why{代入估计值}\\
+\hat R=\frac{\partial r}{\partial\beta\T}\Big|_{\hat\beta}&=(\beta_4,\ -\beta_3,\ -\beta_2,\ \beta_1)\big|_{\hat\beta}=(0.25,\ -0.4,\ -0.3,\ 0.6) \why{逐个求偏导}\\
+\hat R\,\widehat{\Var}(\hat\beta)\,\hat R\T&=0.0625(0.01)+0.16(0.0025)+0.09(0.0049)+0.36(0.0016) \why{对角协方差}\\
+&=0.000625+0.0004+0.000441+0.000576=0.002042 \why{逐项计算}\\
+W&=\frac{0.03^2}{0.002042}=\frac{0.0009}{0.002042}=0.44 . \why{非线性 Wald}
+\end{align*}
+$W=0.44<3.84$（$t=0.66$），不拒绝 $H_0$。非线性 Wald 对写法敏感，乘积形式比比值形式更稳健。
+\end{exmp}
+
+\begin{prac}[同一零假设、不同检验]\label{pr:U06b-sigma}
+已知 $\sqrt n(\hat\sigma^2-\sigma^2)\dto N(0,V)$，$\hat V\pto V$。(a) 构造 $H_0:\sigma^2=1$ 的 t 统计量。(b) 求 $\sqrt n(\hat\sigma-\sigma)$ 的渐近分布，并构造 $H_0:\sigma=1$ 的 t 统计量。(c) 两个零假设相同吗？两个检验相同吗？
+
+\answer
+(a) $t_a=\sqrt n(\hat\sigma^2-1)/\sqrt{\hat V}$。
+
+(b) $\sigma=h(\sigma^2)=\sqrt{\sigma^2}$，$h'(\sigma^2)=\dfrac{1}{2\sqrt{\sigma^2}}=\dfrac1{2\sigma}$。由 Delta 方法：
+\begin{align*}
+\sqrt n(\hat\sigma-\sigma)&\dto N\bigl(0,\ h'(\sigma^2)^2V\bigr)=N\Bigl(0,\ \frac{V}{4\sigma^2}\Bigr), \why{Delta 方法}\\
+t_c&=\frac{\sqrt n(\hat\sigma-1)}{\sqrt{\hat V}/(2\hat\sigma)}=\frac{2\hat\sigma\sqrt n(\hat\sigma-1)}{\sqrt{\hat V}} . \why{se 用 $\hat\sigma,\hat V$ 代入}
+\end{align*}
+
+(c) 因 $\sigma>0$，$\sigma^2=1\iff\sigma=1$，两个零假设等价；但统计量不同：
+\begin{align*}
+\frac{t_a}{t_c}&=\frac{\sqrt n(\hat\sigma^2-1)/\sqrt{\hat V}}{2\hat\sigma\sqrt n(\hat\sigma-1)/\sqrt{\hat V}}=\frac{\hat\sigma^2-1}{2\hat\sigma(\hat\sigma-1)} \why{约去 $\sqrt n/\sqrt{\hat V}$}\\
+&=\frac{(\hat\sigma+1)(\hat\sigma-1)}{2\hat\sigma(\hat\sigma-1)}=\frac{\hat\sigma+1}{2\hat\sigma} . \why{平方差公式}
+\end{align*}
+$\hat\sigma<1$ 时 $\hat\sigma+1>2\hat\sigma$，比值 $>1$，可能出现 $|t_a|>1.96>|t_c|$：(a) 拒绝而 (b) 不拒绝；$\hat\sigma>1$ 时相反。$H_0$ 下 $\hat\sigma\pto1$，比值 $\pto1$，两者渐近等价，但有限样本可能给出矛盾结论——这正是非线性改写的不变性问题。
+\end{prac}
+
+%----------------------------------------------------------------------
+\subsection{应用：两个独立样本的系数比较}
+
+Wald 检验的另一个常见用途：比较两组（如男、女）回归系数是否相同。关键是两组估计量独立，差的方差等于方差之和。
+
+\begin{prac}[两个独立样本的系数是否相同]\label{pr:U06b-twosample}
+两个独立样本，各有 $n$ 个观测：$y_1=x_1\T\beta_1+u_1$，$y_2=x_2\T\beta_2+u_2$，$\E(x_ju_j)=0$，$\beta_j\in\R^k$（$j=1,2$）。(a) 求 $\sqrt n\bigl[(\hat\beta_2-\hat\beta_1)-(\beta_2-\beta_1)\bigr]$ 的渐近分布。(b) 给出 $H_0:\beta_2=\beta_1$ 的检验统计量及其在 $H_0$ 下的渐近分布。
+
+\answer
+(a) 由第 5 章，$\sqrt n(\hat\beta_j-\beta_j)\dto N(0,V_j)$，$V_j=Q_j\inv\Omega_jQ_j\inv$，$Q_j=\E(x_jx_j\T)$，$\Omega_j=\E(x_jx_j\T u_j^2)$。两样本独立，所以两个极限正态向量独立，差的方差等于方差之和：
+\begin{align*}
+\sqrt n\bigl[(\hat\beta_2-\hat\beta_1)-(\beta_2-\beta_1)\bigr]&=\sqrt n(\hat\beta_2-\beta_2)-\sqrt n(\hat\beta_1-\beta_1) \why{重新组合}\\
+&\dto N(0,\ V_1+V_2). \why{独立正态之差}
+\end{align*}
+(b) 稳健 Wald 统计量
+\[
+W=n(\hat\beta_2-\hat\beta_1)\T(\hat V_1+\hat V_2)\inv(\hat\beta_2-\hat\beta_1),
+\]
+$\hat V_j$ 为各自的 HC 方差估计。$H_0$ 下 $\beta_2-\beta_1=0$，由 CMT 与正态二次型结论，$W\dto\chi^2_k$；$W>\chi^2_{k,1-\alpha}$ 时拒绝。等价做法：把两样本合并，加入组别虚拟变量及其与 $x$ 的全部交互项，对全部交互项系数做稳健 Wald 检验。
+\end{prac}
+
+\begin{english}
+Under $H_0:R\beta=r$, $\sqrt n(R\hat\beta-r)=R\sqrt n(\hat\beta-\beta)\dto N(0,RVR')$. Since $R\hat VR'\pto RVR'$, which is nonsingular because $\rank(R)=q$, the continuous mapping theorem and the fact that $Z'\Sigma^{-1}Z\sim\chi^2_q$ for $Z\sim N(0,\Sigma)$ give $W=(R\hat\beta-r)'[R\widehat{\Var}(\hat\beta)R']^{-1}(R\hat\beta-r)\dto\chi^2_q$. We reject $H_0$ at level $\alpha$ if $W$ exceeds the $1-\alpha$ quantile of $\chi^2_q$ (e.g.\ 5.99 for $q=2$ at 5\%). Using a heteroskedasticity- or cluster-robust $\hat V$ makes the test robust. For nonlinear hypotheses the Wald statistic is not invariant to the algebraic formulation of $H_0$, so the restriction should be written in linear form whenever possible.
+\end{english}
+
+%======================================================================
+\section{F 检验：比较受约束回归与无约束回归}\label{sec:U06b-F}
+
+Wald 检验只需估计无约束模型，看 $R\hat\beta-r$ 离 0 多远。F 检验换一个角度：分别估计“不施加 $H_0$”与“施加 $H_0$”的两个回归，看施加约束后残差平方和增加了多少。同方差、线性约束下两者是同一个检验（下一节证明）。
+
+%----------------------------------------------------------------------
+\subsection{两步 F 检验的思路：全局最小与局部最小}
+
+以联合假设 $H_0:\beta_1=\beta_1^0,\ \beta_2=\beta_2^0$ 对 $H_1$：$H_0$ 不成立（至少一个等式不成立）为例。\term{两步 F 检验}{two-step F test}分两步：
+
+\subsubsection{第一步：无约束回归得到 \texorpdfstring{$SSR_{ur}$}{SSR_ur}}
+
+不施加 $H_0$，用全部回归元做 OLS，得
+\[
+SSR_{ur}=\sum_{i=1}^n\hat u_i^2=\min_{b\in\R^K}(Y-Xb)\T(Y-Xb).
+\]
+OLS 在整个参数空间 $\R^K$ 上最小化残差平方和——\key{全局最小}（global minimum）。这一回归称为\term{无约束回归}{unrestricted regression}。
+
+\subsubsection{第二步：施加 \texorpdfstring{$H_0$}{H0} 的受约束回归得到 \texorpdfstring{$SSR_r$}{SSR_r}}
+
+把 $H_0$ 代入模型再做 OLS，得
+\[
+SSR_r=\min_{b:\ Rb=r}(Y-Xb)\T(Y-Xb).
+\]
+这是在满足约束的子集 $\{b:Rb=r\}\subset\R^K$ 上最小化——\key{局部最小}（local minimum）。这一回归称为\term{受约束回归}{restricted regression}。在子集上取得的最小值不可能小于在全集上取得的最小值，所以
+\[
+SSR_r\ \ge\ SSR_{ur}.
+\]
+
+\subsubsection{如何把 \texorpdfstring{$H_0$}{H0} 代入模型：三类约束的改写}
+
+以 $y=\beta_1x_1+\beta_2x_2+\beta_3x_3+u$ 为例（可另含截距）：
+\begin{itemize}
+  \item \key{排除约束} $\beta_1=\beta_2=0$：直接去掉 $x_1,x_2$，把 $y$ 对 $x_3$ 回归。
+  \item \key{取定值} $\beta_1=\beta_2=1$：
+  \begin{align*}
+  y&=1\cdot x_1+1\cdot x_2+\beta_3x_3+u \why{代入 $\beta_1=\beta_2=1$}\\
+  y-x_1-x_2&=\beta_3x_3+u , \why{已知项移到左边}
+  \end{align*}
+  用新的被解释变量 $y-x_1-x_2$ 对 $x_3$ 回归。
+  \item \key{线性组合} $\beta_1+2\beta_2=0$，即 $\beta_1=-2\beta_2$：
+  \begin{align*}
+  y&=-2\beta_2x_1+\beta_2x_2+\beta_3x_3+u \why{代入 $\beta_1=-2\beta_2$}\\
+  &=\beta_2(x_2-2x_1)+\beta_3x_3+u , \why{合并 $\beta_2$ 的项}
+  \end{align*}
+  把 $y$ 对新变量 $x_2-2x_1$ 与 $x_3$ 回归。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{F 统计量的定义与自由度口径}
+
+\subsubsection{定义：\texorpdfstring{$F=[(SSR_r-SSR_{ur})/q]\,/\,[SSR_{ur}/(n-K)]$}{F = [(SSR_r - SSR_ur)/q] / [SSR_ur/(n-K)]}}
+
+\begin{defn}[F 统计量]\label{def:U06b-F}
+\begin{equation}\label{eq:U06b-F}
+F=\frac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-K)}=\frac{(SSR_r-SSR_{ur})/q}{s^2},
+\end{equation}
+其中 $q$ 为约束个数，$K$ 为\key{无约束模型中 $X$ 的列数（含截距）}，$s^2=SSR_{ur}/(n-K)$。在误差正态、同方差的条件下，$H_0$ 成立时 $F\sim F(q,\ n-K)$（精确分布）。
+\end{defn}
+
+\subsubsection{自由度的两种口径：\texorpdfstring{$n-K$}{n-K} 与 \texorpdfstring{$n-k-1$}{n-k-1}}
+
+\begin{note}[自由度口径]
+另一种常见写法把分母自由度写成 $n-k-1$（Wooldridge 教材的写法），约定是“$k$ = 斜率回归元个数，另有 1 个截距”。本书第 5、6 章把 $X$ 的列数（含截距）记作 $K$，分母自由度是 $n-K$。两者是同一个数：
+\[
+\text{分母自由度}=\text{样本量}-\text{无约束模型中估计的系数总数（含截距）}.
+\]
+答题时先写明 $K$ 的含义，再写自由度。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{F 统计量的构造逻辑：分子非负、分母估计 \texorpdfstring{$\sigma^2$}{sigma squared}}
+
+\subsubsection{分子：施加约束后拟合变差了多少，故 \texorpdfstring{$F\ge0$}{F >= 0}}
+
+$SSR_r\ge SSR_{ur}$（局部最小 $\ge$ 全局最小），所以分子非负，$F\ge0$。分子 $(SSR_r-SSR_{ur})/q$ 衡量“施加 $H_0$ 后拟合变差了多少”，按约束个数平均。
+
+\subsubsection{分母：\texorpdfstring{$s^2$}{s squared} 是 \texorpdfstring{$\sigma^2$}{sigma squared} 的无偏估计}
+
+分母 $s^2=SSR_{ur}/(n-K)$ 是误差方差 $\sigma^2$ 的无偏估计（第 4 章）。它的作用是\key{把分子的量纲标准化}：分子的单位是 $y$ 的单位的平方，除以 $s^2$ 后 $F$ 成为无量纲的数。
+
+\subsubsection{判断逻辑：\texorpdfstring{$H_0$}{H0} 真时 \texorpdfstring{$F$}{F} 小，\texorpdfstring{$H_0$}{H0} 假时 \texorpdfstring{$F$}{F} 大}
+
+$H_0$ 为真 $\Rightarrow$ 施加约束几乎不损失拟合，$SSR_r\approx SSR_{ur}$，$F$ 小；$H_0$ 为假 $\Rightarrow$ 强行施加错误的约束使 $SSR$ 明显上升，$F$ 大。所以拒绝域在右尾。
+
+%----------------------------------------------------------------------
+\subsection{F 统计量的 \texorpdfstring{$R^2$}{R-squared} 形式}
+
+若两个回归的被解释变量相同（排除约束时成立），则两者的总平方和 $TSS$ 相同，且 $SSR=(1-R^2)\,TSS$：
+\begin{align*}
+SSR_r-SSR_{ur}&=(1-R_r^2)TSS-(1-R_{ur}^2)TSS=(R_{ur}^2-R_r^2)\,TSS \why{$SSR=(1-R^2)TSS$}\\
+SSR_{ur}&=(1-R_{ur}^2)\,TSS \why{同上}\\
+F&=\frac{(R_{ur}^2-R_r^2)\,TSS/q}{(1-R_{ur}^2)\,TSS/(n-K)}=\frac{(R_{ur}^2-R_r^2)/q}{(1-R_{ur}^2)/(n-K)} . \why{代入 \eqref{eq:U06b-F}，约去 $TSS$}
+\end{align*}
+\begin{note}[$R^2$ 形式的适用条件]
+若受约束回归改变了被解释变量（如上文的 $y-x_1-x_2$），两个回归的 $TSS$ 不同，$TSS$ 不能约去，$R^2$ 形式\key{不能用}，只能用 $SSR$ 形式 \eqref{eq:U06b-F}。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{回归整体显著性 F 检验（Stata 自动报告）}
+
+$H_0$：除截距外的所有斜率系数都为 0，$q=K-1$。受约束模型只有截距，其拟合值为 $\bar y$，于是 $SSR_r=\sum_i(y_i-\bar y)^2=TSS$，$R_r^2=0$。代入 $R^2$ 形式：
+\[
+F=\frac{R^2/(K-1)}{(1-R^2)/(n-K)}\ \sim\ F(K-1,\ n-K)\quad(\text{正态同方差，}H_0\text{ 下}).
+\]
+Stata 回归表右上角的“F(K$-$1, n$-$K)”与“Prob > F”报告的就是这一检验。Hansen §9.14 提醒：现代样本量大，这个 F 几乎总是高度显著，信息量很小，一般不必讨论。
+
+%----------------------------------------------------------------------
+\subsection{F 分布与决策规则}
+
+\subsubsection{F 分布的定义与 F 统计量的精确分布}
+
+\begin{defn}[F 分布]\label{def:U06b-Fdist}
+若 $\chi^2_q$ 与 $\chi^2_m$ 相互独立，则
+\[
+\frac{\chi^2_q/q}{\chi^2_m/m}\sim F(q,\ m),
+\]
+$q$、$m$ 分别称为分子自由度与分母自由度。
+\end{defn}
+
+正态、同方差误差 $u\mid X\sim N(0,\sigma^2I_n)$ 下（第 4 章）：$H_0$ 成立时 $(SSR_r-SSR_{ur})/\sigma^2\sim\chi^2_q$（由下一节的恒等式 $SSR_r-SSR_{ur}=(R\hat\beta-r)\T[R(X\T X)\inv R\T]\inv(R\hat\beta-r)$ 与 $R\hat\beta-r\sim N(0,\sigma^2R(X\T X)\inv R\T)$ 得到），$SSR_{ur}/\sigma^2\sim\chi^2_{n-K}$，且二者独立（$\hat\beta$ 与 $\hat u$ 独立）。于是
+\begin{align*}
+F&=\frac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-K)} \why{定义}\\
+&=\frac{\bigl[(SSR_r-SSR_{ur})/\sigma^2\bigr]/q}{\bigl[SSR_{ur}/\sigma^2\bigr]/(n-K)} \why{分子分母同除 $\sigma^2$}\\
+&\sim\frac{\chi^2_q/q}{\chi^2_{n-K}/(n-K)}=F(q,\ n-K). \why{二者独立；F 分布定义}
+\end{align*}
+未知的 $\sigma^2$ 在分子分母中约掉，所以 $F$ 可以计算，且分布精确已知。
+
+\subsubsection{F 分布的形状、临界值与拒绝域}
+
+$F(q,m)$ 的密度从 0 开始、右偏。决策规则：
+\[
+F>F_{1-\alpha}(q,\ n-K)\ \text{时拒绝}\ H_0 ,
+\]
+即“F 大于临界值就拒绝”。常用 5\% 临界值：$F(1,\infty)=3.84$，$F(2,\infty)=3.00$，$F(3,\infty)=2.60$，$F(2,100)=3.09$，$F(3,42)=2.83$。分母自由度有限时临界值比 $\infty$ 时略大。
+
+\begin{center}
+\begin{tikzpicture}[xscale=1.45,yscale=3]
+\fill[cthm!30] (2.60,0) -- plot[domain=2.60:5,samples=40] (\x,{3*sqrt(3*\x)*exp(-1.5*\x)/2.5066}) -- (5,0) -- cycle;
+\draw[->] (0,0) -- (5.3,0) node[right,font=\small] {$f$};
+\draw[->] (0,0) -- (0,0.85);
+\draw[thick,smooth] plot[domain=0.001:5,samples=150] (\x,{3*sqrt(3*\x)*exp(-1.5*\x)/2.5066});
+\draw (2.60,0) -- (2.60,0.5);
+\node[below,font=\footnotesize] at (2.60,0) {c.v.\ = 2.60};
+\node[below,font=\footnotesize] at (0,0) {0};
+\node[font=\footnotesize] at (1.45,0.12) {不拒绝域};
+\node[font=\footnotesize,align=center] at (3.6,0.3) {拒绝域（5\%）\\$F>\text{c.v.}$};
+\end{tikzpicture}
+\captionof{figure}{$F(3,\infty)$ 的密度（右偏，从 0 开始）与 5\% 临界值；有限分母自由度时临界值略大，如 $F_{0.95}(3,42)=2.83$}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{例：由两个回归的 SSR 手算 F（不拒绝的情形）}
+
+两步 F 只需两个回归的 SSR（或 $s^2$）——即使没有原始数据，也能从论文表格中手算。
+
+\begin{exmp}[由 SSR 手算 F]\label{ex:U06b-F1}
+短回归（受约束）含 5 个系数，$\sum\tilde u_i^2=106$；长回归（无约束）含 8 个系数，$\sum\hat u_i^2=100$；$n=50$。检验长回归新增的 3 个系数是否全为 0，并说明需要的额外假设。
+
+\solution
+\begin{align*}
+q&=8-5=3,\qquad n-K=50-8=42 \why{约束数 = 被排除的系数个数}\\
+F&=\frac{(106-100)/3}{100/42}=\frac{2}{2.381}=0.84 . \why{两步 F 公式}
+\end{align*}
+$0.84<F_{0.95}(3,42)=2.83$（$p=0.48$），不拒绝：新增变量整体不显著。
+
+\key{需要的额外假设}：同方差（SSR 型 F 只在同方差下有效）；要用精确的 F 分布，还需误差正态。
+
+另注：若题目同时给出 $R^2=0.20$（短）与 $0.26$（长），按 $R^2$ 形式会得到
+\[
+F=\frac{(0.26-0.20)/3}{(1-0.26)/42}=\frac{0.02}{0.01762}=1.14 .
+\]
+与 0.84 不同，原因是两组 $R^2$ 隐含的 $TSS$ 分别为 $106/(1-0.20)=132.5$ 与 $100/(1-0.26)=135.1$，彼此不一致（同一个 $y$ 的 $TSS$ 应相同），应以 SSR 为准。两种算法结论相同。
+\end{exmp}
+
+\subsection{例：拒绝的情形与渐近版本}
+
+\begin{exmp}[F 检验拒绝 $H_0$]\label{ex:U06b-F2}
+$n=104$，无约束模型含截距与 3 个回归元（$K=4$），$SSR_{ur}=200$；施加 $H_0:\beta_2=\beta_3=0$ 后 $SSR_r=216$。检验 $H_0$。
+
+\solution
+\begin{align*}
+q&=2,\qquad n-K=104-4=100 \why{两个排除约束}\\
+F&=\frac{(216-200)/2}{200/100}=\frac{8}{2}=4.0 . \why{两步 F 公式}
+\end{align*}
+$4.0>F_{0.95}(2,100)=3.09$，$p=0.021$，5\% 水平拒绝。渐近版本：$W^0=qF=8.0>\chi^2_{2,0.95}=5.99$，$p=e^{-8/2}=e^{-4}=0.018$，结论相同。
+\end{exmp}
+
+\begin{english}
+Step 1: estimate the unrestricted model by OLS and record $SSR_{ur}$. Step 2: impose $H_0$, re-estimate, and record $SSR_r\ge SSR_{ur}$. The statistic $F=\frac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-K)}$, where $K$ is the number of coefficients (including the intercept) in the unrestricted model, follows $F(q,n-K)$ under $H_0$ with normal homoskedastic errors. Since $F=4.0$ exceeds the 5\% critical value 3.09, we reject $H_0$. This SSR-based test is valid only under homoskedasticity; otherwise a robust Wald test should be used.
+\end{english}
+
+%======================================================================
+\section{F 检验与 Wald 检验的关系}\label{sec:U06b-FW}
+
+前两节从两个方向构造了检验：Wald 只用无约束估计，F 比较两个回归的 SSR。本节证明：同方差、线性约束下二者\key{是同一个检验}，只差标度 $q$；大样本下 $qF$ 与 $W$ 的分布相同；$q=1$ 时 t、F、W 三者合一。
+
+%----------------------------------------------------------------------
+\subsection{同方差线性约束下 \texorpdfstring{$F=W^0/q$}{F = W0/q}}\label{sec:U06b-FeqW}
+
+\begin{thm}[F 统计量等于同方差 Wald 统计量除以 $q$]\label{thm:U06b-FW}
+对线性假设 $H_0:R\beta=r$，两步 F 统计量 \eqref{eq:U06b-F} 恰好等于同方差 Wald 统计量 \eqref{eq:U06b-wald0} 除以 $q$：
+\[
+F=\frac{W^0}{q}.
+\]
+（Hansen §9.14。）这是代数恒等式，不需要任何分布假设。
+\end{thm}
+
+思路：先求出受约束 OLS 估计量 $\tilde\beta$，再证明
+\[
+SSR_r-SSR_{ur}=(R\hat\beta-r)\T\bigl[R(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r).
+\]
+
+\subsubsection{第一步：拉格朗日法求受约束 OLS 估计量 \texorpdfstring{$\tilde\beta$}{beta-tilde}}
+
+受约束 OLS（\term{受约束最小二乘}{constrained least squares}）解 $\min_b\,(Y-Xb)\T(Y-Xb)$ s.t. $Rb=r$。拉格朗日函数（乘子 $\lambda$ 为 $q\times1$，写成 $2\lambda$ 只为消去系数 2）：
+\[
+\mathcal L(b,\lambda)=(Y-Xb)\T(Y-Xb)+2\lambda\T(Rb-r).
+\]
+记 $A\equiv R(X\T X)\inv R\T$（$q\times q$；$X\T X$ 正定且 $\rank(R)=q$，故 $A$ 正定可逆）。
+\begin{align*}
+\frac{\partial\mathcal L}{\partial b}=-2X\T(Y-X\tilde\beta)+2R\T\lambda&=0 \why{一阶条件}\\
+X\T X\tilde\beta&=X\T Y-R\T\lambda \why{整理}\\
+\tilde\beta&=(X\T X)\inv X\T Y-(X\T X)\inv R\T\lambda \why{左乘 $(X\T X)\inv$}\\
+&=\hat\beta-(X\T X)\inv R\T\lambda \why{$\hat\beta=(X\T X)\inv X\T Y$}\\
+r=R\tilde\beta&=R\hat\beta-R(X\T X)\inv R\T\lambda=R\hat\beta-A\lambda \why{代入约束 $R\tilde\beta=r$}\\
+\lambda&=A\inv(R\hat\beta-r) \why{$A$ 可逆}\\
+\hat\beta-\tilde\beta&=(X\T X)\inv R\T A\inv(R\hat\beta-r). \why{回代 $\lambda$}
+\end{align*}
+受约束估计量就是把 $\hat\beta$ 沿 $(X\T X)\inv R\T$ 方向“拉回”到约束集上，拉回的幅度与 $R\hat\beta-r$ 成正比。
+
+\subsubsection{第二步：残差平方和之差等于 \texorpdfstring{$W^0$}{W0} 的分子}
+
+记受约束残差 $\tilde u=Y-X\tilde\beta$，无约束残差 $\hat u=Y-X\hat\beta$，$X\T\hat u=0$。
+\begin{align*}
+\tilde u&=Y-X\hat\beta+X\hat\beta-X\tilde\beta=\hat u+X(\hat\beta-\tilde\beta) \why{加一项减一项}\\
+SSR_r=\tilde u\T\tilde u&=\hat u\T\hat u+2(\hat\beta-\tilde\beta)\T X\T\hat u+(\hat\beta-\tilde\beta)\T X\T X(\hat\beta-\tilde\beta) \why{展开}\\
+&=SSR_{ur}+(\hat\beta-\tilde\beta)\T X\T X(\hat\beta-\tilde\beta) \why{交叉项含 $X\T\hat u=0$}\\
+SSR_r-SSR_{ur}&=(R\hat\beta-r)\T A\inv R(X\T X)\inv(X\T X)(X\T X)\inv R\T A\inv(R\hat\beta-r) \why{代入 $\hat\beta-\tilde\beta$；转置}\\
+&=(R\hat\beta-r)\T A\inv R(X\T X)\inv R\T A\inv(R\hat\beta-r) \why{$(X\T X)\inv(X\T X)=I$}\\
+&=(R\hat\beta-r)\T A\inv AA\inv(R\hat\beta-r) \why{$R(X\T X)\inv R\T=A$}\\
+&=(R\hat\beta-r)\T A\inv(R\hat\beta-r). \why{$A\inv A=I$}
+\end{align*}
+其中转置一步用到 $A\inv$ 与 $(X\T X)\inv$ 都对称：$\bigl[(X\T X)\inv R\T A\inv(R\hat\beta-r)\bigr]\T=(R\hat\beta-r)\T A\inv R(X\T X)\inv$。顺带得到：$A\inv$ 正定，所以 $SSR_r-SSR_{ur}\ge0$，与“局部最小 $\ge$ 全局最小”一致。
+
+\subsubsection{结论：两步 F 检验就是同方差 Wald 检验}
+
+\begin{align*}
+F=\frac{SSR_r-SSR_{ur}}{q\,s^2}&=\frac1q\cdot\frac{(R\hat\beta-r)\T\bigl[R(X\T X)\inv R\T\bigr]\inv(R\hat\beta-r)}{s^2} \why{代入第二步}\\
+&=\frac{W^0}{q}. \why{对照 \eqref{eq:U06b-wald0}}
+\end{align*}
+这说明：两步 F 检验与“用同方差方差矩阵的 Wald 检验”是同一个检验，只是标度差 $q$。因此 F 检验继承了 $W^0$ 的局限：\key{只在同方差下有效}。
+
+%----------------------------------------------------------------------
+\subsection{大样本下 \texorpdfstring{$F(q,n-K)\to\chi^2_q/q$}{F(q,n-K) -> chi-square q / q}，即 \texorpdfstring{$qF\dto\chi^2_q$}{qF -> chi-square q}}
+
+思路：F 分布的分母 $\chi^2_{n-K}/(n-K)$ 在 $n\to\infty$ 时趋于 1，于是 $F\approx\chi^2_q/q$，乘以 $q$ 就是 Wald 统计量的极限分布。设 $F\sim F(q,m)$，$m=n-K$，写成 $F=\dfrac{\chi^2_q/q}{\chi^2_m/m}$，其中 $\chi^2_m=\sum_{j=1}^mZ_j^2$，$Z_j\sim\iid\ N(0,1)$：
+\begin{align*}
+\frac{\chi^2_m}{m}=\frac1m\sum_{j=1}^mZ_j^2&\pto\E(Z_j^2)=1\qquad(m=n-K\to\infty) \why{LLN}\\
+F=\frac{\chi^2_q/q}{\chi^2_m/m}&\dto\frac{\chi^2_q}{q} \why{Slutsky}\\
+qF&\dto\chi^2_q . \why{CMT}
+\end{align*}
+\begin{itemize}
+  \item 大样本下 F 检验与 Wald 检验等价：$qF\approx W^0$，“F 检验 $\approx\chi^2_q/q$ = Wald 检验”。
+  \item 不需要正态：同方差下 $W^0\dto\chi^2_q$，而 $F=W^0/q$ 是恒等式，所以 $F\dto\chi^2_q/q$（Hansen §9.14）。
+  \item 有限样本中 $q\cdot F_{1-\alpha}(q,n-K)$ 略大于 $\chi^2_{q,1-\alpha}$，例如 $2\times F_{0.95}(2,100)=6.18>5.99$，$3\times F_{0.95}(3,42)=8.49>7.81$：用 F 临界值\key{更保守}，误差正态时还是精确的。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{单个约束：\texorpdfstring{$t^2=W\sim\chi^2_1$}{t squared = W ~ chi-square 1} 与 \texorpdfstring{$t^2=F(1,\cdot)$}{t squared = F(1,.)}}
+
+以 $H_0:\beta_1=0$（$q=1$）为例，$t_1=\dfrac{\hat\beta_1-0}{\mathrm{se}(\hat\beta_1)}\overset{a}{\sim}N(0,1)$，于是 $t_1^2\overset{a}{\sim}\chi^2_1$。
+\begin{itemize}
+  \item 单个约束时 $W=t^2$（上文“t 检验是 Wald 检验的特例”一小节），$F=t^2$（$t$ 用同方差标准误时）。
+  \item 正态误差下 $t\sim t_{n-K}$，而 $t$ 分布的平方是 $F(1,m)$：设 $t_m=Z/\sqrt{\chi^2_m/m}$，$Z\sim N(0,1)$ 与 $\chi^2_m$ 独立，则
+  \[
+  t_m^2=\frac{Z^2}{\chi^2_m/m}=\frac{\chi^2_1/1}{\chi^2_m/m}\sim F(1,m).
+  \]
+  例如 $t_{0.975}(42)^2=2.018^2=4.07=F_{0.95}(1,42)$；大样本下 $1.96^2=3.84=\chi^2_{1,0.95}$。
+  \item 结论：\key{t 检验与 F 检验都是 Wald 检验的特例}——$|t|$ 是 $q=1$ 的 Wald 统计量的平方根；$F$ 是同方差 Wald 统计量除以 $q$。
+\end{itemize}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLl}
+\toprule
+统计量 & 与 Wald 的关系 & 零分布（大样本）\\
+\midrule
+$t$ & $t^2=W$（$q=1$） & $N(0,1)$；$t^2\to\chi^2_1$\\
+$F$ & $F=W^0/q$（同方差、线性约束） & $F(q,n-K)\to\chi^2_q/q$\\
+$W$ & 一般形式，$\widehat{\Var}$ 可取同方差 / HC / CRVE & $\chi^2_q$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{t、F、Wald 三种统计量的关系}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{Stata 的 test 命令：以 F 形式报告的 Wald 检验}
+
+\subsubsection{常用命令：test、lincom、testnl、nlcom}
+
+联合检验在软件里是“F 检验”，在教科书里是“Wald 检验”——两者是同一个东西。以上文四个典型假设为例：
+\begin{lstlisting}
+reg y x1 x2 x3, robust          // or: vce(cluster id)
+test x1 x2                      // H0: b1 = b2 = 0             (q = 2)
+test (x1 = 1) (x2 = 1)          // H0: b1 = 1 and b2 = 1       (case b)
+test x1 + 2*x2 = 0              // H0: b1 + 2 b2 = 0           (case c)
+test 2*x1 + 3*x2 = 4            // H0: 2 b1 + 3 b2 = 4         (case d)
+lincom x1 + 2*x2                // estimate, se, t and CI of a linear combination
+testnl _b[x1]/_b[x2] = 1        // Wald test of a nonlinear restriction
+nlcom -_b[exper]/(2*_b[exper2]) // delta-method se of a nonlinear function
+\end{lstlisting}
+
+\subsubsection{Stata 报告 F，教科书用 Wald：只差标度与参考分布}
+
+Stata 的 \texttt{test} 计算的是 Wald 统计量，但以 $F=W/q$ 的形式报告，并用 $F(q,n-K)$（聚类时用 $F(q,G-1)$）计算 $p$ 值；所用的 $\hat V$ 就是回归命令所设定的那一个（默认同方差，或 \texttt{robust}、\texttt{cluster}）。所以“软件报告 F、教科书用 Wald”只是\key{标度与参考分布}的差别（Hansen §9.9）。对稳健 $\hat V$ 使用 $F(q,n-K)$ 并无严格理论依据，只是比 $\chi^2_q$ 略保守，$n-K$ 较大时差别很小。
+
+\subsubsection{异方差或聚类时不能用 SSR 型 F}
+
+两步 SSR 型 F 只在同方差下有效。存在异方差或聚类时，应使用以稳健 $\hat V$ 构造的 Wald 检验（即回归加 \texttt{robust} 或 \texttt{vce(cluster id)} 后再用 \texttt{test}），不能再用 SSR 公式。
+
+%----------------------------------------------------------------------
+\subsection{增加一个变量：调整 \texorpdfstring{$R^2$}{R-squared} 上升当且仅当 \texorpdfstring{$|t|>1$}{|t| > 1}}
+
+\begin{thm}[调整 $R^2$ 与 $|t|>1$]\label{thm:U06b-adjR2}
+在含 $K$ 个系数（含截距）的回归中再加入一个回归元，调整 $R^2$
+\[
+\bar R^2=1-\frac{(n-1)\,SSR}{(n-k)\,TSS}\qquad(k\ \text{为该回归的系数个数})
+\]
+上升，当且仅当新变量系数的同方差 t 值满足 $|t|>1$。
+\end{thm}
+
+思路：$\bar R^2$ 上升等价于 $s^2$ 下降；用 $q=1$ 时 $F=t^2$ 把长、短回归的 SSR 联系起来。记短回归（$K$ 个系数）残差平方和为 $SSR_s$、$s_s^2=SSR_s/(n-K)$；长回归（$K+1$ 个系数）为 $SSR_l$、$s_l^2=SSR_l/(n-K-1)$。
+\begin{align*}
+\bar R^2\ \text{上升}&\iff s_l^2<s_s^2 \why{$\bar R^2=1-s^2/[TSS/(n-1)]$，$TSS$ 不变}\\
+t^2=F&=\frac{SSR_s-SSR_l}{SSR_l/(n-K-1)} \why{$q=1$ 时 $F=t^2$}\\
+\Longrightarrow\ SSR_s&=SSR_l\Bigl(1+\frac{t^2}{n-K-1}\Bigr) \why{移项}\\
+s_s^2=\frac{SSR_s}{n-K}&=\frac{SSR_l\,(n-K-1+t^2)}{(n-K-1)(n-K)} \why{短回归自由度 $n-K$}\\
+s_l^2&=\frac{SSR_l}{n-K-1} \why{长回归自由度 $n-K-1$}\\
+s_l^2<s_s^2&\iff 1<\frac{n-K-1+t^2}{n-K} \why{两边约去 $SSR_l/(n-K-1)$}\\
+&\iff n-K<n-K-1+t^2\iff t^2>1. \why{两边乘 $n-K$}
+\end{align*}
+所以“$\bar R^2$ 上升”是一个非常宽松的标准：$|t|>1$ 大约对应 32\% 的显著性水平（$2[1-\Phi(1)]=0.317$），\key{不能代替显著性检验}。
+
+\begin{english}
+For linear restrictions under homoskedasticity, the $F$ statistic equals the homoskedastic Wald statistic divided by the number of restrictions, $F=W^0/q$. Since $\chi^2_{n-K}/(n-K)\pto1$, $qF\dto\chi^2_q$, so the $F$ and Wald tests are asymptotically equivalent; with one restriction, $W=t^2\sim\chi^2_1$. Stata's \texttt{test} command reports the Wald statistic in its $F$ form, $W/q$, using whichever covariance matrix (robust or clustered) was specified in the regression. Adding a regressor raises the adjusted $R^2$ if and only if its $|t|$ exceeds one, which is a much weaker criterion than significance at the 5\% level.
+\end{english}
+
+%======================================================================
+\section{置信区间与检验的对偶}\label{sec:U06b-CI}
+
+检验回答“某个假设值能否被拒绝”，置信区间回答“哪些值不能被拒绝”。二者是同一枚硬币的两面：置信区间就是检验的接受域换个方向读。
+
+%----------------------------------------------------------------------
+\subsection{置信区间是不被拒绝的参数值集合}
+
+\subsubsection{定义：置信区间与检验反演}
+
+\begin{defn}[置信区间与检验反演]\label{def:U06b-CI}
+设 $\theta$ 为标量参数，$t(\theta_0)=(\hat\theta-\theta_0)/\mathrm{se}(\hat\theta)$。95\% 渐近\term{置信区间}{confidence interval}为
+\[
+\hat C=\bigl[\hat\theta-1.96\,\mathrm{se}(\hat\theta),\ \hat\theta+1.96\,\mathrm{se}(\hat\theta)\bigr]=\bigl\{\theta_0:\ |t(\theta_0)|\le1.96\bigr\}.
+\]
+第二种写法称为\term{检验反演}{test inversion}：置信区间就是“5\% 双侧 t 检验不拒绝的所有假设值”。
+\end{defn}
+
+两种写法等价：
+\begin{align*}
+|t(\theta_0)|\le1.96&\iff|\hat\theta-\theta_0|\le1.96\,\mathrm{se}(\hat\theta) \why{乘以 $\mathrm{se}>0$}\\
+&\iff\hat\theta-1.96\,\mathrm{se}(\hat\theta)\le\theta_0\le\hat\theta+1.96\,\mathrm{se}(\hat\theta). \why{去绝对值}
+\end{align*}
+
+\subsubsection{对偶关系：\texorpdfstring{$\theta_0\notin\hat C$}{theta0 not in C} 时拒绝是一个渐近 5\% 检验}
+
+“$\theta_0\notin\hat C$ 时拒绝 $H_0:\theta=\theta_0$”是一个渐近 5\% 检验。证明：
+\[
+P(\theta_0\notin\hat C\mid H_0)=P\bigl(|t(\theta_0)|>1.96\mid H_0\bigr)\to0.05 .
+\]
+一般地，给定检验统计量 $T(\theta)$ 与临界值 $c$，接受域“$T(\theta)\le c$ 时接受”与集合 $\hat C=\{\theta:T(\theta)\le c\}$ 完全相同（Hansen §9.19）。
+
+\subsubsection{覆盖概率等于 1 减 size}
+
+\[
+P(\theta\in\hat C)=P(\text{真值不被拒绝})=1-P(\text{拒绝}\mid\text{真值})=1-\text{size}.
+\]
+所以检验的第一类错误控制得好，反演得到的区间覆盖率就好；反之亦然。
+
+\subsubsection{例：由置信区间判断两个假设}
+
+\begin{exmp}[一个区间同时回答两个检验]\label{ex:U06b-CI}
+本章 t 检验一节的例子：$\hat\beta_1=0.15$，$\mathrm{se}(\hat\beta_1)=0.06$。在 5\% 水平分别检验 $H_0:\beta_1=0$ 与 $H_0:\beta_1=1$。
+
+\solution
+\[
+\hat C=[0.15-1.96\times0.06,\ 0.15+1.96\times0.06]=[0.15-0.118,\ 0.15+0.118]=[0.032,\ 0.268].
+\]
+$0\notin\hat C$，$1\notin\hat C$，所以两个假设都在 5\% 水平被拒绝（对应 $t=2.5$ 与 $t=-14.2$）。区间内的任何值（如 0.1、0.2）都不会被拒绝。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{多参数的置信区域：置信椭圆}
+
+$\theta\in\R^q$ 时，反演 Wald 检验得到\term{置信区域}{confidence region}
+\[
+\hat C=\bigl\{\theta:\ W(\theta)\le\chi^2_{q,1-\alpha}\bigr\},\qquad W(\theta)=(\hat\theta-\theta)\T\,\widehat{\Var}(\hat\theta)\inv(\hat\theta-\theta),
+\]
+即以 $\hat\theta$ 为中心、由 $\widehat{\Var}(\hat\theta)\inv$ 决定形状的椭圆（$q=2$）或椭球（Hansen §7.19）。
+
+以上文“四个典型线性假设”例题 (b) 为例：$\theta=(\beta_1,\beta_2)\T$，$W(1,1)=3.11<5.99$，所以点 $(\beta_1,\beta_2)=(1,1)$ 落在 95\% 置信椭圆之内，与“不拒绝 $\beta_1=\beta_2=1$”一致。
+
+\begin{center}
+\begin{tikzpicture}[xscale=5,yscale=2.6,>={Stealth[length=2mm]}]
+\draw[->] (0.7,0) -- (1.95,0) node[right,font=\small] {$\beta_1$};
+\draw[->] (0.7,0) -- (0.7,1.7) node[above,font=\small] {$\beta_2$};
+\foreach \x in {0.8,1.0,1.2,1.4,1.6,1.8} \draw (\x,0) -- (\x,-0.03) node[below,font=\scriptsize] {\x};
+\foreach \y in {0.4,0.8,1.2,1.6} \draw (0.7,\y) -- (0.68,\y) node[left,font=\scriptsize] {\y};
+\draw[dashed,cdef,thick] (0.908,0.212) rectangle (1.692,1.388);
+\draw[cthm,thick,smooth,samples=120,domain=0:360] plot ({1.3+0.4895*cos(\x)},{0.8+0.1224*cos(\x)+0.7239*sin(\x)});
+\node[circle,fill,inner sep=1.3pt,label={[font=\scriptsize]below right:$\hat\theta=(1.3,\,0.8)$}] at (1.3,0.8) {};
+\node[circle,fill=cex,inner sep=1.3pt,label={[font=\scriptsize,cex]above left:$(1,1)$}] at (1,1) {};
+\node[font=\scriptsize,cthm,align=left] at (1.62,1.58) {95\% 置信椭圆};
+\node[font=\scriptsize,cdef,align=left,right] at (1.70,0.30) {两个一维\\区间的方框};
+\end{tikzpicture}
+\captionof{figure}{例题 (b) 的 95\% 置信椭圆（实线，$W(\theta)\le5.99$）与两个一维 95\% 区间构成的方框（虚线）}
+\end{center}
+
+\begin{note}[方框不等于椭圆]
+两个一维置信区间 $[0.908,1.692]\times[0.212,1.388]$ 构成的“方框”与联合置信椭圆不是同一个集合：方框的四角有些点在椭圆之外，椭圆在四周也有部分伸出方框。联合假设必须用联合检验（椭圆），不能用两个一维区间拼凑。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{非线性参数的置信区间：反演线性化的检验}
+
+\subsubsection{Delta 方法区间的覆盖率可能很差}
+
+对比值参数 $\theta=\beta_1/\beta_2$，Delta 方法区间 $\hat\theta\pm1.96\,\mathrm{se}(\hat\theta)$ 是在反演非线性 t 检验；由上文“不变性问题”，这个 t 检验的 size 可能远离 5\%，所以区间的覆盖率可能很差（Hansen §9.19）。
+
+\subsubsection{Fieller 型区间：反演 \texorpdfstring{$\beta_1-\theta\beta_2=0$}{beta1 - theta beta2 = 0} 的检验}
+
+更好的做法是反演线性形式的检验 $H_0:\beta_1-\theta\beta_2=0$。记 $\hat V_{jk}$ 为 $\widehat{\Var}(\hat\beta_1,\hat\beta_2)$ 的第 $(j,k)$ 元。对固定的 $\theta$，$R=(1,-\theta)$：
+\begin{align*}
+R\hat\beta&=\hat\beta_1-\theta\hat\beta_2 \why{线性组合}\\
+R\,\widehat{\Var}\,R\T&=\hat V_{11}-2\theta\hat V_{12}+\theta^2\hat V_{22} \why{二次型展开}\\
+\hat C&=\Bigl\{\theta:\ \frac{|\hat\beta_1-\theta\hat\beta_2|}{\sqrt{\hat V_{11}-2\theta\hat V_{12}+\theta^2\hat V_{22}}}\le1.96\Bigr\}. \why{检验反演}
+\end{align*}
+求法：对 $\theta$ 做网格搜索；或两边平方，记 $c=1.96^2$，解关于 $\theta$ 的二次不等式
+\[
+(\hat\beta_2^2-c\hat V_{22})\theta^2-2(\hat\beta_1\hat\beta_2-c\hat V_{12})\theta+(\hat\beta_1^2-c\hat V_{11})\le0 .
+\]
+这称为 \term{Fieller 型区间}{Fieller interval}。若 $\hat\beta_2$ 本身不显著（$\hat\beta_2^2<c\hat V_{22}$），二次项系数为负，集合可能无界——这如实反映了分母系数估计不准时比值几乎无法确定。
+
+Hansen §9.19 的工资方程例子：$\log(wage)=\beta_1\,exp+\beta_2\,exp^2/100+\cdots$，工资最高处 $\theta=-50\beta_1/\beta_2$，$\hat\theta=29.8$。Delta 方法区间为 $[29.8,\ 29.9]$，反演线性形式检验得到的区间为 $[29.1,\ 30.6]$，宽得多；后者更可信。
+
+\begin{english}
+The 95\% confidence interval $[\hat\theta-1.96\,se(\hat\theta),\ \hat\theta+1.96\,se(\hat\theta)]$ is the set of values $\theta_0$ that are not rejected by a two-sided 5\% $t$-test. Hence $H_0:\theta=\theta_0$ is rejected at the 5\% level if and only if $\theta_0$ lies outside the interval, and the coverage probability equals one minus the size of the test. For a vector parameter, inverting the Wald test gives a confidence ellipse $\{\theta: W(\theta)\le\chi^2_{q,1-\alpha}\}$. For a ratio $\theta=\beta_1/\beta_2$, it is better to invert the linear test of $\beta_1-\theta\beta_2=0$ than to use the delta-method interval.
+\end{english}
+
+%======================================================================
+\section{三大检验：似然比检验与拉格朗日乘子检验（拓展）}\label{sec:U06b-trinity}
+
+\tagext\ Wald 检验只用无约束估计，看估计值离假设值多远。在有完整似然函数的模型中，还有两种经典检验：\key{似然比（LR）检验}比较有约束与无约束时的最大似然值；\key{拉格朗日乘子（LM）检验}只用受约束估计，看那里的得分是否接近 0。三者合称\term{三大检验}{trinity of classical tests}，在 $H_0$ 下渐近等价。
+
+本节记号：$\ell(\theta)$ 为对数似然函数（第 4 章），$\theta$ 为全部参数；$\hat\theta$ 为无约束 MLE，$\tilde\theta$ 为满足 $H_0$ 的受约束 MLE；$q$ 为约束个数。
+
+%----------------------------------------------------------------------
+\subsection{似然比检验}
+
+\subsubsection{定义：\texorpdfstring{$LR=2[\ell(\hat\theta)-\ell(\tilde\theta)]$}{LR = 2[l(theta-hat) - l(theta-tilde)]}}
+
+\begin{defn}[似然比检验]\label{def:U06b-LR}
+\term{似然比检验}{likelihood ratio test, LR test}的统计量为
+\[
+LR=2\bigl[\ell(\hat\theta)-\ell(\tilde\theta)\bigr]\ \dto\ \chi^2_q\qquad\text{under }H_0 .
+\]
+\end{defn}
+因为 $\tilde\theta$ 是在子集上最大化，$\ell(\tilde\theta)\le\ell(\hat\theta)$，所以 $LR\ge0$；$H_0$ 为真时施加约束几乎不降低似然，$LR$ 小。
+
+\subsubsection{正态线性回归中 \texorpdfstring{$LR=n\log(SSR_r/SSR_{ur})$}{LR = n log(SSR_r/SSR_ur)}}
+
+正态线性回归 $y_i=x_i\T\beta+u_i$，$u_i\mid x_i\sim N(0,\sigma^2)$，$\theta=(\beta\T,\sigma^2)\T$，记 $SSR(\beta)=(Y-X\beta)\T(Y-X\beta)$：
+\begin{align*}
+\ell(\beta,\sigma^2)&=-\frac n2\log(2\pi\sigma^2)-\frac{SSR(\beta)}{2\sigma^2} \why{正态对数似然}\\
+\frac{\partial\ell}{\partial\sigma^2}=-\frac{n}{2\sigma^2}+\frac{SSR(\beta)}{2\sigma^4}=0&\ \Rightarrow\ \sigma^2(\beta)=\frac{SSR(\beta)}{n} \why{给定 $\beta$ 对 $\sigma^2$ 求最大}\\
+\ell\bigl(\beta,\sigma^2(\beta)\bigr)&=-\frac n2\log\bigl(2\pi\sigma^2(\beta)\bigr)-\frac n2=-\frac n2\bigl[\log(2\pi\sigma^2(\beta))+1\bigr]. \why{代回}
+\end{align*}
+无约束时 $\hat\beta$ 为 OLS，$\hat\sigma^2=SSR_{ur}/n$；受约束时最大化似然等价于在约束下最小化 $SSR$，$\tilde\beta$ 为受约束 OLS，$\tilde\sigma^2=SSR_r/n$。于是
+\begin{align*}
+LR&=2\Bigl\{-\frac n2\bigl[\log(2\pi\hat\sigma^2)+1\bigr]+\frac n2\bigl[\log(2\pi\tilde\sigma^2)+1\bigr]\Bigr\} \why{代入两个最大值}\\
+&=n\bigl[\log(2\pi\tilde\sigma^2)-\log(2\pi\hat\sigma^2)\bigr] \why{$\pm1$ 抵消}\\
+&=n\log\frac{\tilde\sigma^2}{\hat\sigma^2}=n\log\frac{SSR_r}{SSR_{ur}} . \why{$\tilde\sigma^2/\hat\sigma^2=SSR_r/SSR_{ur}$}
+\end{align*}
+
+\subsubsection{LR 属于准则函数型检验}
+
+LR 属于\term{准则函数型检验}{criterion-based test}：比较有约束与无约束时目标函数（准则函数）的最优值之差（Hansen §9.11）。一般地，若估计量最小化准则 $J(\beta)$，则 $\min_{\beta\in B_0}J(\beta)-\min_{\beta\in B}J(\beta)\ge0$ 衡量“施加约束的代价”。两步 F 检验以 SSR 为准则，也属此类；GMM 中的距离检验思想相同（第 9 章）。准则函数型统计量只依赖约束集合 $B_0$，所以对假设的代数写法（重新参数化）不变。
+
+%----------------------------------------------------------------------
+\subsection{拉格朗日乘子检验（得分检验）}
+
+\subsubsection{定义：受约束估计处的得分应接近 0}
+
+\begin{defn}[拉格朗日乘子检验]\label{def:U06b-LM}
+\term{拉格朗日乘子检验}{Lagrange multiplier test, LM test}（又称\term{得分检验}{score test}）只需估计受约束模型：若约束为真，受约束估计 $\tilde\theta$ 应接近似然的最大值点，那里的得分（对数似然的梯度）应接近 0。
+\[
+LM=s(\tilde\theta)\T\,\mathcal I(\tilde\theta)\inv\,s(\tilde\theta)\ \dto\ \chi^2_q,\qquad s(\theta)=\frac{\partial\ell(\theta)}{\partial\theta},
+\]
+$\mathcal I(\theta)$ 为信息矩阵（第 4 章）。
+\end{defn}
+名称的来历：得分 $s(\tilde\theta)$ 与受约束最大化中的拉格朗日乘子成正比（上一节受约束 OLS 中 $\lambda=A\inv(R\hat\beta-r)$），检验乘子是否为 0 就是检验约束是否“束缚”。
+
+\subsubsection{正态线性回归中 \texorpdfstring{$LM=n(SSR_r-SSR_{ur})/SSR_r$}{LM = n(SSR_r - SSR_ur)/SSR_r}}
+
+在 $(\tilde\beta,\tilde\sigma^2)$ 处，$\sigma^2$ 方向的得分为 0（$\tilde\sigma^2$ 已在给定 $\tilde\beta$ 时最大化似然），且信息矩阵在 $\beta$ 与 $\sigma^2$ 之间分块对角，所以只需 $\beta$ 方向。记 $\tilde u=Y-X\tilde\beta$，$P_X=X(X\T X)\inv X\T$，$M_X=I_n-P_X$（第 3 章）：
+\begin{align*}
+s_\beta(\tilde\beta,\tilde\sigma^2)&=\frac{X\T(Y-X\tilde\beta)}{\tilde\sigma^2}=\frac{X\T\tilde u}{\tilde\sigma^2} \why{对 $\beta$ 求导}\\
+-\frac{\partial^2\ell}{\partial\beta\partial\beta\T}&=\frac{X\T X}{\tilde\sigma^2} \why{二阶导}\\
+LM&=\frac{\tilde u\T X}{\tilde\sigma^2}\Bigl(\frac{X\T X}{\tilde\sigma^2}\Bigr)\inv\frac{X\T\tilde u}{\tilde\sigma^2}=\frac{\tilde u\T X(X\T X)\inv X\T\tilde u}{\tilde\sigma^2}=\frac{\tilde u\T P_X\tilde u}{\tilde\sigma^2} \why{代入定义}\\
+P_X\tilde u&=P_X\hat u+P_XX(\hat\beta-\tilde\beta)=X(\hat\beta-\tilde\beta),\qquad M_X\tilde u=\hat u \why{$\tilde u=\hat u+X(\hat\beta-\tilde\beta)$}\\
+\tilde u\T P_X\tilde u&=\tilde u\T\tilde u-\tilde u\T M_X\tilde u=SSR_r-SSR_{ur} \why{$P_X=I-M_X$；$M_X$ 幂等}\\
+LM&=\frac{SSR_r-SSR_{ur}}{SSR_r/n}=n\,\frac{SSR_r-SSR_{ur}}{SSR_r}. \why{$\tilde\sigma^2=SSR_r/n$}
+\end{align*}
+其中第四行用了 $P_X\hat u=0$、$P_XX=X$、$M_X\hat u=\hat u$、$M_XX=0$；第五行用了 $\tilde u\T M_X\tilde u=(M_X\tilde u)\T(M_X\tilde u)=\hat u\T\hat u$。等价地，$LM=(R\hat\beta-r)\T[R(X\T X)\inv R\T]\inv(R\hat\beta-r)/\tilde\sigma^2$：就是把同方差 Wald 统计量中的 $s^2$ 换成受约束方差估计 $\tilde\sigma^2$。
+
+\subsubsection{\texorpdfstring{$nR^2$}{nR-squared} 形式：受约束残差对全部回归元的辅助回归}
+
+把受约束残差 $\tilde u$ 对全部回归元 $X$ 做\term{辅助回归}{auxiliary regression}，得 $R^2_{aux}$，则
+\[
+LM=nR^2_{aux}.
+\]
+理由：辅助回归的拟合值为 $P_X\tilde u$、残差为 $M_X\tilde u=\hat u$，于是（非中心化）
+\[
+R^2_{aux}=\frac{\tilde u\T P_X\tilde u}{\tilde u\T\tilde u}=\frac{SSR_r-SSR_{ur}}{SSR_r},\qquad nR^2_{aux}=n\,\frac{SSR_r-SSR_{ur}}{SSR_r}=LM .
+\]
+受约束模型含截距时 $\tilde u$ 的均值为 0，中心化与非中心化 $R^2$ 相同，软件报告的 $R^2$ 可直接用。Breusch--Pagan 异方差检验、序列相关的 LM 检验都是这种“受约束残差 + 辅助回归 + $nR^2$”的形式。
+
+%----------------------------------------------------------------------
+\subsection{三大检验的几何图示}
+
+\begin{center}
+\begin{tikzpicture}[x=1.35cm,y=1.05cm,>={Stealth[length=2mm]}]
+\draw[->] (0,0) -- (6,0) node[right,font=\small] {$\theta$};
+\draw[->] (0,0) -- (0,3.7) node[above,font=\small] {$\ell(\theta)$};
+\draw[thick,domain=0.6:5.3,samples=80,smooth] plot (\x,{3-0.5*(\x-3)*(\x-3)});
+\draw[dotted] (0,3) -- (4.6,3);
+\draw[dotted] (0,2.02) -- (4.6,2.02);
+\draw[dotted] (3,3) -- (3,0);
+\draw[dotted] (1.6,2.02) -- (1.6,0);
+\node[left,font=\scriptsize] at (0,3) {$\ell(\hat\theta)$};
+\node[left,font=\scriptsize] at (0,2.02) {$\ell(\tilde\theta)$};
+\node[below,font=\scriptsize] at (1.6,0) {$\tilde\theta=\theta_0$};
+\node[below,font=\scriptsize] at (3,0) {$\hat\theta$};
+\draw[dashed,cdef,thick] (0.95,1.11) -- (2.35,3.07);
+\draw[<->,cex,thick] (1.6,0.55) -- (3,0.55);
+\node[above,font=\scriptsize,cex] at (2.3,0.55) {W：横向距离};
+\draw[<->,cthm,thick] (4.4,2.02) -- (4.4,3);
+\node[right,font=\scriptsize,cthm] at (4.45,2.5) {LR：纵向距离};
+\draw[->,cdef] (0.9,3.45) node[above right,font=\scriptsize,cdef] {LM：$\tilde\theta$ 处的斜率（得分）} -- (1.55,2.05);
+\end{tikzpicture}
+\captionof{figure}{三大检验：Wald 看 $\hat\theta-\theta_0$（横向），LR 看 $\ell(\hat\theta)-\ell(\tilde\theta)$（纵向），LM 看受约束点处的斜率}
+\end{center}
+三者度量的是同一件事——“约束离数据支持的位置有多远”——只是看的角度不同：横向距离要标准化（除以方差），纵向距离天然无量纲，斜率要除以曲率（信息矩阵）。
+
+%----------------------------------------------------------------------
+\subsection{三大检验的比较}
+
+\subsubsection{正态线性回归中的统一写法}
+
+在正态线性回归中，三者都可写成 $(SSR_r-SSR_{ur})$ 除以某个 $\sigma^2$ 估计（LR 是其对数版本）：
+\begin{align*}
+W&=\frac{SSR_r-SSR_{ur}}{\hat\sigma^2}=n\,\frac{SSR_r-SSR_{ur}}{SSR_{ur}} \why{$\hat\sigma^2=SSR_{ur}/n$}\\
+LM&=\frac{SSR_r-SSR_{ur}}{\tilde\sigma^2}=n\,\frac{SSR_r-SSR_{ur}}{SSR_r} \why{$\tilde\sigma^2=SSR_r/n$}\\
+qF&=\frac{SSR_r-SSR_{ur}}{s^2}=(n-K)\,\frac{SSR_r-SSR_{ur}}{SSR_{ur}} \why{$s^2=SSR_{ur}/(n-K)$}
+\end{align*}
+这里的 $W$ 是用 MLE 方差 $\hat\sigma^2$（而非 $s^2$）构造的同方差 Wald 统计量，所以 $W=qF\cdot\dfrac{n}{n-K}$。
+
+记 $x=SSR_r/SSR_{ur}$，则
+\begin{align*}
+x&=1+\frac{SSR_r-SSR_{ur}}{SSR_{ur}} \why{加 1 减 1}\\
+&=1+\frac{qF}{n-K}, \why{上式 $qF$ 的表达式}
+\end{align*}
+且
+\[
+W=n(x-1),\qquad LR=n\log x,\qquad LM=n\Bigl(1-\frac1x\Bigr).
+\]
+三者都是 $F$ 的单调增函数：正态线性回归中，若各用自己的精确临界值，三者与 F 检验是同一个检验；差别只出现在“共用 $\chi^2_q$ 临界值”时。既然 F 的精确分布已知，这一模型中直接用 F 检验即可。
+
+\subsubsection{正态线性回归中 \texorpdfstring{$W\ge LR\ge LM$}{W >= LR >= LM}}
+
+$x=SSR_r/SSR_{ur}\ge1$。对 $x>0$ 有不等式
+\[
+x-1\ \ge\ \log x\ \ge\ 1-\frac1x .
+\]
+证明：令 $g(x)=x-1-\log x$，$g(1)=0$，$g'(x)=1-1/x$ 在 $x<1$ 时为负、$x>1$ 时为正，故 $g(x)\ge0$，即 $\log x\le x-1$；把它用于 $1/x$：$\log(1/x)\le 1/x-1$，即 $\log x\ge1-1/x$。两边乘以 $n$：
+\[
+W=n(x-1)\ \ge\ LR=n\log x\ \ge\ LM=n\Bigl(1-\frac1x\Bigr).
+\]
+所以用同一个 $\chi^2$ 临界值时，\key{Wald 最容易拒绝，LM 最保守}。三者在 $H_0$ 下都 $\dto\chi^2_q$，渐近等价；有限样本中可能给出不同结论。
+
+\subsubsection{比较表：需要估计什么、适用于什么情形}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{llcL}
+\toprule
+检验 & 需要估计 & 正态线性回归中的形式 & 适用情形\\
+\midrule
+Wald & 只需无约束模型 & $W=n(SSR_r-SSR_{ur})/SSR_{ur}$ & 无约束模型好估；最常用；易于稳健化（换 $\hat V$）\\
+LR & 两个模型 & $LR=n\log(SSR_r/SSR_{ur})$ & 有完整似然时；对重新参数化不变\\
+LM & 只需受约束模型 & $LM=n(SSR_r-SSR_{ur})/SSR_r$ & 受约束模型简单（如设定检验：异方差、序列相关）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{三大检验的比较}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{例：三大检验的数值比较}
+
+由两个回归的 SSR 就能同时算出三大检验统计量，并直接验证 $W\ge LR\ge LM$。
+
+\begin{exmp}[三大检验的数值比较]\label{ex:U06b-trinity}
+沿用上文“由 SSR 手算 F”的例子：$n=50$，$SSR_r=106$，$SSR_{ur}=100$，$q=3$，$K=8$。计算 $W$、$LR$、$LM$ 并检验。
+
+\solution
+\begin{align*}
+W&=50\times\frac{106-100}{100}=50\times0.06=3.00 \why{$W=n(x-1)$}\\
+LR&=50\log\frac{106}{100}=50\times0.0583=2.91 \why{$LR=n\log x$}\\
+LM&=50\times\frac{106-100}{106}=50\times0.0566=2.83 \why{$LM=n(1-1/x)$}
+\end{align*}
+$W\ge LR\ge LM$ 成立；三者都远小于 $\chi^2_{3,0.95}=7.81$，结论一致：不拒绝。对照 $qF=3\times\dfrac{6/3}{100/42}=2.52$，且 $W=qF\cdot\dfrac{50}{42}=2.52\times1.19=3.00$。
+\end{exmp}
+
+\begin{english}
+The likelihood ratio statistic $LR=2[\ell(\hat\theta)-\ell(\tilde\theta)]$ compares the maximized log-likelihood with and without the restrictions, while the Lagrange multiplier (score) statistic $LM=s(\tilde\theta)'\mathcal I(\tilde\theta)^{-1}s(\tilde\theta)$ requires only the restricted estimates. Under $H_0$ the Wald, LR and LM statistics are all asymptotically $\chi^2_q$ and hence asymptotically equivalent. In the normal linear regression model $W=n(SSR_r-SSR_{ur})/SSR_{ur}$, $LR=n\log(SSR_r/SSR_{ur})$ and $LM=n(SSR_r-SSR_{ur})/SSR_r=nR^2_{aux}$, and $W\ge LR\ge LM$, so with common $\chi^2$ critical values the Wald test rejects most often.
+\end{english}
+
+%======================================================================
+\section{多重检验、检验结果的误读与 p-hacking}\label{sec:U06b-multiple}
+
+前面各节讨论的是“一个检验”的 size 与功效。实际研究中往往同时看很多系数、做很多检验，或在多种设定之间挑选；这时名义 $p$ 值会失去含义。本节集中讨论多重检验、联合与单个检验的区别、对检验结果的常见误读，以及如何用模拟评价检验的真实 size。
+
+%----------------------------------------------------------------------
+\subsection{多重比较问题：\texorpdfstring{$k$}{k} 个检验中至少一个“显著”}
+
+\subsubsection{至少一个错误拒绝的概率 \texorpdfstring{$1-0.95^k$}{1 - 0.95 to the k}}
+
+\term{多重比较问题}{multiple comparisons problem}（又称\term{多重检验}{multiple testing}）：若 $k$ 个零假设全都为真、检验相互独立、每个检验的 size 为 5\%，则
+\begin{align*}
+P(\text{至少一个 }p<0.05)&=1-P(\text{全部 }p\ge0.05) \why{对立事件}\\
+&=1-\prod_{j=1}^kP(p_j\ge0.05)=1-0.95^k . \why{独立；每个为 0.95}
+\end{align*}
+$k=10$ 时约为 40\%，$k=20$ 时约为 64\%。检验越多，“碰巧显著”几乎是必然的。
+
+\subsubsection{例：20 个回归元中挑出最显著的一个}
+
+\begin{exmp}[只有“学习时间”显著，能否宣称它是关键预测变量]\label{ex:U06b-20reg}
+研究者把考试成绩对 20 个回归元回归，只有“学习时间”的 $|t|\approx2.5$（名义 $p\approx0.012$），于是宣称它是成绩的关键预测变量。评价这一推理。
+
+\solution
+推理有缺陷，原因有三：
+\begin{enumerate}
+  \item \key{多重检验}：20 个检验同时进行，即使 20 个系数全为 0，至少一个 $|t|>1.96$ 的概率约为 $1-0.95^{20}=64\%$。在 20 个结果里挑出最显著的一个来报告，其名义 $p$ 值 0.012 严重低估了第一类错误。
+  \item \key{修正后不显著}：Bonferroni 修正（见下一小节）后的族 $p$ 值约为 $20\times0.0124=0.25$，远不显著。
+  \item \key{显著不等于“关键”}：即使显著，还要看系数大小与经济意义；也要考虑遗漏变量等内生性问题（第 7 章），回归系数未必是因果效应。
+\end{enumerate}
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{Bonferroni 修正}
+
+\subsubsection{Boole 不等式与族错误率的上界}
+
+设有 $k$ 个假设 $H_j$，各自的检验 $p$ 值为 $p_j$，$H_j$ 为真时 $P(p_j<\alpha)\to\alpha$。“$k$ 个检验中至少一个显著”就是事件 $\{\min_{j\le k}p_j<\alpha\}=\bigcup_{j=1}^k\{p_j<\alpha\}$。
+
+\begin{thm}[Bonferroni 界]\label{thm:U06b-bonf}
+由 Boole 不等式 $P\bigl(\bigcup_jA_j\bigr)\le\sum_jP(A_j)$（对任意事件成立，不需要独立）：
+\[
+P\Bigl(\min_{j\le k}p_j<\alpha\Bigr)\le\sum_{j=1}^kP(p_j<\alpha)\to k\alpha,\qquad
+P\Bigl(\min_{j\le k}p_j<\frac{\alpha}{k}\Bigr)\le\sum_{j=1}^kP\Bigl(p_j<\frac\alpha k\Bigr)\to\alpha .
+\]
+（Hansen §9.20。）
+\end{thm}
+
+“$k$ 个检验中至少一个错误拒绝”的概率称为\term{族错误率}{family-wise error rate}。第一个不等式说明：每个检验用 $\alpha$，族错误率最多可达 $k\alpha$；第二个说明：要把族错误率控制在 $\alpha$ 以内，每个检验要用更严格的门槛 $\alpha/k$。
+
+\subsubsection{Bonferroni 门槛 \texorpdfstring{$\alpha/k$}{alpha/k} 与族 \texorpdfstring{$p$}{p} 值 \texorpdfstring{$k\cdot\min_j p_j$}{k min p}}
+
+\term{Bonferroni 修正}{Bonferroni correction}：仅当最小的 $p$ 值小于 $\alpha/k$ 时才宣称“显著”；等价地，修正后的族 $p$ 值为 $k\cdot\min_jp_j$，与 $\alpha$ 比较。该修正简单、不需要独立性，但当 $k$ 大时偏保守。
+
+\subsubsection{例：两组 \texorpdfstring{$p$}{p} 值}
+
+\begin{itemize}
+  \item 两个 $p$ 值 0.04 与 0.15：常规 5\% 下第一个“显著”；Bonferroni 门槛 $0.05/2=0.025$，0.04 不满足，不显著（族 $p$ 值 $2\times0.04=0.08$）。
+  \item 两个 $p$ 值 0.01 与 0.15：族 $p$ 值 $2\times0.01=0.02<0.05$，显著。
+  \item 上面 20 个回归元的例子：$20\times0.0124=0.25$，远不显著。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{联合检验不等于逐个 t 检验}
+
+\subsubsection{联合假设必须用联合检验：经验是否影响工资}
+
+“经验不影响工资”在 $\log(wage)=\cdots+\beta_1 exp+\beta_2 exp^2+\cdots$ 中意味着 $exp$ 与 $exp^2$ 的系数\key{同时}为 0，即 $H_0:\beta_1=\beta_2=0$，是 $q=2$ 的 Wald 检验；只看 $exp$ 的 t 值是错误的。同理，联合检验拒绝只说明“至少一个系数非零”，不说明每个都非零，所以联合 Wald 与逐个 t 值都应报告。
+
+\subsubsection{共线变量：逐个不显著而联合显著，或反之}
+
+\begin{itemize}
+  \item 两个高度共线的变量：各自的 t 都不显著，联合 F（Wald）却高度显著——它们“合起来”有解释力，但难以分清是谁的作用（标准误被共线性放大）。
+  \item 反之，联合检验不显著时，逐个检验中仍可能有一个“碰巧”显著（上文多重比较问题）。
+\end{itemize}
+原则：\key{联合假设用联合检验，单个假设用单个检验}。
+
+%----------------------------------------------------------------------
+\subsection{对检验结果的四种常见误读}
+
+\subsubsection{不显著不等于 \texorpdfstring{$H_0$}{H0} 为真}
+
+不拒绝 $H_0$ 只说明证据不足；没有功效分析，就不知道第二类错误有多大。“回归发现女性工会会员身份对工资没有影响”是错误表述，应说“未能拒绝该系数为零的假设”（Hansen §9.6）。
+
+\subsubsection{“样本再大一点就一定会拒绝”并不成立}
+
+$p=0.08$ 时说“样本再大一点就一定会拒绝”也不对：若 $H_0$ 恰好为真，增加样本不会提高拒绝概率（仍为 5\%）；只有当 $H_0$ 为假时，功效才随 $n$ 上升。
+
+\subsubsection{大样本下几乎任何点假设都会被拒绝：统计显著与经济显著}
+
+一致检验下，任何固定的偏离都会在大样本中被拒绝（本章功效与一致性的讨论）。点假设（如系数恰好为 0）几乎不会严格成立，所以超大样本下“统计显著”几乎是必然的。关键要看\key{效应大小与置信区间}：例如对数工资方程中系数 0.005、标准误 0.002，95\% 区间 $[0.001,\ 0.009]$ 说明效应虽为正但不到 1\%，经济上很小（Hansen §9.6）。
+
+\subsubsection{两项研究结论“矛盾”未必矛盾}
+
+两项独立研究，一个拒绝、一个不拒绝同一假设，不一定矛盾：可能是功效不同（样本量、方差不同），也可能其中一个犯了第一类或第二类错误。应比较点估计与置信区间是否重叠，必要时合并证据。
+
+%----------------------------------------------------------------------
+\subsection{用蒙特卡洛模拟评价检验的 size}
+
+\subsubsection{模拟步骤与拒绝频率}
+
+检验的真实 size 往往未知（例如非线性 Wald、簇数很少时的 CRVE），渐近理论只保证极限情形。\term{蒙特卡洛模拟}{Monte Carlo simulation}用计算机生成数据来计算有限样本表现（Hansen §9.18）：
+
+\begin{method}[用蒙特卡洛模拟估计检验的 size]
+\begin{enumerate}
+  \item 选定一个使 $H_0$ 成立的数据生成过程（分布 $F$ 与参数真值）以及样本量 $n$；
+  \item 第 $b$ 次重复（$b=1,\dots,B$）：从该过程抽取一个样本，计算检验统计量 $T_b$，记录是否拒绝 $\mathbf 1\{T_b\ \text{超过临界值}\}$；
+  \item 拒绝比例 $\hat p=\frac1B\sum_{b=1}^B\mathbf 1\{T_b\ \text{超过临界值}\}$ 就是真实 size 的估计；
+  \item 改变 $n$ 与数据生成过程，重复上述实验，看结论是否稳健。
+\end{enumerate}
+\end{method}
+
+\subsubsection{模拟标准误 \texorpdfstring{$\mathrm{se}(\hat p)\approx0.22/\sqrt B$}{se(p-hat) = 0.22/sqrt(B)}}
+
+各次重复独立，$\mathbf 1\{\cdot\}$ 是参数为 $p$（真实 size）的伯努利变量，$\hat p$ 是 $B$ 个伯努利变量的均值：
+\begin{align*}
+\Var(\hat p)&=\frac{p(1-p)}{B} \why{独立伯努利的均值}\\
+\mathrm{se}(\hat p)&=\sqrt{p(1-p)/B}\approx\sqrt{0.05\times0.95/B}\approx\frac{0.22}{\sqrt B}. \why{检验 5\% 名义水平时取 $p=0.05$}
+\end{align*}
+$B=100$、1000、5000 时 $\mathrm{se}(\hat p)$ 分别约为 0.022、0.007、0.003。判断是否“过度拒绝”就是对 $H_0:p=0.05$ 做 t 检验：$t=(\hat p-0.05)/\mathrm{se}(\hat p)$。
+
+\subsubsection{判断是否过度拒绝：同一 \texorpdfstring{$\hat p$}{p-hat}、不同 \texorpdfstring{$B$}{B}}
+
+\begin{center}
+\small
+\begin{tabular}{cccl}
+\toprule
+$\hat p$ & $B$ & $\mathrm{se}(\hat p)$ & $t=(\hat p-0.05)/\mathrm{se}$\\
+\midrule
+0.07 & 100 & 0.0218 & 0.92（不能断言过度拒绝）\\
+0.07 & 200 & 0.0154 & 1.30（证据不足，结论“不完整”）\\
+0.07 & 1000 & 0.0069 & 2.90（确实过度拒绝）\\
+\bottomrule
+\end{tabular}
+\captionof{table}{同一模拟拒绝率在不同重复次数下的含义}
+\end{center}
+
+\subsubsection{size 失真的经验标准：3\%--8\% 可以接受}
+
+Hansen（§9.17）的经验标准：名义 5\% 检验，模拟得到的第一类错误率在 3\%--8\% 之间可以接受，超过 10\% 过大，超过 20\% 不可接受。
+
+\begin{exmp}[$B=200$ 次模拟、拒绝率 0.07，能否断言过度拒绝]\label{ex:U06b-mc}
+同事在 $H_0$ 下对一个名义 5\% 的检验做了 $B=200$ 次模拟，拒绝频率为 0.07，于是断言该检验过度拒绝。这个结论对吗？
+
+\solution
+结论不完整。
+\begin{align*}
+\mathrm{se}(\hat p)&\approx\sqrt{0.05\times0.95/200}=0.0154 \why{伯努利均值的标准误}\\
+t&=\frac{0.07-0.05}{0.0154}=1.30<1.96 . \why{检验 $H_0:p=0.05$}
+\end{align*}
+不能在 5\% 水平断定真实 size 不等于 5\%。应增加重复次数（如 $B=1000$ 或更多，标准误降到约 0.007）后再判断；而且 7\% 落在可接受的 3\%--8\% 范围内。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{p-hacking 的形式、后果与防范}
+
+\textbf{p-hacking}\idx{p-hacking}{p 值操纵}（p 值操纵）指有意无意地在多种做法中挑选，直到得到 $p<0.05$ 的结果再报告。
+\begin{itemize}
+  \item \key{形式}：挑选标准误类型或聚类层级（第 5 章“se $\to$ t $\to$ p $\to$ 星号”的链条）、挑控制变量、挑样本区间、挑被解释变量的度量方式、多次尝试后只报告 $p<0.05$ 的那一个。
+  \item \key{后果}：报告的 $p$ 值失去名义含义。$H_0$ 下 $p\sim U[0,1]$，每试一次都有 5\% 的机会得到 $p<0.05$，试得够多总会“成功”；文献中的虚假发现随之增多。
+  \item \key{防范}：事前确定设定（\term{预注册}{pre-registration}）；报告全部检验或做多重检验修正；报告稳健性检验；用置信区间和经济显著性说话；聚类层级依据抽样与处理分配的设计事先决定。
+\end{itemize}
+
+\begin{english}
+With $k$ independent tests at the 5\% level, the probability that at least one rejects when all nulls are true is $1-0.95^k$ (64\% for $k=20$). To control the family-wise error rate at $\alpha$, the Bonferroni correction rejects only if the smallest $p$-value is below $\alpha/k$. Failure to reject does not show that the null is true; it may reflect low power. Conversely, in very large samples statistically significant estimates may be economically negligible, so the magnitude and the confidence interval should be reported. A simulated rejection rate $\hat p$ from $B$ replications has standard error $\sqrt{p(1-p)/B}$, so over-rejection should be judged by a $t$-test of $p=0.05$.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U06b-summary}
+
+\subsection{核心公式与结论}
+
+{\small
+\begin{longtable}{p{2.6cm}p{7.9cm}p{4.9cm}}
+\toprule
+结论 & 公式 & 条件 / 备注\\
+\midrule
+\endfirsthead
+\toprule
+结论 & 公式 & 条件 / 备注\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+size 与 power & size $=P(\text{拒绝}H_0\mid H_0)$；power $=1-P(\text{第二类错误})$ & 先控制第一类错误；把“错误拒绝代价最大”的命题设为 $H_0$\\
+t 统计量 & $t=\dfrac{\hat\theta-\theta_0}{\mathrm{se}(\hat\theta)}\dto N(0,1)$ & se 须与误差结构相符\\
+t 的临界值与 $p$ 值 & 双侧 1.645 / 1.96 / 2.58，单侧 1.282 / 1.645 / 2.326（10\% / 5\% / 1\%）；$p=2[1-\Phi(|t|)]$ & $p<\alpha$ 拒绝\\
+线性假设 & $H_0:R\beta=r$，$R$ 为 $q\times K$，$\rank(R)=q$ & 如 $\beta_1=0$；$\beta_1=\beta_2=1$；$\beta_1+2\beta_2=0$；$2\beta_1+3\beta_2=4$\\
+正态二次型 & $Z\sim N(0,\Sigma)\Rightarrow Z\T\Sigma\inv Z\sim\chi^2_q$ & $\Sigma$ 为 $q\times q$ 正定\\
+Wald 统计量 & $W=(R\hat\beta-r)\T[R\,\widehat{\Var}(\hat\beta)R\T]\inv(R\hat\beta-r)\dto\chi^2_q$ & $\widehat{\Var}$ 取同方差 / HC / CRVE；5\% 临界值 3.84 / 5.99 / 7.81（$q=1,2,3$）\\
+同方差 Wald & $W^0=(R\hat\beta-r)\T[R(X\T X)\inv R\T]\inv(R\hat\beta-r)/s^2$ & 只在同方差下有效\\
+$q=2$ 的 $p$ 值 & $p=e^{-W/2}$ & $\chi^2_2$ 为均值 2 的指数分布\\
+非线性 Wald & $W=(r(\hat\beta)-\theta_0)\T[\hat R\,\widehat{\Var}(\hat\beta)\hat R\T]\inv(r(\hat\beta)-\theta_0)$ & 对写法不具不变性；尽量改写为线性\\
+两步 F & $F=\dfrac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-K)}\sim F(q,n-K)$ & $K$ 含截距（另一口径 $n-k-1$ 中 $k$ 不含截距）；正态同方差下精确\\
+F 的 $R^2$ 形式 & $F=\dfrac{(R^2_{ur}-R^2_r)/q}{(1-R^2_{ur})/(n-K)}$ & 仅当两回归被解释变量相同\\
+整体显著性 F & $F=\dfrac{R^2/(K-1)}{(1-R^2)/(n-K)}\sim F(K-1,n-K)$ & Stata 自动报告，大样本下信息量小\\
+F 与 Wald & $F=W^0/q$；$qF\dto\chi^2_q$ & 线性约束、同方差；代数恒等式\\
+单个约束 & $W=t^2\sim\chi^2_1$；$t^2_m\sim F(1,m)$ & $1.96^2=3.84$\\
+Stata & \texttt{test} 报告 $F=W/q$，用 $F(q,n-K)$ 或 $F(q,G-1)$ & $\hat V$ 由回归命令设定\\
+调整 $R^2$ & 加入一个变量后 $\bar R^2$ 上升 $\iff|t|>1$ & 标准宽松，约 32\% 水平\\
+置信区间 & $\hat C=\{\theta_0:|t(\theta_0)|\le1.96\}$；$P(\theta\in\hat C)=1-\text{size}$ & 多参数：$\{\theta:W(\theta)\le\chi^2_{q,1-\alpha}\}$（椭圆）\\
+比值参数区间 & 反演 $\beta_1-\theta\beta_2=0$ 的检验（Fieller 型） & 优于 Delta 方法区间\\
+LR / LM & $LR=2[\ell(\hat\theta)-\ell(\tilde\theta)]$；$LM=s(\tilde\theta)\T\mathcal I(\tilde\theta)\inv s(\tilde\theta)$ & 均 $\dto\chi^2_q$，与 Wald 渐近等价\\
+正态线性回归 & $W=n(x-1)\ \ge\ LR=n\log x\ \ge\ LM=n(1-1/x)$，$x=SSR_r/SSR_{ur}$ & $W=qF\cdot\frac{n}{n-K}$；$LM=nR^2_{aux}$\\
+多重检验 & $P(\text{至少一个显著})=1-0.95^k$；Bonferroni 门槛 $\alpha/k$，族 $p$ 值 $k\min_jp_j$ & $k=20$ 时 64\%\\
+模拟标准误 & $\mathrm{se}(\hat p)=\sqrt{p(1-p)/B}\approx0.22/\sqrt B$ & 可接受 size：3\%--8\%\\
+\end{longtable}
+}
+
+一句话：所有检验都是“估计值离假设值有多远，以标准误为单位”——单个约束看 $t$，多个约束看 $W$（或 $F$），而标准误必须与误差结构相符。
+
+\subsection{检验方法的选择要点}
+
+\begin{itemize}
+  \item \key{单个线性约束}：t 检验（可做单侧）；双侧时与 $q=1$ 的 Wald 检验等价。线性组合 $a\T\beta$ 可用 \texttt{lincom} 或重新参数化后直接读系数与 se。
+  \item \key{多个线性约束}：稳健 Wald 检验（截面用 HC，聚类用 CRVE），Stata 中回归后 \texttt{test}。只有在同方差下才可用两步 SSR 型 F 或 $R^2$ 形式。
+  \item \key{非线性约束}：先尝试改写为线性约束（比值改为乘积或差）；不能改写时用非线性 Wald（\texttt{testnl}）并警惕写法敏感性，或用准则函数型检验。
+  \item \key{有完整似然}：可用 LR；\key{受约束模型简单}（设定检验）：用 LM / $nR^2$；\key{无约束模型好估}：用 Wald。
+  \item \key{区间估计}：置信区间 = 反演检验；联合区域用椭圆；比值参数用 Fieller 型区间。
+  \item \key{检验多个假设}：明确是联合假设（用联合检验）还是多个单独假设（用 Bonferroni 等多重检验修正）。
+\end{itemize}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item 用逐个 t 检验代替联合检验（如只看 $exp$ 的 t 值就判断“经验不影响工资”）；或用两个一维区间的“方框”代替联合置信椭圆。
+  \item 异方差或聚类数据仍用两步 SSR 型 F；聚类时联合检验的约束个数超过 $G-1$。
+  \item 受约束回归改变了被解释变量，却仍用 $R^2$ 形式计算 F。
+  \item F 的分母自由度口径混乱：$n-K$（$K$ 含截距）与 $n-k-1$（$k$ 不含截距）混用。
+  \item Wald 统计量漏写转置，或把 $\hat\beta$ 的方差与 $\sqrt n(\hat\beta-\beta)$ 的渐近方差混淆（差一个因子 $n$）。
+  \item 因为 $W$ 很小而拒绝 $H_0$——Wald 检验只在上尾拒绝。
+  \item 非线性假设直接用比值写法做 Wald 检验，不知道结果依赖写法。
+  \item 把“不显著”说成“没有影响”；把“统计显著”等同于“经济上重要”；认为“样本再大一点就一定显著”。
+  \item 在许多检验中挑出最显著的一个报告其名义 $p$ 值；根据 $\hat p$ 与 0.05 的差别断言过度拒绝，却不计算模拟标准误。
+  \item 用“调整 $R^2$ 上升”作为加入变量的显著性依据。
+\end{enumerate}
+
+\begin{keypt}[英文试卷常见问法]
+本章内容对应 Hansen 第 9 章。英文试题的典型问法：“Can we exclude $X_2$ from the regression? State $H_0$ and $H_1$, give a test statistic, its asymptotic distribution and the decision rule.”“Describe how to test that the expected wage of a 40-year-old worker is \$20.”“Is the conclusion that the test over-rejects correct?” 作答模板：写出 $R$、$r$、$q$ $\to$ 写出（稳健）Wald 统计量 $\to$ 指出 $\chi^2_q$ 极限分布 $\to$ 写出 5\% 决策规则 $\to$ 说明所需假设（同方差与否）。下面的综合练习覆盖这些问法。
+\end{keypt}
+
+\subsection{综合练习}
+
+以下四题覆盖本章最常考的题型：排除约束的联合检验、由 SSR 计算各类统计量、线性组合的检验与重新参数化、两步回归检验的陷阱。
+
+\begin{prac}[Testing an exclusion restriction]\label{pr:U06b-excl}
+You estimate $y=\alpha+\beta_1x_1+\beta_2x_2+\beta_3x_1^2+\beta_4x_2^2+\beta_5x_1x_2+u$ with $\E[xu]=0$. Your advisor asks: can we exclude $x_2$ from the regression? (a) State the null and alternative hypotheses. (b) Give an appropriate test statistic. (c) What is its asymptotic distribution? (d) State the decision rule at the 5\% level.
+
+\answer
+(a) 排除 $x_2$ 意味着\key{所有含 $x_2$ 的项}都消失：$H_0:\beta_2=\beta_4=\beta_5=0$；$H_1$：至少一个不为 0。$q=3$。
+
+(b) 以 $\beta=(\alpha,\beta_1,\dots,\beta_5)\T$（$6\times1$），$R$ 为选出第 3、5、6 个元素的 $3\times6$ 矩阵，$r=\mathbf 0$：
+\[
+R=\begin{pmatrix}0&0&1&0&0&0\\0&0&0&0&1&0\\0&0&0&0&0&1\end{pmatrix},\qquad
+W=(R\hat\beta)\T\bigl[R\,\hat V^{\mathrm{HC}}_{\hat\beta}R\T\bigr]\inv(R\hat\beta),
+\]
+其中 $\hat V^{\mathrm{HC}}_{\hat\beta}$ 为 $\hat\beta$ 的异方差稳健方差估计（稳健 Wald 检验）。
+
+(c) $H_0$ 下 $W\dto\chi^2_3$。
+
+(d) $W>7.81$ 时拒绝 $H_0$（不能排除 $x_2$），否则不拒绝。若误差同方差，也可用两步 F：去掉 $x_2,\ x_2^2,\ x_1x_2$ 做受约束回归，$F>F_{0.95}(3,\ n-6)$ 时拒绝。
+\end{prac}
+
+\begin{prac}[F, Wald, LR and LM from two regressions]\label{pr:U06b-fourstats}
+With $n=120$, a restricted regression with 4 coefficients has $SSR_r=540$; the unrestricted regression with 7 coefficients (including the intercept) has $SSR_{ur}=500$. (a) Compute the $F$ statistic and test at 5\% (the 5\% critical value of $F(3,113)$ is 2.68). (b) Compute $W^0=qF$ and compare with $\chi^2_3$. (c) Compute $W$, $LR$, $LM$ of the trinity section and verify $W\ge LR\ge LM$. (d) What assumptions justify (a)? What would you do if the errors were heteroskedastic?
+
+\answer
+(a)
+\begin{align*}
+q&=7-4=3,\qquad n-K=120-7=113 \why{约束数与分母自由度}\\
+F&=\frac{(540-500)/3}{500/113}=\frac{13.33}{4.425}=3.01>2.68 , \why{两步 F 公式}
+\end{align*}
+5\% 水平拒绝（$p=0.033$）。
+
+(b) $W^0=3\times3.01=9.04>7.81$，拒绝（$p=0.029$），与 (a) 一致。
+
+(c) $x=540/500=1.08$：
+\begin{align*}
+W&=120\times(1.08-1)=9.60 \why{$W=n(x-1)$}\\
+LR&=120\log1.08=120\times0.0770=9.24 \why{$LR=n\log x$}\\
+LM&=120\times(1-1/1.08)=120\times0.0741=8.89 \why{$LM=n(1-1/x)$}
+\end{align*}
+$9.60\ge9.24\ge8.89$，且三者都大于 7.81，均拒绝。
+
+(d) $F(q,n-K)$ 精确分布需要误差正态且同方差；渐近上至少需要同方差（SSR 型统计量用同一个 $\sigma^2$ 估计作分母）。若异方差：不能用 SSR 公式，应在无约束回归中用 HC 方差计算稳健 Wald（Stata：\texttt{reg ..., robust} 后 \texttt{test}），与 $\chi^2_3$（或其 F 形式）比较。
+\end{prac}
+
+\begin{prac}[Expected wage at age 40]\label{pr:U06b-age40}
+In $wage=\beta_0+\beta_1age+\beta_2age^2+u$ with $\E[u\mid age]=0$, describe how to test that the expected wage of a 40-year-old worker is \$20 per hour. A colleague re-estimates the model as $wage=\gamma_0+\gamma_1(age-40)+\gamma_2(age-40)^2+u$ and obtains $\hat\gamma_0=18.8$ with a robust standard error of 0.5. Carry out the test.
+
+\answer
+\key{假设}：$\theta=\E(wage\mid age=40)=\beta_0+40\beta_1+1600\beta_2$，$H_0:\theta=20$ vs $H_1:\theta\ne20$。这是单个线性约束 $R\beta=r$，$R=(1,\ 40,\ 1600)$，$r=20$：
+\[
+t=\frac{R\hat\beta-20}{\sqrt{R\hat V_{\hat\beta}R\T}},\qquad |t|>1.96\ \text{时拒绝（或 }W=t^2>3.84\text{）}.
+\]
+\key{重新参数化}：展开并与原模型比较系数，
+\begin{align*}
+&\gamma_0+\gamma_1(age-40)+\gamma_2(age-40)^2 \\
+&\quad=(\gamma_0-40\gamma_1+1600\gamma_2)+(\gamma_1-80\gamma_2)\,age+\gamma_2\,age^2 \why{展开平方并合并}\\
+&\Rightarrow\ \beta_2=\gamma_2,\quad \beta_1=\gamma_1-80\gamma_2,\quad \beta_0=\gamma_0-40\gamma_1+1600\gamma_2 \why{比较系数}\\
+&\Rightarrow\ \gamma_2=\beta_2,\quad \gamma_1=\beta_1+80\beta_2 \why{反解}\\
+&\phantom{\Rightarrow\ }\ \gamma_0=\beta_0+40\gamma_1-1600\gamma_2=\beta_0+40\beta_1+1600\beta_2=\theta . \why{代入 $\gamma_1,\gamma_2$}
+\end{align*}
+所以截距 $\hat\gamma_0$ 就是 $\hat\theta$，其 se 直接可读。
+\begin{align*}
+t&=\frac{18.8-20}{0.5}=-2.4,\qquad |t|>1.96 \why{t 统计量}
+\end{align*}
+5\% 水平拒绝 $H_0$（$p=0.016$）；1\% 水平（临界值 2.58）不拒绝。95\% 置信区间 $18.8\pm1.96\times0.5=[17.82,\ 19.78]$，不含 20。
+\end{prac}
+
+\begin{prac}[Testing with a residual regression]\label{pr:U06b-resid}
+An econometrician regresses $y_i$ on $x_i$ by OLS, obtains residuals $\hat u_i$, then regresses $\hat u_i$ on $z_i\in\R^\ell$: $\hat u_i=z_i\T\tilde\gamma+\tilde u_i$. (a) What is the probability limit of $\tilde\gamma$? (b) Write the (robust) Wald statistic for $H_0:\gamma=0$ that ignores the first step. (c) Find its asymptotic null distribution when $\E[zx\T]=0$. (d) Does the answer change if $\E[zx\T]\neq0$? What is the correct procedure?
+
+\answer
+记 $u_i=y_i-x_i\T\beta$ 为第一步的总体（投影）误差，$\E(x_iu_i)=0$；则 $\hat u_i=u_i-x_i\T(\hat\beta-\beta)$。记 $Q_{zz}=\E(zz\T)$，$Q_{zx}=\E(zx\T)=Q_{xz}\T$，$Q_{xx}=\E(xx\T)$，$\hat Q_{zz}=\frac1n\sum_iz_iz_i\T$。
+
+(a)
+\begin{align*}
+\tilde\gamma&=\Bigl(\frac1n\sum_iz_iz_i\T\Bigr)\inv\frac1n\sum_iz_i\hat u_i \why{OLS 公式}\\
+\frac1n\sum_iz_i\hat u_i&=\frac1n\sum_iz_iu_i-\Bigl(\frac1n\sum_iz_ix_i\T\Bigr)(\hat\beta-\beta)\ \pto\ \E(zu) \why{WLLN；$\hat\beta-\beta\pto0$}\\
+\tilde\gamma&\pto\gamma\equiv Q_{zz}\inv\E(zu). \why{CMT}
+\end{align*}
+
+(b) 忽略第一步的稳健 Wald 统计量：
+\[
+W=n\,\tilde\gamma\T\hat V_\gamma\inv\tilde\gamma,\qquad \hat V_\gamma=\hat Q_{zz}\inv\Bigl(\frac1n\sum_iz_iz_i\T\tilde u_i^2\Bigr)\hat Q_{zz}\inv .
+\]
+
+(c)
+\begin{align*}
+\sqrt n\tilde\gamma&=\hat Q_{zz}\inv\Bigl[\frac1{\sqrt n}\sum_iz_iu_i-\Bigl(\frac1n\sum_iz_ix_i\T\Bigr)\sqrt n(\hat\beta-\beta)\Bigr] \why{代入 $\hat u_i$}\\
+\Bigl(\frac1n\sum_iz_ix_i\T\Bigr)\sqrt n(\hat\beta-\beta)&=o_p(1)\cdot O_p(1)\pto0 \why{$\E(zx\T)=0$}\\
+\sqrt n\tilde\gamma&\dto N\bigl(0,\ Q_{zz}\inv\E(zz\T u^2)Q_{zz}\inv\bigr). \why{$H_0$：$\E(zu)=0$；CLT}
+\end{align*}
+第一步估计对第二步没有影响；$H_0$ 下 $\tilde\gamma\pto0$，$\tilde u_i\approx u_i$，$\hat V_\gamma$ 一致，故 $W\dto\chi^2_\ell$。
+
+(d) 会改变。$\E(zx\T)\ne0$ 时第二项是 $O_p(1)$ 且与第一项相关。把 $\sqrt n(\hat\beta-\beta)=\hat Q_{xx}\inv\frac1{\sqrt n}\sum_ix_iu_i$ 代入：
+\begin{align*}
+\sqrt n\tilde\gamma&=\hat Q_{zz}\inv\frac1{\sqrt n}\sum_i\bigl(z_i-\hat Q_{zx}\hat Q_{xx}\inv x_i\bigr)u_i \why{合并两项}\\
+\avar(\sqrt n\tilde\gamma)&=\sigma^2Q_{zz}\inv\bigl(Q_{zz}-Q_{zx}Q_{xx}\inv Q_{xz}\bigr)Q_{zz}\inv \why{同方差；展开 $\E(ww\T)$}
+\end{align*}
+其中 $w=z-Q_{zx}Q_{xx}\inv x$，$\E(ww\T)=Q_{zz}-Q_{zx}Q_{xx}\inv Q_{xz}$。而 $\hat V_\gamma$ 估计的是（同方差下）$\sigma^2Q_{zz}\inv$，比真实方差大（差一个半正定矩阵），所以 $W$ 偏小，一般不服从 $\chi^2_\ell$，检验过于保守、功效受损。
+
+正确做法：把 $y$ 同时对 $x$ 与 $z$ 回归，对 $z$ 的系数做稳健 Wald 检验；由 FWL 定理（第 3 章），这等价于第二步用 $M_XZ$（$z$ 对 $x$ 回归的残差）而不是 $Z$ 作回归元。
+\end{prac}
+
+\begin{english}
+To test hypotheses on regression coefficients, write them as $H_0:R\beta=r$ with $q$ restrictions. A single restriction is tested with a $t$-statistic; several restrictions are tested jointly with the Wald statistic $W=(R\hat\beta-r)'[R\widehat{\Var}(\hat\beta)R']^{-1}(R\hat\beta-r)\dto\chi^2_q$, using a heteroskedasticity- or cluster-robust covariance matrix. Under homoskedasticity the $F$ statistic equals $W^0/q$, and with one restriction $W=t^2$. Confidence intervals are obtained by inverting tests. When many hypotheses are examined, the family-wise error rate should be controlled, e.g.\ by the Bonferroni correction.
+\end{english}

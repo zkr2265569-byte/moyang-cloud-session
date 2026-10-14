@@ -1,0 +1,473 @@
+\chapter{进阶爬虫：Selenium、反爬、正文抽取、巨潮资讯网与 PDF 年报解析}
+\begingroup\sloppy\setlength{\emergencystretch}{3em}
+\newenvironment{tabD07}{\par\smallskip\noindent\footnotesize}{\par\smallskip}
+\lstdefinestyle{pyD07}{language=Python,basicstyle=\ttfamily\footnotesize,aboveskip=3pt,belowskip=3pt,framesep=2pt}
+\lstdefinestyle{txtD07}{basicstyle=\ttfamily\footnotesize,aboveskip=3pt,belowskip=3pt,framesep=2pt}
+\noindent\key{本章速览}\quad 动态网页 → \key{Selenium} 取渲染后源码、模拟点击输入；封 IP → \key{代理 + sleep + timeout + try/except}；新闻正文 → \key{候选容器 + 最长 div}；巨潮 → \key{补域名、还原 \texttt{\&amp;}、“约 $N$ 条”÷20 点击翻页、批量下载规范命名}；年报 → \key{pdfplumber + os}，“关键词找页 → 表头找表 → 跨页 \texttt{next} → 标志位 \texttt{break}”提取前五大客户。代码均为 Selenium 4 写法。
+
+% ======================================================================
+\section{Selenium 与 ChromeDriver：安装与环境配置}
+
+\subsection{为什么需要 Selenium：动态加载与“真正的源码”}
+很多网站（巨潮、新版百度）内容由 JavaScript 在网页打开后\term{动态加载}{dynamic loading}，requests 只拿到最初的 HTML 骨架；Selenium 驱动真实浏览器，取到 JS 渲染后的源码（= F12 Elements），并能模拟点击、输入、翻页。
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{1.3cm}LL@{}}
+\toprule
+ & requests & Selenium \\
+\midrule
+原理/结果 & 直接发 HTTP 请求；服务器最初返回的 HTML & 经 ChromeDriver 操纵真实 Chrome；渲染后的 \texttt{page\_source} \\
+能力/速度 & 不能点击输入；快；需手写 UA & 能 \texttt{click}/\texttt{send\_keys}；慢；自带浏览器 UA \\
+适用 & 静态页，翻页靠改 URL（百度新闻）& 动态页，翻页 URL 不变需点击（巨潮）\\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+\subsection{ChromeDriver 安装：版本匹配、放进 Scripts、where python、cmd 测试}
+ChromeDriver 给 Python 提供\key{可操纵的模拟浏览器}（Python → selenium 库 → ChromeDriver“司机”→ Chrome“车”）。(1) 查 Chrome 版本：菜单 → 帮助 → 关于 Google Chrome；(2) 下载驱动：\key{ChromeDriver 大版本号 = Chrome 大版本号}（80 $\leftrightarrow$ 80.x），否则报 \texttt{This version of ChromeDriver only supports Chrome version ...}，Chrome 自动升级后旧驱动失效；(3) 配环境变量：\texttt{chromedriver.exe} 放进 \key{Python 安装目录的 Scripts 文件夹}（在 PATH 中，任何位置都能找到），安装路径用 Win+R → \texttt{cmd} → \texttt{where python} 查；(4) cmd 输入 \texttt{chromedriver}，显示 \texttt{Starting ChromeDriver ... on port 9515} 即成功，“不是内部或外部命令”= 没进 PATH；(5) \texttt{pip install selenium}。\tagext\ Chrome 115 起驱动由 Chrome for Testing 发布；Selenium 4.6 起自带 Selenium Manager 自动下载匹配驱动，直接 \texttt{webdriver.Chrome()} 往往即可。
+
+\subsection{环境配置不成功：用 Service 直接指定驱动路径}
+\begin{lstlisting}[style=pyD07]
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.common.by import By          # 定位元素
+from selenium.webdriver.common.keys import Keys      # 键盘按键
+service = Service(r'D:\Anaconda\Scripts\chromedriver.exe')   # 驱动完整路径，不依赖 PATH
+browser = webdriver.Chrome(service=service)          # 驱动已在 PATH 中：webdriver.Chrome()
+\end{lstlisting}
+
+% ======================================================================
+\section{Selenium 基本操作}
+
+\subsection{get、page\_source、find\_element、send\_keys、click、quit}
+\begin{lstlisting}[style=pyD07]
+browser.get('https://www.baidu.com')     # 打开网页；返回 None（不是 requests.get）
+browser.find_element(By.XPATH, '//*[@id="chat-textarea"]').send_keys('python')     # 输入
+browser.find_element(By.XPATH, '//*[@id="chat-submit-button"]').click()           # 点“百度一下”
+browser.find_element(By.XPATH, '//*[@id="chat-textarea"]').send_keys(Keys.ENTER)  # 或按回车
+browser.find_element(By.CSS_SELECTOR, '#kw').send_keys('python')                  # css_selector 法
+data = browser.page_source               # 渲染后源码：属性，不加括号
+browser.quit()                           # 关浏览器、结束驱动，之后不能再取源码；close() 只关当前标签页
+\end{lstlisting}
+\texttt{find\_element(By.XPATH, xp)} 返回第一个匹配元素（等价写法 \texttt{by=By.XPATH, value=xp}），找不到报 \texttt{NoSuchElementException}；\tagext\ \texttt{find\_elements} 返回列表（无则 \texttt{[]}），\texttt{元素.text}、\texttt{.get\_attribute('href')} 取文字、属性。
+
+\subsection{定位元素两法：xpath 法（Copy XPath）与 css\_selector 法（Copy selector）}
+F12 → 选择箭头选中元素 → 对应源码行右击 Copy → \key{Copy XPath} 或 \key{Copy selector}（另有 Copy full XPath、Copy outerHTML）。\term{XPath}{XML Path Language}“可理解为元素的名字或 id”，如 \texttt{//*[@id="kw"]}；CSS 选择器 \texttt{\#kw}（\texttt{\#} 表 id）、\texttt{.s\_ipt}（\texttt{.} 表 class）、\texttt{input\#kw}、\texttt{div > a}。\textbf{易错}：搜索框 CSS 选择器是 \texttt{'\#kw'}，\texttt{'//*[@id="kw"]'} 是 XPath，不能配 \texttt{By.CSS\_SELECTOR}；方法名 \texttt{send\_keys}，写 \texttt{sendkeys} 报 \texttt{AttributeError}。
+
+\subsection{Selenium 3 旧写法 vs Selenium 4 新写法}
+\begin{itemize}
+\item \texttt{find\_element\_by\_xpath(xp)}、\texttt{\_by\_id}、\texttt{\_by\_css\_selector}：4.0 弃用、\key{4.3 删除}，报 \texttt{AttributeError: 'WebDriver' object has no attribute ...} → 改为 \texttt{find\_element(By.XPATH, xp)}、\texttt{(By.ID, ...)}、\texttt{(By.CSS\_SELECTOR, ...)}。
+\item \texttt{Chrome(executable\_path=r'...')}：4.10 删除，报 \texttt{TypeError} → \texttt{Chrome(service=Service(r'...'))}。
+\end{itemize}
+
+\subsection{Chrome Headless 无界面浏览器与等待加载（sleep／WebDriverWait）}
+\begin{lstlisting}[style=pyD07]
+opts = webdriver.ChromeOptions()
+opts.add_argument('--headless'); opts.add_argument('--disable-gpu')   # 后台运行；禁用 GPU 加速
+browser = webdriver.Chrome(service=service, options=opts)             # 启动时传入才生效
+time.sleep(3)                                                         # 固定等 3 秒（import time）
+from selenium.webdriver.support.ui import WebDriverWait               # 拓展：显式等待
+from selenium.webdriver.support import expected_conditions as EC
+WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.XPATH, '//*[@id="page"]')))
+\end{lstlisting}
+无界面下照样 get/click（调试时先关 headless）；不等待会取到旧页面或找不到元素；显式等待最多等 10 秒、元素一出现就继续。
+
+% ======================================================================
+\section{XPath 语法速查}
+
+\subsection{绝对与相对 XPath；/、//、[@属性]、[n]、contains()、text() 与 CSS 对照}
+\key{绝对 XPath} 从根 \texttt{/html} 逐层写（Copy full XPath，如巨潮下载按钮 \texttt{/html/body/div/\allowbreak div[1]/div[2]/\allowbreak div[1]/a[3]}），结构稍变即失效；\key{相对 XPath} 以 \texttt{//} 开头、常配 id（Copy XPath），更稳健。
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{5cm}p{3.7cm}L@{}}
+\toprule
+XPath & CSS 选择器 & 含义 \\
+\midrule
+\texttt{//*[@id="kw"]} & \texttt{\#kw} & 任意位置、任意标签（\texttt{*}）中 id 为 kw 的；\texttt{[@属性=值]} 为谓语 \\
+\texttt{//input[@class="s\_ipt"]} & \texttt{input.s\_ipt} & XPath 的 \texttt{@class=} 要求整串完全相同 \\
+\texttt{//div/a}；\texttt{//div//a} & \texttt{div > a}；\texttt{div a} & \texttt{/} 直接子元素；\texttt{//} 任意层后代 \\
+\texttt{//*[@id="page"]/div/a[7]} & \texttt{\#page>div>a:nth-of-type(7)} & 同名兄弟第 7 个，\key{从 1 数}（Python 从 0）\\
+\texttt{//a[contains(text(),"下一页")]} & （CSS 不能按文字定位）& 文字含“下一页”的 a（“下一页 >”也行）\\
+\texttt{//a[text()="下一页"]} & — & \leavevmode\tagext\ 文字完全相等 \\
+\texttt{//div[contains(@class,"result")]} & \texttt{div.result} & \leavevmode\tagext\ 按 class 一部分匹配（多 class）\\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+% ======================================================================
+\section{用 Selenium 爬取百度新闻与三种翻页方式}
+
+\subsection{一家公司的新闻；三种翻页方式比较（a[7]／contains 文字／改 URL）}
+一家公司：\texttt{browser.get(url)} → \texttt{data = browser.page\_source}（代替 \texttt{requests.get(...).text}，不必写 headers）→ 第 6 章同样的正则 → \texttt{quit()}。
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{5.2cm}L@{}}
+\toprule
+方式 & 写法 & 评价 \\
+\midrule
+按位置点击 & \texttt{'//*[@id="page"]/div/a[7]'}（分页区第 7 个 a）& 分页栏各页不同（第 2 页链接个数、顺序变），a[7] 可能不存在或不再是“下一页”→ 点错或 \texttt{NoSuchElementException} \\
+按文字点击 & \texttt{'//a[contains(text(),"下一页")]'} & “文字定位”比“位置定位”可靠；但点击要等加载、到末页仍点 → 不推荐 \\
+\leavevmode\key{改 URL（推荐）} & \texttt{'...\&pn=' + str((page-1)*10)} & 最稳最快、可跳任意页；\key{前提：翻页时 URL 会变}（巨潮不变 → 只能点击）\\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+\subsection{改 URL 翻页模板：五个要点与浏览器关闭时机}
+(1) URL 找不同 \texttt{pn=(页码-1)*10}；(2) 定义函数；(3) get + page\_source；(4) \key{关闭时间}：只开一次浏览器就\key{全部循环结束后再 quit}（每页新开则每页末关），提前关则后续页报会话失效；(5) \texttt{--headless} 免窗口反复弹出。
+\begin{lstlisting}[style=pyD07]
+opts = webdriver.ChromeOptions(); opts.add_argument('--headless')     # 要点5（需 import re, time）
+browser = webdriver.Chrome(options=opts)                              # 只开一次
+def baidu(company, page):                                             # 要点2
+    url = 'https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word=' + company + '&pn=' + str((page-1)*10)
+    browser.get(url); time.sleep(2); data = browser.page_source        # 要点1、3
+    title = re.findall('<h3 class="c-title">.*?>(.*?)</a>', data, re.S)
+    href = re.findall('<h3 class="c-title">.*?<a href="(.*?)"', data, re.S)
+    return [re.sub('<.*?>', '', t).strip() for t in title], href
+for company in ['阿里巴巴', '工商银行']:                               # 多家公司多页
+    for page in range(1, 3):
+        try: baidu(company, page)
+        except Exception: print(company + '第' + str(page) + '页失败')
+browser.quit()                                                        # 要点4
+\end{lstlisting}
+
+% ======================================================================
+\section{反爬机制与 IP 代理}
+
+\subsection{封 IP 的原因、IP 代理池与 proxies 写法}
+网站限制\key{同一 IP 的访问次数}：短时间访问太多 → IP 被冻结、列入“黑名单”，常规爬虫拿不到源码（\term{反爬虫机制}{anti-scraping mechanism}）。\term{IP 代理}{IP proxy} = IP 伪装；代理商的海量 IP 叫\term{IP 代理池}{IP proxy pool}：从池中提取 IP → 写进程序 → 躲过对固定 IP 的次数限制（请求经代理转发，网站看到代理 IP）。查本机 IP：百度搜“IP 地址”。免费代理多但\key{不稳定}，付费代理按需提取；失败用 try/except 换下一个。
+\begin{lstlisting}[style=pyD07]
+proxy = 'IP代理地址'                      # 购买提取，形如 '123.45.67.89:8080'（IP:端口）
+proxies = {"http": "http://" + proxy, "https": "https://" + proxy}    # 字典：键=协议
+res = requests.get('https://ip.cn/', headers=headers, proxies=proxies, timeout=10).text   # 查 IP 是否已变
+\end{lstlisting}
+http 网址走前者、https 走后者，可与 headers、timeout 同用。\tagext\ 多数代理本身走 http，https 的值常写 \texttt{"http://" + proxy}（以服务商为准）；Selenium：\texttt{opts.add\_argument('--proxy-server=http://' + proxy)}。
+
+\subsection{降频、异常处理与超时：time.sleep、try/except、timeout}
+\begin{itemize}
+\item \texttt{time.sleep(秒)}：别访问太快，Selenium 中兼作等待加载；\tagext\ 随机间隔 \texttt{time.sleep(random.uniform(1, 3))}。
+\item \texttt{try/except}：先执行 try；某句出错\key{立即跳到 except}（其后语句不再执行），然后程序继续；无错跳过 except。用于正文抓取失败、PDF 下载失败记录链接、年报解析出错记录文件名。\tagext\ 裸 except 连 Ctrl+C 也吞掉，宜写 \texttt{except Exception as e: print(e)}；\texttt{else} 无错时执行，\texttt{finally} 总执行（放 \texttt{quit()}、\texttt{close()}）。
+\item \texttt{timeout=10}：10 秒无响应即抛异常（\texttt{requests.exceptions.Timeout}），配 try/except 跳过；不设则一直等。
+\end{itemize}
+
+\subsection{反爬手段与应对汇总；合规边界（拓展）}
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}p{4.8cm}L@{}}
+\toprule
+反爬手段 & 表现 & 应对 \\
+\midrule
+检查 User-Agent & 空页面 / 403 / 简化版页面 & \texttt{headers=\{'User-Agent': ...\}} \\
+动态加载 & requests 拿不到；翻页 URL 不变 & Selenium 取 \texttt{page\_source}、模拟点击 \\
+限制同一 IP 访问次数 & IP 被冻结、进“黑名单” & IP 代理 \texttt{proxies=} \\
+访问过快 / 未加载完 & 元素找不到、取到旧页面 & \texttt{time.sleep(3)}／显式等待 \\
+个别请求失败 & 一处出错整个程序中断 & \texttt{timeout} + try/except 跳过并记录 \\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+\textbf{易错}：换代理只解决“同一 IP 次数限制”，不能解决 UA 检查与动态加载。\tagext\ 合规：遵守服务条款与 \texttt{robots.txt}，控制频率，不绕登录/付费墙、不采集隐私，论文写明数据来源；巨潮等法定披露平台的公告属公开信息。
+
+% ======================================================================
+\section{常见的数据清洗手段}
+
+\subsection{strip、split、re.sub、\textbackslash d+：去空白、分离日期时间、年月日换“-”}
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{2.5cm}p{6.6cm}L@{}}
+\toprule
+方法 & 示例 → 结果 & 要点 \\
+\midrule
+\texttt{s.strip()} & \texttt{' 中南大学 '.strip()} → \texttt{'中南大学'} & 只去两端（含 \texttt{\textbackslash n}、\texttt{\textbackslash t}），中间不动；\tagext\ \texttt{lstrip}/\texttt{rstrip}，\texttt{strip('*')} \\
+\texttt{s.split(sep)} & \texttt{'2019-10-10 10:10:10'.split(' ')[0]} → \texttt{'2019-10-10'}；\texttt{[1]} → \texttt{'10:10:10'} & 返回列表；\texttt{[-1]} 取最后一段；越界 \texttt{IndexError} \\
+\texttt{re.sub(规则,新,s)} & \texttt{'2025年10月10日'}：\texttt{sub('年','-')} → \texttt{sub('月','-')} → \texttt{sub('日','')} → \texttt{'2025-10-10'} & 合并：\texttt{re.sub('[年月]','-',d).replace('日','')} \\
+\texttt{re.findall(r'\textbackslash d+', s)} & \texttt{'5天前'} → \texttt{['5']}；\texttt{'昨天20:26'} → \texttt{['20','26']} & \texttt{\textbackslash d} 一个数字，\texttt{+} 一个或多个；\texttt{r''} 防转义 \\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+\subsection{日期格式统一：“5 天前”“10 小时前”“昨天 20:26”换算为 YYYY-MM-DD}
+\begin{lstlisting}[style=pyD07]
+import re, datetime
+def unify(d):
+    today = datetime.date.today()
+    if '天前' in d:   return str(today - datetime.timedelta(days=int(re.findall(r'\d+', d)[0])))
+    elif '小时前' in d or '分钟前' in d:   return str(today)                 # 当天
+    elif '昨天' in d: return str(today - datetime.timedelta(days=1))
+    else:            return datetime.datetime.strptime(d, '%Y年%m月%d日').strftime('%Y-%m-%d')  # 补零
+\end{lstlisting}
+\textbf{易错}：\texttt{re.sub} 得到的 \texttt{'2025-1-5'} 不补零；\key{日期字符串只有同格式（补零）才能直接比大小}，\texttt{'2025-9-30' >= '2025-10-01'} 为 True（错）。\texttt{str(date)} 与 \texttt{strftime('\%Y-\%m-\%d')} 均补零。
+
+% ======================================================================
+\section{获取新闻正文与文本深度过滤}
+
+\subsection{用网址获取正文（timeout、try/except、乱码）与深度过滤噪声新闻}
+按关键词搜出的新闻有些正文与公司无关（噪声）；用已得的 \texttt{href} 逐条取正文、检查是否提到公司名：
+\begin{lstlisting}[style=pyD07]
+for i in range(len(title)):
+    try:
+        r = requests.get(href[i], headers=headers, timeout=10); r.encoding = r.apparent_encoding  # 拓展：治乱码
+        article = r.text
+    except Exception:
+        print('第' + str(i) + '条新闻抓取失败'); article = '爬取失败'
+    company_re = company[0] + '.{0,5}' + company[-1]               # '阿.{0,5}巴'：首尾字间允许 0-5 个字符
+    if len(re.findall(company_re, article)) < 1:                    # 正文未提到 -> 噪声，先置空
+        title[i] = ''; href[i] = ''; date[i] = ''; source[i] = ''
+while '' in title: title.remove('')                                 # 循环结束后再删（href 等同理）
+\end{lstlisting}
+\key{先置空、后删除}：循环中直接 remove 会使列表变短、下标错位；\texttt{remove(x)} 一次只删第一个，故 \texttt{while} 反复删。宽松匹配可能误判。\tagext\ \texttt{apparent\_encoding} 按内容推测编码，治 GBK 乱码。
+
+\subsection{正文结构各异 → 候选容器；BeautifulSoup、字典解包 **c 与 extract\_article\_text}
+同花顺类正文在 \texttt{class="main-text atc-content"} 的 div 内的 \texttt{id="contentApp"} 中，另一类在 \texttt{id="content"} 的 div 中：\key{容器名各不相同、正文都在 \texttt{<p>} 里} → 准备候选容器名单逐个尝试，用 BeautifulSoup（\texttt{pip install beautifulsoup4}）：\texttt{soup = BeautifulSoup(html, 'html.parser')}；\texttt{soup.find('div', id='contentApp')} 返回第一个匹配标签，没找到 None；\texttt{class} 是保留字须写 \texttt{class\_='main-text'}（可匹配多 class）；\texttt{find\_all('p')} 返回列表；\texttt{div.get\_text(strip=True)} 取全部纯文本（各段去两端空白后相连）。
+\begin{lstlisting}[style=pyD07]
+candidates = [{'id': 'contentApp'}, {'id': 'content'}, {'class': 'main-text'},
+              {'class': 'atc-content'}, {'itemprop': 'articleBody'}, {'name': 'article'}]
+def extract_article_text(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for c in candidates:
+        div = soup.find(**c) if 'name' in c else soup.find('div', **c)
+        if div:                              # 找到 = 标签对象（真）；没找到 = None（假）
+            text = div.get_text(strip=True)
+            if len(text) > 20:               # 太短（如只有“登录”）不算正文
+                return text                  # 情况1：第一个合格候选即返回，后面不再尝试
+    return ''                                # 情况2：全部候选失败（写在 for 外）
+\end{lstlisting}
+\begin{itemize}
+\item \key{字典解包} \texttt{**c}：“键: 值”展开成关键字参数，\texttt{find('div', **\{'id': 'contentApp'\})} $\equiv$ \texttt{find('div', id='contentApp')}；字典里写 \texttt{'class'} 再解包可以。\texttt{itemprop="articleBody"} 为 schema.org 正文标识。
+\item \texttt{\{'name': 'article'\}} 不能放进 \texttt{find('div', **c)}：\texttt{name} 正是 find 的第一个参数，报 \texttt{TypeError: got multiple values for argument 'name'}；应 \texttt{soup.find(**c)}，找 \texttt{<article>} 标签。
+\item \key{return 一执行函数立即结束}（含所在循环）。\textbf{易错}：\texttt{return ''} 缩进进 for，第一个候选失败就返回空串。
+\end{itemize}
+
+\subsection{进阶：选“文本最长”的 div 及其局限；多家公司多页正文流程}
+候选全失败时的启发式：真正的正文\key{汉字多、连续文本多}，广告/菜单字数少 → 遍历所有 div、选文本最长的（替换 \texttt{return ''}）：\texttt{return max([d.get\_text(strip=True) for d in soup.find\_all('div')], key=len, default='')}。\textbf{局限}：外层布局 div 包含内层全部文字，最长的往往是外层大 div，混进菜单、版权；改进：只数汉字 \texttt{len(re.findall('[\textbackslash u4e00-\textbackslash u9fa5]', t))}，或选直接含 \texttt{<p>} 最多的 div。\\
+\key{多家公司多页正文}（随堂小测 2：阿里巴巴、工商银行各 2 页）：\texttt{baidu(company, page)} 取标题、网址 → \texttt{requests.get(href[i], timeout=10)} 取正文页 → \texttt{extract\_article\_text} → \texttt{if company in text} 才追加写入 \texttt{open('正文.txt','a',encoding='utf-8')}；try/except 包住，最后 \texttt{browser.quit()}。
+
+% ======================================================================
+\section{巨潮资讯网：理财公告的爬取与翻页}
+
+\subsection{认识巨潮资讯网与 URL 编码（百分号编码）}
+巨潮资讯网（CNINFO，\texttt{http://www.cninfo.com.cn/new/index}）是\key{证监会指定的上市公司信息披露网站}。搜“理财”弹回 \texttt{.../new/fulltextSearch?notautosubmit=\&keyWord=\%E7\%90\%86\%E8\%B4\%A2}，百分号部分可直接换成“理财”。\term{URL 编码}{percent-encoding}：汉字按 UTF-8 编成字节，每字节写成 \texttt{\%XX}（两位十六进制），常用汉字 3 字节（理 = \texttt{\%E7\%90\%86}）。\tagext\ \texttt{urllib.parse.quote}/\texttt{unquote}；浏览器、requests、Selenium 自动编码，代码中直接写汉字。
+
+\subsection{Selenium 获取搜索结果源码与公告行的源码结构}
+结果由 JS 动态加载，须用 Selenium：\texttt{browser.get(url)}、\texttt{time.sleep(3)}、\texttt{data = browser.page\_source}。每条公告一个 \texttt{<tr class="el-table\_\_row">}：
+\begin{lstlisting}[style=txtD07]
+<a target="_blank" href="/new/disclosure/detail?orgId=9900009987&amp;announcementId=1207208176&amp;announcementTime=2019-12-31"
+   data-id="9900009987" data-seccode="300277" class="ahover">
+  <span title="" class="r-title">海联讯：关于使用闲置自有资金购买<em>理财</em>产品的公告</span>
+\end{lstlisting}
+\texttt{href} = 公告网址；\texttt{r-title} 内 = 标题；\texttt{data-seccode} = 股票代码；\texttt{<em>} 为关键词高亮，用 \texttt{re.sub('<.*?>','',...)} 去掉。
+
+\subsection{网址两个特殊点（相对网址、\&amp;）与 HTML 转义；提取代码}
+(1) \term{相对网址}{relative URL} \texttt{/new/...} 缺域名 → 拼 \texttt{'http://www.cninfo.com.cn'} 成绝对网址；(2) F12 显示 \texttt{\&}，page\_source 中写作 \key{\texttt{\&amp;}}，不还原打不开。原因：\texttt{\&}、\texttt{<}、\texttt{>} 在 HTML 中有特殊含义，须转义成字符实体：\texttt{\&} → \texttt{\&amp;}（ampersand）、\texttt{<} → \texttt{\&lt;}（less than）、\texttt{>} → \texttt{\&gt;}（greater than）、不换行空格 \texttt{\&nbsp;}。还原：\texttt{replace('\&amp;','\&')}、\texttt{re.sub('amp;','',href)}，\tagext\ \texttt{html.unescape(s)} 一次还原全部。
+\begin{lstlisting}[style=pyD07]
+title = re.findall('<span title="" class="r-title">(.*?)</span>', data, re.S)
+href = re.findall('<a target="_blank" href="(.*?)" data-id=', data, re.S)
+for i in range(len(title)):
+    title[i] = re.sub('<.*?>', '', title[i]).strip()                    # 去 <em> 与空白
+    href[i] = re.sub('amp;', '', 'http://www.cninfo.com.cn' + href[i])  # 补域名 + &amp; -> &
+\end{lstlisting}
+
+\subsection{翻页 URL 不变：点击“下一页”、次数“约 N 条”÷20、"".join 合并}
+第 1、2 页网址完全相同（JS 后台取数刷新表格）→ \key{不能改 URL，只能模拟点击“下一页”}，按公告数量定次数，每点一次取源码放进列表。XPath 用 Copy XPath 取得，末尾 \texttt{button[2]} = 分页栏第 2 个按钮“下一页 ›”（改版后须重新复制）；\texttt{time.sleep(3)} 防止页面未刷新完找不到元素。
+\[
+\text{总页数}=\lceil N/20\rceil,\qquad \text{点击次数}=\lceil N/20\rceil-1\quad(\text{每页 20 条，第 1 页打开时已取得})
+\]
+\texttt{int(int(count)/20)} 向下取整：$N$ 非 20 倍数时恰等于 $\lceil N/20\rceil-1$（$N=2156$：$\lfloor 107.8\rfloor=107$）；$N$ 为 20 倍数时多点一次（$N=40$ 只需 1 次），放进 try/except；精确用 \texttt{math.ceil(int(count)/20) - 1}。
+\begin{lstlisting}[style=pyD07]
+count = re.findall('<span class="total-box" style="">约  <span>(.*?)</span> 条', data)[0]  # 列表取[0] -> '2156'
+pages = math.ceil(int(count) / 20) - 1     # 先 int() 再除
+datas = [data]                             # 第 1 页源码
+for i in range(pages):
+    browser.find_element(By.XPATH, '//*[@id="fulltext-search"]/div[2]/div/div/div[2]/div[2]/div[2]/div/button[2]').click()
+    time.sleep(2); datas.append(browser.page_source)    # 等加载，再追加该页源码
+alldata = "".join(datas); browser.quit()   # 连接符.join(列表)：各页源码首尾相连，再一次 findall 取全部
+\end{lstlisting}
+\textbf{易错}：\texttt{datas.join('')} 报 \texttt{AttributeError: 'list' object has no attribute 'join'}；\texttt{'-'.join(['2025',\allowbreak'12',\allowbreak'18'])} → \texttt{'2025-12-18'}。
+
+% ======================================================================
+\section{巨潮公告 PDF 批量下载}
+
+\subsection{按时间筛选、点击“公告下载”、批量下载与失败记录、指定目录}
+按时间筛选：\texttt{date = re.findall(r'announcementTime=(\textbackslash d\{4\}-\textbackslash d\{2\}-\textbackslash d\{2\})', alldata)}，保留 \texttt{date[i] >= '2025-01-01'} 的下标（同格式可比大小）。详情页右上角“公告下载”按钮 XPath 用 Copy full XPath 得绝对路径；\key{找规律}：各公告详情页按钮 XPath 相同 → 同一句点击全部。失败要\key{不影响后续、记录错误链接}。
+\begin{lstlisting}[style=pyD07]
+opts = webdriver.ChromeOptions()
+opts.add_experimental_option('prefs', {'download.default_directory': 'E:\\理财公告\\'})   # 指定下载文件夹
+browser = webdriver.Chrome(options=opts); failed = []
+for i in range(len(href)):
+    try:
+        browser.get(href[i]); time.sleep(2)
+        browser.find_element(By.XPATH, '/html/body/div/div[1]/div[2]/div[1]/a[3]').click(); time.sleep(3)
+    except Exception:
+        failed.append(href[i]); print(href[i] + ' 下载失败')    # 记录链接，事后补下
+\end{lstlisting}
+\texttt{'\textbackslash\textbackslash'} 表示一个反斜杠（或用 \texttt{r'E:\textbackslash 理财公告'}）；下载目录用绝对路径并事先建好。
+
+\subsection{年报命名格式：代码\_年份\_简称\_标题\_日期.pdf}
+文件名须含股票代码、年份、公司名称，如 \texttt{000001\_2023\_平安银行\_2023年年度报告\_2024-03-15.pdf}，下划线分隔便于 \texttt{split('\_')}。(1) \key{年份 $\neq$ 公告日期}（2023 为会计年度，2024-03-15 为次年披露日）；(2) Windows 文件名不许 \texttt{\textbackslash{} / : * ? " < > |}：“*ST全新”用 \texttt{re.sub('[*]','',name)} 或换全角，\tagext\ 一次去除 \texttt{re.sub(r'[\textbackslash\textbackslash/:*?"<>|]','',fn)}；(3) 下载名由网站决定 → 下载后 \texttt{os.rename} 改名，信息取自 \texttt{data-seccode}、\texttt{r-title}、\texttt{announcementTime}；或 \texttt{requests.get(pdf\_url).content} 以 \texttt{'wb'} 写入新文件名。\texttt{fn = code + '\_' + year + '\_' + re.sub('[*]','',name) + '\_' + title + '\_' + date + '.pdf'}。
+
+% ======================================================================
+\section{PDF 文本解析：pdfplumber}
+
+\subsection{清华镜像安装；open、pages、extract\_text、extract\_tables、转 DataFrame}
+\texttt{pip install pdfplumber}；装不上用清华镜像（\texttt{-i} 指定下载源，任何库通用）：\texttt{pip install pdfplumber -i https://pypi.tuna.tsinghua.edu.cn/simple}
+\begin{lstlisting}[style=pyD07]
+import pdfplumber
+pdf = pdfplumber.open(r'C:\Users\hn_ya\Desktop\公告.pdf')   # r 必不可少：'\U' 不加 r 直接 SyntaxError
+pages = pdf.pages                       # 页面对象列表 [<Page:1>, <Page:2>, <Page:3>]，len = 3
+text = pages[0].extract_text()          # 第 1 页文本（下标从 0）
+text_all = ''.join([p.extract_text() or '' for p in pages])   # 每页 append 后 ''.join；or '' 防 None
+tables = pages[0].extract_tables()      # 该页所有表格；无表格 -> []
+table = tables[0]                       # [['投资金额','不超过人民币10.00亿元'], ['资金来源','自有资金'], ...]
+for i in range(len(table)):             # i 行号
+    for j in range(len(table[i])):      # j 列号
+        if table[i][j]: table[i][j] = table[i][j].replace('\n', '')   # 去单元格内换行；None 先跳过
+pdf.close()                             # 拓展：with pdfplumber.open(p) as pdf: 自动关闭
+import pandas as pd
+pd.set_option('display.max_columns', None)        # 显示全部列（行：'display.max_rows'）
+df = pd.DataFrame(table[1:], columns=table[0])    # 表头 table[0] 作列名，table[1:]（切片）作数据
+\end{lstlisting}
+\key{三层嵌套}：\texttt{extract\_tables()} 返回“表格的列表”→ 表格是“行的列表”→ 行是“单元格字符串的列表”；\texttt{table[i][j]} = 第 $i{+}1$ 行第 $j{+}1$ 列，合并/空单元格为 None 或 \texttt{''}；\tagext\ 单数 \texttt{extract\_table()} 只返回最大的一个表。扫描件无文字层，\texttt{extract\_text()} 返回空串或 None（需 OCR）；None 使 \texttt{join} 报 \texttt{TypeError}、\texttt{.replace} 报 \texttt{AttributeError}。
+
+% ======================================================================
+\section{批量处理文件夹中的年报：os 模块}
+
+\subsection{os 函数速查：walk、listdir、path.join、isfile/isdir、splitext、rename}
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{3.1cm}L@{}}
+\toprule
+函数 & 返回与要点 \\
+\midrule
+\texttt{os.walk(d)} & 每轮三元组 \texttt{(root, dirs, files)}；\key{递归}进入所有子文件夹、每层一次（会混进 \texttt{.idea} 的 \texttt{.xml}）；\texttt{files[2]} 只有文件名，完整路径 \texttt{os.path.join(files[0], 名)} \\
+\texttt{os.listdir(d)} & 本层“名字”列表：\key{只列本层}、不区分文件和文件夹、只有名字不是路径 \\
+\texttt{os.path.join(a, b)} & 拼接路径，自动补分隔符（Windows \texttt{\textbackslash}，Linux/macOS \texttt{/}）\\
+\texttt{isfile(p)}／\texttt{isdir(p)} & True/False；须传完整路径（只传文件名在当前目录找，常 False）→ 先 join \\
+\texttt{os.path.splitext(f)} & \texttt{(主体, 后缀)}，后缀带点、按最后一个点切、保留大小写：\texttt{'报告.2023.PDF'} → \texttt{('报告.2023','.PDF')}；无后缀 \texttt{('数据','')} \\
+\texttt{os.rename(旧, 新)} & 新路径在别的文件夹 = \key{移动}；目标文件夹须已建好（否则 \texttt{FileNotFoundError}，\tagext\ \texttt{os.makedirs(d, exist\_ok=True)}）；复制用 \texttt{shutil.copy} \\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+\subsection{批量解析 PDF、关键词筛选（or／循环 + break／any）与 os.rename 归档}
+\begin{lstlisting}[style=pyD07]
+file_list = [os.path.join(file_dir, n) for n in os.listdir(file_dir)            # 名字 -> 完整路径
+             if os.path.isfile(os.path.join(file_dir, n)) and os.path.splitext(n)[1].lower() == '.pdf']  # .pdf/.PDF
+keywords = ['自有', '议案', '理财', '现金管理']; pdfs = []                     # pdfs 放在循环外！
+for f in file_list:
+    pdf = pdfplumber.open(f); text_all = ''.join([p.extract_text() or '' for p in pdf.pages]); pdf.close()
+    for word in keywords:
+        if word in text_all:
+            pdfs.append(f); break                     # 命中一个即停，避免同一 PDF 重复加入
+for pdf_i in pdfs:                                    # 移到已建好的文件夹（末尾两个反斜杠）
+    os.rename(pdf_i, 'C:\\Users\\hn_ya\\Desktop\\符合条件的文件\\' + pdf_i.split('\\')[-1])
+\end{lstlisting}
+写法一 \texttt{if ('自有' in text\_all) or ('议案' in text\_all) or ...}；\tagext\ \texttt{if any(w in text\_all for w in keywords)}。去掉 break，含 3 个关键词的 PDF 被加 3 次（break 只跳出 \texttt{for word}）。\texttt{split('\textbackslash\textbackslash')[-1]} 取文件名（稳妥：\texttt{os.path.basename}）。os.walk 会递归进已归档子文件夹，故用 listdir + isfile。
+
+% ======================================================================
+\section{年报“前五大客户”表格提取}
+
+\subsection{任务与三步流程；iter() 与 next()：列表 vs 迭代器}
+年报“公司前 5 大客户资料”（序号、客户名称、销售额、占年度销售总额比例）度量\key{客户集中度}。三步：(1) 读取一家公司的 PDF；(2) 找含前五大客户信息的\key{那一页}（关键词正则）；(3) 找\key{那个表格}（表头判断）。\texttt{page\_iterator = iter(pdf.pages)}：\texttt{iter()} 把列表变成\term{迭代器}{iterator}，用 \texttt{next()} 逐个取，\key{只能往前走}。关键：在 \texttt{for i in page\_iterator:} 循环体内 \texttt{next(page\_iterator)} 取下一页（跨页表），下一轮 for 从再下一页开始，\key{不重复处理}被取走的页（\texttt{['P1','P2','P3','P4']} 在 P2 处 next → 处理 P1、P2、跨页取 P3、处理 P4）。\tagext\ \texttt{next(列表)} 报 \texttt{TypeError}；耗尽再 next 抛 \texttt{StopIteration}，\texttt{next(it, None)} 返回 None。
+
+\subsection{\texorpdfstring{关键词正则 \texttt{(五|5|主要).\{0,10\}?客户} 与 search 找页}{关键词正则 (五|5|主要).{0,10}?客户 与 search 找页}}
+\texttt{key\_words = re.compile(r"(五|5|主要).\{0,10\}?客户")}：含“五/5/主要”之一、其后 0–10 个字符内出现“客户”（\texttt{|} 或；\texttt{.} 任意字符除换行；\texttt{\{0,10\}} 0–10 次；\texttt{?} 非贪婪；\texttt{re.compile} 预编译，循环中反复用更高效）。能匹配前五名客户、前五大客户、前五（名）主要客户、前 5 大客户资料；\key{误匹配}“主要客户其他情况说明”，不匹配“前五名供应商”→ 只能粗筛页，须表头确认。\texttt{if key\_words.search(i.extract\_text()):} search 在整页找第一个匹配：Match 对象（真）或 None（假）；\texttt{re.match} 只从开头，\texttt{findall} 返回全部——判断“有没有”用 search。
+
+\subsection{表头判断、any()/all()、去空值列表推导式、continue、enumerate}
+\texttt{if '序号' in table[0] and any(re.search(pat, cell) for cell in table[0] if cell):}（\texttt{pat = r'客户'}）
+\begin{itemize}
+\item \texttt{'序号' in table[0]}：\key{列表的 in 是整元素相等}（\texttt{'序 号'} 不行），字符串的 in 才是子串；\texttt{if cell} 先排除 None/\texttt{''}（否则 \texttt{re.search} 报 \texttt{TypeError}）。整句：有“序号”列且某列名含“客户”→ 排除供应商表。
+\item \texttt{any()}：有一个真即 True，全假或空 → False；\texttt{all()} 全真才 True，空 → True（括号内为生成器表达式）。\texttt{new\_table = [[cell for cell in row if cell] for row in table]}：从里往外读，内层每行只留有内容的单元格（滤掉 None、\texttt{''}；\texttt{'0'}、\texttt{' '} 为真），外层收集成二维列表（= 双层 for + append）。\textbf{易错}（列错位）：\texttt{['合计', None, '2,343,009,103.83', '4.50\%']} 去空后销售额左移到“客户名称”列；保持对齐用 \texttt{[c if c else '' for c in row]}。
+\item 非目标表 \texttt{else: continue}：结束本轮、进入下一个 table（break 结束整个循环）。\texttt{for i, row in enumerate(\allowbreak new\_table):} 同时得编号（默认从 0，\texttt{start=1}）与元素。
+\end{itemize}
+
+\subsection{表格跨页：len(new\_table) < 7、next 取下一页、isnumeric 判断接续表}
+\key{完整表 = 表头 1 + 客户 5 + 合计 1 = 7 行}，不足 7 行 → 表被分页截断：\texttt{tables = next(page\_iterator).\allowbreak extract\_tables()}；\texttt{if tables:}（\texttt{[]} 为假）；接续表判断 \texttt{str(table[0][0]).isnumeric() or ('序号' in table[0])}——首格是数字（从“1”开始）或新页重复表头；\texttt{str()} 防 None。\tagext\ \texttt{'584,218,124.68'}、\texttt{''}、\texttt{'-1'} 均 False；\texttt{'五'.isnumeric()} True（\texttt{isdigit()} False）。
+
+\subsection{break 只作用于最近一层循环：三个 break 与 find 标志}
+\key{break（及 continue）只作用于它所在的最近一层循环}，结束这一层后程序继续往外走；一次跳出多层用\key{标志变量}或在函数中 \texttt{return}（双层 \texttt{range(3)} 中 \texttt{if j == 1: break} 输出 0 0／1 0／2 0）。每页三种情况：没找到／找到不跨页／找到且跨页；后两种之后不停止，后续页“按客户归集的应收账款”等表会被重复提取 → 加 \texttt{find} 标志：
+\begin{tabD07}
+\begin{tabularx}{\linewidth}{@{}p{0.9cm}p{6.4cm}L@{}}
+\toprule
+ & 位置 & 作用 \\
+\midrule
+break 1 & 下一页 \texttt{for table in tables} 中、\key{找到并处理接续表之后} & 只取第一个接续表；前移到判断之前会漏掉真正的接续表 \\
+break 2 & 本页 \texttt{for table in i.extract\_tables()} 中处理完后，先 \texttt{find = True} & 不再看本页其他表 \\
+break 3 & 页循环 \texttt{for i in page\_iterator} 中 \texttt{if find: break} & 整个 PDF 结束，不再遍历后续页 \\
+\bottomrule
+\end{tabularx}
+\end{tabD07}
+
+\subsection{完整函数 get\_top5}
+\begin{lstlisting}[style=pyD07]
+key_words = re.compile(r"(五|5|主要).{0,10}?客户"); pat = r'客户'
+def get_top5(pdf_path):
+    result = []; pdf = pdfplumber.open(pdf_path)          # 第一步：读取 PDF
+    page_iterator = iter(pdf.pages); find = False
+    for i in page_iterator:                               # 第 1 层：页
+        if key_words.search(i.extract_text() or ''):      # 第二步：本页提到前五大客户
+            for table in i.extract_tables():              # 第 2 层：本页的表（第三步）
+                if '序号' in table[0] and any(re.search(pat, cell) for cell in table[0] if cell):
+                    new_table = [[cell for cell in row if cell] for row in table]
+                    result.extend(new_table)
+                    if len(new_table) < 7:                # 不足 7 行 -> 跨页
+                        tables = next(page_iterator).extract_tables()
+                        if tables:
+                            for table2 in tables:         # 第 3 层：下一页的表
+                                if str(table2[0][0]).isnumeric() or ('序号' in table2[0]):
+                                    result.extend([[c for c in row if c] for row in table2])
+                                    break                 # break 1
+                    find = True
+                    break                                 # break 2
+                else: continue                            # 不是目标表：下一个表
+        if find: break                                    # break 3
+    pdf.close(); return result
+\end{lstlisting}
+\texttt{extend} 逐个追加元素（\texttt{append} 把整个列表当一个元素）。\tagext\ 目标表在末页且不足 7 行时 \texttt{next} 抛 \texttt{StopIteration}（改用 \texttt{next(it, None)}）；新页重复表头需去掉一行。
+
+\subsection{多家公司：文件名取代码年份、openpyxl 输出 Excel、两个空表 + try/except}
+\begin{lstlisting}[style=pyD07]
+from openpyxl import Workbook
+wb = Workbook(); sheet1 = wb.active                 # 空表1：结果（循环外只建一次）
+sheet1.append(['股票代码', '年份', '序号', '客户名称', '销售额（元）', '占年度销售总额比例'])   # 表头只写一次
+wb_err = Workbook(); sheet2 = wb_err.active         # 空表2：出错记录
+for pdf_path in file_list:
+    name = os.path.basename(pdf_path)               # '000001_2023_平安银行_2023年年度报告_2024-03-15.pdf'
+    code, year = name.split('_')[0], name.split('_')[1]          # '000001'、'2023'
+    try:
+        for row in get_top5(pdf_path)[1:]:          # [1:] 去掉表头
+            sheet1.append([code, year] + row)       # 注意行：每行前加代码、年份（列表 + 拼接）
+    except Exception:
+        print(name + ' 出错'); sheet2.append([name]); continue   # 打印、记录、继续下一个
+wb.save('前五大客户.xlsx'); wb_err.save('出错文件.xlsx')   # sheet.append(列表)：写成下一整行，第 1 个元素进 A 列
+\end{lstlisting}
+
+% ======================================================================
+\section{本章小结}
+\begin{english}
+Selenium drives a real browser through ChromeDriver, obtaining the page source rendered by JavaScript and simulating clicks and keyboard input; requests only receives the initial HTML. Modifying the page parameter in the URL is the most robust way to paginate. On CNINFO the URL does not change across pages, so we click ``next page'' $\lceil N/20\rceil-1$ times and join the page sources. \texttt{extract\_tables()} returns a list of tables, each a list of rows of cells. Because \texttt{break} only exits the innermost loop, a flag is needed to stop once the top-five-customer table is found.
+\end{english}
+
+% ======================================================================
+\section{本章综合：常见改错清单与数据采集流程框架}
+
+\subsection{常见错误与正确写法对照（改错要点）}
+\begin{multicols}{2}\small
+\begin{itemize}
+\item 缺 \texttt{import re, time, math} 与 \texttt{By} → 用到即导入
+\item \texttt{page\_source()} → \texttt{page\_source}（属性）
+\item \texttt{quit()} 在翻页/取源码之前 → 全部取完再 quit
+\item \texttt{find\_element\_by\_xpath} → \texttt{find\_element(By.XPATH, ...)}
+\item \texttt{.sendkeys()} → \texttt{.send\_keys()}；CSS 选择器写成 XPath → \texttt{'\#kw'}
+\item \texttt{count / 20}（列表）→ \texttt{ceil(int(count[0])/20)-1}
+\item 点击后立即取源码 → 先 \texttt{time.sleep(2)}
+\item \texttt{datas.join('')} → \texttt{''.join(datas)}
+\item 直接用源码 href → 补域名 + \texttt{\&amp;}→\texttt{\&}，正则加 \texttt{re.S}
+\item \texttt{'C:\textbackslash Users...'} → 加 \texttt{r} 前缀
+\item 对 None 调 \texttt{replace}/\texttt{re.search} → 先 \texttt{if x:}
+\item \texttt{pdfs = []} 写在循环内 → 移到循环外
+\item 关键词循环不 break → 命中即 break 或 \texttt{any}
+\item 只用两个 break → 加 \texttt{find} 标志
+\end{itemize}
+\end{multicols}
+
+\subsection{数据采集流程设计框架（年报前五大客户 → 客户集中度）}
+\begin{enumerate}
+\item \key{检索}：巨潮年报（剔除 ST、金融业）；Selenium 打开检索页，点“下一页” $\lceil N/20\rceil-1$ 次，\texttt{"".join(datas)}。
+\item \key{筛选}：正则取标题、代码、网址、日期；补域名、\texttt{\&amp;}→\texttt{\&}；留“年度报告”，去“摘要”“英文”“已取消”。
+\item \key{下载}：同一 XPath 点“公告下载”，\texttt{prefs} 指定目录，try/except 记录失败；按“代码\_年份\_简称\_标题\_日期”命名。
+\item \key{解析}：listdir + splitext → \texttt{get\_top5} → 结果表 + 出错表，每行 \texttt{[code, year] + row}；扫描件人工补录。
+\item \key{变量}：$\text{Top5}_{it}$ = 合计行“占年度销售总额比例”，或 $\text{HHI}_{it}=\sum_{k=1}^{5}s_{k}^{2}$（$s_k$ 第 $k$ 名客户占比）；按列名取值防错位，\texttt{float(x.strip('\%'))/100}。“理财”公告同理构造金融化指标。
+\end{enumerate}
+\endgroup

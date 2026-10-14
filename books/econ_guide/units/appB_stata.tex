@@ -1,0 +1,711 @@
+\chapter{Stata / R 命令速查}
+\label{ch:UappB-stata}
+
+本附录把正文各章用到的 Stata 与 R 命令按主题汇总为“命令 $|$ 作用 $|$ 常用选项 / 注意 $|$ 章”的速查表，并在最后一节给出三段完整的实证流程模板和一份常见陷阱清单。考试不要求上机，但题目可能问“如何估计”“用什么命令或选项”，作答时写出核心命令与关键选项即可。表中“章”一栏是该方法在正文中所在的章。
+
+\begin{summary}[标记约定与 Stata 语法要点]
+\begin{itemize}
+  \item {[SSC]}：用户编写的命令，首次使用前运行 \texttt{ssc install 命令名}；{[官方]}：Stata 官方命令。
+  \item \tagext：正文未展开、为方便查找而列出的常用写法（均为标准语法）。
+  \item 因子变量：\texttt{i.x} 为分类变量，\texttt{c.x} 为连续变量；\texttt{\#} 只生成交互项，\texttt{\#\#} 生成主效应 + 交互项。
+  \item 时间序列算子：\texttt{L.}、\texttt{F.}、\texttt{D.} 分别为滞后、超前、一阶差分（\texttt{LD.y} 即 $\Delta y_{t-1}$）；使用前必须先 \texttt{xtset} 或 \texttt{tsset}。
+  \item 方差估计：\texttt{vce(robust)} 为异方差稳健，\texttt{vce(cluster id)} 为按 \texttt{id} 聚类；多数命令也接受 \texttt{robust}（简写 \texttt{r}）作为 \texttt{vce(robust)} 的同义写法。
+\end{itemize}
+\end{summary}
+
+%======================================================================
+\section{OLS、稳健/聚类标准误与假设检验（第 4–6 章）}\label{sec:UappB-ols}
+
+\subsection{估计与标准误：同方差、HC、聚类、双向聚类与 HAC}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{regress y x1 x2} & OLS（简写 \texttt{reg}）；默认同方差标准误 $s^2(X\T X)\inv$ & 自动含截距；\texttt{noconstant} 去截距 & 4–5\\
+\addlinespace[1pt]
+\texttt{reg y x1 x2, vce(robust)} & HC1 异方差稳健标准误 & 等价写法 \texttt{robust}、\texttt{r}；\texttt{vce(hc2)}、\texttt{vce(hc3)} 为 HC2、HC3 & 5\\
+\addlinespace[1pt]
+\texttt{reg y x1 x2, vce(cluster firmid)} & 聚类稳健标准误（CRVE） & 等价 \texttt{cluster(firmid)}；方差矩阵乘小样本调整因子 $\frac{n-1}{n-K}\cdot\frac{G}{G-1}$，临界值用 $t_{G-1}$（$G$ 为簇数）；点估计不变 & 5\\
+\addlinespace[1pt]
+\texttt{reghdfe y x, absorb(firm year) vce(cluster firm year)}\newline {\footnotesize\rmfamily [SSC]} & 双向聚类标准误 $\hat V_A+\hat V_B-\hat V_{A\cap B}$ & 两个维度的簇数都要足够多 & 5\\
+\addlinespace[1pt]
+\texttt{tsset t}\newline \texttt{newey y x, lag(4)} & HAC（Newey–West）标准误 & \texttt{lag()} 为截断滞后 $L$，常取 $0.75\,T^{1/3}$ & 5\\
+\addlinespace[1pt]
+\texttt{estat vif} & 方差膨胀因子 $\mathrm{VIF}_j$ & 在 \texttt{regress} 之后使用；$\mathrm{VIF}>10$ 提示严重共线 & 3\\
+\addlinespace[1pt]
+\texttt{predict uhat, residuals}\newline \texttt{predict yhat, xb}\newline \tagext & 生成残差 / 拟合值 & 用于诊断、自建检验 & —\\
+\addlinespace[1pt]
+\texttt{estimates store m1}\newline \texttt{estimates table m1 m2, b se} & 保存结果并列比较 & \texttt{keep(x \_cons)} 只显示指定系数 & 4, 10\\
+\end{longtable}}
+
+
+\subsection{假设检验：Wald/\texorpdfstring{$F$}{F}、线性组合与 Delta 方法}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{test x1 x2} & Wald/$F$ 检验 $H_0:\beta_1=\beta_2=0$（$q=2$） & 使用回归时指定的方差（稳健/聚类）；报告 $F=W/q$ & 6\\
+\addlinespace[1pt]
+\texttt{test (x1 = 1) (x2 = 1)} & $H_0:\beta_1=1$ 且 $\beta_2=1$ & 每个约束放一对括号，一条命令内为联合检验 & 6\\
+\addlinespace[1pt]
+\texttt{test x1 + 2*x2 = 0}\newline \texttt{test 2*x1 + 3*x2 = 4} & 一般线性约束 $R\beta=r$：分别检验 $H_0:\beta_1+2\beta_2=0$ 与 $H_0:2\beta_1+3\beta_2=4$ & 两行是两个\key{单独}的检验（各 $q=1$）。要联合检验（$q=2$），写 \texttt{test (x1 + 2*x2 = 0) (2*x1 + 3*x2 = 4)}，或在第二行末加 \texttt{, accumulate} & 6\\
+\addlinespace[1pt]
+\texttt{testparm x1-x3}\newline \texttt{testparm i.year}\newline \tagext & 一组变量（含因子变量）的系数全为 0 & 常用于年份虚拟变量、事前系数的联合检验 & 6\\
+\addlinespace[1pt]
+\texttt{lincom x1 + 2*x2} & 单个线性组合的估计值、se、$t$ 与置信区间 & 只针对一个线性组合 & 6\\
+\addlinespace[1pt]
+\texttt{testnl \_b[x1]/\_b[x2] = 1} & 非线性约束的 Wald 检验 & 结果依赖约束的写法：$\beta_1/\beta_2=1$ 与 $\beta_1-\beta_2=0$ 的 Wald 值不同 & 6\\
+\addlinespace[1pt]
+\texttt{nlcom -\_b[exper]/(2*\_b[exper2])} & 非线性函数的 Delta 方法 se & 如工资–工龄曲线的拐点 $-\beta_1/(2\beta_2)$；若平方项用因子变量写成 \texttt{c.exper\#c.exper}，系数名为 \texttt{\_b[c.exper\#c.exper]} & 5–6\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item We estimate the model by OLS and report heteroskedasticity-robust (HC1) standard errors.
+  \item Standard errors are clustered at the firm level, which allows arbitrary correlation of the errors within a firm; with $G$ clusters, inference is based on the $t_{G-1}$ distribution.
+  \item The joint null hypothesis $H_0:\beta_1=\beta_2=0$ is tested by a Wald test based on the robust covariance matrix and reported as $F=W/q$.
+  \item The standard error of the turning point $-\beta_1/(2\beta_2)$ is obtained by the delta method.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{IV、2SLS、GMM 与三大检验（第 8–9 章）}\label{sec:UappB-iv}
+
+\subsection{估计命令：2SLS、两步 GMM、LIML 与 ivreg2}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{ivregress 2sls y (x1 = z1 z2) x2, vce(robust) first}\newline {\footnotesize\rmfamily [官方]} & 2SLS：$x_1$ 内生，$z_1,z_2$ 为排除工具，$x_2$ 外生（自己作自己的工具） & \texttt{vce(robust)} 稳健 se；\texttt{first} 打印第一阶段；\texttt{vce(cluster id)} 聚类 se & 8–9\\
+\addlinespace[1pt]
+\texttt{ivregress gmm y (x1 = z1 z2) x2, wmatrix(robust)} & 两步有效 GMM（异方差稳健权重矩阵） & \texttt{igmm} 为迭代 GMM；之后 \texttt{estat overid} 报告 Hansen $J$ & 8\\
+\addlinespace[1pt]
+\texttt{ivregress liml y (x1 = z1 z2) x2, vce(robust)} & LIML，弱工具时的替代 & 工具多时比 2SLS 稳健 & 8–9\\
+\addlinespace[1pt]
+\texttt{ivreg2 y x2 (x1 = z1 z2), robust first}\newline {\footnotesize\rmfamily [SSC]} & 报告 Kleibergen–Paap rk Wald $F$ 等弱工具诊断 & 异方差/聚类稳健的弱工具检验；\texttt{gmm2s} 为两步 GMM，\texttt{liml} 为 LIML，\texttt{cluster(id)} 聚类，\texttt{endog(x1)} 检验 $x_1$ 的内生性 & 9\\
+\end{longtable}}
+
+
+\subsection{估计后检验：相关性、过度识别与内生性}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{estat firststage} & 检验一（相关性）：第一阶段 $F$、偏 $R^2$ & 非稳健设定下还报告 Cragg–Donald 最小特征值统计量与 Stock–Yogo 临界值 & 9\\
+\addlinespace[1pt]
+\texttt{estat overid} & 检验二（过度识别）：Sargan、Basmann；稳健设定下为稳健 score 检验；GMM 之后为 Hansen $J$ & 只在 $L>K$ 时可做 & 9\\
+\addlinespace[1pt]
+\texttt{estat endogenous} & 检验三（内生性） & 可简写 \texttt{estat endog}。非稳健：Durbin $\chi^2$、Wu–Hausman $F$；稳健：稳健 score $\chi^2$、稳健回归 $F$ & 9\\
+\addlinespace[1pt]
+\texttt{regress y x1 x2}\newline \texttt{estimates store ols}\newline \texttt{ivregress 2sls y (x1 = z1 z2) x2}\newline \texttt{estimates store iv}\newline \texttt{hausman iv ols} & 传统 Hausman 检验（同方差） & 顺序：先一致的（iv），后有效的（ols）；自由度应为内生变量个数，可用 \texttt{df(1)} 指定 & 9\\
+\addlinespace[1pt]
+\texttt{test}、\texttt{testnl}（\texttt{ivregress} 之后） & 2SLS/GMM 系数的 Wald 检验 & 自动使用估计时指定的方差估计 & 8\\
+\end{longtable}}
+
+
+\subsection{2SLS 不要手工两步做}
+
+\begin{note}[手工两步 2SLS 的标准误是错的]
+手工“先把 $x_1$ 对全部工具回归取拟合值 $\hat x_1$，再把 $y$ 对 $\hat x_1$ 与 $x_2$ 回归”得到的\key{系数正确}，但第二步软件计算标准误时用的残差是 $y_i-\hat x_i\T\hat\beta$（$\hat x_i$ 为拟合值），\key{是错的}。正确的残差必须用原始回归元：$\hat u_i=y_i-x_i\T\hat\beta_{2SLS}$。所以应直接用 \texttt{ivregress}（第 8 章）。
+\end{note}
+
+\begin{english}
+\begin{itemize}
+  \item We estimate the equation by 2SLS, treating $x_1$ as endogenous and using $z_1$ and $z_2$ as excluded instruments; the exogenous regressor $x_2$ serves as its own instrument.
+  \item Instrument relevance is assessed by the first-stage $F$ statistic, the overidentifying restrictions by the Sargan/Hansen $J$ test, and the endogeneity of $x_1$ by the Durbin--Wu--Hausman test.
+  \item 2SLS should not be computed by two manual OLS steps, because the second-step standard errors are based on residuals computed with the fitted values instead of the original regressors.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{静态面板（第 10–11 章）}\label{sec:UappB-static}
+
+\subsection{固定效应、LSDV 与双向固定效应}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{xtset id year}\newline {\footnotesize\rmfamily [官方]} & 声明面板结构 & 所有 \texttt{xt} 命令与 \texttt{L.}、\texttt{D.} 算子之前必须先做 & 10\\
+\addlinespace[1pt]
+\texttt{reg y x i.id, vce(cluster id)} & LSDV：OLS + 全部个体虚拟变量 & 系数同 FE；\texttt{estimates table, keep(x) b se} 只看斜率 & 10\\
+\addlinespace[1pt]
+\texttt{xtreg y x, fe} & WG/FE 估计，经典 se（自由度 $NT-N-K$） & 报告 \texttt{sigma\_u}、\texttt{sigma\_e}、\texttt{rho} 与“所有 $\alpha_i=0$”的 $F$ 检验；Stata 的 \texttt{sigma\_u} 是本书的 $\sigma_\alpha$，\texttt{sigma\_e} 是本书的 $\sigma_u$ & 10\\
+\addlinespace[1pt]
+\texttt{xtreg y x, fe vce(cluster id)} & FE + 按个体聚类 se（Arellano） & 对 \texttt{xtreg} 而言 \texttt{vce(robust)} 也是按个体聚类 & 10\\
+\addlinespace[1pt]
+\texttt{areg y x, absorb(id) vce(cluster id)} & 吸收个体效应 & 系数同 FE；聚类 se 的自由度调整把被吸收的个体虚拟变量计入，短面板中 se 偏大 & 10\\
+\addlinespace[1pt]
+\texttt{xtreg y x i.year, fe vce(cluster id)} & TWFE：个体 FE + 年份虚拟变量 & 平衡与非平衡面板都正确（虚拟变量法） & 10\\
+\addlinespace[1pt]
+\texttt{reg y x i.id i.year, vce(cluster id)} & 双向 LSDV & 与上式系数相同 & 10\\
+\addlinespace[1pt]
+\texttt{reghdfe y x, absorb(id year) vce(cluster id)}\newline {\footnotesize\rmfamily [SSC]} & 高维多向固定效应 & \texttt{absorb(firm city\#year)} 吸收交互效应；速度快 & 10\\
+\addlinespace[1pt]
+\texttt{xtset city year}\newline \texttt{xtreg y x i.province, fe vce(robust)} & 嵌套多层效应：省份效应被城市效应吸收 & 每个城市只属于一个省，\texttt{i.province} 与城市固定效应完全共线而被自动略去；FE 无法识别更高层级的不随时间变化的效应 & 10\\
+\end{longtable}}
+
+
+\subsection{随机效应、Hausman 检验、FEF 与 Mundlak 回归}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{xtreg y x z, re} & RE-FGLS（准去均值）；可含时不变变量 $z_i$ & \texttt{theta} 报告 $\hat\theta$；\texttt{vce(cluster id)} 聚类 se & 11\\
+\addlinespace[1pt]
+\texttt{xtreg y x, be} & 组间估计量（个体均值回归） & RE 是 WG 与组间估计量的加权平均 & 11\\
+\addlinespace[1pt]
+\texttt{xtreg y x1 x2, fe}\newline \texttt{estimates store fe}\newline \texttt{xtreg y x1 x2, re}\newline \texttt{estimates store re}\newline \texttt{hausman fe re, sigmamore} & Hausman 检验 FE vs RE（$\chi^2_K$） & 先一致的（fe）后有效的（re）；\texttt{sigmamore} 让两个方差都用 RE 的 $\hat\sigma^2$，避免方差之差非正定 & 11\\
+\addlinespace[1pt]
+\texttt{xtreg y x, fe}\newline \texttt{gen r = y - \_b[x]*x}\newline \texttt{bysort id: egen rbar = mean(r)}\newline \texttt{bysort id: gen first = (\_n==1)}\newline \texttt{reg rbar z if first} & FEF 两步法：点估计 $\hat\gamma$ & 第二步 se 忽略了第一步的估计误差，不能直接用 & 11\\
+\addlinespace[1pt]
+\texttt{bysort id: egen xbar = mean(x)}\newline \texttt{gen xdot = x - xbar}\newline \texttt{ivregress 2sls y z (x = xdot), vce(cluster id)} & FEF 的 IV 等价形式（Hansen §17.32） & 点估计与两步法相同，且给出正确的聚类 se & 11\\
+\addlinespace[1pt]
+\texttt{xtreg y x xbar z, re vce(cluster id)}\newline \texttt{test xbar} & Mundlak / CRE 回归；检验 $\pi=0$ & 即稳健的 Hausman 检验 & 11\\
+\addlinespace[1pt]
+\texttt{xtlogit y x, fe}\newline \texttt{clogit y x, group(id)} & 面板 logit 的 Chamberlain 条件似然（两条命令等价） & 只用 $y_{it}$ 在期间内发生过变化的个体；无法得到边际效应 & 11\\
+\addlinespace[1pt]
+\texttt{xtprobit y x, re} & RE probit（对 $\alpha_i$ 积分） & 需 $\alpha_i$ 与 $x_{it}$ 独立 & 11\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item We estimate the model by fixed effects (the within estimator) and cluster the standard errors by individual.
+  \item Year dummies are included to absorb common time effects, so the specification is a two-way fixed effects model.
+  \item The Hausman test compares FE and RE: under the null that $\alpha_i$ is uncorrelated with $x_{it}$ both estimators are consistent and RE is efficient, while under the alternative only FE is consistent.
+  \item A cluster-robust version of the test is the Mundlak (correlated random effects) regression, which tests whether the coefficients on $\bar x_{i\cdot}$ are jointly zero.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{动态面板（第 12 章）}\label{sec:UappB-dynamic}
+
+\subsection{\texttt{xtabond2} 的三种估计量与关键选项}
+
+\subsubsection{差分 GMM、系统 GMM 与 FOD GMM 的切换}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{ssc install xtabond2}\newline \texttt{xtset id year} & 安装（Roodman 2009）并声明面板 & — & 12\\
+\addlinespace[1pt]
+\texttt{xtabond2 y L.y x, gmm(L.y) iv(x) noleveleq}\newline {\footnotesize\rmfamily [SSC]} & Arellano–Bond 差分 GMM & \texttt{noleveleq}：不用水平方程 & 12\\
+\addlinespace[1pt]
+\texttt{xtabond2 y L.y x, gmm(L.y) iv(x)} & Blundell–Bond 系统 GMM & 默认加入水平方程，额外矩条件 $\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$ & 12\\
+\addlinespace[1pt]
+\texttt{xtabond2 y L.y x, gmm(L.y) iv(x) noleveleq orthogonal} & FOD GMM & \texttt{orthogonal}：用前向正交离差代替一阶差分 & 12\\
+\end{longtable}}
+
+
+\subsubsection{工具设定与两步估计选项}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{gmmstyle()}（简写 \texttt{gmm()}） & 内生/前定变量的滞后按“每个滞后、每期一列”作工具 & 即 AB 的块对角工具矩阵 $W_i$ & 12\\
+\addlinespace[1pt]
+\texttt{ivstyle()}（简写 \texttt{iv()}） & 外生变量按普通 IV 方式作工具（每个变量一列） & 如 \texttt{iv(x yr*)} & 12\\
+\addlinespace[1pt]
+\texttt{twostep robust} & 两步 GMM + Windmeijer 校正 se & \texttt{small}：报告小样本 $t$/$F$ & 12\\
+\addlinespace[1pt]
+\texttt{gmm(L.y, laglimits(1 3) collapse)}\newline \tagext & 限制工具数 & \texttt{laglimits(a b)} 只用第 $a$–$b$ 阶滞后；\texttt{collapse} 把每个滞后合并为一列 & 12\\
+\addlinespace[1pt]
+\texttt{gmm(x, laglimits(1 .))}\newline \texttt{gmm(x, laglimits(2 .))} & $x$ 为前定 / 内生时的工具 & 前定从 $x_{i,t-1}$ 起，内生从 $x_{i,t-2}$ 起；此时 $x$ 要从 \texttt{iv()} 移到 \texttt{gmm()} & 12\\
+\end{longtable}}
+
+
+\subsubsection{输出底部的设定检验}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+（输出底部，无需另写命令） & AR(1)/AR(2) 检验、Sargan、Hansen、Difference-in-Hansen & AR(1) 应拒绝、AR(2) 不应拒绝；工具数应少于个体数 & 12\\
+\end{longtable}}
+
+
+\subsection{官方命令、手工估计、估计量的“界”与单位根检验}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{xtabond y x, lags(1) twostep vce(robust)}\newline {\footnotesize\rmfamily [官方]} & AB 差分 GMM & 之后 \texttt{estat abond} 报告 AR 检验 & 12\\
+\addlinespace[1pt]
+\texttt{xtdpdsys y x, lags(1) twostep vce(robust)}\newline {\footnotesize\rmfamily [官方]} & BB 系统 GMM & \texttt{xtdpd} 为通用命令 & 12\\
+\addlinespace[1pt]
+\texttt{reg D.y LD.y, noconstant} & FD-OLS（不一致：$\plim=(\rho-1)/2$） & 对照用 & 12\\
+\addlinespace[1pt]
+\texttt{ivregress 2sls D.y (LD.y = L2.y), noconstant} & Anderson–Hsiao IV & 用 $y_{i,t-2}$ 作 $\Delta y_{i,t-1}$ 的工具 & 12\\
+\addlinespace[1pt]
+\texttt{reg y L.y x yr*, vce(cluster id)}\newline \texttt{xtreg y L.y x yr*, fe vce(cluster id)} & 混合 OLS（上偏）、WG（下偏）两个“界” & 一致估计应落在二者之间 & 12\\
+\addlinespace[1pt]
+\texttt{tab year, gen(yr)} & 生成年份虚拟变量 \texttt{yr1}、\texttt{yr2}、… & 放入 \texttt{iv(yr*)} & 12\\
+\addlinespace[1pt]
+\texttt{xtunitroot llc y}\newline \texttt{xtunitroot ips y} & 面板单位根检验（LLC、IPS） & $T$ 较大时先做 & 12\\
+\addlinespace[1pt]
+\texttt{xtcointtest pedroni y x}\newline \tagext & 面板协整检验 & 另有 \texttt{xtcointtest kao}、\texttt{xtcointtest westerlund} & 12\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item We estimate the dynamic panel model by system GMM, using lags of $y_{it}$ dated $t-2$ and earlier as instruments for the differenced equation and lagged differences as instruments for the level equation.
+  \item We report two-step estimates with Windmeijer-corrected standard errors.
+  \item The AR(1) test rejects while the AR(2) test does not, which supports the validity of the moment conditions; the Hansen $J$ test does not reject the overidentifying restrictions.
+  \item To avoid instrument proliferation we collapse the instrument matrix and report the number of instruments, which is smaller than the number of individuals.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{截面相关、因子模型与交互固定效应（第 13–14 章）}\label{sec:UappB-factor}
+
+\subsection{Stata 命令：PCA、交互固定效应、CCE 与截面相关检验}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{pca y1-y20} & 统计 PCA（默认对相关矩阵） & 变量在列上，与本书 $U$（$N\times T$）互为转置 & 13\\
+\addlinespace[1pt]
+\texttt{factor y1-y20, pcf factors(2)}\newline \texttt{predict f1 f2} & 主成分因子法与因子得分 & Hansen §11.13–11.14；\texttt{factor y1-y20, ml factors(2)} 为极大似然 & 13\\
+\addlinespace[1pt]
+\texttt{regife y x1 x2, factors(id year) dimension(2)}\newline {\footnotesize\rmfamily [SSC]} & Bai (2009) 交互固定效应 & \texttt{absorb(id year)} 同时吸收双向 FE；完整语法见 \texttt{help regife} & 14\\
+\addlinespace[1pt]
+\texttt{xtmg y x1 x2, cce}\newline {\footnotesize\rmfamily [SSC]} & CCEMG（Eberhardt） & 不加 \texttt{cce} 为 Pesaran–Smith MG；完整语法见 \texttt{help xtmg} & 14\\
+\addlinespace[1pt]
+\texttt{xtdcce2 y x1 x2, cr(y x1 x2)}\newline {\footnotesize\rmfamily [SSC]} & CCE 均值组（Ditzen） & \texttt{cr()} 指定取截面平均的变量；\texttt{pooled()} 设混合系数 & 14\\
+\addlinespace[1pt]
+\texttt{xtreg y x1 x2, fe}\newline \texttt{xtcsd, pesaran abs}\newline {\footnotesize\rmfamily [SSC]} & FE 残差的 Pesaran CD 检验（\texttt{xtcsd} 为用户命令） & \texttt{abs} 报告平均绝对相关；\texttt{friedman}、\texttt{frees} 为其他检验 & 14\\
+\addlinespace[1pt]
+\texttt{predict ehat, e}\newline \texttt{xtcd ehat}\newline {\footnotesize\rmfamily [SSC]} & 对残差（或变量）做 CD 检验（Eberhardt） & \texttt{predict ..., e} 取 FE 回归的特异残差 $\hat u_{it}$ & 14\\
+\addlinespace[1pt]
+\texttt{xttest2}\newline {\footnotesize\rmfamily [SSC]} & Breusch–Pagan LM 截面独立检验 & 在 \texttt{xtreg, fe} 之后使用；要求 $T$ 相对 $N$ 较大 & 14\\
+\addlinespace[1pt]
+\texttt{xtscc y x1 x2, fe lag(2)}\newline {\footnotesize\rmfamily [SSC]} & Driscoll–Kraay 标准误（截面相关 + 序列相关） & 依赖 $T$ 大；只修正 se，不修正内生性 & 13\\
+\end{longtable}}
+
+
+\subsection{R 与矩阵语言：PCA、交互固定效应、CCE 与 CD 检验}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{e <- eigen(t(U) \%*\% U, symmetric = TRUE)}\newline \texttt{Fhat <- e\$vectors[, 1:r]}\newline \texttt{Lhat <- U \%*\% Fhat} & PCA：$\hat F$ 为 $U\T U$ 前 $r$ 个特征向量，$\hat\Lambda=U\hat F$（标准化 $F\T F=I_r$） & R 的 \texttt{eigen} 按特征值降序返回；若标准化 $F\T F/T=I_r$，改用 \texttt{Fhat <- sqrt(T) * e\$vectors[, 1:r]} 与 \texttt{Lhat <- U \%*\% Fhat / T}；\texttt{prcomp(X, scale. = TRUE)} 为统计 PCA & 13\\
+\addlinespace[1pt]
+\texttt{[V, D] = eig(U\textquotesingle{}*U)}\newline \texttt{np.linalg.eigh(U.T @ U)} & 同上（第一行 MATLAB，第二行 Python） & 二者均按特征值\key{升序}返回，需重排 & 13\\
+\addlinespace[1pt]
+\texttt{library(phtt)}\newline \texttt{Eup(Y \textasciitilde{} X1 + X2, additive.effects = "individual", factor.dim = 2)} & Bai 型交互固定效应迭代估计 & 另有 \texttt{KSS()}；参数名以 \texttt{?Eup} 为准 & 14\\
+\addlinespace[1pt]
+\texttt{pd <- pdata.frame(df, index = c("id", "year"))} & 声明面板（plm 包） & — & 10, 14\\
+\addlinespace[1pt]
+\texttt{pcce(y \textasciitilde{} x1 + x2, data = pd, model = "p")} & PCCE（CCEP） & \texttt{model = "mg"} 为 CCEMG & 14\\
+\addlinespace[1pt]
+\texttt{pmg(y \textasciitilde{} x1 + x2, data = pd, model = "mg")} & Pesaran–Smith 均值组 & \texttt{"cmg"}：CCEMG；\texttt{"dmg"}：去均值 MG & 14\\
+\addlinespace[1pt]
+\texttt{fe <- plm(y \textasciitilde{} x1 + x2, data = pd, model = "within")}\newline \texttt{pcdtest(fe, test = "cd")} & Pesaran CD 检验 & \texttt{test = "lm"}（BP LM）、\texttt{"sclm"}（$CD^*$，标准化 LM）、\texttt{"bcsclm"}（偏误校正的标准化 LM） & 14\\
+\end{longtable}}
+
+
+\begin{note}[\texttt{plm()} 没有 PCA 选项]
+\texttt{plm(..., model = "PCA")} 是不存在的写法。\texttt{plm()} 的 \texttt{model} 参数可取 \texttt{"within"}、\texttt{"random"}、\texttt{"pooling"}、\texttt{"between"}、\texttt{"fd"}（以及 Hausman–Taylor 用的 \texttt{"ht"}），都不估计因子结构。因子模型要用上表的 \texttt{eigen} 手工计算或用 phtt 等专门的包。
+\end{note}
+
+\begin{english}
+\begin{itemize}
+  \item We test for cross-sectional dependence in the FE residuals with the Pesaran CD test, which strongly rejects the null of cross-sectional independence.
+  \item To account for unobserved common factors, we estimate the model by the CCE mean group estimator and by Bai's (2009) interactive fixed effects estimator.
+  \item Driscoll--Kraay standard errors are robust to cross-sectional and serial correlation, but they do not correct the bias that arises when the factors are correlated with the regressors.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{DiD、事件研究与交错处理（第 15 章）}\label{sec:UappB-did}
+
+\subsection{\texorpdfstring{$2\times 2$}{2x2} DiD、TWFE 与异质效应}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{reg y i.d\#\#i.w, vce(cluster id)} & $2\times2$ DiD 回归（$d$、$w$ 与交互） & 交互项 \texttt{1.d\#1.w} 的系数即 DiD；\texttt{d.f} 是差分算子，\key{不是}交互 & 15\\
+\addlinespace[1pt]
+\texttt{xtset id year}\newline \texttt{xtreg y D i.year, fe vce(cluster id)} & TWFE（$D=d\times w$） & 共同时点下 = 四格 DiD & 15\\
+\addlinespace[1pt]
+\texttt{reghdfe y D, absorb(id year) vce(cluster id)}\newline {\footnotesize\rmfamily [SSC]} & 同上（高维 FE） & — & 15\\
+\addlinespace[1pt]
+\texttt{xtreg y D x i.year, fe vce(cluster id)} & 加时变协变量的 TWFE & 慎用：协变量可能受处理影响（坏控制）；见 Caetano、Callaway 等的讨论 & 15\\
+\addlinespace[1pt]
+\texttt{gen D3 = d*(year==3)}\newline \texttt{gen D4 = d*(year==4)}\newline \texttt{gen D5 = d*(year==5)}\newline \texttt{xtreg y D3 D4 D5 i.year, fe vce(cluster id)} & 时变处理效应 $\tau_t$ & 先生成各处理期的处理虚拟变量再回归 & 15\\
+\addlinespace[1pt]
+\texttt{reghdfe y i.id\#c.D, absorb(id year) vce(robust)} & 个体异质效应 $\beta_i$（每个处理单位一个交互项） & 2025 年真题第 2(b) 题（见第 17 章）；控制单位 $D=0$，其交互项自动略去 & 15\\
+\addlinespace[1pt]
+\texttt{test \_b[1.id\#c.D] = \_b[2.id\#c.D] = \_b[3.id\#c.D]} & 检验处理效应同质 $H_0:\beta_1=\beta_2=\beta_3$ & — & 15\\
+\end{longtable}}
+
+
+\subsection{事件研究与交错处理（异质稳健估计量）}
+
+\subsubsection{事件研究回归、事前趋势检验与事件研究图}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{gen rel = year - first\_treat}\newline 生成 \texttt{lead2}–\texttt{lead4}、\texttt{lag0}–\texttt{lag3}（见模板三） & 事件时间与前导/滞后虚拟变量 & 略去 $e=-1$（参照期） & 15\\
+\addlinespace[1pt]
+\texttt{reghdfe y lead4 lead3 lead2 lag0 lag1 lag2 lag3, absorb(id year) vce(cluster id)} & 事件研究回归 & 共同时点下各系数为相对 $e=-1$ 的 DiD & 15\\
+\addlinespace[1pt]
+\texttt{test lead4 lead3 lead2} & 事前趋势联合检验 & 不拒绝 $\neq$ 平行趋势成立 & 15\\
+\addlinespace[1pt]
+\texttt{coefplot, keep(lead* lag*) vertical yline(0)}\newline {\footnotesize\rmfamily [SSC]} & 事件研究图 & — & 15\\
+\end{longtable}}
+
+
+\subsubsection{扩展 TWFE 与普通 TWFE 的诊断}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{reghdfe y tau\_*, absorb(id year) vce(cluster id)} & 手工扩展 TWFE（每个已处理的 cohort$\times$期一个虚拟变量） & \texttt{tau\_r\_s = (first\_treat==r)*(year==s)}，$s\ge r$ & 15\\
+\addlinespace[1pt]
+\texttt{jwdid y, ivar(id) tvar(year) gvar(first\_treat)}\newline {\footnotesize\rmfamily [SSC]} & Wooldridge 扩展 TWFE（Rios-Avila） & 之后 \texttt{estat simple}（总 ATT）、\texttt{estat event}、\texttt{estat group}；另一个实现扩展 TWFE 的用户命令是 \texttt{wooldid} & 15\\
+\addlinespace[1pt]
+\texttt{xthdidregress twfe (y) (D), group(id)}\newline \texttt{xthdidregress aipw (y x) (D x), group(id) controlgroup(notyet)}\newline {\footnotesize\rmfamily [官方，Stata 18 起]} & 官方异质 DiD：\texttt{twfe}、\texttt{ra}、\texttt{ipw}、\texttt{aipw} 四种方法 & 第一个括号为结果模型，第二个为处理模型；\texttt{group()} 为处理发生的层级；之后 \texttt{estat aggregation, dynamic graph} & 15\\
+\addlinespace[1pt]
+\texttt{bacondecomp y D, ddetail}\newline {\footnotesize\rmfamily [SSC]} & Goodman-Bacon 分解 & 诊断普通 TWFE & 15\\
+\addlinespace[1pt]
+\texttt{twowayfeweights y id year D, type(feTR)}\newline {\footnotesize\rmfamily [SSC]} & dCDH 权重（负权重诊断） & — & 15\\
+\end{longtable}}
+
+
+\subsubsection{异质稳健估计量：CS、SA、BJS 与 dCDH}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{csdid y, ivar(id) time(year) gvar(first\_treat) notyet}\newline {\footnotesize\rmfamily [SSC]} & Callaway–Sant'Anna $ATT(g,t)$ & \texttt{notyet}：用尚未处理组作控制；之后 \texttt{estat event}、\texttt{csdid\_plot} & 15\\
+\addlinespace[1pt]
+\texttt{eventstudyinteract y lead* lag*, cohort(first\_treat) control\_cohort(never) absorb(i.id i.year) vce(cluster id)}\newline {\footnotesize\rmfamily [SSC]} & Sun–Abraham 交互加权事件研究 & \texttt{never}：从未处理的指示变量 & 15\\
+\addlinespace[1pt]
+\texttt{did\_imputation y id year first\_treat, horizons(0/5) pretrends(3)}\newline {\footnotesize\rmfamily [SSC]} & Borusyak–Jaravel–Spiess 插补估计量 & 事前检验单独用未处理观测 & 15\\
+\addlinespace[1pt]
+\texttt{did\_multiplegt\_dyn y id year D, effects(5) placebo(3)}\newline {\footnotesize\rmfamily [SSC]} & de Chaisemartin–D'Haultf\oe uille 动态效应 & 允许处理开关；旧版命令为 \texttt{did\_multiplegt} & 15\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item The DiD estimate is the coefficient on $D_{it}=d_iw_t$ in a regression with unit and time fixed effects, and the standard errors are clustered by unit.
+  \item In the event-study specification the period $e=-1$ is omitted as the reference period; jointly insignificant leads support, but do not prove, the parallel trends assumption.
+  \item With staggered adoption and heterogeneous effects, we complement the static TWFE estimate with heterogeneity-robust estimators (Callaway--Sant'Anna, Sun--Abraham, and the imputation estimator).
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{合成控制、面板数据法与矩阵补全（第 16 章）}\label{sec:UappB-scm}
+
+\subsection{Stata 与 R 命令：SCM、安慰剂推断、回归控制法与矩阵补全}
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{tsset id year}\newline \texttt{synth y x1 x2 y(1985) y(1988) y(1990), trunit(1) trperiod(1991) fig}\newline {\footnotesize\rmfamily [SSC]} & 合成控制法（ADH） & \texttt{trunit()} 处理单位，\texttt{trperiod()} 处理开始期；\texttt{y(1985)} 等为作预测变量的处理前结果 & 16\\
+\addlinespace[1pt]
+\texttt{synth\_runner y x1 x2 y(1985) y(1988) y(1990), trunit(1) trperiod(1991) gen\_vars}\newline {\footnotesize\rmfamily [SSC]} & 空间安慰剂推断（秩 $p$ 值） & — & 16\\
+\addlinespace[1pt]
+\texttt{xtset id year}\newline \texttt{rcm y, trunit(1) trperiod(2004) method(lasso)}\newline {\footnotesize\rmfamily [SSC]} & 回归控制法 / 面板数据法（PDA） & Yan 与 Chen 编写；\texttt{method()} 指定挑选控制单位的方法（如 \texttt{lasso}）；完整语法见 \texttt{help rcm} & 16\\
+\addlinespace[1pt]
+R：\texttt{Synth}、\texttt{tidysynth}、\texttt{augsynth} & SCM；增广 SCM & — & 16\\
+\addlinespace[1pt]
+R：\texttt{pampe} & PDA & — & 16\\
+\addlinespace[1pt]
+R：\texttt{MCPanel}、\texttt{gsynth}、\texttt{fect} & 矩阵补全、广义合成控制 & — & 16\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item The synthetic control is a convex combination of control units whose weights are chosen to match the treated unit's pre-treatment outcomes and predictors.
+  \item Inference is based on in-space placebo tests: the $p$-value is the rank of the treated unit's post/pre RMSPE ratio among all units divided by the number of units.
+  \item The panel data approach (regression control method) instead uses an unrestricted linear combination of control units, estimated by OLS on the pre-treatment periods.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{R 命令对照：fixest、plm、did 等（拓展）}\label{sec:UappB-r}
+
+\subsection{与 Stata 命令对应的 R 写法}
+
+正文主要用 Stata；下表给出常用 R 包中对应的标准写法。\texttt{df} 为数据框，\texttt{pd} 为 \texttt{pdata.frame} 对象。
+
+{\renewcommand{\arraystretch}{1.12}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{5.3cm}>{\raggedright\arraybackslash\small}p{3.8cm}>{\raggedright\arraybackslash\small}p{5.3cm}>{\centering\arraybackslash\small}p{0.9cm}@{}}
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{命令} & \textbf{作用} & \textbf{常用选项 / 注意} & \textbf{章}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+
+\texttt{m <- lm(y \textasciitilde{} x1 + x2, data = df)}\newline \texttt{lmtest::coeftest(m, vcov = sandwich::vcovHC(m, type = "HC1"))} & OLS + HC1 稳健 se & \texttt{sandwich::vcovCL(m, cluster = \textasciitilde{}id)} 为聚类 se & 5\\
+\addlinespace[1pt]
+\texttt{AER::ivreg(y \textasciitilde{} x1 + x2 | z1 + z2 + x2, data = df)} & 2SLS（竖线后为全部工具） & 外生回归元也要写进工具 & 8\\
+\addlinespace[1pt]
+\texttt{fixest::feols(y \textasciitilde{} x | id + year, data = df, cluster = \textasciitilde{}id)} & TWFE（个体 + 年份 FE），聚类 se & 竖线后为固定效应 & 10, 15\\
+\addlinespace[1pt]
+\texttt{feols(y \textasciitilde{} x2 | id | x1 \textasciitilde{} z1 + z2, data = df)} & 含 FE 的 2SLS & 第三段为“内生变量 ~ 工具” & 8, 10\\
+\addlinespace[1pt]
+\texttt{feols(y \textasciitilde{} sunab(first\_treat, year) | id + year, data = df)} & Sun–Abraham 事件研究 & \texttt{fixest::sunab()} & 15\\
+\addlinespace[1pt]
+\texttt{plm(y \textasciitilde{} x, data = pd, model = "within")} & FE（WG） & 其他取值：\texttt{"random"}、\texttt{"pooling"}、\texttt{"between"}、\texttt{"fd"} & 10–11\\
+\addlinespace[1pt]
+\texttt{phtest(fe, re)} & Hausman 检验（plm） & \texttt{fe}、\texttt{re} 为两个 plm 估计结果 & 11\\
+\addlinespace[1pt]
+\texttt{lmtest::coeftest(fe, vcov = vcovHC(fe, cluster = "group"))} & FE 的按个体聚类 se & 对 plm 对象默认用 Arellano 方法 & 10\\
+\addlinespace[1pt]
+\texttt{pgmm(y \textasciitilde{} lag(y, 1) | lag(y, 2:99), data = pd, effect = "individual", model = "twosteps")} & AB 差分 GMM（plm） & \texttt{transformation = "ld"} 为系统 GMM；参数见 \texttt{?pgmm} & 12\\
+\addlinespace[1pt]
+\texttt{out <- did::att\_gt(yname = "y", tname = "year", idname = "id", gname = "first\_treat", data = df)}\newline \texttt{did::aggte(out, type = "dynamic")} & Callaway–Sant'Anna $ATT(g,t)$ 及事件时间聚合 & R 包 did；从未处理组的 \texttt{first\_treat} 记 0 & 15\\
+\addlinespace[1pt]
+R：\texttt{didimputation}、\texttt{HonestDiD} & BJS 插补；平行趋势敏感性分析 & — & 15\\
+\end{longtable}}
+
+
+\begin{english}
+\begin{itemize}
+  \item In R, two-way fixed effects models with clustered standard errors can be estimated with \texttt{fixest::feols}, and panel GMM estimators with \texttt{plm::pgmm}.
+  \item The Callaway--Sant'Anna group-time average treatment effects are estimated with \texttt{did::att\_gt} and aggregated by event time with \texttt{did::aggte}.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{完整实证流程模板与常见陷阱}\label{sec:UappB-templates}
+
+\subsection{模板一：IV 的三大检验流程（第 9 章）}
+
+\begin{lstlisting}
+* (0) 基准 OLS
+regress y x1 x2, vce(robust)
+* (1) 2SLS: x1 内生, z1 z2 为排除工具, x2 外生; first = 打印第一阶段
+ivregress 2sls y (x1 = z1 z2) x2, vce(robust) first
+estat firststage      // 检验一: 相关性 (F, 偏 R2)
+estat overid          // 检验二: 过度识别 (L-K = 排除工具 2 - 内生变量 1 = 1)
+estat endogenous      // 检验三: 内生性
+* (2) 两步有效 GMM; 加 igmm 为迭代 GMM
+ivregress gmm y (x1 = z1 z2) x2, wmatrix(robust)
+estat overid          // Hansen J
+* (3) LIML (弱工具时的替代)
+ivregress liml y (x1 = z1 z2) x2, vce(robust)
+\end{lstlisting}
+
+\subsection{模板二：动态面板 GMM 流程（第 12 章）}
+
+\begin{lstlisting}
+ssc install xtabond2
+xtset id year
+tab year, gen(yr)                                    // 年份虚拟变量
+reg   y L.y x yr*, vce(cluster id)                   // 混合 OLS: rho 上偏
+xtreg y L.y x yr*, fe vce(cluster id)                // WG: rho 下偏 (Nickell)
+xtabond2 y L.y x yr*, gmm(L.y) iv(x yr*) noleveleq twostep robust             // AB
+xtabond2 y L.y x yr*, gmm(L.y) iv(x yr*) twostep robust                       // System
+xtabond2 y L.y x yr*, gmm(L.y) iv(x yr*) noleveleq orthogonal twostep robust  // FOD
+xtabond2 y L.y x yr*, gmm(L.y, laglimits(1 3) collapse) iv(x yr*) twostep robust // 限制工具
+* 看输出: AR(1) 应显著, AR(2) 不显著; Hansen J 不拒绝; 工具数 < 个体数
+\end{lstlisting}
+
+\subsection{模板三：DiD、事件研究与交错处理（第 15 章）}
+
+\begin{lstlisting}
+xtset id year
+xtreg y D i.year, fe vce(cluster id)              // 共同时点 TWFE = DiD
+* first_treat: 首次处理年份; 从未处理者 csdid/jwdid 要求记 0, did_imputation 要求记缺失
+gen rel = year - first_treat                      // 事件时间 (从未处理者的 lead/lag 均为 0)
+forvalues k = 2/4 {
+    gen lead`k' = (rel == -`k')                   // e = -1 略去
+}
+forvalues k = 0/3 {
+    gen lag`k' = (rel == `k')
+}
+reghdfe y lead4 lead3 lead2 lag0 lag1 lag2 lag3, absorb(id year) vce(cluster id)
+test lead4 lead3 lead2                            // 事前趋势检验
+bacondecomp y D, ddetail                          // 交错处理时诊断普通 TWFE
+jwdid y, ivar(id) tvar(year) gvar(first_treat)    // 扩展 TWFE
+estat event
+csdid y, ivar(id) time(year) gvar(first_treat) notyet
+estat event
+\end{lstlisting}
+
+\subsection{常见语法与使用陷阱清单}
+
+\begin{enumerate}
+  \item \key{交互项}：\texttt{d.f} 是差分算子 \texttt{D.} 作用于 \texttt{f}，不是 $d\times f$；交互写 \texttt{i.d\#i.f} 或 \texttt{c.d\#c.f}，含主效应写 \texttt{i.d\#\#i.f}（第 15 章）。
+  \item \key{FE 的标准误}：\texttt{xtreg, fe vce(robust)} 实际给出按个体聚类的 se；手工去均值后 \texttt{reg ydot xdot} 的经典 se 自由度错（用 $NT-K$ 而非 $NT-N-K$），需乘 $\sqrt{(NT-K)/(NT-N-K)}$（第 10 章）。
+  \item \key{Hausman 检验}：\texttt{hausman} 的顺序是“先一致的、后有效的”；加 \texttt{sigmamore} 避免方差之差非正定；它只在同方差下有效，稳健版本用 Mundlak 回归 + \texttt{test xbar}（第 11 章）。
+  \item \key{2SLS}：不要手工两步做（se 错）；\texttt{estat firststage} 的 Stock–Yogo 临界值只在非稳健设定下报告（第 9 章）。
+  \item \key{聚类}：簇数 $G$ 小（$<30$）时 CRVE 不可靠；Stata 自动用 $t_{G-1}$；$G=1$ 时 CRVE 为 0（第 5 章）。
+  \item \key{\texttt{xtabond2} 的三种估计量}：\texttt{noleveleq} $\to$ AB，默认 $\to$ System，\texttt{noleveleq orthogonal} $\to$ FOD；工具过多会使 Hansen $J$ 的 $p$ 值虚高，用 \texttt{collapse}、\texttt{laglimits()} 控制并报告工具数（第 12 章）。
+  \item \key{PCA 软件约定}：统计软件把变量放在列上；MATLAB/Python 的 \texttt{eig}/\texttt{eigh} 按特征值升序返回，R 的 \texttt{eigen} 按降序返回（第 13 章）；\texttt{plm()} 没有 \texttt{model = "PCA"}（第 14 章）。
+  \item \key{事件研究}：必须略去一个事件时间（通常 $e=-1$），否则事件时间虚拟变量之和与个体固定效应完全共线（第 15 章）。
+  \item \key{多个约束}：连写两条 \texttt{test} 是两个单独检验；联合检验要把约束放进同一条 \texttt{test} 的括号里，或在第二条加 \texttt{accumulate}（第 6 章）。
+\end{enumerate}
+
+\begin{english}
+\begin{itemize}
+  \item First, we estimate the baseline model by OLS with robust standard errors; second, we estimate it by 2SLS and report the first-stage $F$ statistic, the overidentification test and the endogeneity test; finally, we check robustness with efficient GMM and LIML.
+  \item For the dynamic panel, we report pooled OLS and within estimates as upper and lower bounds for $\rho$, and verify that the GMM estimate lies between them.
+  \item For the policy evaluation, we report the TWFE estimate, an event-study plot with $e=-1$ as the reference period, and heterogeneity-robust estimates under staggered adoption.
+\end{itemize}
+\end{english}

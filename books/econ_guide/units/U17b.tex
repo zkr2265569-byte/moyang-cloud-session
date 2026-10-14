@@ -1,0 +1,1262 @@
+% ===================================================================
+% U17b  第 17 章（后半）：第 2 题 (a)(b) 详解、参考答案常见错误汇总、
+%        延伸考点预测
+% ===================================================================
+
+%======================================================================
+\section{第 2 题 (a) 详解：\texorpdfstring{$2\times2$}{2x2} DiD 与 TWFE}\label{sec:U17b-2a}
+
+第 1 题对连续回归元 $x_{it}$ 推出了双向组内变换下的 FE 估计量。平衡面板中，记 $\ddot x_{it}=x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot}$，则
+\begin{equation}\label{eq:U17b-fe}
+\hat\beta_{FE}=\frac{\sum_{i,t}\ddot x_{it}Y_{it}}{\sum_{i,t}\ddot x_{it}^2}.
+\end{equation}
+第 2 题把 $x_{it}$ 换成二元处理变量 $D_{it}$：(a) 问 TWFE 与经典双重差分的关系，(b) 问处理效应异质时如何估计 $\beta_i$。本节讲 (a)，下一节讲 (b)。
+
+%----------------------------------------------------------------------
+\subsection{原题、中文题意与答题框架}
+
+\subsubsection{原题（英文原文）}
+
+\begin{tcolorbox}[bxbase,colback=gray!4,colframe=gray!55!black,boxed title style={colback=gray!55!black},fontupper=\small,title={Question (2), stem and part (a)}]
+(2) (20 Points) Now, let's consider the difference-in-differences (DiD) setup when $x_{it}=D_{it}$, then
+\[
+Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}
+\]
+where $D_{it}$ is a binary treatment indicator, equal to 1 if unit $i$ is treated at time $t$, and 0 otherwise. $\alpha_i=1$ implies the units are treated and $\lambda_t=1$ implies the post-treatment periods.
+
+In contrast, the classic DiD estimator can be written as:
+\[
+\Delta Y=(\overline Y_{T,1}-\overline Y_{C,1})-(\overline Y_{T,0}-\overline Y_{C,0})
+\]
+where: $\overline Y_{T,1}$ and $\overline Y_{T,0}$ are the average outcomes for the treated group after and before treatment, respectively, $\overline Y_{C,1}$ and $\overline Y_{C,0}$ are the average outcomes for the control group after and before treatment, respectively.
+
+In a standard $2\times2$ setup, i.e., there are only two units (i.e., $i=1$ is treated and $i=2$ is untreated) and two times periods (i.e., $t=0$ is pretreated and $t=1$ is posttreated),
+
+(a) Using the notation from the TWFE model, derive the DiD estimator of $\beta$ and show how it relates to the difference in averages across treatment and control groups before and after treatment. [hint: compare the outcome $Y_{it}$ for different units at different time periods, i.e., $E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$, etc.]
+\end{tcolorbox}
+
+\subsubsection{中文题意}
+
+考虑 $x_{it}=D_{it}$ 时的双重差分设定 $Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$，$D_{it}$ 为二元处理指示（单位 $i$ 在 $t$ 期受处理取 1，否则取 0）；“$\alpha_i=1$”表示受处理的单位，“$\lambda_t=1$”表示处理后时期。经典 DiD 估计量为 $\Delta Y=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})$，其中 $\bar Y_{T,1}$、$\bar Y_{T,0}$ 是处理组处理后、处理前的平均结果，$\bar Y_{C,1}$、$\bar Y_{C,0}$ 是控制组处理后、处理前的平均结果（下标 $T$、$C$ 指组别，$1$、$0$ 指时期）。在标准 $2\times2$ 设定中（两个单位：$i=1$ 受处理、$i=2$ 未受处理；两期：$t=0$ 处理前、$t=1$ 处理后）：
+
+(a) 用 TWFE 模型的记号推导 $\beta$ 的 DiD 估计量，并说明它与“处理组、控制组在处理前后的平均值之差”的关系。提示：比较不同单位在不同时期的 $Y_{it}$，即 $E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$ 等。
+
+\subsubsection{\texorpdfstring{$2\times2$}{2x2} 设定：两个单位、两期，\texorpdfstring{$D_{it}=1$}{D=1} 只有一格}
+
+处理指示 $D_{it}$ 只在“处理单位、处理后”这一格为 1：
+\begin{center}
+\begin{tabular}{lcc}
+\toprule
+$D_{it}$ & $t=0$（处理前） & $t=1$（处理后）\\
+\midrule
+$i=1$（处理组） & 0 & 1\\
+$i=2$（控制组） & 0 & 0\\
+\bottomrule
+\end{tabular}
+\end{center}
+共 4 个观测 $Y_{10},Y_{11},Y_{20},Y_{21}$（第一个下标为单位，第二个为时期）。记 $d_i=\mathbf{1}\{i\text{ 属于处理组}\}$（处理组指示），$w_t=\mathbf{1}\{t\text{ 为处理后期}\}$（处理后指示），则 $D_{it}=d_iw_t$。
+
+\subsubsection{满分答案的三个层次：总体层、样本层、识别层}
+
+题目要求两件事：(i) 用 TWFE 的记号推导 $\beta$ 的 DiD 表达式；(ii) 说明它与组平均之差 $\Delta Y$ 的关系。满分答案（也是推导思路）有三层：
+\begin{enumerate}
+  \item \key{总体层}：四个条件期望两两相减，得到 $\beta$；
+  \item \key{样本层}：TWFE 的 OLS 估计 $\hat\beta$ 在数值上恰好等于 $\Delta Y$；
+  \item \key{识别层}：为什么 $\beta$ 是因果效应——平行趋势、无预期、SUTVA，$\beta$ 是 ATT。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{记号“\texorpdfstring{$\alpha_i=1$、$\lambda_t=1$}{alpha\_i=1, lambda\_t=1}”的两种理解}\label{sec:U17b-notation}
+
+\subsubsection{记号的来源：\texorpdfstring{$\alpha_i$}{alpha\_i} 是个体虚拟变量的系数}
+
+题目说“$\alpha_i=1$ implies the units are treated and $\lambda_t=1$ implies the post-treatment periods”，提示中又写 $E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$。这里 $\alpha_i$、$\lambda_t$ 被当成了组别、时期的\key{标签}，与它们在回归中作为“固定效应参数”的含义不同。这种写法来自 LSDV 的习惯：个体效应写成 $\alpha_i\cdot d_i$（$d_i$ 是个体虚拟变量，$\alpha_i$ 是它的系数），时间效应写成 $f_t\cdot\text{year}_t$（$\text{year}_t$ 为时期虚拟变量）；在 DiD 语境中 $d_i$ 又被用来表示处理状态（treatment status），“$d_i=1$ 且 $f_t=1$”就是政策生效期的虚拟变量（effective date dummy）。题目把“虚拟变量取 1”简写成了“$\alpha_i=1$”“$\lambda_t=1$”。
+
+作答时应先说明采用哪种理解。下面两种理解给出相同的结论。
+
+\subsubsection{理解 A：组别与时期的标签}
+
+\begin{defn}[理解 A：标签 / 条件记号]\label{def:U17b-A}
+$\alpha_i$、$\lambda_t$ 仍是一般的固定效应参数（$\alpha_1,\alpha_2,\lambda_0,\lambda_1$ 为任意实数）；“$\alpha_i=1$”只是“$i$ 属于处理组”（$d_i=1$）的简写，“$\lambda_t=1$”是“$t$ 为处理后期”（$w_t=1$）的简写。于是
+\[
+E(Y_{it}\mid\alpha_i=1,\lambda_t=1)\equiv E(Y_{it}\mid d_i=1,w_t=1).
+\]
+同样，“$\alpha_i=0$”表示控制组，“$\lambda_t=0$”表示处理前。
+\end{defn}
+
+\subsubsection{理解 B：\texorpdfstring{$\alpha_i=a_0+a_1d_i$、$\lambda_t=l_0+l_1w_t$}{alpha\_i = a0 + a1 d\_i, lambda\_t = l0 + l1 w\_t}，模型化为经典 DiD 回归}
+
+\begin{defn}[理解 B：虚拟变量]\label{def:U17b-B}
+把 $\alpha_i$、$\lambda_t$ 本身理解为由组别、时期决定的量：字面上 $\alpha_i=d_i\in\{0,1\}$、$\lambda_t=w_t\in\{0,1\}$；更一般地
+\[
+\alpha_i=a_0+a_1d_i,\qquad \lambda_t=l_0+l_1w_t
+\]
+（字面意思是 $a_0=l_0=0$、$a_1=l_1=1$ 的特例）。此时 $D_{it}=d_iw_t$，模型变为
+\[
+Y_{it}=\underbrace{(a_0+l_0)}_{\beta_0}+\underbrace{a_1}_{\beta_1}d_i+\underbrace{l_1}_{\beta_2}w_t+\beta\,d_iw_t+\epsilon_{it},
+\]
+这正是经典的 DiD 回归 $y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta\,d_iw_t+u_{it}$。
+\end{defn}
+
+\subsubsection{两种理解为何给出相同的 \texorpdfstring{$\hat\beta$}{beta hat}}
+
+在 $2\times2$ 中，每组只有一个单位、每个阶段只有一期，“个体效应”就是“组别效应”，“时间效应”就是“处理前 / 后效应”，两种理解完全相同。
+
+单位更多时，理解 A（个体 FE、时期 FE）比理解 B（组别 FE、前后 FE）更灵活：$d_i$ 是处理组各单位个体虚拟变量之和，$w_t$ 是处理后各期时间虚拟变量之和，所以 B 的回归元落在 A 的固定效应列空间里。但在平衡面板、共同处理时点下，两者的 $\hat\beta$ 仍然相同：
+\begin{itemize}
+  \item 理解 B 的回归含 4 个参数 $(\beta_0,\beta_1,\beta_2,\beta)$，对应 4 个“组 $\times$ 前后”格子，是\key{饱和模型}，拟合值等于各格样本均值，所以 $\hat\beta$ 等于四组样本均值的 DiD；
+  \item 理解 A 的 TWFE 估计也等于四组样本均值的 DiD（见本节“推广”一小节）。
+\end{itemize}
+因此两种回归给出相同的 $\hat\beta$。
+
+%----------------------------------------------------------------------
+\subsection{总体层：四个条件期望相减得到 \texorpdfstring{$\beta$}{beta}}
+
+\subsubsection{逐格写出四个条件期望}
+
+采用理解 A，并设 $E(\epsilon_{it}\mid d_i,w_t)=0$（它的含义与可放松的程度见本节“识别”一小节）。把 $Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$ 逐格代入：
+\begin{align*}
+E(Y_{it}\mid\alpha_i=1,\lambda_t=1)&=E(Y_{11})=\alpha_1+\lambda_1+\beta \why{处理组、处理后：$D_{11}=1$}\\
+E(Y_{it}\mid\alpha_i=1,\lambda_t=0)&=E(Y_{10})=\alpha_1+\lambda_0 \why{处理组、处理前：$D_{10}=0$}\\
+E(Y_{it}\mid\alpha_i=0,\lambda_t=1)&=E(Y_{21})=\alpha_2+\lambda_1 \why{控制组、处理后：$D_{21}=0$}\\
+E(Y_{it}\mid\alpha_i=0,\lambda_t=0)&=E(Y_{20})=\alpha_2+\lambda_0 \why{控制组、处理前：$D_{20}=0$}
+\end{align*}
+每一行都用到 $E(\epsilon_{it}\mid d_i,w_t)=0$，以及 $\alpha_i$、$\lambda_t$、$\beta$ 是常数。
+
+\subsubsection{先时间差、后组间差}
+
+\begin{align*}
+\text{处理组前后差}&=(\alpha_1+\lambda_1+\beta)-(\alpha_1+\lambda_0)=(\lambda_1-\lambda_0)+\beta \why{时间差分消去 $\alpha_1$}\\
+\text{控制组前后差}&=(\alpha_2+\lambda_1)-(\alpha_2+\lambda_0)=\lambda_1-\lambda_0 \why{时间差分消去 $\alpha_2$}\\
+\beta&=\bigl[E(Y_{11})-E(Y_{10})\bigr]-\bigl[E(Y_{21})-E(Y_{20})\bigr] \why{组间差分消去 $\lambda_1-\lambda_0$}
+\end{align*}
+
+\subsubsection{先组间差、后时间差（题目 \texorpdfstring{$\Delta Y$}{Delta Y} 的顺序）}
+
+\begin{align*}
+\text{处理后组间差}&=(\alpha_1+\lambda_1+\beta)-(\alpha_2+\lambda_1)=(\alpha_1-\alpha_2)+\beta \why{组间差分消去 $\lambda_1$}\\
+\text{处理前组间差}&=(\alpha_1+\lambda_0)-(\alpha_2+\lambda_0)=\alpha_1-\alpha_2 \why{组间差分消去 $\lambda_0$}\\
+\beta&=\bigl[E(Y_{11})-E(Y_{21})\bigr]-\bigl[E(Y_{10})-E(Y_{20})\bigr] \why{时间差分消去 $\alpha_1-\alpha_2$}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$2\times2$}{2x2} 期望表}
+
+两种顺序汇总在一张表里：行末是前后之差，列末是组间之差，右下角的“差的差”就是 $\beta$。
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+ & $t=0$（处理前） & $t=1$（处理后） & 前后之差\\
+\midrule
+处理组 $i=1$ & $\alpha_1+\lambda_0$ & $\alpha_1+\lambda_1+\beta$ & $(\lambda_1-\lambda_0)+\beta$\\
+控制组 $i=2$ & $\alpha_2+\lambda_0$ & $\alpha_2+\lambda_1$ & $\lambda_1-\lambda_0$\\
+组间之差 & $\alpha_1-\alpha_2$ & $(\alpha_1-\alpha_2)+\beta$ & \fbox{$\beta$}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsubsection{理解 B 下的同一推导：\texorpdfstring{$\alpha,\lambda$}{alpha, lambda} 取 0/1 与四格 A--D}
+
+字面理解 $\alpha_i=d_i$、$\lambda_t=w_t$，此时 $D=\alpha\lambda$：
+\begin{align*}
+E(Y\mid\alpha=1,\lambda=1)&=1+1+\beta=2+\beta \why{$D=\alpha\lambda=1$}\\
+E(Y\mid\alpha=1,\lambda=0)&=1+0=1 \why{$D=0$}\\
+E(Y\mid\alpha=0,\lambda=1)&=0+1=1 \why{$D=0$}\\
+E(Y\mid\alpha=0,\lambda=0)&=0 \why{$D=0$}\\
+\text{DiD}&=\bigl[(2+\beta)-1\bigr]-\bigl[1-0\bigr]=\beta \why{两次差分}
+\end{align*}
+一般形式 $\alpha_i=a_0+a_1d_i$、$\lambda_t=l_0+l_1w_t$ 下，用 A--D 标记四格：
+\begin{align*}
+\text{A（控制组·处理前）}&=\beta_0 \why{$d=0,\ w=0$}\\
+\text{B（控制组·处理后）}&=\beta_0+\beta_2 \why{$d=0,\ w=1$}\\
+\text{C（处理组·处理前）}&=\beta_0+\beta_1 \why{$d=1,\ w=0$}\\
+\text{D（处理组·处理后）}&=\beta_0+\beta_1+\beta_2+\beta \why{$d=1,\ w=1$}\\
+(\text{D}-\text{C})-(\text{B}-\text{A})&=(\beta_2+\beta)-\beta_2=\beta \why{两次差分}
+\end{align*}
+两种理解都给出 $\beta=\text{DiD}$。
+
+%----------------------------------------------------------------------
+\subsection{样本层：TWFE 的 OLS 估计 \texorpdfstring{$\hat\beta_{TWFE}=\Delta Y$}{beta\_TWFE hat = Delta Y}}\label{sec:U17b-sample}
+
+上面是期望层面的结论。题目问的是“DiD estimator”，还必须证明：TWFE 的 OLS 估计量在样本中\key{数值上}等于 $\Delta Y$。下面给两种证法。
+
+\subsubsection{证法 1：解 LSDV——4 个观测、4 个参数，恰好拟合}
+
+TWFE 的参数为 $\alpha_1,\alpha_2,\lambda_0,\lambda_1,\beta$。其中 $\lambda_0$ 与 $\alpha$ 的水平不可分（把所有 $\alpha_i$ 加 $c$、所有 $\lambda_t$ 减 $c$，拟合值不变；这就是虚拟变量陷阱），标准化 $\lambda_0=0$，剩 4 个参数、4 个观测。下面的方程组有唯一解，说明设计矩阵可逆，OLS 恰好拟合、残差全为 0：
+\begin{align*}
+Y_{10}&=\hat\alpha_1,\qquad Y_{11}=\hat\alpha_1+\hat\lambda_1+\hat\beta \why{处理单位两期}\\
+Y_{20}&=\hat\alpha_2,\qquad Y_{21}=\hat\alpha_2+\hat\lambda_1 \why{控制单位两期}\\
+\Rightarrow\ \hat\lambda_1&=Y_{21}-Y_{20} \why{时间效应只由控制单位决定}\\
+\hat\beta&=(Y_{11}-Y_{10})-\hat\lambda_1 \why{处理单位前后差减 $\hat\lambda_1$}\\
+&=(Y_{11}-Y_{10})-(Y_{21}-Y_{20}). \why{代入 $\hat\lambda_1$}
+\end{align*}
+
+\subsubsection{证法 2：套用第 1(a) 题的双向去均值公式}
+
+在 \eqref{eq:U17b-fe} 中取 $x_{it}=D_{it}$，$N=T=2$。先算三种均值，再双向去均值：
+\begin{align*}
+&\bar D_{1\cdot}=\tfrac12,\quad \bar D_{2\cdot}=0,\quad \bar D_{\cdot0}=0,\quad \bar D_{\cdot1}=\tfrac12,\quad \bar D_{\cdot\cdot}=\tfrac14 \why{按行、按列、总平均}\\
+&\ddot D_{10}=0-\tfrac12-0+\tfrac14=-\tfrac14,\qquad \ddot D_{11}=1-\tfrac12-\tfrac12+\tfrac14=\tfrac14 \why{$\ddot D=D-\bar D_{i\cdot}-\bar D_{\cdot t}+\bar D_{\cdot\cdot}$}\\
+&\ddot D_{20}=0-0-0+\tfrac14=\tfrac14,\qquad\ \ \ddot D_{21}=0-0-\tfrac12+\tfrac14=-\tfrac14 \why{同上}\\
+&\textstyle\sum\ddot D_{it}^2=4\times\tfrac1{16}=\tfrac14,\qquad \sum\ddot D_{it}Y_{it}=\tfrac14\bigl(Y_{11}-Y_{10}-Y_{21}+Y_{20}\bigr) \why{逐项相加}\\
+&\hat\beta_{FE}=\frac{\sum\ddot D_{it}Y_{it}}{\sum\ddot D_{it}^2}=(Y_{11}-Y_{10})-(Y_{21}-Y_{20}) \why{代入 \eqref{eq:U17b-fe}}
+\end{align*}
+两种证法结果相同。证法 2 的权重 $\ddot D_{it}=\pm\frac14$ 正好是“处理组前后差减控制组前后差”的符号模式。
+
+\subsubsection{与组平均之差 \texorpdfstring{$\Delta Y$}{Delta Y} 的关系}
+
+每组只有一个单位，组平均就是该单位的值：$\bar Y_{T,1}=Y_{11}$，$\bar Y_{T,0}=Y_{10}$，$\bar Y_{C,1}=Y_{21}$，$\bar Y_{C,0}=Y_{20}$。所以
+\begin{align*}
+\hat\beta_{TWFE}&=(Y_{11}-Y_{10})-(Y_{21}-Y_{20}) \why{上面两种证法}\\
+&=(Y_{11}-Y_{21})-(Y_{10}-Y_{20}) \why{四项重新组合}\\
+&=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})=\Delta Y. \why{组平均即单位值}
+\end{align*}
+\key{TWFE 的 OLS 估计与经典 DiD 估计量数值上完全相同}（不只是期望相同）。把模型代入，可以看出 $\Delta Y$ 与 $\beta$ 差多少：
+\begin{align*}
+\Delta Y&=(Y_{11}-Y_{10})-(Y_{21}-Y_{20}) \why{上式}\\
+&=\bigl[(\alpha_1+\lambda_1+\beta+\epsilon_{11})-(\alpha_1+\lambda_0+\epsilon_{10})\bigr]-\bigl[(\alpha_2+\lambda_1+\epsilon_{21})-(\alpha_2+\lambda_0+\epsilon_{20})\bigr] \why{代入模型}\\
+&=\bigl[(\lambda_1-\lambda_0)+\beta+\epsilon_{11}-\epsilon_{10}\bigr]-\bigl[(\lambda_1-\lambda_0)+\epsilon_{21}-\epsilon_{20}\bigr] \why{时间差分消去 $\alpha_i$}\\
+&=\beta+(\epsilon_{11}-\epsilon_{10})-(\epsilon_{21}-\epsilon_{20}). \why{组间差分消去 $\lambda_1-\lambda_0$}
+\end{align*}
+
+\subsubsection{例：\texorpdfstring{$2\times2$}{2x2} 手算与反事实图}
+
+\begin{exmp}[$2\times2$ 手算]\label{ex:U17b-2x2}
+$Y_{10}=3$，$Y_{11}=9$，$Y_{20}=2$，$Y_{21}=5$。求 TWFE 的全部估计值，并解释 $\hat\beta$。
+\solution
+\begin{align*}
+\hat\alpha_1&=Y_{10}=3,\qquad \hat\alpha_2=Y_{20}=2 \why{$\hat\lambda_0=0$}\\
+\hat\lambda_1&=Y_{21}-Y_{20}=5-2=3 \why{控制单位前后差}\\
+\hat\beta&=(9-3)-(5-2)=6-3=3 \why{两次差分}
+\end{align*}
+拟合值 $\hat\alpha_1=3$、$\hat\alpha_1+\hat\lambda_1+\hat\beta=9$、$\hat\alpha_2=2$、$\hat\alpha_2+\hat\lambda_1=5$ 与 4 个观测逐一相等，残差全为 0。反事实（处理单位若未受处理）$=Y_{10}+(Y_{21}-Y_{20})=3+3=6$，处理效应 $=9-6=3$。
+\end{exmp}
+
+\begin{center}
+\begin{tikzpicture}[x=1cm,y=0.55cm,font=\small]
+  \draw[->] (0,0) -- (7.6,0) node[right] {$t$};
+  \draw[->] (0,0) -- (0,10.8) node[above] {$Y$};
+  \draw (1,0.15) -- (1,-0.15) node[below] {$t=0$（处理前）};
+  \draw (6,0.15) -- (6,-0.15) node[below] {$t=1$（处理后）};
+  \draw[thick] (1,3) -- (6,9);
+  \draw[thick,dotted] (1,2) -- (6,5);
+  \draw[dashed] (1,3) -- (6,6);
+  \fill (1,3) circle (1.5pt) node[left] {$Y_{10}=3$};
+  \fill (1,2) circle (1.5pt) node[left] {$Y_{20}=2$};
+  \fill (6,9) circle (1.5pt) node[left=2pt] {$Y_{11}=9$};
+  \fill (6,5) circle (1.5pt) node[right] {$Y_{21}=5$};
+  \fill (6,6) circle (1.5pt) node[right] {反事实 $=3+(5-2)=6$};
+  \draw[decorate,decoration={brace,amplitude=4pt}] (6.15,9) -- (6.15,6.1) node[midway,right=5pt] {$\hat\beta=9-6=3$};
+  \node at (3.0,7.2) {处理组（实线）};
+  \node at (4.3,2.6) {控制组（点线）};
+\end{tikzpicture}
+\end{center}
+
+虚线是“处理组若未受处理”的路径：从 $Y_{10}$ 出发、平行于控制组（平行趋势）。实线终点与虚线终点之差就是 $\hat\beta$。
+
+\subsubsection{处理效应 = 观测值减去插补的反事实}
+
+上图给出 DiD 的另一种读法：处理效应等于“观测到的处理后结果”减去“插补出来的缺失反事实”。用上标表示组别（1 为处理组、0 为控制组）、下标表示时期：
+\[
+\hat\Delta_{DiD}=y^1_1-\bigl[y^1_0+(y^0_1-y^0_0)\bigr],
+\]
+方括号内是处理组在处理后期的反事实 $y^1_1(0)$ 的插补值：处理组自己的处理前水平，加上控制组的变化。在本题记号下即 $\hat\beta=Y_{11}-\bigl[Y_{10}+(Y_{21}-Y_{20})\bigr]$。第 2(b) 题的插补估计量就是这个思路的推广。
+
+%----------------------------------------------------------------------
+\subsection{两种差分顺序与“单差”的偏误}
+
+\subsubsection{两种顺序只是四项重排}
+
+\[
+\underbrace{(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})}_{\text{处理后组间差}\,-\,\text{处理前组间差}}
+=\underbrace{(\bar Y_{T,1}-\bar Y_{T,0})-(\bar Y_{C,1}-\bar Y_{C,0})}_{\text{处理组前后差}\,-\,\text{控制组前后差}},
+\]
+两边都是 $\bar Y_{T,1}-\bar Y_{T,0}-\bar Y_{C,1}+\bar Y_{C,0}$，只是括号的组合不同。题目的 $\Delta Y$ 是左边的顺序（先组间、后时间），常见推导是右边的顺序（先时间、后组间），二者相等。
+
+\subsubsection{只做一次差分：选择偏差或共同冲击}
+
+只做一次差分都不行：
+\begin{itemize}
+  \item 处理后组间差 $=(\alpha_1-\alpha_2)+\beta$，混入了两组固有的水平差（\key{选择偏差}）；
+  \item 处理组前后差 $=(\lambda_1-\lambda_0)+\beta$，混入了同期的\key{共同冲击}。
+\end{itemize}
+第二次差分分别把它们消掉：时间差分消 $\alpha_i$，组间差分消 $\lambda_t$。这与第 1(a) 题“双向去均值同时消去 $\alpha_i$ 与 $\lambda_t$”是同一件事。
+
+%----------------------------------------------------------------------
+\subsection{推广：多个处理单位与多期}\label{sec:U17b-general}
+
+题目定义 $\Delta Y$ 时用的是“组平均”，说明它考虑了每组多个单位的情形。下面先推广到多个单位、两期，再推广到多期。
+
+\subsubsection{\texorpdfstring{$N_1$}{N1} 个处理单位、\texorpdfstring{$N_0$}{N0} 个控制单位、两期：\texorpdfstring{$\ddot D_{it}=(d_i-q)(w_t-\frac12)$}{D double dot = (d\_i - q)(w\_t - 1/2)}}
+
+设 $N_1$ 个处理单位（$d_i=1$）、$N_0$ 个控制单位，$N=N_1+N_0$，处理单位份额 $q=N_1/N$；两期 $t=0,1$，$w_t=t$，$D_{it}=d_iw_t$，平衡面板。
+\begin{align*}
+\bar D_{i\cdot}&=\tfrac12(d_i\cdot0+d_i\cdot1)=\tfrac12d_i \why{处理单位两期中一期 $D=1$}\\
+\bar D_{\cdot t}&=\tfrac1N\textstyle\sum_id_iw_t=q\,w_t \why{第 $t$ 期受处理的份额}\\
+\bar D_{\cdot\cdot}&=\tfrac12q \why{对 $t$ 再平均}\\
+\ddot D_{it}&=d_iw_t-\tfrac12d_i-qw_t+\tfrac12q \why{双向去均值}\\
+&=(d_i-q)(w_t-\tfrac12) \why{因式分解}
+\end{align*}
+
+\subsubsection{推导：\texorpdfstring{$\hat\beta_{TWFE}$}{beta\_TWFE hat} 等于四组样本均值的 DiD}
+
+要证 $\hat\beta_{TWFE}=\Delta Y$。思路：把 $\ddot D_{it}$ 的乘积形式代入 \eqref{eq:U17b-fe}，分母、分子都分解成“对 $i$ 求和 $\times$ 对 $t$ 求和”。记 $\Delta Y_i=Y_{i1}-Y_{i0}$，$\overline{\Delta Y}_T=\frac1{N_1}\sum_{d_i=1}\Delta Y_i$，$\overline{\Delta Y}_C=\frac1{N_0}\sum_{d_i=0}\Delta Y_i$。
+\begin{align*}
+\textstyle\sum_i(d_i-q)^2&=N_1(1-q)^2+N_0q^2 \why{按组求和}\\
+&=Nq(1-q)^2+N(1-q)q^2=Nq(1-q) \why{$N_1=qN$，$N_0=(1-q)N$}\\
+\textstyle\sum_t(w_t-\tfrac12)^2&=\tfrac14+\tfrac14=\tfrac12 \why{两期}\\
+\textstyle\sum_{i,t}\ddot D_{it}^2&=\textstyle\sum_i(d_i-q)^2\sum_t(w_t-\tfrac12)^2=\tfrac12Nq(1-q) \why{乘积可分离}\\
+\textstyle\sum_t(w_t-\tfrac12)Y_{it}&=\tfrac12Y_{i1}-\tfrac12Y_{i0}=\tfrac12\Delta Y_i \why{先对 $t$ 求和}\\
+\textstyle\sum_i(d_i-q)\tfrac12\Delta Y_i&=\tfrac12\bigl[(1-q)N_1\overline{\Delta Y}_T-qN_0\overline{\Delta Y}_C\bigr] \why{按组求和}\\
+&=\tfrac12Nq(1-q)\bigl(\overline{\Delta Y}_T-\overline{\Delta Y}_C\bigr) \why{$N_1=qN$，$N_0=(1-q)N$}\\
+\hat\beta_{TWFE}=\frac{\sum\ddot D_{it}Y_{it}}{\sum\ddot D_{it}^2}&=\overline{\Delta Y}_T-\overline{\Delta Y}_C \why{约分}\\
+&=(\bar Y_{T,1}-\bar Y_{T,0})-(\bar Y_{C,1}-\bar Y_{C,0})=\Delta Y \why{平衡面板，重排}
+\end{align*}
+最后一步用到：平衡面板中先差分再平均与先平均再差分相同，$\overline{\Delta Y}_T=\frac1{N_1}\sum_{d_i=1}(Y_{i1}-Y_{i0})=\bar Y_{T,1}-\bar Y_{T,0}$。
+
+\begin{thm}[TWFE = 四组样本均值的 DiD]\label{thm:U17b-four}
+平衡面板、两期、共同处理时点下，无论 $N_1$、$N_0$ 多大，$\hat\beta_{TWFE}=(\bar Y_{T,1}-\bar Y_{T,0})-(\bar Y_{C,1}-\bar Y_{C,0})=\Delta Y$。
+\end{thm}
+
+\subsubsection{多期共同处理时点：\texorpdfstring{$\ddot D_{it}=(d_i-q)(w_t-p)$}{D double dot = (d\_i - q)(w\_t - p)}}
+
+设 $t=1,\dots,T$（平衡），所有处理单位从 $T_0+1$ 期起受处理，$w_t=\mathbf{1}\{t>T_0\}$，$D_{it}=d_iw_t$；处理后期数 $T_1=T-T_0$，处理后份额 $p=T_1/T$。
+\begin{align*}
+\bar D_{i\cdot}&=\tfrac1T\textstyle\sum_td_iw_t=d_i\tfrac{T_1}{T}=d_ip \why{计数}\\
+\bar D_{\cdot t}&=\tfrac1N\textstyle\sum_id_iw_t=w_t\tfrac{N_1}{N}=w_tq \why{计数}\\
+\bar D_{\cdot\cdot}&=\tfrac{N_1T_1}{NT}=qp \why{处理单元格占比}\\
+\ddot D_{it}&=d_iw_t-d_ip-w_tq+qp=(d_i-q)(w_t-p) \why{因式分解}
+\end{align*}
+总平均 $\bar D_{\cdot\cdot}=N_1T_1/(NT)$ 就是全部单元格中受处理单元格的比例，常记作 $\bar w$。
+
+\subsubsection{多期情形：\texorpdfstring{$\hat\beta_{TWFE}$}{beta\_TWFE hat} 等于“处理后均值减处理前均值”的 DiD}
+
+记 $\bar Y_{i,\mathrm{post}}$、$\bar Y_{i,\mathrm{pre}}$ 为单位 $i$ 在处理后、处理前各期的平均，$\Delta_i=\bar Y_{i,\mathrm{post}}-\bar Y_{i,\mathrm{pre}}$，$\bar\Delta_T$、$\bar\Delta_C$ 为两组 $\Delta_i$ 的平均。
+\begin{align*}
+\textstyle\sum_{i,t}\ddot D_{it}^2&=\textstyle\sum_i(d_i-q)^2\cdot\sum_t(w_t-p)^2 \why{乘积可分离}\\
+&=Nq(1-q)\cdot\bigl[T_1(1-p)^2+T_0p^2\bigr] \why{上一小小节}\\
+&=Nq(1-q)\cdot Tp(1-p) \why{$T_1=pT$，$T_0=(1-p)T$}\\
+\textstyle\sum_t(w_t-p)Y_{it}&=(1-p)T_1\bar Y_{i,\mathrm{post}}-pT_0\bar Y_{i,\mathrm{pre}} \why{处理后 $1-p$，处理前 $-p$}\\
+&=Tp(1-p)\,(\bar Y_{i,\mathrm{post}}-\bar Y_{i,\mathrm{pre}})=Tp(1-p)\Delta_i \why{$T_1=pT$，$T_0=(1-p)T$}\\
+\textstyle\sum_i(d_i-q)\Delta_i&=(1-q)N_1\bar\Delta_T-qN_0\bar\Delta_C=Nq(1-q)(\bar\Delta_T-\bar\Delta_C) \why{按组求和}\\
+\hat\beta_{TWFE}&=\frac{Tp(1-p)\,Nq(1-q)\,(\bar\Delta_T-\bar\Delta_C)}{Nq(1-q)\,Tp(1-p)}=\bar\Delta_T-\bar\Delta_C \why{代入并约分}\\
+&=(\bar Y_{T,\mathrm{post}}-\bar Y_{T,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}) \why{平衡面板}
+\end{align*}
+数值验证：$N_1=4$，$N_0=6$，$T_0=3$，$T_1=2$ 的模拟数据中，TWFE 与四组均值 DiD 逐位相同（1.812202006911）。两期情形是 $p=\frac12$ 的特例。效应异质时这个 $\hat\beta$ 估计什么，见第 2(b) 题“权重表示”一小节：共同处理时点下它是全部处理单元格效应的等权平均，即 ATT。
+
+%----------------------------------------------------------------------
+\subsection{识别：为什么“\texorpdfstring{$E\epsilon=0$}{E epsilon = 0}”不够}\label{sec:U17b-ident}
+
+\subsubsection{潜在结果与 TWFE 结构}
+
+上面的“$\beta=\text{DiD}$”是在模型 $Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$ 成立、且 $E(\epsilon_{it}\mid d_i,w_t)=0$ 的前提下推出的。要说 $\beta$ 是因果效应，需要用潜在结果把模型背后的假设说清楚。记 $Y_{it}(1)$、$Y_{it}(0)$ 为受处理 / 不受处理时的\term{潜在结果}{potential outcomes}，无处理时的结果满足 TWFE 结构 $Y_{it}(0)=\alpha_i+\lambda_t+\epsilon_{it}$。记 $\Delta Y_i(0)=Y_{i1}(0)-Y_{i0}(0)$。
+
+\subsubsection{三个识别假设：SUTVA、无预期、平行趋势}
+
+\begin{defn}[DiD 的三个识别假设]\label{def:U17b-assump}
+\begin{enumerate}
+  \item \term{SUTVA}{stable unit treatment value assumption}（无溢出）：每个单位的结果只取决于自己的处理状态，$Y_{it}=Y_{it}(D_{it})$；政策不影响控制单位。
+  \item \term{无预期}{no anticipation}：处理前处理组的结果不受即将到来的政策影响，$Y_{i0}=Y_{i0}(0)$。
+  \item \term{平行趋势}{parallel trends}（PT）：若没有政策，两组的平均变化相同：
+  \begin{gather*}
+  E\bigl[Y_{i1}(0)-Y_{i0}(0)\mid d_i=1\bigr]=E\bigl[Y_{i1}(0)-Y_{i0}(0)\mid d_i=0\bigr]\\
+  \iff E(\epsilon_{i1}-\epsilon_{i0}\mid d_i=1)=E(\epsilon_{i1}-\epsilon_{i0}\mid d_i=0).
+  \end{gather*}
+\end{enumerate}
+\end{defn}
+平行趋势的等价形式来自 $\Delta Y_i(0)=(\lambda_1-\lambda_0)+(\epsilon_{i1}-\epsilon_{i0})$：$\lambda_1-\lambda_0$ 对两组相同，被组间差分消去。
+
+\subsubsection{推导：在三条假设下 DiD = ATT}
+
+要证总体 DiD 等于\term{处理组平均处理效应}{average treatment effect on the treated, ATT} $\text{ATT}=E[Y_{i1}(1)-Y_{i1}(0)\mid d_i=1]$。思路：把观测结果换成潜在结果，再加减处理组不可观测的 $Y_{i1}(0)$。
+\begin{align*}
+\text{DiD}&=E(Y_{i1}-Y_{i0}\mid d_i=1)-E(Y_{i1}-Y_{i0}\mid d_i=0) \why{定义}\\
+&=E\bigl[Y_{i1}(1)-Y_{i0}(0)\mid d_i=1\bigr]-E\bigl[Y_{i1}(0)-Y_{i0}(0)\mid d_i=0\bigr] \why{SUTVA、无预期}\\
+&=\underbrace{E\bigl[Y_{i1}(1)-Y_{i1}(0)\mid d_i=1\bigr]}_{\text{ATT}}+\underbrace{E\bigl[\Delta Y_i(0)\mid d_i=1\bigr]-E\bigl[\Delta Y_i(0)\mid d_i=0\bigr]}_{\text{趋势差（选择偏差）}} \why{加减 $Y_{i1}(0)$}\\
+&=\text{ATT} \why{PT：趋势差为 0}
+\end{align*}
+第二行：处理组处理后受处理，由 SUTVA 得 $Y_{i1}=Y_{i1}(1)$；处理组处理前由无预期得 $Y_{i0}=Y_{i0}(0)$；控制组始终未受处理且无溢出，$Y_{it}=Y_{it}(0)$。在 TWFE 记号下，趋势差 $=E(\epsilon_{i1}-\epsilon_{i0}\mid d_i=1)-E(\epsilon_{i1}-\epsilon_{i0}\mid d_i=0)$（$\alpha_i$ 被时间差分消去，$\lambda_t$ 被组间差分消去）。
+
+\begin{thm}[DiD 识别 ATT]\label{thm:U17b-att}
+在 SUTVA、无预期、平行趋势下，$\beta=\text{ATT}=E[Y_{i1}(1)-Y_{i1}(0)\mid d_i=1]$。它是\key{处理组}的平均效应，不是总体的 ATE。
+\end{thm}
+
+\subsubsection{需要以处理状态为条件：\texorpdfstring{$E(\epsilon_{it}\mid d_i)$}{E(epsilon | d\_i)} 不随时间变}
+
+\begin{itemize}
+  \item 需要的是\key{以处理状态为条件}的条件：$E(\epsilon_{it}\mid d_i)=0$。
+  \item 更弱也够用：$E(\epsilon_{it}\mid d_i)$ 可以随组不同，但不随时间变——水平差会被 $\alpha_i$ 吸收——即两组误差的期望变化平行。这正是 PT。
+\end{itemize}
+
+\subsubsection{反例：Ashenfelter 低谷}
+
+无条件的 $E(\epsilon_{it})=0$ 不够。典型反例是 \term{Ashenfelter 低谷}{Ashenfelter's dip}：参加培训项目的人往往是因为处理前一期收入受到暂时性负冲击才被选中，$E(\epsilon_{i0}\mid d_i=1)<0$、$E(\epsilon_{i1}\mid d_i=1)\approx0$。处理组收入的“均值回归”被算成政策效应，DiD 高估 $\beta$；而全体样本中 $E(\epsilon_{it})=0$ 照样可以成立。
+
+\subsubsection{回归语言中的平行趋势：\texorpdfstring{$\beta_2=\lambda_1-\lambda_0$}{beta\_2 = lambda\_1 - lambda\_0}}
+
+在经典 DiD 回归 $y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta\,d_iw_t+u_{it}$ 中，$\beta_2$（$=\lambda_1-\lambda_0$）是控制组的前后变化，来自政策以外的其他因素。平行趋势就是说：若没有处理，处理组（$d_i=1$）的变化也将是 $\beta_2$。于是处理组的实际变化 $\beta_2+\beta$ 中超出 $\beta_2$ 的部分归于政策。
+
+%----------------------------------------------------------------------
+\subsection{统计性质：\texorpdfstring{$2\times2$}{2x2} 中无偏、不一致、无法推断}\label{sec:U17b-stat}
+
+\subsubsection{无偏}
+
+由样本层的推导，$\hat\beta-\beta=(\epsilon_{11}-\epsilon_{10})-(\epsilon_{21}-\epsilon_{20})$。在 $E(\epsilon_{it}\mid D)=0$（或 PT）下
+\begin{align*}
+E(\hat\beta\mid D)&=\beta+E(\epsilon_{11}-\epsilon_{10}\mid D)-E(\epsilon_{21}-\epsilon_{20}\mid D) \why{期望线性性}\\
+&=\beta. \why{$E(\epsilon\mid D)=0$ 或 PT}
+\end{align*}
+
+\subsubsection{方差不随样本缩小：不一致}
+
+只有 4 个观测，误差不会被平均掉。若 $\epsilon_{it}$ 相互独立、同方差 $\sigma^2$：
+\begin{align*}
+\Var(\hat\beta\mid D)&=\Var(\epsilon_{11})+\Var(\epsilon_{10})+\Var(\epsilon_{21})+\Var(\epsilon_{20}) \why{独立，系数 $\pm1$}\\
+&=4\sigma^2, \why{同方差}
+\end{align*}
+它不随任何东西缩小，所以 $\hat\beta$ 不一致。
+
+\subsubsection{残差自由度为 0：无法计算标准误}
+
+恰好识别、残差全为 0、残差自由度 $4-4=0$，$\sigma^2$ 无法估计——无法计算标准误，也无法做 $t$ 检验。Hansen 第 18.9 节以 Card--Krueger 只有两个州的例子指出：此时无法按州聚类，只有两个有效观测可用于计算标准误。
+
+\subsubsection{单位增多时的一致性与推断；处理单位很少时的置换推断}
+
+\begin{itemize}
+  \item $N_1,N_0\to\infty$ 时（见上面的推广），$\hat\beta\pto\text{ATT}$，用按单位聚类的标准误推断。
+  \item 若处理单位很少（如 $N_1=5$），处理效应的估计量无偏但不一致，推断改用置换（permutation）检验或 bootstrap。Hansen 第 18.9 节还指出：只有一个处理单位时，聚类稳健方差矩阵奇异，报告的标准误严重偏向 0。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{拓展：加入时变协变量的 DiD 与条件平行趋势}\label{sec:U17b-cov}
+
+\tagext\ 设 $N_1$ 个处理单位、$N_0$ 个控制单位在 $t=0,1$ 两期被观测，
+\[
+Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\gamma x_{it}+\epsilon_{it},\qquad D_{it}=d_it,
+\]
+$x_{it}$ 为时变协变量。下面说明 TWFE 估计的 $\hat\beta$ 与原始 DiD 有何不同。
+
+\subsubsection{\texorpdfstring{$T=2$}{T=2} 时 TWFE 等价于差分回归}
+
+要证：TWFE 的 $(\hat\beta,\hat\gamma)$ 等于 $\Delta Y_i$ 对 $(1,d_i,\Delta x_i)$ 做 OLS 的系数。先算 $T=2$ 时任一变量 $z$ 的双向去均值（$\overline{\Delta z}=\frac1N\sum_i\Delta z_i$）：
+\begin{align*}
+\ddot z_{i1}&=z_{i1}-\tfrac12(z_{i0}+z_{i1})-\bar z_{\cdot1}+\tfrac12(\bar z_{\cdot0}+\bar z_{\cdot1}) \why{定义}\\
+&=\tfrac12(z_{i1}-z_{i0})-\tfrac12(\bar z_{\cdot1}-\bar z_{\cdot0})=\tfrac12(\Delta z_i-\overline{\Delta z}) \why{合并同类项}\\
+\ddot z_{i0}&=-\ddot z_{i1}=-\tfrac12(\Delta z_i-\overline{\Delta z}) \why{两期去均值和为 0}
+\end{align*}
+对 $D$：$\Delta D_i=d_i$，$\overline{\Delta D}=q$。TWFE 是对双向去均值数据做 OLS，其目标函数为
+\begin{align*}
+&\textstyle\sum_i\sum_t(\ddot Y_{it}-\beta\ddot D_{it}-\gamma\ddot x_{it})^2 \why{FWL}\\
+&=\textstyle\sum_i2\cdot\tfrac14\bigl[(\Delta Y_i-\overline{\Delta Y})-\beta(d_i-q)-\gamma(\Delta x_i-\overline{\Delta x})\bigr]^2 \why{两期取值互为相反数}
+\end{align*}
+这正是 $\Delta Y_i$ 对 $(1,d_i,\Delta x_i)$ 的 OLS 目标函数的中心化写法（带截距的 OLS 等于对中心化变量的 OLS），乘以常数 $\frac12$ 不改变最小值点，故 $(\hat\beta,\hat\gamma)$ 相同。
+
+\subsubsection{\texorpdfstring{$\hat\beta$}{beta hat} 等于“结果的 DiD 减去 \texorpdfstring{$\hat\gamma\times$}{gamma hat x} 协变量的 DiD”}
+
+在 $\Delta Y_i=c+\beta d_i+\gamma\Delta x_i+r_i$ 的 OLS 中，截距与 $d_i$ 的正规方程为 $\sum_i\hat r_i=0$、$\sum_id_i\hat r_i=0$，即两组残差各自和为 0。记 $\overline{\Delta x}_T$、$\overline{\Delta x}_C$ 为两组 $\Delta x_i$ 的平均。
+\begin{align*}
+\overline{\Delta Y}_T&=\hat c+\hat\beta+\hat\gamma\,\overline{\Delta x}_T \why{处理组平均，残差平均为 0}\\
+\overline{\Delta Y}_C&=\hat c+\hat\gamma\,\overline{\Delta x}_C \why{控制组平均，残差平均为 0}\\
+\hat\beta&=(\overline{\Delta Y}_T-\overline{\Delta Y}_C)-\hat\gamma\,(\overline{\Delta x}_T-\overline{\Delta x}_C) \why{两式相减}
+\end{align*}
+同理，在模型下原始 DiD 的期望为 $\beta+\gamma\bigl[(\bar x_{T,1}-\bar x_{T,0})-(\bar x_{C,1}-\bar x_{C,0})\bigr]$：协变量的变化在两组不同时，原始 DiD 会混入 $\gamma$ 乘以协变量的 DiD。
+
+\subsubsection{条件平行趋势与“坏控制”}
+
+\begin{itemize}
+  \item 当 $\overline{\Delta x}_T=\overline{\Delta x}_C$（协变量在两组变化相同）或 $\hat\gamma=0$ 时，$\hat\beta$ 等于原始 DiD；否则不加 $x_{it}$ 的 TWFE 估计（即原始 DiD）与加入 $x_{it}$ 的 TWFE 估计不同。
+  \item 识别假设变为\term{条件平行趋势}{conditional parallel trends}：$E(\Delta\epsilon_i\mid d_i,\Delta x_i)=0$——控制 $x$ 的变化之后两组趋势平行。
+  \item 若 $x_{it}$ 本身受处理影响（“坏控制”，如政策改变了企业规模），控制它会把一部分处理效应吸收进 $\hat\gamma\,\Delta x$，$\hat\beta$ 不再是 ATT。所以加入时变协变量要谨慎，宜用处理前（不受处理影响）的协变量。
+  \item 数值验证：$N_1=5$，$N_0=7$ 的模拟数据中 $\hat\beta=1.2531$，恰等于 $\text{DiD}(Y)-\hat\gamma\,\text{DiD}(x)$，而原始 DiD 为 2.1095。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{第 2(a) 题最终答案}\label{sec:U17b-2a-ans}
+
+\begin{thm}[第 2(a) 题答案]\label{thm:U17b-2a}
+在 $2\times2$ 设定中（$i=1$ 处理、$i=2$ 控制，$t=0$ 前、$t=1$ 后，$D_{11}=1$，其余 $D_{it}=0$）：
+\begin{multline*}
+\beta=\bigl[E(Y_{it}\mid\alpha_i=1,\lambda_t=1)-E(Y_{it}\mid\alpha_i=1,\lambda_t=0)\bigr]\\
+-\bigl[E(Y_{it}\mid\alpha_i=0,\lambda_t=1)-E(Y_{it}\mid\alpha_i=0,\lambda_t=0)\bigr],
+\end{multline*}
+因为前一个括号 $=(\lambda_1-\lambda_0)+\beta$、后一个括号 $=\lambda_1-\lambda_0$。样本上 TWFE 的 OLS 估计恰好拟合 4 个观测：
+\[
+\hat\beta_{TWFE}=(Y_{11}-Y_{10})-(Y_{21}-Y_{20})=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})=\Delta Y;
+\]
+$N_1$ 个处理、$N_0$ 个控制单位时同样有 $\hat\beta_{TWFE}=\Delta Y$（四组样本均值的 DiD）。在平行趋势、无预期、SUTVA 下，$\beta$ 等于 ATT。
+\end{thm}
+
+\begin{english}[Model answer to Question (2)(a)]
+\textit{Notation.} I read ``$\alpha_i=1$'' as ``unit $i$ belongs to the treated group'' ($d_i=1$) and ``$\lambda_t=1$'' as ``period $t$ is post-treatment'' ($w_t=1$); thus $D_{it}=d_iw_t$, i.e.\ $D_{11}=1$ and $D_{10}=D_{20}=D_{21}=0$. (If $\alpha_i$ and $\lambda_t$ are literally the dummies $d_i$ and $w_t$, or $\alpha_i=a_0+a_1d_i$ and $\lambda_t=l_0+l_1w_t$, the model is $Y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta d_iw_t+\epsilon_{it}$ and the same argument applies.)
+
+\textit{Population.} Assuming $E(\epsilon_{it}\mid d_i,w_t)=0$,
+\[
+\begin{aligned}
+E(Y_{it}\mid\alpha_i=1,\lambda_t=1)&=\alpha_1+\lambda_1+\beta, & E(Y_{it}\mid\alpha_i=1,\lambda_t=0)&=\alpha_1+\lambda_0,\\
+E(Y_{it}\mid\alpha_i=0,\lambda_t=1)&=\alpha_2+\lambda_1, & E(Y_{it}\mid\alpha_i=0,\lambda_t=0)&=\alpha_2+\lambda_0.
+\end{aligned}
+\]
+Write $E(Y\mid a,l)$ for $E(Y_{it}\mid\alpha_i=a,\lambda_t=l)$. The change for the treated unit is $(\lambda_1-\lambda_0)+\beta$ and the change for the control unit is $\lambda_1-\lambda_0$, so
+\[
+\begin{aligned}
+\beta&=\bigl[E(Y\mid1,1)-E(Y\mid1,0)\bigr]-\bigl[E(Y\mid0,1)-E(Y\mid0,0)\bigr]\\
+&=\bigl[E(Y\mid1,1)-E(Y\mid0,1)\bigr]-\bigl[E(Y\mid1,0)-E(Y\mid0,0)\bigr].
+\end{aligned}
+\]
+The time difference removes $\alpha_i$ and the group difference removes $\lambda_t$.
+
+\textit{Sample.} With four observations and four free parameters ($\alpha_1,\alpha_2,\lambda_1,\beta$, normalising $\lambda_0=0$), OLS fits the data exactly: $\hat\alpha_1=Y_{10}$, $\hat\alpha_2=Y_{20}$, $\hat\lambda_1=Y_{21}-Y_{20}$ and
+\[
+\hat\beta_{TWFE}=(Y_{11}-Y_{10})-(Y_{21}-Y_{20})=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})=\Delta Y.
+\]
+Equivalently, using (1)(a) with $x_{it}=D_{it}$: $\ddot D_{11}=\ddot D_{20}=\frac14$, $\ddot D_{10}=\ddot D_{21}=-\frac14$, so $\sum\ddot D_{it}Y_{it}/\sum\ddot D_{it}^2=\Delta Y$. More generally, with $N_1$ treated and $N_0$ control units, $\ddot D_{it}=(d_i-q)(w_t-\frac12)$ with $q=N_1/N$, and $\hat\beta_{TWFE}$ equals the difference in the four group means, $\Delta Y$. Hence the TWFE estimator is numerically identical to the classic DiD estimator, and $\Delta Y=\beta+(\epsilon_{11}-\epsilon_{10})-(\epsilon_{21}-\epsilon_{20})$.
+
+\textit{Identification.} $E(\epsilon_{it})=0$ alone is not enough. $\beta$ is the ATT, $E[Y_{i1}(1)-Y_{i1}(0)\mid d_i=1]$, under (i) parallel trends, $E[Y_{i1}(0)-Y_{i0}(0)\mid d_i=1]=E[Y_{i1}(0)-Y_{i0}(0)\mid d_i=0]$, i.e.\ $E(\epsilon_{i1}-\epsilon_{i0}\mid d_i)$ does not depend on $d_i$; (ii) no anticipation; and (iii) SUTVA (no spillovers to the control unit). In the $2\times2$ case $\hat\beta$ is unbiased but not consistent, and with zero residual degrees of freedom its standard error cannot be estimated; inference requires more units (with standard errors clustered by unit) or permutation methods.
+\end{english}
+
+%----------------------------------------------------------------------
+\subsection{第 2(a) 题评分要点与易错点}
+
+\begin{keypt}[第 2(a) 题评分要点]
+\begin{enumerate}
+  \item 先澄清记号（“$\alpha_i=1$”是组别标签），再逐格写出四个条件期望。
+  \item 写出两步差分各消去了什么（时间差消 $\alpha_i$，组间差消 $\lambda_t$）。
+  \item \key{必须给样本估计量}：$\hat\beta_{TWFE}=\Delta Y$ 是数值相等，不是“期望相等”；并说明与题目 $\Delta Y$（先组间、后时间）只是重排。
+  \item \key{必须写识别假设}：PT、无预期、SUTVA；$\beta$ 是 ATT（不是 ATE）。
+  \item 加分项：$N_1,N_0$ 的一般情形；$2\times2$ 无法计算标准误；反事实 / 插补的解释；平行趋势图。
+\end{enumerate}
+\end{keypt}
+
+\subsection{参考答案常见错误辨析（第 2(a) 题）}\label{sec:U17b-err2a}
+
+网上流传的第 2(a) 题参考答案有以下问题。每条按“常见写法 → 问题 → 正确写法”整理。
+
+\begin{note}[第 2(a) 题的常见错误]
+\begin{enumerate}
+  \item \textbf{只做期望层面，没有样本估计量。}\\
+  常见写法：定义 $\Delta Y=(Y_{11}-Y_{10})-(Y_{21}-Y_{20})$，代入模型得 $\Delta Y=\beta+(\epsilon_{11}-\epsilon_{10}-\epsilon_{21}+\epsilon_{20})$，再取期望 $E[\Delta Y]=\beta$，到此为止。\\
+  问题：从未由 TWFE 估计出 $\hat\beta$；缺少“$2\times2$ 中 4 个观测、4 个参数，TWFE 恰好拟合，$\hat\beta_{TWFE}$ 就是样本 DiD”这一关键结论；也没有讨论 $N_1,N_0$ 个单位时 $\hat\beta_{TWFE}$ 等于四组样本均值的 DiD。\\
+  正确写法：总体层（四个条件期望）+ 样本层（解 LSDV 或套用双向去均值公式）。
+  \item \textbf{没有回答“与组平均之差的关系”。}\\
+  常见写法：把题目“先组间、后时间”、用组平均 $\bar Y$ 的 $\Delta Y$，换成“先时间、后组间”的单个观测写法。\\
+  问题：没有说明二者相等，也没有说明组平均与单个观测的关系。\\
+  正确写法：指出两种顺序只是四项重排；$2\times2$ 中组平均就是单个观测；多个单位时 TWFE 等于四组样本均值的 DiD。
+  \item \textbf{识别假设写成 $E[\epsilon_{it}]=0$。}\\
+  问题：无条件均值为 0 不能排除“因前期负冲击而被选入处理组”造成的偏误。\\
+  正确写法：需要以处理状态为条件的 $E(\epsilon_{it}\mid D)=0$，最弱是两组误差期望变化平行（PT）；还要无预期与 SUTVA。
+  \item \textbf{不解释题目记号。}\\
+  问题：没有说明“$\alpha_i=1$、$\lambda_t=1$”是组别 / 时期标签，没有按提示写 $E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$。\\
+  正确写法：先说明两种理解（结论相同），再按提示写出四个条件期望。
+  \item \textbf{不说明 ATT 与推断。}\\
+  问题：没有指出 $\beta$ 识别的是 ATT，也没有指出 $2\times2$ 中 $\hat\beta$ 不一致、无法计算标准误。\\
+  正确写法：补上 $\beta=\text{ATT}$ 与“需要更多单位或置换推断”。
+\end{enumerate}
+\end{note}
+
+%======================================================================
+\section{第 2 题 (b) 详解：异质处理效应 \texorpdfstring{$\beta_i$}{beta\_i} 的估计}\label{sec:U17b-2b}
+
+上一节在同质效应 $\beta$ 下证明了 TWFE 就是 DiD。本节放松同质性：效应可以随单位、随时间、或随二者变化，问如何在 TWFE 框架中估计 $\beta_i$。
+
+%----------------------------------------------------------------------
+\subsection{原题、题意与统一记号}
+
+\subsubsection{原题（英文原文）与中文题意}
+
+\begin{tcolorbox}[bxbase,colback=gray!4,colframe=gray!55!black,boxed title style={colback=gray!55!black},fontupper=\small,title={Question (2), part (b)}]
+(b) Suppose there are more than 1 units are units and treatment effect $\beta$ is not constant across units or over time (i.e., treatment heterogeneity exists or $\beta_i$). How could you estimate $\beta_i$ in the TWFE model?
+\end{tcolorbox}
+
+中文题意：设受处理的单位多于 1 个，且处理效应 $\beta$ 在单位之间或随时间并不恒定（即存在处理效应异质性，记作 $\beta_i$）。在 TWFE 模型中如何估计 $\beta_i$？
+
+这是开放题。满分答案要给出\key{具体的回归式与估计量}，并说明所需假设与局限；只罗列方法名不够。
+
+\subsubsection{异质的三个方向：\texorpdfstring{$\beta_i$、$\beta_t$、$\beta_{it}$}{beta\_i, beta\_t, beta\_it}}
+
+\term{异质处理效应}{heterogeneous treatment effects}有三个方向：
+\begin{enumerate}
+  \item 随单位变：$\beta_i$；
+  \item 随时间变：$\beta_t$（动态效应，即“time-varying”的 $\beta$）；
+  \item 两者都变：$\beta_{it}$；若各单位开始受处理的时间不同（\term{交错处理}{staggered adoption}），还要按 cohort（首次处理时期相同的一批单位）区分。
+\end{enumerate}
+文献中有时把单一 ATT 记作 $\alpha$，把随个体变的效应记作 $\alpha_i$（individual TE），随时间变的效应记作 $\alpha_t$（time-specific TE）。本书为避免与固定效应 $\alpha_i$、$\lambda_t$ 混淆，记作 $\beta_i$、$\beta_t$。
+
+\subsubsection{统一记号：首次处理期 \texorpdfstring{$G_i$}{G\_i} 与单元格效应 \texorpdfstring{$\beta_{it}$}{beta\_it}}
+
+单位 $i$ 首次受处理的时期记为 $G_i$（从未处理记 $G_i=\infty$），处理不可逆：$D_{it}=\mathbf{1}\{t\ge G_i\}$。共同处理时点即所有处理单位 $G_i=T_0+1$。处理组、控制组（从未处理）的单位集合记为 $\mathcal T$、$\mathcal C$。无处理潜在结果满足 TWFE 结构：
+\begin{equation}\label{eq:U17b-het}
+Y_{it}(0)=\alpha_i+\lambda_t+\epsilon_{it},\qquad Y_{it}=\alpha_i+\lambda_t+\beta_{it}D_{it}+\epsilon_{it},\qquad \beta_{it}=Y_{it}(1)-Y_{it}(0).
+\end{equation}
+$Y_{it}(0)$ 对所有单位、所有时期都由同一个 $\lambda_t$ 驱动，这一写法本身已内含平行趋势；处理单位在处理前的观测也服从它，这已内含无预期。
+
+\subsubsection{目标参数：\texorpdfstring{$\beta_i$}{beta\_i}、\texorpdfstring{$\beta_t$}{beta\_t} 与 ATT}
+
+\begin{itemize}
+  \item 单位效应 $\beta_i$：单位 $i$ 各处理期 $\beta_{it}$ 的平均；
+  \item 时期效应 $\beta_t$：第 $t$ 期各处理单位 $\beta_{it}$ 的平均；
+  \item ATT：全部处理单元格 $\beta_{it}$ 的平均。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{静态 TWFE 的单一 \texorpdfstring{$\hat\beta$}{beta hat} 估计什么：权重表示}\label{sec:U17b-weights}
+
+在讲估计 $\beta_i$ 的方法之前，先回答：如果仍跑只含一个 $D_{it}$ 的“静态”TWFE，单一的 $\hat\beta$ 估计的是什么？
+
+\subsubsection{推导：\texorpdfstring{$E(\hat\beta\mid D)=\sum\omega_{it}\beta_{it}$}{E(beta hat | D) = sum of omega\_it beta\_it}}
+
+要证：$\hat\beta$ 的条件期望是各处理单元格效应 $\beta_{it}$ 的加权平均，权重与 $\ddot D_{it}$ 成正比。思路：把 \eqref{eq:U17b-het} 代入 \eqref{eq:U17b-fe}（$x_{it}=D_{it}$，平衡面板），利用 $\ddot D$ 的行和、列和为 0。
+
+先说明行和、列和为 0：$\sum_t\ddot D_{it}=T\bar D_{i\cdot}-T\bar D_{i\cdot}-T\bar D_{\cdot\cdot}+T\bar D_{\cdot\cdot}=0$，列和同理。于是 $\ddot D$ 与任何只依赖 $i$ 或只依赖 $t$ 的变量正交。
+\begin{align*}
+\textstyle\sum_{i,t}\ddot D_{it}\alpha_i&=\textstyle\sum_i\alpha_i\sum_t\ddot D_{it}=0 \why{行和为 0}\\
+\textstyle\sum_{i,t}\ddot D_{it}\lambda_t&=\textstyle\sum_t\lambda_t\sum_i\ddot D_{it}=0 \why{列和为 0}\\
+\textstyle\sum_{i,t}\ddot D_{it}Y_{it}&=\textstyle\sum_{(i,t):D_{it}=1}\ddot D_{it}\beta_{it}+\sum_{i,t}\ddot D_{it}\epsilon_{it} \why{代入模型，前两行}\\
+\textstyle\sum_{i,t}\ddot D_{it}^2&=\textstyle\sum_{i,t}\ddot D_{it}D_{it} \why{$D-\ddot D=\bar D_{i\cdot}+\bar D_{\cdot t}-\bar D_{\cdot\cdot}$ 与 $\ddot D$ 正交}\\
+&=\textstyle\sum_{(i,t):D_{it}=1}\ddot D_{it} \why{$D$ 取 0/1}\\
+E(\hat\beta\mid D)&=\sum_{(i,t):\,D_{it}=1}\omega_{it}\beta_{it},\qquad \omega_{it}=\frac{\ddot D_{it}}{\sum_{D_{js}=1}\ddot D_{js}} \why{$E(\epsilon\mid D)=0$}
+\end{align*}
+由倒数第二行，权重满足 $\sum\omega_{it}=1$。为避免与处理后虚拟变量 $w_t$ 混淆，权重记作 $\omega$。
+
+\begin{thm}[静态 TWFE 的权重表示]\label{thm:U17b-weights}
+平衡面板中，若 $Y_{it}=\alpha_i+\lambda_t+\beta_{it}D_{it}+\epsilon_{it}$ 且 $E(\epsilon\mid D)=0$，则
+\[
+E(\hat\beta\mid D)=\sum_{(i,t):\,D_{it}=1}\omega_{it}\beta_{it},\qquad \omega_{it}\propto\ddot D_{it},\qquad \sum\omega_{it}=1.
+\]
+\end{thm}
+
+\subsubsection{共同处理时点：等权平均，估计 ATT}
+
+由本章第 2(a) 题“推广”一小节，共同处理时点下 $\ddot D_{it}=(d_i-q)(w_t-p)$，在所有处理单元格（$d_i=w_t=1$）上都等于 $(1-q)(1-p)>0$：
+\begin{align*}
+\omega_{it}&=\frac{(1-q)(1-p)}{N_1T_1(1-q)(1-p)}=\frac1{N_1T_1} \why{处理单元格共 $N_1T_1$ 个}\\
+E(\hat\beta\mid D)&=\frac1{N_1T_1}\sum_{D_{it}=1}\beta_{it}=\frac1{N_1}\sum_{i\in\mathcal T}\Bigl(\frac1{T_1}\sum_{t>T_0}\beta_{it}\Bigr) \why{先对 $t$ 平均}\\
+&=\frac1{N_1}\sum_{i\in\mathcal T}\beta_i=\text{ATT} \why{$\beta_i$ 的定义}
+\end{align*}
+共同处理时点下，异质性不会让 $\hat\beta$“错”：它是全部处理单元格效应的\key{等权平均}，即 ATT。但它只给一个数，给不出单个 $\beta_i$。
+
+\subsubsection{交错处理：\texorpdfstring{$\ddot D_{it}$}{D double dot} 不能分解，权重可为负}
+
+交错处理时 $\ddot D_{it}$ 不再能写成“个体部分 $\times$ 时间部分”，处理单元格上的权重不相等，部分权重可以为负，详见本节“负权重与禁止比较”一小节。
+
+%----------------------------------------------------------------------
+\subsection{方法一：个体异质 \texorpdfstring{$\beta_i$}{beta\_i}——处理 \texorpdfstring{$\times$}{x} 个体虚拟变量}\label{sec:U17b-m1}
+
+\subsubsection{模型：每个处理单位一个效应参数}
+
+\begin{defn}[处理 $\times$ 个体虚拟变量的 TWFE]\label{def:U17b-m1}
+\[
+Y_{it}=\alpha_i+\lambda_t+\sum_{j:\,G_j<\infty}\beta_j\,D_{it}\mathbf{1}\{i=j\}+\epsilon_{it}
+\quad\Longleftrightarrow\quad
+Y_{it}=\alpha_i+\lambda_t+\beta_iD_{it}+\epsilon_{it}.
+\]
+每个处理单位一个效应参数，共 $N_1$ 个；控制单位 $D_{it}\equiv0$，没有（也不需要）$\beta_i$。
+\end{defn}
+
+\subsubsection{结论：\texorpdfstring{$\hat\beta_j$}{beta\_j hat} 是单位 \texorpdfstring{$j$}{j} 对控制组的 DiD}
+
+\begin{thm}[$\hat\beta_j$ 的显式形式]\label{thm:U17b-m1}
+共同处理时点、平衡面板、有从未处理的控制组时，
+\[
+\hat\beta_j=\bigl(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}}\bigr)-\bigl(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}\bigr),\qquad
+\frac1{N_1}\sum_j\hat\beta_j=\hat\beta_{\text{静态 TWFE}},
+\]
+即“处理单位 $j$ 的前后差 $-$ 控制组的前后差”。$\bar Y_{j,\mathrm{post}}$ 是单位 $j$ 处理后各期的平均，$\bar Y_{C,\mathrm{pre}}$ 是全部控制单位处理前各期的平均，依此类推。
+\end{thm}
+
+\subsubsection{证明：由正规方程推出 \texorpdfstring{$\hat\beta_j$}{beta\_j hat}}
+
+思路：OLS 残差 $\hat u_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t-\hat\beta_iD_{it}$ 与每个回归元正交。先由正规方程得到“各块残差和为 0”，再取块内平均。记 $\bar{\hat\lambda}_{\mathrm{post}}=\frac1{T_1}\sum_{t>T_0}\hat\lambda_t$，$\bar{\hat\lambda}_{\mathrm{pre}}=\frac1{T_0}\sum_{t\le T_0}\hat\lambda_t$，$\bar{\hat\alpha}_C=\frac1{N_0}\sum_{i\in\mathcal C}\hat\alpha_i$。
+
+第一步，正规方程：
+\begin{align*}
+&\textstyle\sum_t\hat u_{jt}=0,\quad \sum_{t>T_0}\hat u_{jt}=0\ \Rightarrow\ \sum_{t\le T_0}\hat u_{jt}=0 \why{$\alpha_j$、$\beta_j$ 的正规方程}\\
+&\textstyle\sum_i\hat u_{is}=0\ \ \forall s \why{$\lambda_s$ 的正规方程}\\
+&\textstyle\sum_{i\in\mathcal C}\sum_{s>T_0}\hat u_{is}=0 \why{上式对 $s>T_0$ 求和，减去第一行}\\
+&\textstyle\sum_{i\in\mathcal C}\sum_{s\le T_0}\hat u_{is}=0 \why{控制单位 $\sum_t\hat u_{it}=0$，减去上式}
+\end{align*}
+第二行中，若标准化 $\lambda_1=0$，则 $s=1$ 没有自己的正规方程；但把 $\alpha_i$ 的方程对 $i$ 求和、再减去 $s\ge2$ 的 $\lambda_s$ 方程，可知 $s=1$ 时也成立。
+
+第二步，代入残差的定义并取平均：
+\begin{align*}
+\bar Y_{j,\mathrm{post}}&=\hat\alpha_j+\bar{\hat\lambda}_{\mathrm{post}}+\hat\beta_j,\qquad \bar Y_{j,\mathrm{pre}}=\hat\alpha_j+\bar{\hat\lambda}_{\mathrm{pre}} \why{单位 $j$ 前、后分别平均}\\
+\bar Y_{C,\mathrm{post}}&=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{post}},\qquad\ \ \bar Y_{C,\mathrm{pre}}=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{pre}} \why{控制组同理}\\
+\hat\beta_j&=(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar{\hat\lambda}_{\mathrm{post}}-\bar{\hat\lambda}_{\mathrm{pre}}) \why{单位 $j$ 两式相减}\\
+&=(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}) \why{控制组两式相减代入}
+\end{align*}
+第三步，对 $j$ 平均：
+\begin{align*}
+\frac1{N_1}\sum_j\hat\beta_j&=(\bar Y_{T,\mathrm{post}}-\bar Y_{T,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}) \why{平衡面板，组均值 = 单位均值的平均}\\
+&=\hat\beta_{\text{静态 TWFE}}. \why{多期共同时点结论}
+\end{align*}
+最后一步是第 2(a) 题“推广”一小节的结论。$\blacksquare$
+
+\subsubsection{例：两个处理单位、两个控制单位的手算}
+
+\begin{exmp}[两个处理单位、两个控制单位、两期]\label{ex:U17b-m1}
+处理单位 A：$(Y_{A0},Y_{A1})=(2,7)$，B：$(4,6)$；控制单位 C：$(1,3)$，D：$(5,6)$。求 $\hat\beta_A$、$\hat\beta_B$ 与静态 TWFE 的 $\hat\beta$。
+\solution
+\begin{align*}
+\text{控制组平均变化}&=\tfrac{(3-1)+(6-5)}{2}=1.5 \why{控制组前后差}\\
+\hat\beta_A&=(7-2)-1.5=3.5,\qquad \hat\beta_B=(6-4)-1.5=0.5 \why{各自的 DiD}\\
+\tfrac12(\hat\beta_A+\hat\beta_B)&=2.0=\tfrac{(7-2)+(6-4)}{2}-1.5=\hat\beta_{\text{静态}} \why{平均 = 静态 TWFE}
+\end{align*}
+插补法（下面的方法三）给出同样结果：只用未处理观测估计，$\hat\lambda_1-\hat\lambda_0=1.5$，$\hat Y_{A1}(0)=2+1.5=3.5$，$\hat\beta_A=7-3.5=3.5$。
+\end{exmp}
+
+\subsubsection{所需条件：控制组与单位层面的平行趋势}
+
+\begin{itemize}
+  \item 需要从未处理的控制组（或在 $\beta_j$ 所在时期尚未处理的单位）来估计 $\lambda_t$；
+  \item 需要\key{单位层面}的平行趋势：每个处理单位 $j$ 若未受处理，其平均变化与控制组相同；
+  \item 还需要无预期与 SUTVA。
+\end{itemize}
+
+\subsubsection{性质：\texorpdfstring{$\hat\beta_j$}{beta\_j hat} 无偏，但 \texorpdfstring{$N\to\infty$}{N to infinity} 时不一致}
+
+设 $\beta_{jt}=\beta_j$ 不随时间变，把模型代入定理 \ref{thm:U17b-m1} 的公式：
+\begin{align*}
+\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+\beta_j+(\bar\epsilon_{j,\mathrm{post}}-\bar\epsilon_{j,\mathrm{pre}}) \why{时间差分消去 $\alpha_j$}\\
+\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+(\bar\epsilon_{C,\mathrm{post}}-\bar\epsilon_{C,\mathrm{pre}}) \why{同上}\\
+\hat\beta_j-\beta_j&=(\bar\epsilon_{j,\mathrm{post}}-\bar\epsilon_{j,\mathrm{pre}})-(\bar\epsilon_{C,\mathrm{post}}-\bar\epsilon_{C,\mathrm{pre}}) \why{两式相减}
+\end{align*}
+在 $E(\epsilon\mid D)=0$ 下 $\hat\beta_j$ 无偏。若 $\epsilon_{it}$ 独立同方差 $\sigma^2$：
+\begin{align*}
+\Var(\hat\beta_j\mid D)&=\sigma^2\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)+\frac{\sigma^2}{N_0}\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr) \why{单位 $j$ 与控制组独立}\\
+&\to\sigma^2\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)\neq0\quad(N_0\to\infty). \why{控制组部分趋于 0}
+\end{align*}
+单位 $j$ 自己的误差只用它 $T$ 期的数据，平均不掉：$N\to\infty$ 时\key{不一致}，只有 $T_0,T_1\to\infty$ 才一致。这与 LSDV 中 $\hat\alpha_i$ 需要 $T\to\infty$ 才一致是同一道理。
+
+\subsubsection{推断：置换（安慰剂）推断}
+
+\begin{itemize}
+  \item 不能依赖 $N$ 大的渐近正态。可用\term{置换推断}{permutation inference}（安慰剂推断）：把“处理”轮流赋给每个控制单位，计算安慰剂 $\hat\beta$ 的分布，看真实 $\hat\beta_j$ 在其中的排名。这与合成控制法的安慰剂检验是同一思路（见第 16 章）。
+  \item $T$ 较大时，也可以用单位 $j$ 自己的时间序列估计方差。
+  \item 单个处理单位时，常规的聚类稳健方差不可用：Hansen 第 18.9 节指出，只有一个处理单位时聚类方差矩阵奇异，报告的标准误严重偏向 0。
+  \item 若单个单位的平行趋势不可信，改用 SCM / PDA，以因子模型 $\lambda_i'f_t$ 代替 $\alpha_i+\lambda_t$（第 16 章）。
+\end{itemize}
+
+\subsubsection{平均效应与同质性检验}
+
+$\text{ATT}=\frac1{N_1}\sum_j\beta_j$，用 $\frac1{N_1}\sum_j\hat\beta_j$ 估计，$N_1\to\infty$ 时一致（各 $\hat\beta_j$ 的误差在平均中抵消）。同质性检验 $H_0:\beta_1=\dots=\beta_{N_1}$ 是含 $N_1-1$ 个约束的 Wald 检验。
+
+%----------------------------------------------------------------------
+\subsection{方法二：时间异质 \texorpdfstring{$\beta_t$}{beta\_t}——处理组 \texorpdfstring{$\times$}{x} 时期交互与事件研究}\label{sec:U17b-m2}
+
+\subsubsection{逐期交互模型与 \texorpdfstring{$\hat\beta_s$}{beta\_s hat} 的公式}
+
+共同处理时点下（$d_i$ 为处理组虚拟变量），把单一 $D_{it}$ 拆成各处理后期的交互：
+\begin{equation}\label{eq:U17b-m2}
+Y_{it}=\alpha_i+\lambda_t+\sum_{s=T_0+1}^{T}\beta_s\,d_i\mathbf{1}\{t=s\}+\epsilon_{it}.
+\end{equation}
+
+\begin{thm}[逐期效应的 TWFE 估计]\label{thm:U17b-m2}
+平衡面板、共同处理时点下，
+\[
+\hat\beta_s=(\bar Y_{T,s}-\bar Y_{T,\mathrm{pre}})-(\bar Y_{C,s}-\bar Y_{C,\mathrm{pre}}),\qquad \frac1{T_1}\sum_{s>T_0}\hat\beta_s=\hat\beta_{\text{静态}},
+\]
+即第 $s$ 期相对\key{处理前平均}的 DiD。
+\end{thm}
+
+证明与方法一类似。残差 $\hat u_{it}$ 的正规方程与推论：
+\begin{align*}
+&\textstyle\sum_t\hat u_{it}=0\ \forall i,\qquad \sum_i\hat u_{is}=0\ \forall s,\qquad \sum_{i\in\mathcal T}\hat u_{is}=0\ \forall s>T_0 \why{$\alpha_i$、$\lambda_s$、$\beta_s$}\\
+&\textstyle\sum_{i\in\mathcal C}\hat u_{is}=0\ \forall s>T_0 \why{第 2 式减第 3 式}\\
+&\textstyle\sum_{i\in\mathcal T}\sum_{t\le T_0}\hat u_{it}=0,\qquad \sum_{i\in\mathcal C}\sum_{t\le T_0}\hat u_{it}=0 \why{第 1 式按组求和，减去处理后部分}
+\end{align*}
+取组 $\times$ 期平均（$\bar{\hat\alpha}_T$、$\bar{\hat\alpha}_C$ 为两组 $\hat\alpha_i$ 的平均）：
+\begin{align*}
+\bar Y_{T,s}&=\bar{\hat\alpha}_T+\hat\lambda_s+\hat\beta_s,\qquad \bar Y_{T,\mathrm{pre}}=\bar{\hat\alpha}_T+\bar{\hat\lambda}_{\mathrm{pre}} \why{处理组}\\
+\bar Y_{C,s}&=\bar{\hat\alpha}_C+\hat\lambda_s,\qquad\quad\ \ \bar Y_{C,\mathrm{pre}}=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{pre}} \why{控制组}\\
+\hat\beta_s&=(\bar Y_{T,s}-\bar Y_{T,\mathrm{pre}})-(\hat\lambda_s-\bar{\hat\lambda}_{\mathrm{pre}}) \why{处理组两式相减}\\
+&=(\bar Y_{T,s}-\bar Y_{T,\mathrm{pre}})-(\bar Y_{C,s}-\bar Y_{C,\mathrm{pre}}) \why{控制组两式相减代入}
+\end{align*}
+对 $s>T_0$ 平均，得四组均值的 DiD，即静态 TWFE 的 $\hat\beta$。$\blacksquare$
+
+\subsubsection{逐格取期望：\texorpdfstring{$\beta_3$}{beta\_3} 是“第 3 年的 DiD”}
+
+用虚拟变量写一个五期的例子：第 1、2 年为处理前（基期），第 3、4、5 年为处理后，
+\[
+y_{it}=\beta_0+\beta_1d_i+\beta_{21}w_{3t}+\beta_{22}w_{4t}+\beta_{23}w_{5t}+\beta_3d_iw_{3t}+\beta_4d_iw_{4t}+\beta_5d_iw_{5t}+u_{it},
+\]
+$w_{st}=\mathbf{1}\{t=s\}$。逐格取期望：
+\begin{align*}
+\beta_3&=\bigl[(\beta_0+\beta_1+\beta_{21}+\beta_3)-(\beta_0+\beta_1)\bigr]-\bigl[(\beta_0+\beta_{21})-\beta_0\bigr] \why{处理组、控制组各自第 3 年减基期}\\
+&=(\beta_{21}+\beta_3)-\beta_{21}, \why{化简}
+\end{align*}
+即 $\beta_3$ 是“DiD for year 3”。同理 $\beta_4$、$\beta_5$ 是第 4、5 年相对基期的 DiD。
+
+\subsubsection{事件研究：加入处理前交互}
+
+\begin{defn}[事件研究回归]\label{def:U17b-es}
+令事件时间 $e=t-(T_0+1)$（处理后第一期 $e=0$）。\term{事件研究}{event study}回归为
+\[
+Y_{it}=\alpha_i+\lambda_t+\sum_{e\neq-1}\theta_e\,d_i\mathbf{1}\{t-(T_0+1)=e\}+\epsilon_{it}.
+\]
+$e\le-2$ 的系数称为前导系数（leads），$e\ge0$ 的系数称为滞后系数（lags）。也可以按日历期写成 $\sum_{s\neq T_0}\theta_s d_i\mathbf{1}\{t=s\}$，其中 $s=T_0$ 对应 $e=-1$。
+\end{defn}
+
+\subsubsection{为什么必须略去一个参照期}
+
+\begin{itemize}
+  \item 必须略去一个\term{参照期}{reference period}（通常 $e=-1$，即最后一个处理前期 $T_0$）：若对全部 $T$ 期都放交互，$\sum_sd_i\mathbf{1}\{t=s\}=d_i$，而 $d_i$ 是处理单位个体虚拟变量之和，落在 $\alpha_i$ 的列空间里，完全共线（虚拟变量陷阱）。
+  \item 同理，若模型同时含组别虚拟变量 $\beta_1d_i$ 与全部时期的交互，也必须去掉一个。
+  \item 略去哪一期，系数就以该期为基准。
+\end{itemize}
+
+\subsubsection{\texorpdfstring{$\hat\theta_s$}{theta\_s hat} 是相对参照期的 DiD：正规方程证明}
+
+用日历期写法，参照期为 $T_0$（$\theta_{T_0}\equiv0$）。要证 $\hat\theta_s=(\bar Y_{T,s}-\bar Y_{T,T_0})-(\bar Y_{C,s}-\bar Y_{C,T_0})$。
+\begin{align*}
+&\textstyle\sum_t\hat u_{it}=0\ \forall i;\quad \sum_i\hat u_{is}=0\ \forall s;\quad \sum_{i\in\mathcal T}\hat u_{is}=0\ \forall s\neq T_0 \why{$\alpha_i$、$\lambda_s$、$\theta_s$}\\
+&\textstyle\sum_{i\in\mathcal T}\hat u_{iT_0}=\sum_{i\in\mathcal T}\sum_t\hat u_{it}-\sum_{s\neq T_0}\sum_{i\in\mathcal T}\hat u_{is}=0 \why{第 1 式对处理组求和减第 3 式}\\
+&\textstyle\sum_{i\in\mathcal C}\hat u_{is}=0\ \ \forall s \why{第 2 式减去处理组部分}\\
+&\bar Y_{T,s}=\bar{\hat\alpha}_T+\hat\lambda_s+\hat\theta_s,\qquad \bar Y_{C,s}=\bar{\hat\alpha}_C+\hat\lambda_s\quad(\hat\theta_{T_0}\equiv0) \why{组 $\times$ 期平均}\\
+&\hat\theta_s=(\bar Y_{T,s}-\bar Y_{C,s})-(\bar Y_{T,T_0}-\bar Y_{C,T_0}) \why{两组相减，再减 $s=T_0$ 的同式}
+\end{align*}
+即相对参照期 $T_0$（而非处理前平均）的 DiD；按事件时间写就是 $\hat\theta_e=(\bar Y_{T,e}-\bar Y_{T,-1})-(\bar Y_{C,e}-\bar Y_{C,-1})$。数值验证：$N_1=4$，$N_0=6$，$T=6$，$T_0=3$ 的模拟数据中，回归系数与该公式逐位相同。
+
+\subsubsection{事前趋势检验：前导系数的 Wald 检验}
+
+在 PT 与无预期下，前导系数应为 0。检验
+\[
+H_0:\ \theta_{-T_0}=\dots=\theta_{-2}=0\quad(\text{日历期写法：}\theta_1=\dots=\theta_{T_0-1}=0),
+\]
+Wald 统计量 $W=\hat\theta_{\mathrm{pre}}'\hat V_{\mathrm{pre}}^{-1}\hat\theta_{\mathrm{pre}}\dto\chi^2_{T_0-1}$，$\hat V$ 用按单位聚类的稳健方差。$W$ 大于临界值则拒绝，说明处理前已有趋势差异或存在预期效应。也可以画事件研究图，看前导系数是否围绕 0。滞后系数 $\theta_e$（$e\ge0$）就是动态效应 $\beta_t$。
+
+\begin{note}[不拒绝不等于平行趋势成立]
+事前检验的功效可能很低；前导系数不显著只说明数据没有提供反对 PT 的证据，不能证明处理后的反事实趋势平行。
+\end{note}
+
+\subsubsection{\texorpdfstring{$\hat\beta_s$}{beta\_s hat} 与 \texorpdfstring{$\hat\theta_s$}{theta\_s hat} 的换算}
+
+方法二的 $\hat\beta_s$ 以处理前平均为基准，事件研究的 $\hat\theta_s$ 以最后一个处理前期为基准。把 $\hat\theta_r$ 的公式对 $r=1,\dots,T_0$ 平均（$\hat\theta_{T_0}=0$ 也满足该公式）：
+\begin{align*}
+\frac1{T_0}\sum_{r=1}^{T_0}\hat\theta_r&=\frac1{T_0}\sum_{r=1}^{T_0}\bigl[(\bar Y_{T,r}-\bar Y_{C,r})-(\bar Y_{T,T_0}-\bar Y_{C,T_0})\bigr] \why{代入 $\hat\theta_r$}\\
+&=(\bar Y_{T,\mathrm{pre}}-\bar Y_{C,\mathrm{pre}})-(\bar Y_{T,T_0}-\bar Y_{C,T_0}) \why{对 $r$ 平均}\\
+\hat\theta_s-\frac1{T_0}\sum_{r=1}^{T_0}\hat\theta_r&=(\bar Y_{T,s}-\bar Y_{C,s})-(\bar Y_{T,\mathrm{pre}}-\bar Y_{C,\mathrm{pre}})=\hat\beta_s \why{相减，$s>T_0$}
+\end{align*}
+所以 $\hat\beta_s=\hat\theta_s-\frac1{T_0}\sum_{r=1}^{T_0}\hat\theta_r$。前导系数都为 0 时两者相同；有事前趋势时二者不同，这正是要先做事前检验的原因。
+
+\subsubsection{交错处理下普通事件研究的污染}
+
+交错处理时，用 $e=t-G_i$ 的普通 TWFE 事件研究，各系数会被其他 cohort、其他相对期的效应污染（Sun \& Abraham 2021），应改用下面的方法三或其稳健版本。
+
+%----------------------------------------------------------------------
+\subsection{方法三：一般情形 \texorpdfstring{$\beta_{it}$}{beta\_it}——插补估计量}\label{sec:U17b-m3}
+
+\term{插补估计量}{imputation estimator}（Borusyak, Jaravel \& Spiess 2024）直接回答“如何估计 $\beta_i$”，也最符合“处理效应 = 观测值减去插补的缺失 $y(0)$”的框架（见第 2(a) 题的反事实图）。它允许任意的 $\beta_{it}$，包括交错处理。
+
+\subsubsection{三步算法}
+
+\begin{method}[插补估计量的三步]
+\begin{enumerate}
+  \item \key{只用未处理观测估计固定效应。}在 $\Omega_0=\{(i,t):D_{it}=0\}$（从未处理单位的全部时期 + 处理单位的处理前时期）上用 OLS 估计 $Y_{it}=\alpha_i+\lambda_t+\epsilon_{it}$，得到 $\hat\alpha_i$、$\hat\lambda_t$。
+  \item \key{插补反事实。}对每个处理单元格 $D_{it}=1$：$\hat Y_{it}(0)=\hat\alpha_i+\hat\lambda_t$，$\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$。
+  \item \key{按需要平均。}单位效应
+  \[
+  \hat\beta_i=\frac{1}{\#\{t:D_{it}=1\}}\sum_{t:\,D_{it}=1}\hat\beta_{it};
+  \]
+  时期效应 $\hat\beta_t$ = 第 $t$ 期各处理单位 $\hat\beta_{it}$ 的平均；ATT = 全部处理单元格的平均（或研究者选定的其他非负权重）。
+\end{enumerate}
+\end{method}
+
+\subsubsection{适用条件与统计性质}
+
+\begin{itemize}
+  \item 每个处理单位至少有 1 个处理前时期（才能估计 $\alpha_i$）；
+  \item 每个需要的时期都有未处理单位（才能估计 $\lambda_t$）；
+  \item PT + 无预期，即 $Y_{it}(0)=\alpha_i+\lambda_t+\epsilon_{it}$ 且 $E(\epsilon_{it}\mid D)=0$；以及 SUTVA。
+\end{itemize}
+性质：$\hat\beta_{it}-\beta_{it}=\epsilon_{it}-(\hat\alpha_i-\alpha_i)-(\hat\lambda_t-\lambda_t)$ 含单个观测的误差 $\epsilon_{it}$，样本再大也不消失——单个 $\hat\beta_{it}$ 无偏但不一致；对足够多的单元格平均后才一致。
+
+\subsubsection{等价的回归写法：每个处理单元格一个虚拟变量}
+
+在 TWFE 中给每个处理单元格一个虚拟变量：
+\[
+Y_{it}=\alpha_i+\lambda_t+\sum_{(j,s):\,D_{js}=1}\beta_{js}\mathbf{1}\{i=j,t=s\}+\epsilon_{it}.
+\]
+要证：OLS 的 $\hat\beta_{js}$ 逐个等于插补值。思路：每个处理单元格被完全拟合，于是 $\alpha_i$、$\lambda_t$ 只能由未处理观测决定。
+\begin{align*}
+&\hat u_{js}=0\quad\forall(j,s):D_{js}=1 \why{$\beta_{js}$ 的虚拟变量只在一格为 1}\\
+&\textstyle\sum_t\hat u_{it}=\sum_{t:\,D_{it}=0}\hat u_{it}=0\quad\forall i \why{$\alpha_i$ 方程，处理格残差为 0}\\
+&\textstyle\sum_i\hat u_{it}=\sum_{i:\,D_{it}=0}\hat u_{it}=0\quad\forall t \why{$\lambda_t$ 方程，同上}
+\end{align*}
+后两行正是“只用 $\Omega_0$ 估计 $\alpha_i+\lambda_t$”的正规方程，所以 $\hat\alpha_i$、$\hat\lambda_t$ 与插补法第 1 步相同；再由第一行，$\hat\beta_{js}=Y_{js}-\hat\alpha_j-\hat\lambda_s$。
+
+\subsubsection{与方法一的关系：共同处理时点下结果相同}
+
+共同处理时点下，插补法的 $\hat\beta_i$ 与方法一完全相同（都等于“单位 $i$ 对控制组的 DiD”）。证明：在只用未处理观测的回归中，处理后各期只有控制单位未处理。
+\begin{align*}
+\bar Y_{C,s}&=\bar{\hat\alpha}_C+\hat\lambda_s,\quad s>T_0 \why{$\lambda_s$ 方程只含控制单位}\\
+\bar Y_{C,\mathrm{pre}}&=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{pre}} \why{控制单位方程求和，减处理后部分}\\
+\hat\alpha_j&=\bar Y_{j,\mathrm{pre}}-\bar{\hat\lambda}_{\mathrm{pre}} \why{处理单位 $j$ 的方程只含处理前}\\
+\hat\beta_j^{\text{imp}}&=\bar Y_{j,\mathrm{post}}-\hat\alpha_j-\bar{\hat\lambda}_{\mathrm{post}} \why{对处理后各期平均}\\
+&=(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar{\hat\lambda}_{\mathrm{post}}-\bar{\hat\lambda}_{\mathrm{pre}}) \why{代入 $\hat\alpha_j$}\\
+&=(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}}) \why{前两行相减}
+\end{align*}
+例 \ref{ex:U17b-m1} 已用数字验证了这一点。
+
+\subsubsection{与第 16 章的联系：因子模型插补}
+
+第 16 章的合成控制（SCM）、面板数据法（PDA）、矩阵补全也是在估计这种单元格效应 $\beta_{it}=Y_{it}-\hat Y_{it}(0)$，只是把插补模型 $\alpha_i+\lambda_t$ 换成因子模型 $\lambda_i'f_t$。
+
+%----------------------------------------------------------------------
+\subsection{方法三\texorpdfstring{$'$}{'}：Wooldridge 扩展 TWFE——cohort \texorpdfstring{$\times$}{x} 时期全交互}\label{sec:U17b-etwfe}
+
+\subsubsection{模型与 cohort--时期效应 \texorpdfstring{$\tau_{g,s}$}{tau\_gs}}
+
+交错处理下，把处理单位按首次处理时期 $g$ 分成\term{批次}{cohort}，估计 cohort--时期效应 $\tau_{g,s}=E[Y_s(g)-Y_s(\infty)\mid G=g]$（$Y_s(g)$ 是第 $g$ 期开始受处理时第 $s$ 期的潜在结果，$Y_s(\infty)$ 是从未受处理时的潜在结果）：
+\[
+Y_{it}=\alpha_i+\lambda_t+\sum_g\sum_{s\ge g}\tau_{g,s}\mathbf{1}\{G_i=g\}\mathbf{1}\{t=s\}+\epsilon_{it}.
+\]
+\begin{itemize}
+  \item 它仍是一条 OLS 回归。Wooldridge 称之为\term{扩展双向固定效应}{extended TWFE}；它也可以写成带 cohort 虚拟变量的混合 OLS，即“two-way Mundlak regression”。
+  \item 控制观测是从未处理单位与尚未处理的观测。
+  \item 交错处理的写法也常记作 $\sum_r\sum_{s\ge r}\tau_{rs}\,d_{ir}f_{st}$，$d_{ir}=\mathbf{1}\{G_i=r\}$ 为 cohort 虚拟变量，$f_{st}=\mathbf{1}\{t=s\}$ 为时期虚拟变量。
+\end{itemize}
+
+\subsubsection{无协变量时与插补法数值相同}
+
+无协变量时，$\hat\tau_{g,s}$ 与插补法中 cohort $g$ 在第 $s$ 期的 $\hat\beta_{is}$ 的平均数值相同。证明要点：
+\begin{enumerate}
+  \item 同一 cohort 内各单位除 $\alpha_i$ 以外的回归元（时期虚拟变量、cohort $\times$ 时期虚拟变量）完全相同，所以把单位方程在 cohort 内平均后，$(\bar\alpha_g,\lambda,\tau_{g,\cdot})$ 满足的方程只涉及 cohort 均值（$\bar\alpha_g$ 为 cohort $g$ 的 $\alpha_i$ 平均）。
+  \item $\tau_{g,s}$ 的正规方程使 cohort $g$ 在第 $s\ge g$ 期的平均残差为 0；于是 $\alpha_i$ 方程在 cohort 内平均后只剩处理前部分，$\sum_{t<g}(\bar Y_{g,t}-\bar\alpha_g-\lambda_t)=0$；$\lambda_t$ 方程中处理单元格的残差合计为 0，只剩未处理单元格。
+  \item 这与“只用未处理观测估计 $\alpha_i+\lambda_t$”的正规方程（在 cohort 内平均后）完全相同，故两者的 $\hat\lambda_t$ 与 cohort 平均的 $\hat\alpha$ 相同，$\hat\tau_{g,s}=\bar Y_{g,s}-\bar{\hat\alpha}_g-\hat\lambda_s$ 就是 cohort $g$ 在第 $s$ 期插补效应的平均。
+\end{enumerate}
+把 cohort 虚拟变量换成单位虚拟变量，就得到单位层面的 $\hat\beta_{is}$（即方法三的回归写法），再平均得 $\hat\beta_i$。
+
+\subsubsection{文献与软件}
+
+Wooldridge (2021) 的工作论文在同一框架下处理同质效应、异质效应与交错处理三种情形（正式发表版本也常被引作 Wooldridge 2025）。Stata 社区命令为 \texttt{jwdid}。
+
+%----------------------------------------------------------------------
+\subsection{其他异质稳健估计量：Callaway--Sant'Anna 与 Sun--Abraham}
+
+\begin{itemize}
+  \item \key{Callaway \& Sant'Anna (2021)}：
+  \[
+  ATT(g,t)=E[Y_t-Y_{g-1}\mid G=g]-E[Y_t-Y_{g-1}\mid G=\infty]
+  \]
+  （或用尚未处理组作控制）。每个 $ATT(g,t)$ 都是一个以 $g-1$ 为基期的“干净”$2\times2$ DiD，再按 cohort、事件时间或总体聚合；可用双重稳健方法加入处理前协变量。Stata 命令 \texttt{csdid}。
+  \item \key{Sun \& Abraham (2021)}：在事件研究中放入“cohort $\times$ 相对期”的全部交互（以从未处理或最后处理的 cohort 为控制），再按各 cohort 的样本份额加权，得到不受污染的动态效应。Stata 命令 \texttt{eventstudyinteract}。
+\end{itemize}
+它们估计的是 cohort 层面的效应。若要单个单位的 $\beta_i$，用方法一（共同时点）或方法三（一般情形）。
+
+%----------------------------------------------------------------------
+\subsection{交错处理时静态 TWFE 为何失效：负权重与禁止比较}\label{sec:U17b-negw}
+
+\subsubsection{负权重出现在“早处理单位、晚时期”}
+
+由结论 \ref{thm:U17b-weights}，$E(\hat\beta\mid D)=\sum\omega_{it}\beta_{it}$，$\omega_{it}\propto\ddot D_{it}$。处理单元格上
+\[
+\ddot D_{it}=1-\bar D_{i\cdot}-\bar D_{\cdot t}+\bar D_{\cdot\cdot},
+\]
+在“早处理单位（$\bar D_{i\cdot}$ 大）、晚时期（$\bar D_{\cdot t}$ 大）”时可以为负，即出现\term{负权重}{negative weights}。
+
+\subsubsection{例：负权重的手算}
+
+\begin{exmp}[可手算的负权重例子]\label{ex:U17b-negw}
+两个单位、三期：A 从 $t=2$ 起受处理，B 从 $t=3$ 起受处理，无从未处理单位。$D$：A $=(0,1,1)$，B $=(0,0,1)$。求静态 TWFE 在三个处理单元格上的权重。
+\solution
+\begin{align*}
+&\bar D_{A\cdot}=\tfrac23,\ \bar D_{B\cdot}=\tfrac13;\quad \bar D_{\cdot1}=0,\ \bar D_{\cdot2}=\tfrac12,\ \bar D_{\cdot3}=1;\quad \bar D_{\cdot\cdot}=\tfrac12 \why{行、列、总平均}\\
+&\ddot D_{A2}=1-\tfrac23-\tfrac12+\tfrac12=\tfrac13,\qquad \ddot D_{B3}=1-\tfrac13-1+\tfrac12=\tfrac16 \why{双向去均值}\\
+&\ddot D_{A3}=1-\tfrac23-1+\tfrac12=-\tfrac16 \why{早处理单位、晚时期：负}\\
+&(\omega_{A2},\omega_{A3},\omega_{B3})=\Bigl(\tfrac{1/3}{1/3},\ \tfrac{-1/6}{1/3},\ \tfrac{1/6}{1/3}\Bigr)=\bigl(1,\ -\tfrac12,\ \tfrac12\bigr) \why{分母 $\frac13-\frac16+\frac16=\frac13$}
+\end{align*}
+设真实效应随处理时长增大：$\beta_{A2}=1$，$\beta_{A3}=5$，$\beta_{B3}=1$（全为正）。则
+\[
+E\hat\beta_{\text{静态}}=1\cdot1-\tfrac12\cdot5+\tfrac12\cdot1=-1<0.
+\]
+具体数据（无误差）：$\alpha_A=2$，$\alpha_B=7$，$\lambda=(0,3,4)$，于是 A $=(2,6,11)$，B $=(7,10,12)$；对它跑静态 TWFE 恰好得到 $\hat\beta=-1$。三个效应全为正，估计值却为负。
+\end{exmp}
+
+\subsubsection{Goodman-Bacon 分解：干净比较与禁止比较}
+
+用例 \ref{ex:U17b-negw} 的数据看原因。静态 TWFE 可以分解为若干 $2\times2$ DiD 的加权平均：
+\begin{align*}
+\text{干净比较}&:(6-2)-(10-7)=1=\beta_{A2} \why{A vs B，$t=1\to2$，B 尚未处理}\\
+\text{禁止比较}&:(12-10)-(11-6)=-3 \why{B vs A，$t=2\to3$，A 已处理}\\
+&\phantom{:}=\beta_{B3}-(\beta_{A3}-\beta_{A2})=1-4 \why{减去了 A 自身效应的增长}\\
+\hat\beta_{\text{静态}}&=\tfrac12\cdot1+\tfrac12\cdot(-3)=-1 \why{两类比较的加权平均}
+\end{align*}
+已处理的 A 在 $t=2\to3$ 被当作 B 的“控制组”，而 A 的这段变化包含了它自己处理效应的增长（从 1 到 5），被错误地减掉。这种以已处理单位作控制的比较称为\term{禁止比较}{forbidden comparison}。
+
+注意本例在 $t=3$ 没有任何未处理单位，$\lambda_3$ 不可识别，插补法也无法估计 $\beta_{A3}$、$\beta_{B3}$——稳健方法需要每期都有从未处理或尚未处理的单位。
+
+\subsubsection{例：有从未处理单位时的零权重与插补比较}
+
+\begin{exmp}[交错处理下插补法与静态 TWFE 的手算比较]\label{ex:U17b-imp}
+三个单位、$t=1,2,3$：A 从 $t=2$ 起受处理，B 从 $t=3$ 起受处理，C 从未处理。无误差的结果为 A：$(1,4,7)$，B：$(4,6,9)$，C：$(2,4,5)$，由 $Y_{it}=\alpha_i+\lambda_t+\beta_{it}D_{it}$ 生成。(a) 用插补法求 $\hat\beta_{A2}$、$\hat\beta_{A3}$、$\hat\beta_{B3}$ 与单位效应 $\hat\beta_A$、$\hat\beta_B$；(b) 求静态 TWFE 的权重与 $\hat\beta_{TWFE}$，并与 ATT 比较。
+\solution
+(a) 未处理观测为 A1，B1，B2，C1，C2，C3（6 个），参数 $\alpha_A,\alpha_B,\alpha_C,\lambda_2,\lambda_3$（标准化 $\lambda_1=0$）。数据无误差，可逐个解出：
+\begin{align*}
+\hat\lambda_2-\hat\lambda_1&=Y_{C2}-Y_{C1}=4-2=2=Y_{B2}-Y_{B1} \why{B、C 在 $t=1,2$ 都未处理}\\
+\hat\lambda_3-\hat\lambda_1&=Y_{C3}-Y_{C1}=5-2=3 \why{$t=3$ 只有 C 未处理}\\
+\hat\alpha_A&=Y_{A1}=1,\quad \hat\alpha_B=Y_{B1}=4,\quad \hat\alpha_C=Y_{C1}=2 \why{$\lambda_1=0$}\\
+\hat\beta_{A2}&=4-(1+2)=1,\quad \hat\beta_{A3}=7-(1+3)=3,\quad \hat\beta_{B3}=9-(4+3)=2 \why{$\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$}\\
+\hat\beta_A&=\tfrac{1+3}{2}=2,\qquad \hat\beta_B=2 \why{对各自处理期平均}
+\end{align*}
+(b) $D$：A $=(0,1,1)$，B $=(0,0,1)$，C $=(0,0,0)$。$\bar D_{A\cdot}=\frac23$，$\bar D_{B\cdot}=\frac13$，$\bar D_{C\cdot}=0$；$\bar D_{\cdot t}=(0,\frac13,\frac23)$；$\bar D_{\cdot\cdot}=\frac39=\frac13$。
+\begin{align*}
+\ddot D_{A2}&=1-\tfrac23-\tfrac13+\tfrac13=\tfrac13,\qquad \ddot D_{A3}=1-\tfrac23-\tfrac23+\tfrac13=0 \why{双向去均值}\\
+\ddot D_{B3}&=1-\tfrac13-\tfrac23+\tfrac13=\tfrac13 \why{同上}\\
+(\omega_{A2},\omega_{A3},\omega_{B3})&=\bigl(\tfrac12,\ 0,\ \tfrac12\bigr) \why{除以 $\frac13+0+\frac13$}\\
+\hat\beta_{TWFE}&=\tfrac12\cdot1+0\cdot3+\tfrac12\cdot2=1.5 \why{无误差，$\hat\beta=E\hat\beta$}
+\end{align*}
+ATT（处理单元格简单平均）$=\frac{1+3+2}{3}=2$。静态 TWFE 给最大的效应 $\beta_{A3}=3$ 零权重，低估了 ATT。有从未处理单位 C 时负权重被缓解，但权重仍不合理；插补法则准确恢复了每个单元格的效应 $(1,3,2)$。
+\end{exmp}
+
+\subsubsection{文献：Goodman-Bacon 与 de Chaisemartin--D'Haultf\oe uille}
+
+\begin{itemize}
+  \item Goodman-Bacon (2021, \textit{Journal of Econometrics})：静态 TWFE 是所有 $2\times2$ DiD 的加权平均，其中包含“已处理单位作控制”的禁止比较。
+  \item de Chaisemartin \& D'Haultf\oe uille (2020, \textit{American Economic Review})：单元格权重可以为负。
+\end{itemize}
+
+\subsubsection{静态 TWFE 何时没有问题}
+
+\begin{itemize}
+  \item 共同处理时点：任意异质下都是等权平均（$=$ATT）；
+  \item 效应同质：任意处理时点下，$\beta_{it}\equiv\beta$，由 $\sum\omega_{it}=1$ 得 $E\hat\beta=\beta$。
+\end{itemize}
+
+\subsubsection{聚类标准误不能解决权重问题}
+
+聚类稳健标准误只改变标准误，不改变点估计 $\hat\beta$ 的权重；负权重造成的是点估计的偏误，聚类无法纠正。
+
+%----------------------------------------------------------------------
+\subsection{数值验证：三种算法、扩展 TWFE = 插补、负权重}
+
+\begin{exmp}[数值验证：$\hat\beta_i$ 的三种算法、扩展 TWFE = 插补、负权重]\label{ex:U17b-sim}
+\begin{enumerate}
+  \item \key{共同处理时点}（$N_1=3$，$N_0=5$，$T_0=3$，$T_1=2$，真值 $\beta_i=(1,3,-0.5)$，误差标准差 0.3）：处理 $\times$ 个体虚拟变量的 TWFE、DiD 公式 $(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}})$、插补法三者逐位相同：$(1.159,\ 3.116,\ -0.383)$；三者平均 1.297 与静态 TWFE 的 $\hat\beta=1.297$ 相同。
+  \item \key{交错处理 + 动态异质}（$T=5$；3 个单位 $t=3$ 起处理，3 个单位 $t=4$ 起处理，4 个从未处理；效应随处理时长、按单位以不同斜率增长）：扩展 TWFE 的 5 个 $\hat\tau_{g,t}$ 与插补法的 cohort 平均逐位相同（如 $\hat\tau_{3,3}=0.9515$，$\hat\tau_{3,5}=3.3712$，$\hat\tau_{4,5}=2.4521$）；“单位 $\times$ 时期”全交互与插补法的最大差为 $10^{-14}$。插补法的 $\hat\beta_i=(2.08,\,3.21,\,1.57,\,1.57,\,1.38,\,2.25)$，真值 $(2.00,\,3.00,\,1.50,\,1.75,\,1.15,\,2.25)$；而“每个单位一个常数效应”的处理 $\times$ 个体交互给出 $(1.93,\,3.07,\,1.42,\,1.05,\,0.86,\,1.73)$，晚处理 cohort 明显偏低——效应随时间变化时该设定误设，处理单位的处理后变动被拿去估计 $\lambda_t$。静态 TWFE $=1.678$，真实 ATT（单元格平均）$=1.987$。
+  \item \key{负权重例子}（例 \ref{ex:U17b-negw}）：$\ddot D$ 给出权重 $(1,-0.5,0.5)$；无误差数据上静态 TWFE 恰为 $-1.000$；干净比较 $=1$，禁止比较 $=-3$。
+\end{enumerate}
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{第 2(b) 题最终答案}\label{sec:U17b-2b-ans}
+
+\begin{thm}[第 2(b) 题答案]\label{thm:U17b-2b}
+设 $Y_{it}(0)=\alpha_i+\lambda_t+\epsilon_{it}$，$Y_{it}=\alpha_i+\lambda_t+\beta_{it}D_{it}+\epsilon_{it}$。
+\begin{enumerate}
+  \item 个体异质：$Y_{it}=\alpha_i+\lambda_t+\sum_j\beta_jD_{it}\mathbf{1}\{i=j\}+\epsilon_{it}$；共同时点下 $\hat\beta_j=(\bar Y_{j,\mathrm{post}}-\bar Y_{j,\mathrm{pre}})-(\bar Y_{C,\mathrm{post}}-\bar Y_{C,\mathrm{pre}})$，无偏但 $N\to\infty$ 时不一致；ATT 用 $\frac1{N_1}\sum_j\hat\beta_j$ 估计。
+  \item 时间异质：处理组 $\times$ 时期交互 / 事件研究（略去 $e=-1$），前导系数检验 PT。
+  \item 一般情形（含交错处理）：插补法——只用 $D_{it}=0$ 的观测估计 $\hat\alpha_i$、$\hat\lambda_t$，$\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$，$\hat\beta_i$ = 单位 $i$ 处理后各期 $\hat\beta_{it}$ 的平均；等价于“每个处理单元格一个虚拟变量”的扩展 TWFE（Wooldridge 2021）；另可用 Callaway--Sant'Anna、Sun--Abraham。
+  \item 静态 TWFE：$E(\hat\beta\mid D)=\sum\omega_{it}\beta_{it}$，$\omega_{it}\propto\ddot D_{it}$：共同时点下等权（$=$ATT），交错处理下可有负权重；聚类标准误不能纠正。
+\end{enumerate}
+\end{thm}
+
+\begin{english}[Model answer to Question (2)(b)]
+Let $G_i$ be the first treated period of unit $i$ ($G_i=\infty$ for never-treated units), $D_{it}=\mathbf{1}\{t\ge G_i\}$, and allow cell-specific effects: $Y_{it}(0)=\alpha_i+\lambda_t+\epsilon_{it}$ and $Y_{it}=\alpha_i+\lambda_t+\beta_{it}D_{it}+\epsilon_{it}$, where $\beta_{it}=Y_{it}(1)-Y_{it}(0)$. Identification requires parallel trends and no anticipation (so that $E(\epsilon_{it}\mid D)=0$), SUTVA, and untreated (never- or not-yet-treated) units in each period.
+
+\textit{(i) Effects that vary across units.} Interact the treatment with unit dummies:
+\[
+Y_{it}=\alpha_i+\lambda_t+\sum_{j\in\mathcal T}\beta_jD_{it}\mathbf{1}\{i=j\}+\epsilon_{it},
+\]
+where $\mathcal T$ is the set of treated units. The time effects are identified from the never-treated units (and from the pre-treatment periods). With a common adoption date and a balanced panel, OLS gives $\hat\beta_j=(\bar Y_{j,post}-\bar Y_{j,pre})-(\bar Y_{C,post}-\bar Y_{C,pre})$, a separate DiD of unit $j$ against all controls. $\hat\beta_j$ is unbiased but not consistent as $N\to\infty$, because it uses only the $T$ observations of unit $j$ (consistency needs $T_0,T_1\to\infty$); inference can use permutation (placebo) tests, as in synthetic control. The ATT is estimated by $\frac1{N_1}\sum_j\hat\beta_j$, which equals the single-coefficient TWFE estimate in this design, and $H_0:\beta_1=\dots=\beta_{N_1}$ can be tested by a Wald test.
+
+\textit{(ii) Effects that vary over time.} With a common adoption date, let $d_i=\mathbf{1}\{G_i<\infty\}$ and replace $D_{it}$ by $d_i\mathbf{1}\{t=s\}$ for each post period $s$; then $\hat\beta_s$ is the DiD of period $s$ relative to the pre-treatment average. In an event study with leads and lags (omitting the reference period $e=-1$), each coefficient is the DiD relative to the reference period, and the leads are used to test parallel trends.
+
+\textit{(iii) General heterogeneity and staggered adoption: imputation.} Following Borusyak, Jaravel and Spiess (2024), estimate $Y_{it}=\alpha_i+\lambda_t+\epsilon_{it}$ by OLS using only untreated observations ($D_{it}=0$), impute $\hat Y_{it}(0)=\hat\alpha_i+\hat\lambda_t$ for treated cells, and set $\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$. Then
+\[
+\hat\beta_i=\frac{1}{\#\{t:D_{it}=1\}}\sum_{t:\,D_{it}=1}\hat\beta_{it},
+\]
+and the ATT or event-time effects are averages of $\hat\beta_{it}$ with non-negative weights. This is numerically identical to OLS on an extended TWFE regression that adds a separate dummy for each treated cell; Wooldridge's (2021) extended TWFE regression with cohort$\times$period dummies gives the cohort--time effects $\tau_{g,t}$, which equal the cohort averages of $\hat\beta_{it}$. Callaway and Sant'Anna (2021) and Sun and Abraham (2021) are alternative heterogeneity-robust estimators.
+
+\textit{(iv) Why not the static TWFE coefficient.} By FWL, $E(\hat\beta\mid D)=\sum_{D_{it}=1}\omega_{it}\beta_{it}$ with $\omega_{it}=\ddot D_{it}/\sum_{D_{js}=1}\ddot D_{js}$. With a common treatment date, $\ddot D_{it}=(d_i-q)(w_t-p)$, where $w_t$ is the post-period dummy, $q=N_1/N$ and $p=T_1/T$; this is constant on treated cells, so $\hat\beta$ estimates the equally weighted ATT, but it cannot recover $\beta_i$. With staggered adoption some weights can be negative (early-treated units in late periods), because already-treated units serve as controls (``forbidden comparisons'', Goodman-Bacon 2021; de Chaisemartin and D'Haultf\oe uille 2020). For example, with unit A treated from $t=2$, unit B from $t=3$ and $T=3$, the weights are $(1,-\frac12,\frac12)$ on $(\beta_{A2},\beta_{A3},\beta_{B3})$, so effects $(1,5,1)$ give $E\hat\beta=-1$. Clustered standard errors do not solve this problem: they change the standard errors, not the point estimate.
+\end{english}
+
+%----------------------------------------------------------------------
+\subsection{第 2(b) 题评分要点与易错点}
+
+\begin{keypt}[第 2(b) 题评分要点]
+\begin{enumerate}
+  \item \key{给出具体回归式}：$D_{it}\times$ 个体虚拟变量（这是题目“$\beta_i$”最直接的答案），并写出 $\hat\beta_j$ 的含义（单位 $j$ 对控制组的 DiD）。
+  \item \key{说明条件与局限}：需要从未处理（或尚未处理）的控制组与平行趋势；$\hat\beta_j$ 无偏但不一致，推断用置换 / 安慰剂；ATT 为平均。
+  \item 时间异质：处理组 $\times$ 时期交互 / 事件研究，略去参照期。
+  \item 交错处理：指出静态 TWFE 的负权重问题，给出插补法或扩展 TWFE。
+  \item 不要只罗列方法名（“用 CS、SA、BJS”）而不写怎么做；不要说“聚类标准误可以缓解异质性”。
+\end{enumerate}
+\end{keypt}
+
+\subsection{参考答案常见错误辨析（第 2(b) 题）}\label{sec:U17b-err2b}
+
+\begin{note}[第 2(b) 题的常见错误]
+\begin{enumerate}
+  \item \textbf{“使用聚类稳健标准误，缓解异质性导致的残差方差不一致问题”。}\\
+  问题：错误。聚类只影响标准误，不改变点估计；异质效应（尤其交错处理）造成的问题是点估计的权重（可为负），属于偏误，聚类无法纠正。\\
+  正确写法：用插补法或扩展 TWFE 估计干净的效应。
+  \item \textbf{“加权 TWFE：根据组内样本量或变异程度加权，使估计更接近 ATE”。}\\
+  问题：空泛且方向不对。问题不在样本量权重，而在 TWFE 隐含的 $\ddot D_{it}$ 权重；此外 DiD 识别的是 ATT，不是 ATE。\\
+  正确写法：先估计干净的单元格 / cohort 效应，再用研究者选定的非负权重聚合。
+  \item \textbf{用 $\gamma(D_{it}\times X_i)$ 刻画异质性，却没有直接回答“如何估计 $\beta_i$”。}\\
+  问题：按可观测特征 $X_i$ 的交互只能得到“效应如何随 $X_i$ 变”，得不到每个单位的 $\beta_i$。\\
+  正确写法：给出最直接的 $D_{it}\times$ 个体虚拟变量回归，以及插补法 $\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$。
+  \item \textbf{事件研究写成 $\sum_{k=-m}^{n}\beta_kD_{it,k}$。}\\
+  问题：没有略去参照期（$k=-1$）；当 $k$ 覆盖全部相对期时，这些虚拟变量之和等于处理组指示 $d_i$，与个体固定效应完全共线；也没有说明前导系数用于检验平行趋势。\\
+  正确写法：略去 $e=-1$；前导系数的联合 Wald 检验即事前趋势检验。
+  \item \textbf{“分组估计”：在子样本中分别跑 TWFE。}\\
+  问题：偏题。这只得到组别效应，而且每个子样本需要自己的控制组，否则 $\lambda_t$ 无法识别；它不是 $\beta_i$ 的估计方法。\\
+  正确写法：在全样本中用 $D_{it}\times$ 个体虚拟变量或插补法。
+  \item \textbf{“用 LASSO / 随机森林筛选交互项、估计 CATE”。}\\
+  问题：偏题。与“在 TWFE 中估计 $\beta_i$”无关，也没有说明识别条件。\\
+  正确写法：同上，并写出 PT、无预期、SUTVA。
+  \item \textbf{只笼统地说传统 TWFE 会成为“加权平均效应（权重可能不直观）”。}\\
+  问题：漏掉核心——没有说明静态 TWFE 在共同时点下是等权平均（$=$ATT），而在交错处理 + 异质时出现“禁止比较”和负权重；也没有讨论 $\hat\beta_i$ 的一致性与推断。\\
+  正确写法：写出权重表示 $\omega_{it}\propto\ddot D_{it}$，举负权重的例子，并说明 $\hat\beta_i$ 无偏但不一致、推断用置换检验。
+\end{enumerate}
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{第 2 题核心公式速览}
+
+\begin{summary}[第 2 题核心公式]
+\begin{itemize}
+  \item 2(a)：$\beta=[E(Y\mid1,1)-E(Y\mid1,0)]-[E(Y\mid0,1)-E(Y\mid0,0)]$；$\hat\beta_{TWFE}=\Delta Y$（$2\times2$ 恰好拟合；一般地 $\ddot D_{it}=(d_i-q)(w_t-p)$）；PT + 无预期 + SUTVA $\Rightarrow\beta=\text{ATT}$。
+  \item 2(b)：$D_{it}\times$ 个体虚拟变量 $\Rightarrow\hat\beta_j$ = 单位 $j$ 对控制组的 DiD；事件研究（略去 $e=-1$）；插补 $\hat\beta_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$（$\hat\alpha,\hat\lambda$ 只用 $D=0$ 观测）= 扩展 TWFE；静态 TWFE $E(\hat\beta\mid D)=\sum\omega_{it}\beta_{it}$，$\omega_{it}\propto\ddot D_{it}$，交错时可为负。
+  \item 一句话：平衡面板中“双向去均值 = 个体去均值 + 时间虚拟变量 = LSDV”是代数恒等式；把 $x$ 换成 $D$，TWFE 就是 DiD，共同处理时点下估计的是 ATT（全部处理单元格效应的等权平均）；要估计 $\beta_i$，就用 $D\times$ 个体交互或插补法。
+\end{itemize}
+\end{summary}
+
+%======================================================================
+\section{参考答案常见错误汇总表}\label{sec:U17b-errtab}
+
+学生保存的试卷文件中附有一份网上流传的参考答案。它的大方向（双向去均值、个体去均值 + 虚拟变量、四格差分、交互项）不错，但有实质错误与重要遗漏。下表汇总第 1、2 题各小问“参考答案常见错误辨析”中的全部问题，考前快速过一遍，避免照抄。“对应位置”一列中的数字是本书的节号。
+
+{\small
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{1.15cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{4.3cm}>{\raggedright\arraybackslash}p{3.5cm}>{\raggedright\arraybackslash}p{1.9cm}@{}}
+\toprule
+题号 & 常见写法 & 问题 & 正确写法 & 对应位置\\
+\midrule
+\endfirsthead
+\toprule
+题号 & 常见写法 & 问题 & 正确写法 & 对应位置\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+全题 & 解释变量写成 $z_{it}$ & 与题目记号 $x_{it}$ 不一致 & 沿用题目记号 & —\\
+1(a) & $\hat\beta=\frac{\sum(\tilde z-\bar{\tilde z}_{\cdot\cdot})(\tilde Y-\bar{\tilde Y}_{\cdot\cdot})}{\sum(\tilde z-\bar{\tilde z}_{\cdot\cdot})^2}$ 再化简 & 双向去均值后总均值恒为 0，二次去均值多余；未指出 $\sum\ddot x\ddot Y=\sum\ddot xY$ & $\hat\beta=\sum\ddot xY/\sum\ddot x^2$ & 第 1(a) 题详解\\
+1(a) & 直接把 $\bar\alpha$、$\bar\lambda$ 当常数抵消 & 未说明需要平衡面板 & 写明 balanced；非平衡时公式失效 & 非平衡面板一节\\
+1(b) & $\lambda_t=a_0+a_1f_{1t}+\dots+a_Tf_{Tt}$，“保留所有 $T$ 个” & 常数项与 $T$ 个虚拟变量之和共线，多一个参数 & 不加 $a_0$（或去掉一个虚拟变量） & 第 1(b) 题详解\\
+1(b) & 去均值后保留全部 $T$ 个 $\breve f_k$，$M_{\breve F}=I-\breve F(\breve F'\breve F)^{-1}\breve F'$ & $\sum_k\breve f_{kt}=0$，$\breve F'\breve F$ 奇异，逆不存在（虚拟变量陷阱） & 保留 $T-1$ 个，系数为 $a_s-a_1$，无截距 & 第 1(b) 题详解\\
+1(b) & 停在“残差对残差回归” & 没算到底：残差就是 $\ddot x$，错过 (a)(b) 的关系 & 写出显式公式并指出等于 (a) & 第 1(b) 题详解\\
+1(a)(b) & “大样本下等价，小样本因自由度调整可能略有差异” & 错误：平衡面板中由 FWL 数值恒等，与样本量无关；自由度只影响标准误 & 平衡面板 (a) = (b) = LSDV；非平衡时以虚拟变量法为准 & 两种 FE 写法等价一节\\
+2(a) & 只推 $E[\Delta Y]=\beta$ & 没有样本估计量：$2\times2$ 中 TWFE 恰好拟合，$\hat\beta=\Delta Y$；$N_1,N_0$ 时等于四组均值的 DiD & 总体层 + 样本层 & \ref{sec:U17b-sample}，\ref{sec:U17b-general}\\
+2(a) & 条件写“$E[\epsilon_{it}]=0$” & 不够：需 $E(\epsilon\mid D)=0$ 或平行趋势，另需无预期、SUTVA & 写三条假设；$\beta=\text{ATT}$ & \ref{sec:U17b-ident}\\
+2(a) & 未解释“$\alpha_i=1,\lambda_t=1$” & 记号含义不清，未按提示写条件期望 & 两种理解，结论相同 & \ref{sec:U17b-notation}\\
+2(a) & 未讨论推断 & $2\times2$ 中 $\hat\beta$ 不一致、残差自由度为 0 & 说明需更多单位或置换推断 & \ref{sec:U17b-stat}\\
+2(b) & “使用聚类稳健标准误缓解异质性” & 错误：聚类只影响标准误，不纠正点估计偏误 & 插补法 / 扩展 TWFE & \ref{sec:U17b-negw}\\
+2(b) & “加权 TWFE，按样本量或变异加权，接近 ATE” & 空泛；问题在 $\ddot D$ 隐含的权重；DiD 识别 ATT 而非 ATE & 先估干净效应，再非负加权 & \ref{sec:U17b-weights}\\
+2(b) & $\gamma(D_{it}\times X_i)$、分组估计、LASSO / 随机森林 & 偏题，得不到 $\beta_i$ & $D_{it}\times$ 个体虚拟变量；插补法 & \ref{sec:U17b-m1}，\ref{sec:U17b-m3}\\
+2(b) & 事件研究 $\sum_{k=-m}^{n}\beta_kD_{it,k}$ & 未略去参照期，与个体效应共线 & 略去 $e=-1$；前导系数检验 PT & \ref{sec:U17b-m2}\\
+2(b) & 未提交错处理 & 漏掉核心：负权重、禁止比较 & Goodman-Bacon；de Chaisemartin--D'Haultf\oe uille & \ref{sec:U17b-negw}\\
+\end{longtable}
+}
+
+\begin{english}[Phrases that avoid the common mistakes]
+In a balanced panel, the two-way within transformation, individual demeaning with time dummies, and LSDV give numerically identical estimates of $\beta$ by the FWL theorem; degrees-of-freedom corrections affect only the standard errors. In the $2\times2$ design the TWFE estimator equals the sample DiD exactly, not only in expectation. Identification requires parallel trends, i.e.\ $E(\epsilon_{i1}-\epsilon_{i0}\mid d_i)$ does not depend on $d_i$, together with no anticipation and SUTVA; $E(\epsilon_{it})=0$ is not sufficient. Clustered standard errors do not remove the bias of the static TWFE estimator under staggered adoption with heterogeneous effects, because they leave the point estimate unchanged. An event-study regression must omit a reference period; otherwise the relative-time dummies are collinear with the unit fixed effects.
+\end{english}
+
+%======================================================================
+\section{延伸考点预测：第 2 页可能考什么}\label{sec:U17b-predict}
+
+\begin{note}[以下是推测]
+试卷第 2 页缺失，本节内容是推测，不是确定信息。依据是：(1) 第 1 页已经考了什么；(2) 全书各章中推导最密集、最适合出“写公式 / 推导 / 说明关系”题的内容；(3) 第 1 页的命题风格（一个模型 + 若干小问 + hint）。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{推断依据：第 1 页已考内容与其他核心推导}
+
+\subsubsection{第 1 页已考内容}
+
+第 1 页的两道题共 50 分，全部落在“静态面板 + DiD”上：第 1 题是双向固定效应、LSDV 与组内变换（第 10 章），第 2 题是 $\hat\beta_{TWFE}=\hat\beta_{DID}$、ATT、异质与交错处理（第 15 章）。
+
+\subsubsection{其余章节中最适合出推导题的内容}
+
+\begin{itemize}
+  \item \key{动态面板（第 12 章）}：Nickell 偏误；一阶差分后 $\Delta y_{i,t-1}$ 的内生性；Anderson--Hsiao；Arellano--Bond 的工具矩阵 $W_i$ 与权重矩阵 $H$；弱工具（$\rho$ 接近 1 时工具相关性衰减）；System GMM 的初始条件与水平矩条件的证明；FOD 变换；AR(2) 检验；\texttt{xtabond2}。
+  \item \key{因子模型（第 13 章）}：PCA 的迹最大化推导；标准化 $\frac1TF'F=I_r$；因子个数的信息准则；交互固定效应（TWFE 是其特例）；Bai (2009) 迭代估计；CCE。
+  \item \key{截面相关检验与 CCE（第 13--14 章）}：$\sqrt T\hat\rho_{ij}\dto N(0,1)$；$LM\dto\chi^2_{N(N-1)/2}$；标准化 LM 与 Pesaran CD；CCEP / CCEMG。
+  \item \key{个体处理效应（第 16 章）}：SCM 的推导与约束；PDA 的推导与无约束 OLS；矩阵补全；安慰剂推断——它们与第 2 题的“$\beta_i$”一脉相承。
+  \item \key{基础（第 2--9 章）}：OLS 推导与渐近性；聚类稳健方差；Wald / $F$ 检验；IV / GMM 闭式解与权重矩阵；$J$ 检验；Hausman 检验；第一阶段相关性 $F$ 检验。
+  \item \key{静态面板其余内容（第 10--11 章）}：LSDV = WG（FWL）；RE / GLS 与 $\Omega^{-1}$；Hausman（FE vs RE）；时不变变量（FEF 两步法）。
+\end{itemize}
+第 2 页的约 50 分很可能（推测）来自上面另外的大块内容，仍以“一个模型 + 若干小问 + hint”的形式出现。
+
+%----------------------------------------------------------------------
+\subsection{最可能的题目方向}
+
+{\small\noindent
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.6cm}L>{\centering\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{1.6cm}@{}}
+\toprule
+方向 & 可能的问法（英文关键词） & 可能性（推测） & 对应章节\\
+\midrule
+动态面板 GMM & $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$: why is FE (WG) inconsistent; first-difference and Anderson--Hsiao IV; Arellano--Bond moment conditions and $W_i$; System GMM initial condition & 高 & 第 12 章\\
+因子模型与 PCA & $Y=\Lambda F'+U$: show CSD; normalization; derive the PCA estimator (trace maximization); number of factors & 高 & 第 13 章\\
+交互固定效应、CSD 检验、CCE & $y_{it}=x_{it}'\beta+\lambda_i'f_t+v_{it}$: why is FE biased; CD / LM test; CCE estimator; mean group; Bai (2009) & 中高 & 第 13--14 章\\
+SCM / PDA / 矩阵补全 & one treated unit; derive SCM from a factor model; constraints $w_j\ge0$, $\sum w_j=1$; PDA; placebo inference & 中高 & 第 16 章\\
+IV / GMM 与三大检验 & GMM closed form; 2SLS = GMM with $W=(Z'Z)^{-1}$; optimal $W$; $J$ test; endogeneity test; first-stage $F$ & 中 & 第 7--9 章\\
+RE / GLS、Hausman、时不变变量 & $\Omega_v^{-1}$; GLS $\approx$ WG for large $T$; Hausman FE vs RE; FEF two-step & 中 & 第 10--11 章\\
+OLS 渐近与检验 & consistency, asymptotic normality, HC / cluster variance, Wald test & 中低 & 第 2--6 章\\
+DiD 延伸 & event study, covariates, staggered adoption（第 1 页已考，重复可能较小） & 低 & 第 15 章\\
+\bottomrule
+\end{tabularx}
+}
+
+%----------------------------------------------------------------------
+\subsection{各方向的“必背推导”清单}
+
+\subsubsection{动态面板}
+
+\begin{itemize}
+  \item 一阶差分后的内生性：$E(\Delta y_{i,t-1}\Delta u_{it})=-\sigma_u^2\neq0$（$\Delta y_{i,t-1}$ 含 $u_{i,t-1}$，$\Delta u_{it}$ 含 $-u_{i,t-1}$）。
+  \item Anderson--Hsiao：$y_{i,t-2}$ 与 $\Delta u_{it}$ 无关（外生性）、与 $\Delta y_{i,t-1}$ 相关（相关性）。
+  \item Arellano--Bond：工具矩阵 $W_i$ 为 $(T-1)\times T(T-1)/2$（以 $y_{i0},\dots,y_{iT}$ 可观测计）；$H$ 主对角为 2、次对角为 $-1$。
+  \item System GMM：在均值平稳的初始条件下证明 $E(\alpha_i\Delta y_{i1})=0$，从而水平方程可用 $\Delta y_{i,t-1}$ 作工具。
+  \item $T=2$ 时 WG 等于一阶差分 OLS，$\plim\hat\rho_{WG}=(\rho-1)/2$。
+\end{itemize}
+
+\subsubsection{因子模型与 PCA}
+
+\begin{itemize}
+  \item $Y$ 为 $N\times T$，$Y=\Lambda F'+U$，$\Lambda$ 为 $N\times r$，$F$ 为 $T\times r$。给定 $F$ 时 $\hat\Lambda=YF(F'F)^{-1}$。
+  \item 在 $F'F=I_r$ 下，集中后的目标为 $\tr(YY')-\tr(F'Y'YF)$。
+  \item $\max\tr(F'Y'YF)$ s.t.\ $F'F=I_r$ 的解是 $Y'Y$ 最大 $r$ 个特征值对应的特征向量；采用标准化 $\frac1TF'F=I_r$ 时再乘以 $\sqrt T$。
+\end{itemize}
+
+\subsubsection{截面相关检验与 CCE}
+
+\begin{itemize}
+  \item 无截面相关时 $\sqrt T\hat\rho_{ij}\dto N(0,1)$；$LM=T\sum_{i<j}\hat\rho_{ij}^2\dto\chi^2_{N(N-1)/2}$（$N$ 固定、$T\to\infty$）。
+  \item 标准化 LM：$\bigl(LM-N(N-1)/2\bigr)/\sqrt{N(N-1)}$；Pesaran CD $=\sqrt{2T/(N(N-1))}\sum_{i<j}\hat\rho_{ij}$。
+  \item CCE：用截面均值近似因子，$f_t\approx C\bar z_t$；$\hat\beta_{CCE}=\bigl(\sum_iX_i'M_{\bar Z}X_i\bigr)^{-1}\sum_iX_i'M_{\bar Z}Y_i$；均值组估计 $\text{MG}=\frac1N\sum_i\hat\beta_i$。
+\end{itemize}
+
+\subsubsection{SCM 与 PDA}
+
+\begin{itemize}
+  \item 因子模型下，若 $\lambda_1=\sum_jw_j\lambda_j$，则 $y_{1t}=\sum_jw_jy_{jt}+v_t$；SCM 加约束 $w_j\ge0$、$\sum_jw_j=1$。
+  \item PDA：$a'=\lambda_1'(\Lambda'\Lambda)^{-1}\Lambda'$（$\Lambda$ 为控制单位的载荷矩阵），用无约束 OLS 估计。
+  \item 安慰剂推断：$p$ 值 = 真实效应在全部单位中的排名 / 单位数。
+\end{itemize}
+
+\subsubsection{IV / GMM 与 Hausman 检验}
+
+\begin{itemize}
+  \item $\hat\beta_{GMM}=(X'ZWZ'X)^{-1}X'ZWZ'Y$；$W=(Z'Z)^{-1}$ 时即 2SLS。
+  \item 过度识别检验：$J\dto\chi^2_{L-K}$。
+  \item Hausman 引理：$\Var(\hat\beta_{\text{一致}}-\hat\beta_{\text{有效}})=\Var(\hat\beta_{\text{一致}})-\Var(\hat\beta_{\text{有效}})$。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{通用答题顺序：写模型 \texorpdfstring{$\to$}{->} 顺着 hint 推导 \texorpdfstring{$\to$}{->} 写假设与性质}
+
+第 1 页的题型是“写变换 $\to$ 写估计量 $\to$ 说关系 $\to$ 放松假设”。这一顺序同样适用于上面各方向：先写模型与记号（矩阵标明维度），再顺着 hint 一步步推导出估计量，最后写识别假设、统计性质（无偏、一致、渐近分布）与局限。
+
+\begin{english}[Opening and closing sentences for a derivation question]
+Consider the model as stated, and let me first fix the notation and the dimensions of each matrix. Following the hint, I first eliminate the nuisance terms and then derive the estimator in closed form. The estimator is consistent under the stated exogeneity condition, and its asymptotic distribution follows from a law of large numbers and a central limit theorem applied to the sample moments. The key identifying assumption is stated explicitly below, together with the situations in which it fails.
+\end{english}
+

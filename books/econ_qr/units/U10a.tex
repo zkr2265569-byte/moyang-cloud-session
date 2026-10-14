@@ -1,0 +1,169 @@
+\chapter{静态面板（一）：固定效应、LSDV、组内估计与双向固定效应}
+\label{ch:QU10a-panel1}
+\noindent\key{本章速览}\quad 面板与分类 → 为何用面板 → FE/RE 的“模型”与“估计” → LSDV → 组内（WG）变换 → FWL：LSDV $=$ WG → 聚类标准误。\tagexam\ 2025 年第 1 题（TWFE）所需工具：组内变换、$M_T$、Kronecker、FWL；双向情形见本章后半与第 17 章。
+
+% ======================================================================
+\section{面板数据概览}
+
+\subsection{定义；个体间变异与个体内变异}
+\term{面板数据}{panel data}（\term{纵向数据}{longitudinal data}）：$(y_{it},x_{it})$，$i=1,\dots,N$ 个体，$t=1,\dots,T$ 时期，$x_{it}$ 为 $K\times1$。每个个体都有 $T$ 期为\term{平衡面板}{balanced panel}（$n=NT$），否则\term{非平衡面板}{unbalanced panel}。固定 $t$ 是截面，固定 $i$ 是时间序列（$T$ 大时须关心平稳性）。$x_{it}=\bar x_{i\cdot}+(x_{it}-\bar x_{i\cdot})$，$\bar x_{i\cdot}=\frac1T\sum_tx_{it}$：前者的跨个体差别为\term{个体间变异}{between variation}，后者为\term{个体内变异}{within variation}；FE \key{只用个体内变异}。
+
+\subsection{三种分类：短/长（微观/宏观）、静态/动态、线性/非线性}
+\begin{center}\footnotesize\renewcommand{\arraystretch}{1.05}
+\begin{tabularx}{\linewidth}{@{}p{1.7cm}p{2.3cm}p{6.1cm}L@{}}
+\toprule
+标准 & 类别 & 设定 & 要点\\
+\midrule
+$T$ 相对 $N$ & 短 / 长面板 & $N\to\infty$、$T$ 固定 / $T$ 也大；微观（个体上千、$T$ 2–20）/ 宏观（7–20 国、$T$ 20–60） & 本书默认短面板；长面板顾及平稳性、协整\\
+含 $y_{i,t-1}$？ & 静态 / 动态 & $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$ / 再加 $\rho y_{i,t-1}$ & 静态用 WG；动态 WG 不一致 → 差分 + IV（第 12 章）\\
+形式 & 线性 / 非线性 & 线性回归 / 二元选择 $y_{it}=\mathbf 1\{\alpha_i+x_{it}\T\beta+u_{it}>0\}$ & 非线性 FE 无精确消去变换 → 伴随参数问题\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{方法全景与记号对照（本书 / 2025 真题 / Hansen）}
+全景：a. 静态（第 10–11 章）、b. 动态（第 12 章）= early research；c. 因子模型（源于 APT/CAPM，第 13–14 章）；d. 因果推断：DiD $\to$ TWFE（DiD 是 TWFE 特例，第 15 章）、合成控制 SCM、回归控制 RCM（即面板数据法 PDA）/ 矩阵补全 MC / 因子结构（第 16 章）。
+
+记号：个体效应 $\alpha_i$ / $\alpha_i$ / \key{$u_i$}；特异误差 $u_{it}$ / $\epsilon_{it}$ / $\varepsilon_{it}$；时间效应 $\lambda_t$ / $\lambda_t$ / $v_t$；时间虚拟变量 $\text{year}_s$ / $f_t$ / $\tau_t$；个体虚拟变量 $d_j$ / — / $d_i$；均值 $\bar y_{i\cdot},\bar y_{\cdot t},\bar y_{\cdot\cdot}$\ $\leftrightarrow$\ Hansen $\overline Y_i,\widetilde Y_t,\overline Y$；单向 / 双向组内变换 $\dot y_{it}$ / $\ddot y_{it}$；方差 $\sigma_\alpha^2,\sigma_u^2$\ $\leftrightarrow$\ Hansen $\sigma_u^2,\sigma_\varepsilon^2$；回归元个数 $K$（真题 1，Hansen $k$）。$P_T=\frac1T\one_T\one_T\T$，$M_T=I_T-P_T$（对称幂等，$M_T\one_T=0$）。\textbf{易错}：载荷 $\lambda_i$ $\neq$ 时间效应 $\lambda_t$。
+
+% ======================================================================
+\section{为什么用面板：控制不可观测的个体效应}
+
+\subsection{两条理由；模型 \texorpdfstring{$y_{it}=\alpha_i+x_{it}'\beta+u_{it}$}{y = alpha + x'beta + u} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 的含义}
+理由：(1) 数据可得（年报、工业企业库、CFPS/CHARLS、年鉴）；(2) \key{根本}：控制截面中的遗漏变量。静态线性面板
+\begin{equation}\label{eq:QU10a-static}
+y_{it}=\alpha_i+x_{it}\T\beta+u_{it}\qquad(x_{it}\ \text{不含}\ y_{i,t-1}).
+\end{equation}
+\term{个体效应}{individual effect}/\term{不可观测异质性}{unobserved heterogeneity} $\alpha_i$：随 $i$ 变、不随 $t$ 变，汇集一切时不变因素，含不可观测的（能力、性格、偏好、企业文化）与可观测的（性别、种族、出生地，其系数在 FE 下不可识别）。$u_{it}$：\term{特异误差}{idiosyncratic error}。工资方程中能力与教育正相关 → 忽略 $\alpha_i$ 时 $\hat\beta_{\text{edu}}$ 向上偏（OVB）。
+
+\subsection{截面中 \texorpdfstring{$\alpha_i$}{alpha\_i} 不可识别，只能进误差}
+$N+K$ 个参数、$N$ 个方程：任取 $b$，令 $a_i=y_i-x_i\T b$，残差全为 0 → $\beta$ 不可识别。只能写 $y_i=\beta_0+x_i\T\beta+e_i$，$e_i=(\alpha_i-\beta_0)+u_i$，$\E(e_i\mid x_i)=\E(\alpha_i\mid x_i)-\beta_0\neq0$（若 $\Cov(x_i,\alpha_i)\neq0$）→ OLS 不一致，只能找 IV。
+
+\subsection{面板优势：\texorpdfstring{$\alpha_i$}{alpha\_i} 出现 \texorpdfstring{$T$}{T} 次；冗余参数；截距被吸收}
+同一 $\alpha_i$ 出现 $T\ge2$ 次 → 个体内跨期比较（组内变换、一阶差分）消去它，\key{无需工具变量}（Hansen 17.1）。$\alpha_i$ 是\term{冗余参数}{nuisance parameter}：只需控制、不必估计。$\beta_0+\alpha_i=(\beta_0+c)+(\alpha_i-c)$ → \key{不单独写截距}；\texttt{xtreg, fe} 的 \texttt{\_cons}$=\bar y_{\cdot\cdot}-\bar x_{\cdot\cdot}\T\hat\beta$ 是 $\hat\alpha_i$ 的平均，仅归一化（Hansen 17.16：忽略）。
+
+\subsection{推广：交互固定效应 \texorpdfstring{$\alpha_{it}=\lambda_i'f_t$}{alpha\_it = lambda\_i' f\_t}}
+自由的 $\alpha_{it}$：$NT+K$ 个参数、$NT$ 个观测，又不可识别。\term{交互固定效应}{interactive fixed effects} $\alpha_{it}=\lambda_i\T f_t$（$r$ 维载荷 × $r$ 维因子），约 $r(N+T)$ 个参数。$r=1$，$\lambda_i=\alpha_i$，$f_t=1$ → $\alpha_i$；$r=2$，$\lambda_i=(\alpha_i,1)\T$，$f_t=(1,\lambda_t)\T$ → $\alpha_i+\lambda_t$。
+
+\subsection{混合回归偏误：\texorpdfstring{$\plim b=\beta+\Cov(x_{it},\alpha_i)/\Var(x_{it})$}{plim b = beta + Cov(x,alpha)/Var(x)}，可反号}
+\term{混合回归}{pooled regression}（忽略 $\alpha_i$，$NT$ 点一起 OLS），由 $y_{it}-\bar y=(\alpha_i-\bar\alpha)+\beta(x_{it}-\bar x)+(u_{it}-\bar u)$（全样本均值）：
+\[
+b=\beta+\frac{\sum_{i,t}(x_{it}-\bar x)(\alpha_i-\bar\alpha)}{\sum_{i,t}(x_{it}-\bar x)^2}+\frac{\sum_{i,t}(x_{it}-\bar x)(u_{it}-\bar u)}{\sum_{i,t}(x_{it}-\bar x)^2}\ \pto\ \beta+\frac{\Cov(x_{it},\alpha_i)}{\Var(x_{it})}\quad\text{\whyin{$u$ 外生；$x_{it}$ 分布不随 $t$ 变}}
+\]
+三企业示意（Hansen 图 17.1）：$y_{it}=\alpha_i-x_{it}$，$\alpha$ 与 $x$ 正相关，混合斜率 $-1+72/60=+0.2$（反号），企业内斜率均为 $-1$。
+
+% ======================================================================
+\section{FE 与 RE：“模型”与“估计”的区别}
+
+\subsection{模型看 \texorpdfstring{$\E(\alpha_i\mid x_{it})$}{E(alpha|x)}，估计看如何处理 \texorpdfstring{$\alpha_i$}{alpha\_i}；三种估计方法}
+\begin{center}\footnotesize\renewcommand{\arraystretch}{1.05}
+\begin{tabularx}{\linewidth}{@{}p{0.6cm}p{4.3cm}Lp{2.1cm}p{2.1cm}@{}}
+\toprule
+ & \textbf{Model} & \textbf{Estimation}（Stata） & WG 在此模型下 & GLS 在此模型下\\
+\midrule
+FE & $\E(\alpha_i\mid x_{it})\neq0$：$\alpha_i$ 与 $x_{it}$ 任意相关 & $\alpha_i$ 当参数估计或消去：(a) LSDV \texttt{reg y x i.id}；(b) WG \texttt{xtreg y x, fe} & 一致 & \leavevmode\key{不一致}\\
+RE & $\E(\alpha_i\mid x_{it})=0$（严格：$\E(\alpha_i\mid x_{i1},\dots,x_{iT})=0$） & 并入复合误差 $v_{it}=\alpha_i+u_{it}$：(c) GLS \texttt{xtreg y x, re}（第 11 章） & 一致，非有效 & 一致且有效\\
+\bottomrule
+\end{tabularx}
+\end{center}
+三者都应加 \texttt{vce(cluster id)}；(a)(b) 的 $\hat\beta$ 完全相同（§\ref{sec:QU10a-fwl}）。\textbf{易错}：(1) 两种模型中 $\alpha_i$ \key{都是随机变量}（“固定/随机”是历史叫法，Hansen 17.25）；(2) FE model $\neq$ FE estimation；\key{model first, estimation second}，用 Hausman 检验选模型；用 \texttt{xtreg, re} 即隐含假设 RE 模型。\textit{WG is consistent under both models; GLS only under the RE model.}
+
+% ======================================================================
+\section{最小二乘虚拟变量估计（LSDV）}\label{sec:QU10a-lsdv}
+
+\subsection{个体虚拟变量、LSDV 模型与 \texorpdfstring{$D_\alpha=I_N\otimes\one_T$}{D = I\_N kron 1\_T}}
+$d_{j,it}=\mathbf 1\{i=j\}$，$\sum_j\alpha_jd_{j,it}=\alpha_i$ \whyin{$j\neq i$ 项为 0}：\key{$\alpha_i$ 是 $d_i$ 的系数}。\term{LSDV}{least squares dummy variables}：$y_{it}=\sum_{j=1}^N\alpha_jd_{j,it}+x_{it}\T\beta+u_{it}$，$N+K$ 个回归元，对 $NT$ 观测做 pooled LS。数据表：每行恰一个 $d_j=1$，同一个体 $T$ 行 $d$ 列相同，$\sum_jd_j\equiv1$。矩阵：$Y_i=\alpha_i\one_T+X_i\beta+U_i$；$Y=D_\alpha\alpha+X\beta+U$，$D_\alpha=I_N\otimes\one_T$（$NT\times N$ 块对角，第 $j$ 列即 $d_j$），$D_\alpha\T D_\alpha=TI_N$，$D_\alpha\one_N=\one_{NT}$ \whyin{$(A\otimes B)'=A'\otimes B'$；$(A\otimes B)(C\otimes D)=AC\otimes BD$}；$U_i$ 内部常自相关。求 $\hat\beta$：对 $[D_\alpha,X]$ 直接 OLS，或用 FWL 先偏掉 $D_\alpha$（§\ref{sec:QU10a-fwl}）。
+
+\subsection{虚拟变量陷阱；Stata 与计算负担}
+$\sum_jd_j=\one_{NT}$ → 含截距只放 $N-1$ 个（否则 $[\one,D_\alpha,X]$ 不满秩，\term{虚拟变量陷阱}{dummy variable trap}），此时 $c=\alpha_1$，$\gamma_j=\alpha_j-\alpha_1$；不含截距放 $N$ 个；两种写法列空间相同，$\hat\beta$、残差相同。加年份虚拟：含截距时个体、年份\key{各去一个}；不含截距时年份仍去一个。\texttt{reg y x i.id, vce(cluster id)}（\texttt{i.id} 自动去基准；只报斜率用 \texttt{estimates table, keep(x \_cons)}）。$D_\alpha$ 有 $TN^2$ 个元素（$T=10$，$N=10^4$ 时 $10^9$）→ $N$ 大用组内变换。
+
+\subsection{伴随参数问题：\texorpdfstring{$\hat\beta$}{beta-hat} 一致、\texorpdfstring{$\hat\alpha_i$}{alpha\_i-hat} 不一致；\texorpdfstring{$\hat\sigma^2_{ML}$}{sigma2\_ML} 与自由度 \texorpdfstring{$NT-N-K$}{NT-N-K}}
+$N\to\infty$、$T$ 固定：$\hat\alpha_i-\alpha_i=\bar u_{i\cdot}-\bar x_{i\cdot}\T(\hat\beta-\beta)=\bar u_{i\cdot}+o_p(1)$，$\Var(\bar u_{i\cdot})=\sigma_u^2/T\not\to0$ → $\hat\alpha_i$ 不一致（每个 $\alpha_i$ 永远只有 $T$ 个观测，$T\to\infty$ 才一致）。\term{伴随参数问题}{incidental parameter problem}（Neyman–Scott 1948）：参数个数随 $N$ 增长，无法一致估计。线性面板不影响 $\hat\beta$（可精确消去）；非线性面板（FE logit/probit）污染 $\hat\beta$；多层效应中的上层效应同样不一致。Hansen 17.20：参数数与样本量同速发散，$\hat\beta$ 仍 $\sqrt N$ 渐近正态。
+
+\key{Neyman–Scott}：取真值 $\beta$，$\hat U_i=M_TU_i$，$\E\sum_t\hat u_{it}^2=\E(U_i\T M_TU_i)=\tr(M_T\E U_iU_i\T)=\sigma_u^2\tr M_T=\sigma_u^2(T-1)$ \whyin{$M_T$ 对称幂等；$\tr M_T=T-1$}，故 $\hat\sigma^2_{ML}=\frac1{NT}\sum\hat u_{it}^2\pto\frac{T-1}{T}\sigma_u^2$（$T=2$ 只估一半）。正确（同方差无序列相关下无偏，Hansen 17.12）：
+\begin{equation}\label{eq:QU10a-s2}
+\hat\sigma_u^2=\frac{1}{NT-N-K}\sum_{i=1}^N\sum_{t=1}^T\hat u_{it}^2\qquad(\text{扣 $N$ 个 $\alpha_i$ 与 $K$ 个斜率}).
+\end{equation}
+
+% ======================================================================
+\section{组内（WG）变换与固定效应估计量}\label{sec:QU10a-wg}
+
+\subsection{组内变换与 \texorpdfstring{$\hat\beta_{FE}$}{beta\_FE}（求和形式）}
+时间平均 $\bar y_{i\cdot}=\alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot}$（对它 OLS 即组间估计量 between estimator）；原式减之，$\alpha_i$ 消失：
+\begin{equation}\label{eq:QU10a-within}
+\dot y_{it}=\dot x_{it}\T\beta+\dot u_{it},\quad \dot z_{it}=z_{it}-\bar z_{i\cdot};\qquad
+\boxed{\hat\beta_{FE}=\hat\beta_{WG}=\Big(\sum_{i,t}\dot x_{it}\dot x_{it}\T\Big)^{-1}\sum_{i,t}\dot x_{it}\dot y_{it}}
+\end{equation}
+\term{组内变换}{within-group transformation}（\term{去均值}{demeaning}）。$\sum_t\dot z_{it}=0$\ $\Rightarrow$\ $\sum_t\dot x_{it}\dot y_{it}=\sum_t\dot x_{it}y_{it}$：$y$ 去不去均值都行，\key{$x$ 必须去均值}。
+
+\subsection{矩阵形式：\texorpdfstring{$M_T\one_T=0$}{M\_T 1 = 0}，\texorpdfstring{$M_D=I_N\otimes M_T$}{M\_D = I\_N kron M\_T}}
+$P_TY_i=\one_T\bar y_{i\cdot}$，$M_TY_i=\dot Y_i$（\term{去均值矩阵}{demeaning matrix}/组内算子）；$M_T\one_T=0$\ $\Rightarrow$\ $M_TY_i=M_TX_i\beta+M_TU_i$，
+\begin{equation}\label{eq:QU10a-fe-mat}
+\hat\beta_{FE}=\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_TY_i=(X\T M_DX)\inv X\T M_DY,\qquad X_i\T M_TX_i=\dot X_i\T\dot X_i=\sum_t\dot x_{it}\dot x_{it}\T .
+\end{equation}
+
+\subsection{一致性：秩条件 + 严格外生（对 \texorpdfstring{$\alpha_i$}{alpha\_i} 无要求）}
+$\hat\beta_{FE}-\beta=(\frac1N\sum_iX_i\T M_TX_i)\inv\frac1N\sum_iX_i\T M_TU_i\pto Q_T\inv\E(X_i\T M_TU_i)$，$\E(X_i\T M_TU_i)=\sum_t\E(x_{it}u_{it})-\frac1T\sum_{t,s}\E(x_{is}u_{it})$。
+\begin{enumerate}[label=(\roman*)]
+\item \key{秩条件} $Q_T=\E(\sum_t\dot x_{it}\dot x_{it}\T)>0$：回归元须有个体内时间变异；时不变变量 $\dot x\equiv0$，系数不可识别。
+\item \term{严格外生}{strict exogeneity}：$\E(x_{is}u_{it})=0$，$\forall s,t$（条件版 $\E(u_{it}\mid x_{i1},\dots,x_{iT},\alpha_i)=0$）；无偏需 $\E(U_i\mid X_i)=0$。
+\end{enumerate}
+\textbf{易错}：同期外生 $\E(u_{it}\mid x_{it})=0$ \key{不够}（$\bar x_{i\cdot},\bar u_{i\cdot}$ 含所有期）。严格外生排除：(a) 滞后因变量（$\E(x_{i,t+1}u_{it})\neq0$，Nickell 偏误；AR(1)、$T=3$ 时 $\E(\dot x_{i2}\dot u_{i2})=-\frac{4-\rho}{9}\sigma_u^2$）；(b) \term{反馈效应}{feedback}（$u_{it}$ 影响 $x_{i,t+1}$）。
+
+\subsection{渐近正态（Hansen 定理 17.2）}
+条件：$T\ge2$ 固定；$(X_i,U_i)$ 跨 $i$ i.i.d.；严格外生；$Q_T>0$；四阶矩有限。则 $\sqrt N(\hat\beta_{FE}-\beta)\dto N(0,Q_T\inv\Omega_TQ_T\inv)$，$\Omega_T=\E(\dot X_i\T U_iU_i\T\dot X_i)$ \whyin{分母 WLLN、分子 CLT、Slutsky}；归一化 $\sqrt N$（$\sqrt{NT}$ 只差常数 $\sqrt T$）。
+
+\subsection{效率代价；一阶差分（FD）；非线性项陷阱}
+\begin{itemize}
+\item \key{丢弃个体间变异}：$\sum_iX_i\T X_i-\sum_iX_i\T M_TX_i=\sum_iX_i\T P_TX_i=T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T\ge0$；总体版 $\sum_t\Var(\dot x_{it})=\sum_t\Var(x_{it})-T\Var(\bar x_{i\cdot})$。若 $\alpha_i=0$ 且同方差：$V^0_{FE}=\sigma_u^2(\sum\dot X_i\T\dot X_i)\inv\ge\sigma_u^2(\sum X_i\T X_i)\inv=V_{pool}$（Hansen 17.9）；$x$ 个体内几乎不变时 WG 很不精确。
+\item \term{一阶差分}{first-difference}：$\Delta y_{it}=\Delta x_{it}\T\beta+\Delta u_{it}$，$\hat\beta_\Delta=(\sum_i\sum_{t\ge2}\Delta x_{it}\Delta x_{it}\T)\inv\sum_i\sum_{t\ge2}\Delta x_{it}\Delta y_{it}$。$T=2$：$\dot x_{i1}=-\frac12\Delta x_{i2}$，$\dot x_{i2}=\frac12\Delta x_{i2}$，因子 $\frac12$ 约掉\ $\Rightarrow$\ $\hat\beta_\Delta=\hat\beta_{FE}$。$T>2$、$u$ i.i.d.：$\Var(DU_i)=\sigma_u^2DD\T$（负一阶相关），差分 GLS 用 $D\T(DD\T)\inv D=M_T$\ $\Rightarrow$\ 差分 GLS $=$ FE，FE 更有效（在消去 $\alpha_i$ 的估计量类中 Gauss–Markov 有效，Hansen 17.10）。动态面板反过来：用差分 + IV。
+\item \key{非线性项}：先生成 $x^2$、$x_1x_2$ 再逐个去均值，用 $x_{it}^2-\overline{x^2}_{i\cdot}$，\key{不用} $(\dot x_{it})^2$；后者与前者差 $-2x_{it}\bar x_{i\cdot}+\bar x_{i\cdot}^2+\overline{x^2}_{i\cdot}$，进入误差且与 $\alpha_i$（经 $\bar x_{i\cdot}$）相关 → 不一致。\texttt{xtreg, fe} 自动正确。
+\end{itemize}
+\textit{FE requires strict exogeneity, $E(x_{is}u_{it})=0$ for all $s,t$; contemporaneous exogeneity is not enough.}
+
+% ======================================================================
+\section{用 FWL 定理证明 LSDV \texorpdfstring{$=$}{=} WG}\label{sec:QU10a-fwl}
+
+\subsection{FWL 与四步证明：\texorpdfstring{$M_{D_\alpha}=I_N\otimes M_T$}{M\_D = I\_N kron M\_T}}
+FWL：$\hat\beta_1=(X_1\T M_2X_1)\inv X_1\T M_2Y$，$M_2=I-X_2(X_2\T X_2)\inv X_2\T$（\term{残差生成矩阵}{residual maker}），残差相同。取 $X_1=X$，$X_2=D_\alpha$：
+\begin{align*}
+D_\alpha\T D_\alpha &= (I_N\otimes\one_T\T)(I_N\otimes\one_T)=I_N\otimes(\one_T\T\one_T)=TI_N \why{转置与混合积}\\
+P_{D_\alpha} &= T\inv(I_N\otimes\one_T)(I_N\otimes\one_T\T)=I_N\otimes P_T \why{$P_T=T^{-1}\one_T\one_T'$}\\
+M_{D_\alpha} &= I_N\otimes I_T-I_N\otimes P_T=I_N\otimes M_T\equiv M_D \why{分配律}\\
+\hat\beta_{LSDV} &= (X\T M_DX)\inv X\T M_DY=\Big(\textstyle\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_TY_i=\hat\beta_{FE} \why{FWL；块对角}
+\end{align*}
+\key{Hansen 定理 17.1}：LSDV 与 WG \key{数值完全相同}、残差相同（FWL 最重要的应用，Hansen 17.11）。
+
+\subsection{推论：\texorpdfstring{$\hat\alpha_i$}{alpha\_i-hat}、残差、对 \texorpdfstring{$\alpha$}{alpha} 不变、\texorpdfstring{$M_D$}{M\_D} 的秩}
+\begin{itemize}
+\item $\hat\alpha=(D_\alpha\T D_\alpha)\inv D_\alpha\T(Y-X\hat\beta)$\ $\Rightarrow$\ $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta$（个体内残差和为 0，Hansen 17.17）。
+\item $\hat U_{LSDV}=M_D(Y-X\hat\beta)=\dot Y-\dot X\hat\beta=\hat U_{WG}$：SSR 相同，只有自由度算法可能不同。
+\item $M_DD_\alpha=I_N\otimes(M_T\one_T)=0$\ $\Rightarrow$\ $\hat\beta_{FE}=\beta+(X\T M_DX)\inv X\T M_DU$，与 $\alpha$ 无关（对 $\alpha_i$ 稳健的代数根源）；只用组内偏离，故名“组内”。
+\item $M_D$ 对称幂等，$\rank M_D=\tr M_D=\tr I_N\cdot\tr M_T=N(T-1)$\ $\Rightarrow$\ 残差自由度 $N(T-1)-K=NT-N-K$。
+\end{itemize}
+
+% ======================================================================
+\section{固定效应估计量的方差估计}\label{sec:QU10a-var}
+
+\subsection{夹心形式与经典方差（自由度 \texorpdfstring{$NT-N-K$}{NT-N-K}）}
+$A=\sum_i\dot X_i\T\dot X_i$，$\Sigma_i=\E(U_iU_i\T\mid X_i)$ 任意，个体间独立：
+\[
+\Var(\hat\beta_{FE}\mid X)=A\inv\Big(\sum_iX_i\T M_T\Sigma_iM_TX_i\Big)A\inv=A\inv\Big(\sum_i\dot X_i\T\Sigma_i\dot X_i\Big)A\inv\qquad\text{\whyin{$\Var(BU_i)=B\Sigma_iB'$}}
+\]
+（\term{夹心形式}{sandwich form}，Hansen 17.9）。$\Sigma_i=\sigma_u^2I_T$\ $\Rightarrow$\ $V^0_{FE}=\sigma_u^2A\inv$，$\hat\sigma_u^2$ 用 \eqref{eq:QU10a-s2}，即 \texttt{xtreg, fe} 默认。\textbf{易错}：手工 \texttt{reg ydot xdot} 用 $NT-K$，s.e. 被低估为正确值的 $\sqrt{(NT-N-K)/(NT-K)}$ 倍（$N=100,T=5,K=2$：0.894；$T=2$：约 $\sqrt{1/2}$）。
+
+\subsection{HAC 与按个体聚类的稳健方差（Arellano 1987）}
+面板误差有个体内异方差与自相关（HAC）；短面板把每个个体当一个簇，\key{不对 $\Sigma_i$ 参数化}（无需 Newey–West 带宽）：
+\begin{equation}\label{eq:QU10a-cluster}
+\hat V^{\,cluster}_{FE}=A\inv\Big(\sum_i\dot X_i\T\hat U_i\hat U_i\T\dot X_i\Big)A\inv,\qquad \hat U_i=\dot Y_i-\dot X_i\hat\beta_{FE}.
+\end{equation}
+允许任意 $\Sigma_i$，只要求\key{个体间独立}、$N\to\infty$。原理：真值下 $\dot X_i\T\hat U_i=\dot X_i\T U_i$，$\E(\dot X_i\T\hat U_i\hat U_i\T\dot X_i\mid X)=\dot X_i\T\Sigma_i\dot X_i$；\key{无需}为 $N$ 个固定效应调自由度。小样本调整（Hansen 17.12–17.13）：不调整（\texttt{xtreg}）；$\times\frac N{N-1}$（C. Hansen 2007，Hansen 认为最合适）；$\times\frac{n-1}{n-N-K}\frac N{N-1}$（$\approx\frac T{T-1}$，\texttt{areg}/LSDV，最保守、无理论依据）。一般簇 $g$：$(\sum_g\dot X_g\T\dot X_g)\inv\sum_g\dot X_g\T\hat U_g\hat U_g\T\dot X_g(\sum_g\dot X_g\T\dot X_g)\inv$。
+
+\subsection{White 稳健方差为何不一致；聚类层级与簇数}
+White 型 $A\inv(\sum_{i,t}\dot x_{it}\dot x_{it}\T\hat u_{it}^2)A\inv$ 在 $T$ 固定时\key{不一致}（Stock–Watson 2008；Hansen 17.22）：无序列相关时
+$\E(\hat u_{it}^2\mid X)=\sigma_{it}^2-\frac2T\sigma_{it}^2+\frac1T\bar\sigma_i^2=\frac{T-2}T\sigma_{it}^2+\frac1T\bar\sigma_i^2$，不与 $\sigma_{it}^2$ 成比例，偏差 $O(1/T)$；仅同方差或 $T=2$ 时无偏。故 \texttt{xtreg, fe vce(robust)} 实为\key{按个体聚类}；\texttt{areg, robust} 是有偏 White 型 → 改 \texttt{vce(cluster id)}。层级：\key{至少聚类到个体}；同行业/省份内冲击相关则在更高层级聚类（个体嵌套于簇），有效样本量为簇数 $G$，经验 $G\ge30$；截面 \texttt{reg y x, vce(cluster cid)} 可按任意分组变量聚类。
+
+\subsection{Stata 汇总与 \texorpdfstring{$R^2$}{R2} 口径；答题模板}
+\texttt{xtset id year}；\texttt{xtreg y x, fe vce(cluster id)}（WG）；\texttt{areg y x, absorb(id) vce(cluster id)}；\texttt{reg y x i.id, vce(cluster id)}（LSDV）。$\hat\beta$ 相同；差别在小样本调整与 $R^2$：\texttt{xtreg, fe} 报告 within/between/overall $R^2$，LSDV、\texttt{areg} 的 $R^2$ 含虚拟变量解释力（大得多）。
+
+\key{答题模板}：误差分解 → 夹心式 → 个体内序列相关 + 异方差 → 按个体聚类 \eqref{eq:QU10a-cluster}（个体间独立、$N$ 大）→ White 型不一致 → \texttt{vce(cluster id)}。\textit{Cluster FE standard errors by individual; White SEs are inconsistent with fixed $T$.}

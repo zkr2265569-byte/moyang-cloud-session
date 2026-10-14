@@ -1,0 +1,417 @@
+% ======================================================================
+% 单元 D04b：第 4 章后半 —— KNN、朴素贝叶斯、决策树、集成学习、LDA、对比总表
+% ======================================================================
+\renewcommand{\arraystretch}{1.12}
+\section{k 近邻（KNN）}
+
+\subsection{KNN 思想：多数表决/平均、懒惰学习与非参数}
+\term{k 近邻}{k-nearest neighbors, KNN}：对测试样本 $x$，在训练集中找距离最近的 $k$ 个样本 $N_k(x)$，
+\[\hat y=\argmax_c\sum_{x_i\in N_k(x)}\mathbf{1}\{y_i=c\}\ \text{（分类，多数表决）},\qquad \hat y=\frac1k\sum_{x_i\in N_k(x)}y_i\ \text{（回归）}.\]
+\term{懒惰学习}{lazy learning}：训练只存样本，计算推迟到预测时（先训练出模型的称\term{急切学习}{eager learning}）；\key{非参数}：模型复杂度随数据量增长。\key{三要素}：距离度量、$k$ 值、决策规则（多数表决或距离加权 $w_i=1/d(x,x_i)$）。归纳偏置：小局部区域内样本大多同类。
+
+\subsection{距离度量：闵可夫斯基、欧氏、曼哈顿、切比雪夫、余弦、汉明与马氏}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.9cm}Lp{2.5cm}L@{}}
+\toprule
+闵可夫斯基 $L_p$ & $\big(\sum_{j=1}^d|x_j-z_j|^p\big)^{1/p}$，$p\ge1$ & 欧氏 $L_2$（$p=2$） & $\sqrt{\sum_j(x_j-z_j)^2}$ \\
+曼哈顿 $L_1$（$p=1$） & $\sum_j|x_j-z_j|$ & 切比雪夫 $L_\infty$ & $\max_j|x_j-z_j|$（$p\to\infty$） \\
+余弦相似度 & $\frac{x^\top z}{\|x\|\|z\|}\in[-1,1]$，余弦距离 $1-\cos$；只看方向（文本向量） & 马氏距离 & $\sqrt{(x-z)^\top\Sigma^{-1}(x-z)}$，计入相关性与尺度 \\
+汉明距离 & 取值不同的特征个数（类别特征） & 大小关系 & $L_1\ge L_2\ge L_3\ge L_\infty$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\noindent 示意：$x=(1,2,3)$，$z=(4,0,3)$：$L_1=5$，$L_2=\sqrt{13}=3.606$，$L_3=35^{1/3}=3.271$，$L_\infty=3$；$\cos=13/(\sqrt{14}\times5)=0.695$。
+
+\subsection{\texorpdfstring{$k$}{k} 的选择（偏差–方差）、标准化与维数灾难}
+\begin{itemize}
+\item \key{$k$ 小}（$k=1$）：边界曲折、对噪声敏感，\key{低偏差高方差}；1-NN 训练误差恒为 0（无重复样本）。\key{$k$ 大}：边界平滑，高偏差低方差；$k=N$ 时恒预测多数类。同一点随 $k=1,3,5,7$ 结论可 A/B/A/B 来回变 $\Rightarrow$ \key{$k$ 用交叉验证选}；二分类取奇数避免平票。Cover \& Hart（1967）：$N\to\infty$ 时 1-NN 错误率 $\le$ 2 倍贝叶斯最优错误率。
+\item \key{必须标准化}：距离直接相加各特征差，取值范围大的特征主导。示意：$q=(30\text{岁},8000\text{元})$，$a=(32,8500)$，$b=(55,8000)$：未缩放 $d(q,a)=500>d(q,b)=25$；按标准差（10 岁、2000 元）缩放后 $0.32<2.5$。z-score 或 min-max。同样需缩放：SVM、K-means、PCA、正则化线性模型、神经网络；决策树及其集成不需要（对单调变换不敏感）。
+\item \key{维数灾难}：高维样本稀疏，“近邻”也很远，距离失去区分度。单位超立方体中含 10\% 样本的小立方体边长 $0.1^{1/d}$：$d=1,2,10,100$ 时 $0.1,0.316,0.794,0.977$。对策：特征选择、降维（PCA）、度量学习。
+\end{itemize}
+
+\subsection{kd 树：中位数切分构造与回溯最近邻搜索}
+\term{kd 树}{k-d tree}对 $d$ 维空间做二叉划分（k 指维数），用于替代计算 $N$ 个距离的线性扫描。
+\begin{itemize}
+\item \key{构造}：根选第 1 维（或方差最大维），以该维\key{中位数点}切分，左小右大；子区域递归，切分维按 $1,2,\dots,d,1,\dots$ 轮换；无点时停。树平衡，深度约 $\log_2N$。
+\item \key{搜索}：(1) 从根按切分维下行到叶，作当前最近点，距离 $r$；(2) \key{回溯}：每个节点 (a) 若其点更近则更新 $r$；(b) 若\key{目标点到该节点切分超平面的距离 $|q_s-t_s|<r$}（球跨过切分面），搜索另一侧子树，否则整棵剪掉；(3) 回到根结束。\textbf{易错}：比较的是到切分面的距离，不是到节点点的距离。
+\item 低维平均 $O(\log N)$；$d>20$ 左右退化为线性扫描；替代：球树（ball tree）、近似最近邻（ANN）。示意：点 $(3,6),(7,2),(5,8),(1,3),(8,7),(2,9),(6,4)$，根 $(5,8)$ 切 $x$，左 $(3,6)$、右 $(6,4)$ 切 $y$；查 $q=(6,7)$：下行到 $(8,7)$，$r=2$；在 $(6,4)$ 处 $|7-4|=3\ge2$ 剪枝；在根处 $d=1.414$ 更新，$|6-5|=1<1.414$ 须查左子树，无更近 $\Rightarrow(5,8)$。
+\end{itemize}
+
+\subsection{KNN 优缺点与 sklearn}
+优点：简单、无训练成本、天然多分类、边界无形状假设、新数据可直接加入。缺点：预测慢、存全部样本；对尺度、无关特征、噪声敏感；高维失效；不平衡时多数类占优（可距离加权）；不可解释。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.neighbors import KNeighborsClassifier      # 回归：KNeighborsRegressor
+from sklearn.pipeline import make_pipeline; from sklearn.preprocessing import StandardScaler
+knn = make_pipeline(StandardScaler(), KNeighborsClassifier(n_neighbors=5,
+          weights="distance", p=2, algorithm="kd_tree"))   # weights="uniform"；p=1 曼哈顿
+\end{lstlisting}
+
+% ======================================================================
+\section{朴素贝叶斯}
+
+\subsection{贝叶斯决策论：条件风险与贝叶斯最优分类器}
+$\lambda_{ab}$：把真实 $c_b$ 误判为 $c_a$ 的损失。\term{条件风险}{conditional risk} $R(c_a\mid x)=\sum_{b=1}^K\lambda_{ab}P(c_b\mid x)$；\term{贝叶斯最优分类器}{Bayes optimal classifier} $h^*(x)=\argmin_cR(c\mid x)$，其风险（贝叶斯风险）是任何分类器的下限。\key{0-1 损失}（$\lambda_{ab}=\mathbf 1\{a\ne b\}$）下 $R(c\mid x)=1-P(c\mid x)$ $\Rightarrow$ $h^*(x)=\argmax_cP(c\mid x)$（\key{最大后验}）。判别式方法直接建模 $P(c\mid x)$；生成式方法建模先验 $P(c)$ 与似然 $P(x\mid c)$，再用 $P(c\mid x)\propto P(c)P(x\mid c)$ 翻转（$P(x)$ 各类相同）。
+
+\subsection{条件独立性假设与朴素贝叶斯分类器}
+$P(x\mid c)$ 是联合分布，$d$ 个二值特征每类需 $2^d-1$ 个概率，样本不够。\term{朴素贝叶斯}{naive Bayes}假设\key{给定类别，特征相互条件独立}：
+\[
+P(x\mid c)=\prod_{j=1}^dP(x_j\mid c),\qquad
+h_{nb}(x)=\argmax_c P(c)\prod_{j=1}^dP(x_j\mid c)=\argmax_c\Big[\ln P(c)+\sum_j\ln P(x_j\mid c)\Big]
+\]
+（参数降到每类 $d$ 个；取对数防下溢）。假设通常不成立，但分类只需后验\key{排序}正确，效果往往仍好；输出概率过于极端、\key{校准差}。
+
+\subsection{参数估计：最大似然、拉普拉斯平滑与手算步骤（打网球示意）}
+MLE：$\hat P(c)=\frac{|D_c|}{|D|}$，$\hat P(x_j=a\mid c)=\frac{|D_{c,j=a}|}{|D_c|}$。\key{零概率}：某值在某类未出现 $\Rightarrow$ 连乘为 0，其他特征信息全被抹掉。\term{拉普拉斯平滑}{Laplace smoothing}（$K$ 类别数，$S_j$ 第 $j$ 特征\key{取值个数}）：
+\[
+\hat P(c)=\frac{|D_c|+1}{|D|+K},\qquad \hat P(x_j=a\mid c)=\frac{|D_{c,j=a}|+1}{|D_c|+S_j}.
+\]
+加 $\alpha$（分母加 $\alpha K$、$\alpha S_j$）称 Lidstone 平滑；平滑后仍归一；= 均匀 Dirichlet 先验下的后验均值；$N$ 大时影响 $\to0$。\textbf{易错}：分母加 $S_j$ 不是类别数；sklearn 只平滑 $P(x_j\mid c)$，先验不平滑。
+\textbf{手算步骤}：先验 $\to$ 查询各特征值的类内计数（必要时平滑）$\to$ 每类连乘 $\to$ 比较/归一化。示意（打网球 14 天，是 9 否 5，查“晴、凉、高湿、强风”）：不平滑 $\frac9{14}\cdot\frac29\cdot\frac39\cdot\frac39\cdot\frac39=0.00529$ 对 $\frac5{14}\cdot\frac35\cdot\frac15\cdot\frac45\cdot\frac35=0.02057$，$P(\text{否}\mid x)=0.795$；平滑后 $0.00689$ 对 $0.01913$，$0.735$（被拉向中间）。
+
+\subsection{三种朴素贝叶斯：高斯、多项式与伯努利}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{2.3cm}p{4.6cm}L@{}}
+\toprule
+类型 & 特征 & 类条件概率 & 估计 \\
+\midrule
+高斯 & 连续 & $\mathcal N(x_j;\mu_{c,j},\sigma^2_{c,j})$ 密度代入连乘 & 类内均值、MLE 方差（除以 $|D_c|$）\\
+多项式 & 计数（词频、TF-IDF） & $\prod_wP(w\mid c)^{n_w}$（$n_w$ 为出现次数） & $\frac{\text{类 }c\text{ 中 }w\text{ 的次数}+1}{\text{类 }c\text{ 总词数}+|V|}$（$|V|$ 词表大小）\\
+伯努利 & 二值（是否出现） & $\prod_{w\in V}p_{w,c}^{x_w}(1-p_{w,c})^{1-x_w}$ & $\frac{\text{类 }c\text{ 中含 }w\text{ 的文档数}+1}{|D_c|+2}$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+伯努利对\key{没出现的词也乘 $(1-p)$}、不计次数，适合短文本；多项式只对出现的词计次数，适合长文本（文本分类常用 TF-IDF + 多项式 NB）。高斯 NB 比较“\key{密度 $\times$ 先验}”而非到均值的距离：方差大、先验大的类可胜出。
+
+\subsection{放松条件独立：半朴素贝叶斯（ODE、SPODE、TAN、AODE）与贝叶斯网}
+\begin{itemize}
+\item \term{独依赖估计}{one-dependent estimator, ODE}（半朴素贝叶斯）：每个特征除类别外最多依赖一个父特征，$P(c\mid x)\propto P(c)\prod_jP(x_j\mid c,pa_j)$。SPODE：都依赖同一“超父”；TAN：以条件互信息 $I(x_i;x_j\mid y)$ 为边权求最大带权生成树定父特征；AODE：每个特征轮流作超父训练 SPODE 后平均。
+\item \term{贝叶斯网}{Bayesian network}：DAG + 每节点条件概率表（CPT）；给定父节点，节点与非后代条件独立 $\Rightarrow P(x_1,\dots,x_d)=\prod_jP(x_j\mid\pi_j)$。朴素贝叶斯是最简单的贝叶斯网（$y$ 为各特征唯一父节点）。学习：结构学习（BIC/MDL 评分搜索）+ 参数学习（计数估 CPT）；精确推断 NP 难，常用吉布斯采样。推断：$P(D{=}1)=\sum_{e,l}P(e)P(l)P(D{=}1\mid e,l)$，$P(E{=}1\mid D{=}1)=P(E{=}1,D{=}1)/P(D{=}1)$（示意：$0.1052$，后验 $0.058/0.1052=0.551$，高于先验 0.2）。
+\end{itemize}
+
+\subsection{与 Logistic 回归的关系、优缺点与 sklearn}
+$\ln\frac{P(c_1\mid x)}{P(c_0\mid x)}=\ln\frac{P(c_1)}{P(c_0)}+\sum_j\ln\frac{P(x_j\mid c_1)}{P(x_j\mid c_0)}$ 对离散/计数特征是\key{线性函数} $\Rightarrow$ NB 是线性分类器，与 LR 形式相同、估计不同（NB 生成式计数闭式；LR 最大化条件似然）。Ng \& Jordan（2002）：小样本 NB 更快接近渐近误差，大样本 LR 渐近误差更低。优点：极快、适合高维稀疏（文本）、小样本可用、可增量学习、对无关特征稳健。缺点：独立假设强（相关特征证据重复计算）、校准差、需平滑、连续特征需假设分布。sklearn：\texttt{GaussianNB()}、\texttt{MultinomialNB(alpha=1.0)}（词频/TF-IDF）、\texttt{BernoulliNB(alpha=1.0, binarize=0.0)}、\texttt{CategoricalNB(alpha=1.0)}（类别编码为 0,1,2,\dots）。
+
+% ======================================================================
+\section{决策树}
+
+\subsection{基本思想与递归生成算法（三种返回情形）}
+\term{决策树}{decision tree}：内部节点检验特征、分支对应取值、叶给预测；根到叶路径即规则；特征空间被划分为\key{与坐标轴平行的矩形}。递归生成 $(D,A)$：
+(1) $D$ \key{全属同一类} $\Rightarrow$ 叶；(2) $A=\varnothing$ 或 $D$ 在 $A$ 上\key{取值全同} $\Rightarrow$ 叶，取 $D$ 多数类；(3) 选最优划分特征 $a_*$；(4) 对每个取值生成分支 $D^v$：$D^v$ \key{为空} $\Rightarrow$ 叶，取\key{父节点} $D$ 的多数类；否则递归 $(D^v,A\setminus\{a_*\})$。
+
+\subsection{信息熵、条件熵与信息增益（ID3）；对多取值特征的偏好}
+\[
+\mathrm{Ent}(D)=-\sum_{k=1}^Kp_k\log_2p_k,\quad
+\mathrm{Gain}(D,a)=\mathrm{Ent}(D)-\underbrace{\sum_{v=1}^V\frac{|D^v|}{|D|}\mathrm{Ent}(D^v)}_{\text{条件熵 }\mathrm{Ent}(D\mid a)}.
+\]
+熵 $\in[0,\log_2K]$（$0\log0=0$）；Gain 即 $a$ 与类别的互信息；\key{ID3}（Quinlan, 1986）选 Gain 最大。常用值：$\mathrm{Ent}(\frac12)=1$，$(\frac14,\frac34)=0.811$，$(\frac13,\frac23)=0.918$，$(\frac25,\frac35)=0.971$，$(\frac15,\frac45)=0.722$，$(\frac17,\frac67)=0.592$，$(\frac27,\frac57)=0.863$，$(\frac37,\frac47)=0.985$，$(\frac9{14},\frac5{14})=0.940$。\key{缺陷：偏好取值多的特征}（“编号”每支 1 例，Gain $=\mathrm{Ent}(D)$ 最大却无泛化能力）。
+
+\subsection{增益率与 C4.5 启发式}
+$\mathrm{Gain\_ratio}(D,a)=\dfrac{\mathrm{Gain}(D,a)}{\mathrm{IV}(a)}$，$\mathrm{IV}(a)=-\sum_v\frac{|D^v|}{|D|}\log_2\frac{|D^v|}{|D|}$（固有值/分裂信息，“编号”为 $\log_2N$）。增益率又偏好取值少的特征 $\Rightarrow$ \key{C4.5}（Quinlan, 1993）：\key{先选信息增益高于平均的特征，再取其中增益率最高者}；还能处理连续值、缺失值并后剪枝。
+
+\subsection{基尼指数与 CART 二叉划分}
+$\mathrm{Gini}(D)=\sum_k\sum_{k'\ne k}p_kp_{k'}=1-\sum_kp_k^2$（随机抽两例类别不同的概率，二分类最大 0.5）；$\mathrm{Gini\_index}(D,a)=\sum_v\frac{|D^v|}{|D|}\mathrm{Gini}(D^v)$，取最小。\key{CART}（Breiman 等, 1984）生成\key{二叉树}：离散特征枚举“$a\in S$ vs $a\notin S$”（$2^{V-1}-1$ 种，常简化为 $a=v$ vs $a\ne v$），连续特征“$x\le t$ vs $x>t$”，取加权基尼最小的（特征，切分）；分类用基尼，回归用平方误差。
+
+\subsection{三种不纯度的比较：熵、基尼、误分类率}
+二分类正类比例 $p$：熵 $-p\log_2p-(1-p)\log_2(1-p)$（最大 1）、基尼 $2p(1-p)$（最大 0.5）、误分类率 $1-\max(p,1-p)$（最大 0.5），都在 $p=0.5$ 最大。熵与基尼严格凹、对纯度变化敏感，结果通常接近，基尼不算对数更快；误分类率分段线性，常“划分后不变但子节点更纯”，\key{不用于选划分}（可用于剪枝）。
+
+\subsection{根节点划分的手算流程（ID3 / C4.5 / CART）}
+(1) 算 $\mathrm{Ent}(D)$、$\mathrm{Gini}(D)$；(2) 每特征列各取值的类别计数 $\to$ 子集熵、基尼；(3) Gain、IV、增益率、加权基尼列表；(4) ID3 取 Gain 最大；C4.5 先筛高于平均增益再取增益率最大；CART 枚举所有“取值 vs 其余”二分。示意（贷款 12 例，违约 6:6）：Gain 收入 0.459、有房 0.311、信用 0.126 $\Rightarrow$ ID3 选收入；增益率 0.290、0.384、0.079（平均增益 0.299）$\Rightarrow$ C4.5 选有房；“收入 = 高 vs \{中, 低\}”加权基尼 $\frac8{12}\times0.375=0.250$ 最小 $\Rightarrow$ CART 选它。
+
+\subsection{连续值处理：二分法}
+排序 $x^{(1)}<\dots<x^{(n)}$，候选切分点取中点 $t_i=\frac{x^{(i)}+x^{(i+1)}}2$（$n-1$ 个），$\mathrm{Gain}(D,x)=\max_t\mathrm{Gain}(D,x,t)$，$D_t^-=\{x\le t\}$、$D_t^+=\{x>t\}$。要点：最优点只在\key{相邻且类别不同}的样本之间；连续特征在子节点中\key{可再次使用}；候选多、天然占便宜（C4.5 后续版本加惩罚）。示意：负债率只比 3 个候选，增益 0.459、0.196、0.655，选 $\le0.525$。
+
+\subsection{缺失值处理：C4.5 的加权方法}
+样本权重 $w_x$（初值 1），$\tilde D$ 为在 $a$ 上无缺失的子集，$\rho=\sum_{\tilde D}w_x/\sum_Dw_x$。\key{选特征}：$\mathrm{Gain}(D,a)=\rho\times\mathrm{Gain}(\tilde D,a)$；\key{分配}：缺失样本\key{同时进入所有分支}，进入分支 $v$ 时权重乘 $\tilde r_v$（$\tilde D$ 中取 $a^v$ 的权重占比）。示意：$\rho=10/12$，$\mathrm{Gain}(\tilde D)=0.396\Rightarrow0.330$。sklearn（1.3 起）决策树原生支持缺失值（缺失样本整体试送左/右，取更优）。
+
+\subsection{剪枝：预剪枝、后剪枝与代价复杂度剪枝}
+\begin{itemize}
+\item \key{预剪枝}：生成中若划分不提升验证集精度（或样本太少、深度到上限、不纯度下降小于阈值）就停。快、树小；贪心停止有\key{欠拟合}风险（如异或）。sklearn：\texttt{max\_depth}、\texttt{min\_samples\_split}、\texttt{min\_samples\_leaf}、\texttt{min\_impurity\_decrease}、\texttt{max\_leaf\_nodes}。
+\item \key{后剪枝}：先长完整树，自底向上，子树换成叶后验证集精度不降就剪（REP）。欠拟合风险小、泛化通常更好；训练开销大。
+\end{itemize}
+\textbf{代价复杂度剪枝}（CART）：$C_\alpha(T)=C(T)+\alpha|T|$（$C$ 训练误差或总不纯度，$|T|$ 叶数）。内部节点 $t$：
+\begin{align*}
+C_\alpha(t)=C(t)+\alpha,\ \ C_\alpha(T_t)=C(T_t)+\alpha|T_t|\ \Rightarrow\ C_\alpha(t)=C_\alpha(T_t)\iff\alpha=g(t)\equiv\frac{C(t)-C(T_t)}{|T_t|-1} \why{每多一叶换来的误差下降}
+\end{align*}
+剪 $g(t)$ \key{最小}者（最弱一环），$\alpha_1=\min g(t)$；重复得嵌套子树 $T_0\supset T_1\supset\dots\supset\{\text{根}\}$ 与递增 $\alpha$，CV 选最优（\texttt{ccp\_alpha}、\texttt{cost\_complexity\_pruning\_path}）。示意：$g(t_1)=\frac{0.06-0.02}{3-1}=0.02<g(t_2)=g(t_3)=0.03$，先剪 $t_1$。
+
+\subsection{CART 回归树：平方误差切分、叶值取均值}
+$\min_{j,s}\big[\min_{c_1}\sum_{x_i\in R_1}(y_i-c_1)^2+\min_{c_2}\sum_{x_i\in R_2}(y_i-c_2)^2\big]$，$R_1=\{x_j\le s\}$，$R_2=\{x_j>s\}$；叶值 = 区域内 $y$ \key{均值}；剪枝时 $C(T)$ 为叶内平方误差和。示意：$x=1..6$，$y=(4,6,5,10,12,11)$，5 个候选 SSE 合计 38.8、31.0、\textbf{4.0}、21.25、47.2 $\Rightarrow$ 切 $x\le3.5$，叶值 5 与 11。
+
+\subsection{从决策树到分类规则：覆盖率与准确率}
+$\mathrm{coverage}(R)=n_{\text{covers}}/|D|$，$\mathrm{accuracy}(R)=n_{\text{correct}}/n_{\text{covers}}$（$n_{\text{covers}}$ 满足前件数，$n_{\text{correct}}$ 其中后件正确数）。例：IF 收入 $\in$ \{中, 低\} AND 有房 = 否 THEN 违约：覆盖 50\%、准确率 100\%。规则来源：从树提取（每条路径一条，\key{互斥且穷举}）；\key{顺序覆盖}（RIPPER：学一条高准确率规则，删其覆盖样本，再学下一条）。冲突：\key{规模序}（前件条件多者优先）或\key{规则序}（事先排好的决策表）；无规则触发用默认类。
+
+\subsection{决策树优缺点；ID3、C4.5 与 CART 对比；sklearn}
+优：可解释（可画、可转规则）、无需标准化、处理数值与类别特征、自动捕捉非线性与交互、预测快。缺：\key{不稳定、方差大}（正是 Bagging/随机森林的用武之地）；易过拟合需剪枝；贪心不保证全局最优；轴平行边界逼近斜边界需很多“台阶”（斜决策树用 $w^\top x\le t$）。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.5cm}p{2.4cm}p{5.4cm}L@{}}
+\toprule
+ & ID3 & C4.5 & CART \\
+\midrule
+准则 & 信息增益 & 增益率（+ 高于平均增益的启发式） & 基尼（分类）、平方误差（回归） \\
+树形/任务 & 多叉；分类 & 多叉；分类 & 二叉；分类与回归 \\
+连续/缺失 & 不支持/不支持 & 二分法/加权分配 & 支持/替代划分（surrogate split） \\
+剪枝 & 无 & 后剪枝（基于错误率估计的悲观剪枝） & 代价复杂度后剪枝 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor, export_text
+tree = DecisionTreeClassifier(criterion="gini", max_depth=4, min_samples_leaf=5).fit(X_tr, y_tr)  # "entropy"=信息增益
+print(export_text(tree, feature_names=list(names)))
+alphas = tree.cost_complexity_pruning_path(X_tr, y_tr).ccp_alphas   # 再用 CV 选 ccp_alpha
+# sklearn 生成二叉 CART 树，类别特征须先编码；回归：DecisionTreeRegressor(criterion="squared_error")
+\end{lstlisting}
+
+% ======================================================================
+\section{集成学习（一）：基本思想、Bagging 与随机森林}
+
+\subsection{集成为什么有效：“好而不同”}
+\term{集成学习}{ensemble learning}：训练多个个体（基）学习器再结合；同类为同质集成，不同类为异质集成；$M$ 为个体个数。$M$ 个\key{独立}、错误率均为 $\varepsilon<0.5$ 的二分类器多数投票：
+\[
+P(\text{集成出错})=\sum_{k>M/2}\binom Mk\varepsilon^k(1-\varepsilon)^{M-k}\le\exp\!\Big(-\tfrac12M(1-2\varepsilon)^2\Big)\quad\text{（Hoeffding）}.
+\]
+$\varepsilon=0.3$：$M=1,5,11,21$ 时 $0.300,0.163,0.078,0.026$。独立、错误率 0.2/0.3/0.3 的三者投票错 0.174；若三者错误完全相同仍为 0.3。现实中个体错误高度相关 $\Rightarrow$ 关键是\key{好而不同}：有一定准确性（$\varepsilon<0.5$，否则投票更差）且有\key{多样性}；$\Var(\bar f)=\rho\sigma^2+\frac{1-\rho}M\sigma^2$，相关 $\rho$ 越小越好。两大类：\key{并行}——Bagging、随机森林（主要降方差）；\key{串行}——Boosting（主要降偏差）。
+
+\subsection{结合策略：平均、投票与学习法}
+回归：简单平均 $\frac1M\sum_th_t$；加权平均 $\sum_tw_th_t$（$w_t\ge0,\sum w_t=1$，权重要学，易过拟合）。分类：\key{硬投票}（多数/相对多数/加权，用标签）；\key{软投票}（平均类概率再取最大，个体概率校准好时通常更优）。学习法：Stacking。
+
+\subsection{Bagging：自助采样 + 投票/平均；包外（OOB）估计}
+\term{Bagging}{bootstrap aggregating}（Breiman, 1996）：对 $t=1,\dots,M$ 从 $D$ \key{有放回}抽 $N$ 个样本得 $D_t$、训练 $h_t$（可并行）；分类投票 $H(x)=\argmax_c\sum_t\mathbf 1\{h_t(x)=c\}$，回归平均。多样性来自样本扰动；主要\key{降方差}，适合\key{不稳定}学习器（未剪枝树、神经网络），对 KNN、线性模型几乎无效。\term{包外估计}{out-of-bag estimate}：样本不被一次自助采样抽中的概率 $(1-\frac1N)^N\to e^{-1}\approx0.368$；只用没见过 $x_i$ 的学习器投票得 $H^{oob}(x_i)$，$\epsilon^{oob}=\frac1N\sum_i\mathbf 1\{H^{oob}(x_i)\ne y_i\}$ 是泛化误差的近似无偏估计，无需另留验证集。
+
+\subsection{随机森林：样本随机 + 特征随机，\texorpdfstring{$m$}{m} 的取值}
+\term{随机森林}{random forest}（Breiman, 2001）：每棵树用自助样本；\key{每个节点先从 $d$ 个特征中随机选 $m$ 个，再在其中选最优划分}；树充分生长、不剪枝；投票/平均。$m=d$ 即对决策树 Bagging；常用 $m=\sqrt d$（分类，sklearn 默认 \texttt{max\_features="sqrt"}，16 个特征看 4 个）、$\log_2d$、$d/3$（回归经典建议；sklearn 回归器默认用全部特征）。\key{为何特征随机}：强特征会让每棵树根节点都用它，树间 $\rho$ 大；限 $m$ 使树去相关，单树偏差略增但整体方差降更多。性质：树数增加\key{不过拟合}（误差收敛）；超参数少；可并行；给出 OOB 误差与特征重要性。
+
+\subsection{特征重要性：MDI 与置换重要性}
+\key{MDI}（mean decrease in impurity）：特征 $j$ 在所有树中以 $j$ 分裂的节点上（按样本占比）加权不纯度下降之和，对树平均后归一化（\texttt{feature\_importances\_}）；只基于训练数据，偏向高基数连续特征（哪怕是噪声）。\key{置换重要性}（permutation importance）：在 OOB/验证集上打乱第 $j$ 列，看性能下降多少；更可靠、计算量大。共同问题：相关特征“分享”重要性；只说明预测有用性，\key{不是因果效应}；更细的工具：SHAP 值、部分依赖图。
+
+\subsection{随机森林优缺点与 sklearn}
+优：精度高、对超参数不敏感、不需标准化、处理高维与非线性、可并行、自带 OOB 与重要性，是表格数据强基线。缺：失去可解释性；模型大、预测慢；回归\key{不能外推}（不超出训练 $y$ 的范围）；高度不平衡需类别权重。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.ensemble import BaggingClassifier, RandomForestClassifier
+from sklearn.inspection import permutation_importance
+bag = BaggingClassifier(estimator=DecisionTreeClassifier(), n_estimators=200, oob_score=True)
+rf = RandomForestClassifier(n_estimators=500, max_features="sqrt", oob_score=True, n_jobs=-1).fit(X_tr, y_tr)
+print(rf.oob_score_, rf.feature_importances_); pi = permutation_importance(rf, X_te, y_te, n_repeats=10)
+\end{lstlisting}
+
+% ======================================================================
+\section{集成学习（二）：Boosting——AdaBoost、GBDT、XGBoost 与 LightGBM}
+
+\subsection{Boosting 的思想：串行地“纠错”}
+先训练弱学习器（略好于随机猜，如一次划分的\term{决策树桩}{decision stump}），据其表现调整样本分布（或学习目标），让后续学习器关注做错的样本；串行训练 $M$ 个后加权结合。主要\key{降低偏差}，把弱学习器提升为强学习器。
+
+\subsection{AdaBoost 算法：\texorpdfstring{$e_m$、$\alpha_m$}{e\_m, alpha\_m} 与样本权重更新}
+\term{AdaBoost}{adaptive boosting}（Freund \& Schapire, 1997），$y\in\{-1,+1\}$：(1) $w_{1,i}=1/N$；(2) 对 $m=1,\dots,M$：(a) 按权重训练 $G_m$，使 $e_m=\sum_iw_{m,i}\mathbf 1\{G_m(x_i)\ne y_i\}$ 最小；(b) $e_m\ge0.5$ 则停；$\alpha_m=\frac12\ln\frac{1-e_m}{e_m}$；(c) $w_{m+1,i}=w_{m,i}e^{-\alpha_my_iG_m(x_i)}/Z_m$，$Z_m=\sum_iw_{m,i}e^{-\alpha_my_iG_m(x_i)}$；(3) $H(x)=\mathrm{sign}\,F(x)$，$F=\sum_m\alpha_mG_m$。
+$e_m$ 越小 $\alpha_m$ 越大，$e_m=0.5$ 时 $\alpha_m=0$；分错乘 $e^{\alpha_m}>1$、分对乘 $e^{-\alpha_m}<1$。
+
+\subsection{推导：指数损失下的前向分步加法模型}
+用 $L=e^{-yF}$ 拟合 $F=\sum_m\alpha_mG_m$，第 $m$ 步只求新项：
+\begin{align*}
+(\alpha_m,G_m)&=\argmin_{\alpha,G}\sum_ie^{-y_i(F_{m-1}(x_i)+\alpha G(x_i))}=\argmin_{\alpha,G}\sum_i\bar w_{m,i}e^{-\alpha y_iG(x_i)} \why{$\bar w_{m,i}=e^{-y_iF_{m-1}(x_i)}$ 与 $\alpha,G$ 无关}\\
+&=\argmin_{\alpha,G}\Big[(e^\alpha-e^{-\alpha})\sum_i\bar w_{m,i}\mathbf 1\{y_i\ne G(x_i)\}+e^{-\alpha}\sum_i\bar w_{m,i}\Big] \why{分对 $e^{-\alpha}$，分错 $e^\alpha$}\\
+\Rightarrow G_m&=\text{加权错误率最小者};\quad f(\alpha)=e^{-\alpha}(1-e_m)+e^\alpha e_m,\ f'=0\Rightarrow\alpha_m=\tfrac12\ln\tfrac{1-e_m}{e_m} \why{$e^\alpha-e^{-\alpha}>0$；$e^{2\alpha}=\frac{1-e_m}{e_m}$}\\
+\bar w_{m+1,i}&=\bar w_{m,i}e^{-\alpha_my_iG_m(x_i)} \why{$F_m=F_{m-1}+\alpha_mG_m$，归一化即 (c)}
+\end{align*}
+AdaBoost = 加法模型 + 指数损失 + 前向分步，是梯度提升在指数损失下的特例。推论：$Z_m=2\sqrt{e_m(1-e_m)}<1$；新权重错分 $\frac{w}{2e_m}$、分对 $\frac{w}{2(1-e_m)}$，\key{错分权重和恰为 $\frac12$}（$G_m$ 在新分布下等于随机猜）；训练误差 $\le\frac1N\sum_ie^{-y_iF(x_i)}=\prod_mZ_m\le e^{-2M\gamma^2}$（若每轮 $e_m\le\frac12-\gamma$），指数下降。
+
+\subsection{手算 AdaBoost：一维数据与决策树桩（步骤要点）}
+枚举树桩“$x<v$ 判 $s$，否则 $-s$”（$v$ 取中点，$s=\pm1$）选加权错误率最小者 $\to\alpha_m\to$ 错分乘 $e^{\alpha_m}$、分对乘 $e^{-\alpha_m}$ 再除 $Z_m$（用 $\frac w{2e_m}$、$\frac w{2(1-e_m)}$ 核对）$\to F=\sum\alpha_mG_m$ 取符号。示意：10 例首轮错 3 例：$e_1=0.3$，$\alpha_1=\frac12\ln\frac73=0.4236$，$Z_1=0.9165$，新权重错分 $\frac16$、分对 $\frac1{14}$；三轮后训练误差 10\%；训练误差不一定逐轮单调降，但上界 $\prod Z_m$ 逐轮降（$0.9165\to0.828\to0.732$）。$e_m=0.2$：$\alpha_m=\ln2$，归一化后错分 $\times2.5$、分对 $\times0.625$。
+
+\subsection{GBDT：拟合负梯度（伪残差）的加法模型}
+\term{梯度提升}{gradient boosting}（Friedman, 2001）：把各样本上的 $F(x_i)$ 当参数，在\key{函数空间做梯度下降}；负梯度只在训练点有定义，故用回归树拟合以推广到新 $x$。回归树为基学习器即 \key{GBDT}（GBM、MART）；学习率 $\nu$。
+(1) $F_0=\argmin_c\sum_iL(y_i,c)$（平方损失 $\bar y$，对数损失 $\ln\frac{\bar y}{1-\bar y}$）；(2) 对 $m=1..M$：伪残差 $r_{im}=-\big[\frac{\partial L(y_i,F(x_i))}{\partial F(x_i)}\big]_{F=F_{m-1}}$；以 $\{(x_i,r_{im})\}$ 拟合回归树得叶区域 $R_{jm}$；叶值 $c_{jm}=\argmin_c\sum_{x_i\in R_{jm}}L(y_i,F_{m-1}(x_i)+c)$（平方损失为叶内伪残差均值）；$F_m=F_{m-1}+\nu\sum_jc_{jm}\mathbf 1\{x\in R_{jm}\}$；(3) 输出 $F_M$（分类再经 Sigmoid/Softmax）。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{5.4cm}p{4.8cm}L@{}}
+\toprule
+损失 $L(y,F)$ & 负梯度 $r$ & 说明 \\
+\midrule
+平方 $\frac12(y-F)^2$ & $y-F$ & 残差：“拟合残差” \\
+绝对 $|y-F|$ ／ Huber（阈值 $\delta$） & $\mathrm{sign}(y-F)$ ／ $|y-F|\le\delta$ 时 $y-F$，否则 $\delta\,\mathrm{sign}(y-F)$ & 对离群值稳健 \\
+对数损失（$y\in\{0,1\}$，$F$ 为对数几率） & $y-p$，$p=\sigma(F)$ & 二分类 GBDT \\
+指数 $e^{-yF}$（$y=\pm1$） & $ye^{-yF}$ & 对应 AdaBoost \\
+\bottomrule
+\end{tabularx}
+\end{center}
+对数损失：$\frac{\partial L}{\partial F}=\big(-\frac yp+\frac{1-y}{1-p}\big)p(1-p)=p-y$（正例比例 0.25 时 $F_0=\ln\frac{0.25}{0.75}=-1.099$，首轮伪残差正例 0.75、负例 $-0.25$）。防过拟合：学习率 $\nu$（0.01–0.1，越小需越多树、泛化越好）；浅树（深 3–8）；子采样（随机梯度提升）；提前停止。示意（平方损失、树桩、$\nu=0.5$）：$y=(4,6,5,10,12,11)$，$F_0=8$，树 1 拟合残差得叶值 $\mp3$，训练 MSE $9.667\to2.917\to1.229\to0.643$。
+
+\subsection{XGBoost：二阶泰勒展开、正则化目标、最优叶值与分裂增益}
+$\mathrm{Obj}^{(t)}=\sum_il(y_i,\hat y_i^{(t-1)}+f_t(x_i))+\Omega(f_t)$，$\Omega(f)=\gamma T+\frac12\lambda\sum_{j=1}^Tw_j^2$（$T$ 为\key{该树叶数}，$w_j$ 叶值）。$g_i,h_i$ 为 $l$ 在 $\hat y^{(t-1)}$ 处的一、二阶导，$G_j=\sum_{i\in I_j}g_i$，$H_j=\sum_{i\in I_j}h_i$：
+\begin{align*}
+\mathrm{Obj}^{(t)}&\simeq\textstyle\sum_i\big[g_if_t(x_i)+\frac12h_if_t^2(x_i)\big]+\Omega(f_t)=\sum_{j=1}^T\big[G_jw_j+\frac12(H_j+\lambda)w_j^2\big]+\gamma T \why{二阶展开去常数；叶内 $f_t=w_j$}\\
+w_j^*&=-\frac{G_j}{H_j+\lambda},\quad \mathrm{Obj}^*=-\frac12\sum_j\frac{G_j^2}{H_j+\lambda}+\gamma T,\quad
+\mathrm{Gain}=\frac12\Big[\frac{G_L^2}{H_L+\lambda}+\frac{G_R^2}{H_R+\lambda}-\frac{(G_L+G_R)^2}{H_L+H_R+\lambda}\Big]-\gamma
+\end{align*}
+$\mathrm{Gain}\le0$ 不分裂（$\gamma$ 即内置预剪枝）。平方损失 $g=\hat y-y$，$h=1$；对数损失 $g=p-y$，$h=p(1-p)$。示意：$y=(1,2,6,7)$，$\hat y=4$，$\lambda=1$：切 $\{1,2\}|\{6,7\}$，$G=\pm5,H=2$，Gain $=8.333$，$w^*=\mp1.667$（$\lambda=0$ 时 $\mp2.5$）。工程：\texttt{eta}、行采样 \texttt{subsample}、列采样 \texttt{colsample\_bytree}、L1 叶值 \texttt{reg\_alpha}、稀疏感知（缺失值学默认方向）、加权分位数候选点、预排序分块并行。
+
+\subsection{LightGBM 与 CatBoost 要点}
+\textbf{LightGBM}（Ke 等, 2017）：(1) \key{直方图算法}（特征分箱如 255，按箱统计 $G,H$）；(2) \key{按叶生长} leaf-wise（XGBoost 默认按层 level-wise），同叶数误差更低但树可能很深，用 \texttt{num\_leaves}、\texttt{max\_depth} 限制；(3) \key{GOSS}：保留大梯度样本，随机抽部分小梯度样本并放大权重；(4) \key{EFB}：把很少同时非零的稀疏特征捆绑；(5) 原生类别特征。\textbf{CatBoost}：有序目标统计编码类别特征、有序提升减少目标泄露。sklearn \texttt{HistGradientBoostingClassifier} 也用直方图。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.ensemble import AdaBoostClassifier, GradientBoostingClassifier, HistGradientBoostingClassifier
+ada = AdaBoostClassifier(estimator=DecisionTreeClassifier(max_depth=1), n_estimators=200, learning_rate=0.5)
+gbdt = GradientBoostingClassifier(n_estimators=500, learning_rate=0.05, max_depth=3, subsample=0.8,
+                                  validation_fraction=0.1, n_iter_no_change=20)       # 提前停止
+import xgboost as xgb, lightgbm as lgb                                                  # 需单独安装
+xgbm = xgb.XGBClassifier(n_estimators=500, learning_rate=0.05, max_depth=4, subsample=0.8,
+                         colsample_bytree=0.8, reg_lambda=1.0, gamma=0)
+lgbm = lgb.LGBMClassifier(n_estimators=500, learning_rate=0.05, num_leaves=31)
+\end{lstlisting}
+
+% ======================================================================
+\section{集成学习（三）：Stacking 与 Bagging/Boosting 比较}
+
+\subsection{Stacking：用折外预测训练元学习器}
+\term{Stacking}{stacked generalization}（Wolpert, 1992）：初级学习器（第 0 层，常异质）的预测作新特征，训练\key{元学习器}（第 1 层，常用 Logistic/线性回归）。\key{必须用 $k$ 折交叉验证生成元特征}：(1) 每个初级学习器在 $k-1$ 折上训练、对留出折预测，拼成\key{折外预测}（out-of-fold）；(2) 以“折外预测（可加原始特征）$\to y$”训练元学习器；(3) 初级学习器在全部训练集重训，供测试时生成元特征。若直接用训练集拟合值，过拟合者（训练集近乎全对）会被元学习器过度信任。分类宜用类概率作元特征。\key{Blending}：留出一块验证集生成元特征，不做 $k$ 折。
+
+\subsection{Bagging 与 Boosting 的比较（偏差–方差视角）}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}LL@{}}
+\toprule
+& Bagging / 随机森林 & Boosting（AdaBoost、GBDT、XGBoost） \\
+\midrule
+训练/样本 & 并行；自助采样，样本等权 & 串行；全部样本，按错误调权（AdaBoost）或拟合负梯度（GBDT）\\
+结合 & 等权投票/平均 & 加权求和（$\alpha_m$ 或学习率 $\nu$）\\
+主要作用 & \key{降方差} & \key{降偏差}（也有一定降方差作用） \\
+基学习器 & 强而不稳定：深树、不剪枝 & 弱学习器：树桩、浅树（3–8 层）\\
+过拟合/噪声 & 树多不过拟合；对噪声稳健 & 轮数过多会过拟合（需学习率、提前停止）；对噪声较敏感 \\
+调参 & 低 & 较高（学习率、轮数、深度、采样率互相影响） \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Bagging：高方差的专家投票，抵消随机误差；Boosting：高偏差的新手接力，纠正系统误差。诊断：深树训练误差 0、测试 25\% $\Rightarrow$ 用 Bagging；树桩训练测试都 30\% $\Rightarrow$ 用 Boosting。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.ensemble import StackingClassifier, VotingClassifier
+base = [("rf", RandomForestClassifier()), ("svc", SVC(probability=True)), ("knn", KNeighborsClassifier(15))]
+stack = StackingClassifier(base, final_estimator=LogisticRegression(), cv=5, stack_method="predict_proba")
+vote = VotingClassifier(base, voting="soft")                      # 软投票：平均概率
+\end{lstlisting}
+
+% ======================================================================
+\section{线性判别分析与生成/判别模型}
+
+\subsection{Fisher 线性判别：投影后“类内紧、类间远”}
+\term{线性判别分析}{linear discriminant analysis, LDA}：找方向 $w$，投影 $z=w^\top x$ 后同类集中、异类中心远离（与主题模型 LDA 同名不同物）。$S_w=\sum_{x\in X_0}(x-\mu_0)(x-\mu_0)^\top+\sum_{x\in X_1}(x-\mu_1)(x-\mu_1)^\top$（类内散度），$S_b=(\mu_0-\mu_1)(\mu_0-\mu_1)^\top$（类间散度），$J(w)=\frac{w^\top S_bw}{w^\top S_ww}$（广义瑞利商）：
+\begin{align*}
+\max_w w^\top S_bw\ \text{s.t.}\ w^\top S_ww=1\ \Rightarrow\ S_bw=\lambda S_ww,\quad S_bw=(\mu_0-\mu_1)\underbrace{(\mu_0-\mu_1)^\top w}_{\text{标量}}\ \Rightarrow\ w\propto S_w^{-1}(\mu_0-\mu_1) \why{$J(cw)=J(w)$；拉格朗日；$S_b$ 秩 1}
+\end{align*}
+$S_w\propto I$ 时即均值连线；$S_w$ 奇异用伪逆或加 $\epsilon I$。示意：A $(1,2),(2,3),(3,3)$，B $(4,5),(5,4),(6,6)$：$S_w=\begin{psmallmatrix}4&2\\2&8/3\end{psmallmatrix}$，$w\propto(1,1)$，投影 A 为 3,5,6、B 为 9,9,12，阈值取均值中点 7.33。
+
+\subsection{概率视角：高斯类条件分布、LDA 与 QDA；多分类 LDA 降维}
+$x\mid y=k\sim\mathcal N(\mu_k,\Sigma)$（\key{同协方差}），先验 $\pi_k$：
+\begin{equation*}
+\ln\frac{P(y=1\mid x)}{P(y=0\mid x)}=x^\top\Sigma^{-1}(\mu_1-\mu_0)-\tfrac12\big(\mu_1^\top\Sigma^{-1}\mu_1-\mu_0^\top\Sigma^{-1}\mu_0\big)+\ln\frac{\pi_1}{\pi_0}\why{贝叶斯公式；$x^\top\Sigma^{-1}x$ 抵消}
+\end{equation*}
+\begin{itemize}
+\item 边界是\key{超平面}，方向与 Fisher 一致（$S_w/(N-2)$ 为 $\Sigma$ 的合并估计）；后验为 Logistic 形式 $\sigma(w^\top x+b)$。LDA 用生成假设估参，高斯成立时更有效；不成立（离群值、二值特征）时 Logistic 更稳健。\key{QDA}：各类 $\Sigma_k$ 不同，边界为二次曲面，参数更多、需更多样本。
+\item 多分类：$S_b=\sum_kN_k(\mu_k-\mu)(\mu_k-\mu)^\top$，取 $S_w^{-1}S_b$ 最大特征值的特征向量；$\rank(S_b)\le K-1$ $\Rightarrow$ \key{最多降到 $K-1$ 维}（有监督降维）。PCA 无监督、只最大化方差：两类沿 $x_1$ 拉长、只在 $x_2$ 上有差别时，PCA 选 $x_1$（两类重叠），LDA 选 $x_2$。sklearn：\texttt{LinearDiscriminantAnalysis(n\_components=1).fit(X, y).transform(X)}、\texttt{QuadraticDiscriminantAnalysis()}。
+\end{itemize}
+
+\subsection{生成模型与判别模型}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}LL@{}}
+\toprule
+& \term{生成模型}{generative model} & \term{判别模型}{discriminative model} \\
+\midrule
+学习对象 & 联合分布 $P(x,y)=P(y)P(x\mid y)$，再用贝叶斯公式得 $P(y\mid x)$ & 直接学 $P(y\mid x)$ 或决策函数 $f(x)$ \\
+例子 & 朴素贝叶斯、LDA/QDA、高斯混合模型、隐马尔可夫模型 & Logistic/Softmax、感知器、SVM、决策树、KNN、神经网络、条件随机场、提升树 \\
+假设与样本量 & 需对 $x$ 分布作较强假设；小样本收敛快；假设不对时渐近误差大 & 不对 $x$ 分布作假设；需更多样本；渐近误差通常更低 \\
+其他 & 可生成样本、处理缺失特征、检测异常、加隐变量 & 可自由构造特征、直接优化分类目标 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+Ng \& Jordan（2002）用“朴素贝叶斯–Logistic 回归”这一生成–判别对说明样本量一行的结论。
+
+% ======================================================================
+\section{各算法对比总表与 sklearn 统一流程}
+
+\subsection{监督学习算法对比总表}
+\begin{center}\footnotesize
+\begin{tabularx}{\linewidth}{@{}p{1.75cm}p{1.45cm}p{3.1cm}p{0.75cm}p{0.6cm}p{2.6cm}L@{}}
+\toprule
+算法 & 类型 & 模型 / 损失或准则 & 标准化 & 可解释 & 关键超参数 & 适用场景与特点 \\
+\midrule
+线性回归、Ridge、Lasso & 判别；回归 & 线性；平方损失 + L2/L1 & 是$^a$ & 高 & $\lambda$（\texttt{alpha}）、\texttt{l1\_ratio} & 基线；近似线性；Lasso 可选变量 \\
+Logistic 回归 & 判别；分类 & 线性 + Sigmoid；交叉熵 & 是 & 高 & \texttt{C}、正则类型 & 基线；需要概率；信用评分 \\
+SVM & 判别；分类/回归 & 最大间隔；合页损失 + L2；核 & 是 & 低 & \texttt{C}、核、$\gamma$ & 中小样本、高维；文本 \\
+KNN & 判别；分类/回归 & 近邻投票/平均；无训练 & 是 & 中 & $k$、距离、权重 & 低维、样本不太多；推荐 \\
+朴素贝叶斯 & 生成；分类 & 条件独立；最大后验 & 否 & 中 & 平滑系数 $\alpha$ & 文本、高维稀疏、小样本、要求快 \\
+LDA/QDA & 生成；分类 & 高斯类条件；共同/各自协方差 & 否$^b$ & 中 & 收缩参数 & 近似高斯；有监督降维 \\
+决策树 & 判别；分类/回归 & 递归划分；熵/基尼/平方误差 & 否 & 很高 & 深度、叶最小样本、\texttt{ccp\_alpha} & 需要规则解释；混合类型特征 \\
+随机森林 & 集成 Bagging & 深树 + 自助采样 + 特征随机 & 否 & 中 & 树数、\texttt{max\_features} & 表格数据强基线，调参少 \\
+AdaBoost & 集成 Boosting & 加法模型；指数损失 & 否 & 中 & 轮数、学习率 & 弱学习器提升；怕噪声 \\
+GBDT、XGBoost、LightGBM & 集成 Boosting & 加法树模型；任意可微损失（二阶近似） & 否 & 中 & 学习率、轮数、深度/叶数、采样率、正则 & 表格数据精度通常最高；风控、竞赛 \\
+神经网络 & 判别；分类/回归 & 多层非线性；交叉熵/平方损失 & 是 & 低 & 层数、宽度、学习率、正则 & 大数据；图像、文本、语音 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+{\footnotesize $a$：不加正则的 OLS 不必标准化，加 L1/L2 惩罚时必须标准化。$b$：LDA 分类结果对线性缩放不变，标准化可改善数值稳定性。集成模型可借助特征重要性、SHAP 值提升可解释性。}\\
+\key{选型经验法则}：(1) 先建简单基线（Logistic/线性回归、朴素贝叶斯），再试树集成；(2) 表格数据首选梯度提升树或随机森林，文本小样本试朴素贝叶斯、线性 SVM、L1/L2-Logistic，图像语音用神经网络；(3) 需要解释（监管、政策分析）用线性模型、单棵树，或给复杂模型配重要性与 SHAP；(4) 一律用交叉验证比较——“没有免费午餐定理”的实践含义。
+
+\subsection{sklearn 统一接口与完整流程模板}
+估计器统一接口：\texttt{fit(X, y)} 训练；\texttt{predict(X)} 预测；分类器多有 \texttt{predict\_proba}（概率）或 \texttt{decision\_function}（打分）；\texttt{score(X, y)} 默认返回准确率（分类）或 $R^2$（回归）；预处理器用 \texttt{fit}/\texttt{transform}。流程：分层划分 $\to$ 管道（数值标准化、类别独热）$\to$ 交叉验证调参（只用训练集）$\to$ 测试集上一次性报告多种指标。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+import numpy as np
+from sklearn.compose import ColumnTransformer
+from sklearn.linear_model import LogisticRegression
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split, StratifiedKFold, GridSearchCV
+from sklearn.metrics import classification_report, roc_auc_score, average_precision_score
+pre = ColumnTransformer([("num", StandardScaler(), ["income", "debt_ratio", "age"]),
+                         ("cat", OneHotEncoder(handle_unknown="ignore"), ["region", "has_house"])])
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.25, stratify=y, random_state=0)
+pipe = Pipeline([("pre", pre), ("clf", LogisticRegression(class_weight="balanced", max_iter=1000))])
+gs = GridSearchCV(pipe, {"clf__C": np.logspace(-3, 2, 6)}, scoring="roc_auc",
+                  cv=StratifiedKFold(5, shuffle=True, random_state=0)).fit(X_tr, y_tr)
+p = gs.predict_proba(X_te)[:, 1]                         # 测试集只用一次
+print(roc_auc_score(y_te, p), average_precision_score(y_te, p))
+print(classification_report(y_te, (p >= 0.5).astype(int)))
+\end{lstlisting}
+
+% ======================================================================
+\section{本章小结：经典算法核心公式清单}
+{\small
+\begin{itemize}
+\item \key{KNN}：$L_p=(\sum_j|x_j-z_j|^p)^{1/p}$，余弦 $\frac{x^\top z}{\|x\|\|z\|}$；$k$ 小高方差、$k$ 大高偏差；必须标准化；kd 树中位数切分，回溯比较“到切分面的距离”与当前半径。
+\item \key{朴素贝叶斯}：$\argmax_cP(c)\prod_jP(x_j\mid c)$；拉普拉斯 $\frac{|D_{c,j=a}|+1}{|D_c|+S_j}$、$\frac{|D_c|+1}{|D|+K}$；高斯/多项式/伯努利；ODE、TAN；贝叶斯网 $\prod_jP(x_j\mid\pi_j)$。
+\item \key{决策树}：$\mathrm{Gain}=\mathrm{Ent}(D)-\sum_v\frac{|D^v|}{|D|}\mathrm{Ent}(D^v)$（ID3）；增益率 $=\mathrm{Gain}/\mathrm{IV}$（C4.5 先筛高于平均增益）；$\mathrm{Gini}=1-\sum p_k^2$（CART 二叉）；连续值中点二分；缺失值 $\rho\times\mathrm{Gain}(\tilde D)$；$g(t)=\frac{C(t)-C(T_t)}{|T_t|-1}$；回归树叶值取均值。
+\item \key{集成}：独立投票错误率 $\sum_{k>M/2}\binom Mk\varepsilon^k(1-\varepsilon)^{M-k}$；$\Var(\bar f)=\rho\sigma^2+\frac{1-\rho}M\sigma^2$；Bagging（OOB 36.8\%、降方差）；随机森林（$m\approx\sqrt d$）；AdaBoost $\alpha_m=\frac12\ln\frac{1-e_m}{e_m}$，$Z_m=2\sqrt{e_m(1-e_m)}$；GBDT 拟合负梯度，$F_m=F_{m-1}+\nu h_m$；XGBoost $w_j^*=-\frac{G_j}{H_j+\lambda}$ 与 Gain 公式；Stacking 用折外预测。
+\item \key{LDA}：$J=\frac{w^\top S_bw}{w^\top S_ww}$，$w\propto S_w^{-1}(\mu_0-\mu_1)$，最多 $K-1$ 维；生成模型学 $P(x,y)$，判别模型学 $P(y\mid x)$。
+\item \key{一句话}：先用正确的方法（分层、交叉验证、无泄露管道）和合适的指标（不平衡看召回率、F1、AP）评估，再在“简单可解释”（线性、NB、单棵树）与“高精度”（随机森林、梯度提升）之间按偏差–方差诊断选择。
+\end{itemize}}
+
+% ======================================================================
+\section{本章综合题型：作答步骤速查}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}L@{}}
+\toprule
+题型 & 作答步骤要点 \\
+\midrule
+评估指标与 ROC & 按阈值写混淆矩阵 $\to$ 准确率、精确率、召回率、特异度 $\frac{TN}{TN+FP}$、F1；ROC 按打分降序，正例上移 $\frac1{m^+}$、负例右移 $\frac1{m^-}$；AUC 面积法 = 配对法（正例得分高于负例的对数 $/(m^+m^-)$，同分记 $\frac12$），只依赖排序故与阈值无关；正例很少时看 P-R 曲线与 AP \\
+决策树与朴素贝叶斯 & 先数各取值的类别计数，查常用熵值；Gain、IV、增益率、基尼指数列表，ID3/C4.5/CART 分别给出选择；NB 写不平滑与平滑两种（分母加 $S_j$），归一化给后验 \\
+Bagging、Boosting 与 AdaBoost & 从训练方式（并行/串行）、降低的误差（方差/偏差）、基学习器（深树/树桩）三方面比较；随机森林特征随机为降低 $\rho$；AdaBoost：$e_m\to\alpha_m$，错分 $\times\frac1{2e_m}$、分对 $\times\frac1{2(1-e_m)}$，错分权重和 $=\frac12$ \\
+正则化与模型选择 & 正交设计下 Lasso 为软阈值 $\mathrm{sign}(z)(|z|-\lambda)_+$（L1 菱形尖角在坐标轴上 $\Rightarrow$ 稀疏）；一倍标准误准则：最小 CV 误差 + 1 SE 以内取最简单（$\lambda$ 最大）；标准化在每个训练折内拟合（Pipeline） \\
+KNN 与生成/判别 & 各距离分别计算排序，注意并列；懒惰学习、$k$ 与偏差–方差；NB、LDA 为生成模型，Logistic、SVM、决策树为判别模型，各写一条优点 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{英文关键表述}
+\begin{english}[Key English expressions]
+\footnotesize
+\begin{itemize}
+\item The test set is used only once to report generalization performance; hyperparameters are tuned on a validation set or by $k$-fold cross-validation. Data leakage occurs when scaling, feature selection or oversampling is fitted on the full data; a pipeline avoids it.
+\item In bootstrapping, each sample is left out with probability $(1-1/N)^N\to e^{-1}\approx0.368$, so about 36.8\% of the data are out-of-bag.
+\item Precision is the fraction of predicted positives that are truly positive; recall (sensitivity, TPR) is the fraction of actual positives correctly identified; F1 is their harmonic mean, and $F_\beta$ with $\beta>1$ weights recall more. Macro-averaging averages per-class metrics; micro-averaging pools the counts and equals accuracy in single-label multi-class problems.
+\item The ROC curve plots TPR against FPR as the threshold varies; the AUC is the probability that a random positive is ranked above a random negative. Under severe imbalance, the precision--recall curve is more informative. Under a cost matrix, predict positive when $p>c_{FP}/(c_{FP}+c_{FN})$; imbalance is handled by resampling (e.g.\ SMOTE), threshold moving or cost-sensitive learning.
+\item High bias: training and validation errors are both high and close, and more data will not help. High variance: a large gap between them; more data or stronger regularization helps.
+\item Under an orthonormal design, the Lasso soft-thresholds the OLS estimate, $\mathrm{sign}(z)(|z|-\lambda)_+$, setting small coefficients exactly to zero, whereas ridge shrinks all coefficients proportionally; the elastic net selects correlated variables in groups. Feature selection is filter, wrapper or embedded.
+\item $k$-nearest neighbors is a lazy, non-parametric learner; a small $k$ gives low bias and high variance, and features must be standardized because distances are scale-dependent.
+\item Naive Bayes assumes conditional independence of features given the class and predicts $\argmax_cP(c)\prod_jP(x_j\mid c)$; Laplace smoothing prevents zero probabilities. A Bayesian network factorizes the joint distribution as $\prod_jP(x_j\mid\mathrm{parents}(x_j))$.
+\item A decision tree is grown recursively by maximizing the information gain (ID3) or the gain ratio (C4.5), or minimizing the Gini index (CART); pre-pruning or post-pruning (e.g.\ cost-complexity pruning) controls overfitting.
+\item Bagging trains base learners on bootstrap samples in parallel and averages them, mainly reducing variance; a random forest also samples a random subset of features at each split to decorrelate the trees.
+\item Boosting trains base learners sequentially, each focusing on its predecessors' errors, mainly reducing bias. In AdaBoost, $\alpha_m=\frac12\ln\frac{1-e_m}{e_m}$ and misclassified samples are up-weighted. Gradient boosting fits each new tree to the negative gradient of the loss (the residual under squared loss); XGBoost uses a second-order Taylor expansion and a regularized objective. Stacking trains a meta-learner on out-of-fold predictions.
+\item Fisher's LDA finds $w\propto S_w^{-1}(\mu_0-\mu_1)$, maximizing between-class over within-class scatter. Generative models learn $P(x,y)$; discriminative models learn $P(y\mid x)$ or a decision function directly.
+\end{itemize}
+\end{english}
+\renewcommand{\arraystretch}{1.25}

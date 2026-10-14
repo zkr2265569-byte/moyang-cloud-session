@@ -1,0 +1,1081 @@
+\chapter{2025 年春季真题精讲}
+\label{ch:U17a-exam}
+% 盒内编号引用：令 \label 取盒子自身的编号
+\providecommand{\UXVIIalabel}[1]{\expandafter\def\csname @currentlabel\endcsname{\thetcbcounter}\label{#1}}
+
+本章逐题精讲 2025 年春季博士研究生《高级计量经济学》课程考试试卷（开卷、90 分钟、英文试题）。现存的第 1 页共两题、50 分，共用双向固定效应模型 $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$：第 1 题问如何用固定效应方法估计 $\beta$（双向组内变换；个体去均值加时间虚拟变量），第 2 题令 $x_{it}=D_{it}$，问 TWFE 与经典双重差分（DiD）的关系，以及处理效应异质时如何估计 $\beta_i$。理论背景见第 10 章（双向固定效应与 FWL 等价）和第 15 章（DiD、异质效应与负权重），教材对应 Hansen §17.27“Two-Way Error Components”与 Hansen 第 18 章（§18.3 识别、§18.4 多单位、§18.9 推断）；本章自成一体，不翻前面各章也能完整作答。每个小问按“原题 → 题意 → 思路 → 推导 → 最终答案 → 英文标准答案 → 评分要点与常见错误”编排，考场上可直接对照作答。
+
+%======================================================================
+\section{试卷概况与答题策略}\label{sec:U17a-overview}
+
+\subsection{试卷信息：开卷、90 分钟、英文试题、第 1 页共 50 分}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+项目 & 内容\\
+\midrule
+课程 & 中南大学 2025 年春季博士研究生《高级计量经济学 DP》课程考试\\
+形式 & 开卷；考试时间 90 分钟；题目为英文（宜用英文作答）；答案写在答题纸上，试卷必须上交\\
+第 1 页 & 第 (1) 题 30 分（小问 (a)(b)），第 (2) 题 20 分（小问 (a)(b)），合计 50 分\\
+第 2 页 & 现存试卷缺失；按第 1 页 50 分推测，全卷 100 分、第 2 页约 50 分（推测）\\
+考查内容 & 第 1 题：双向固定效应模型的估计（第 10 章）；第 2 题：DiD 与异质处理效应（第 15 章）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{2025 年春季试卷基本信息}\label{tab:U17a-info}
+\end{center}
+
+\subsection{题型特点：一个模型贯穿、hint 指路、以推导为主}
+
+\subsubsection{一个模型贯穿两题}
+两道题都从 $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$ 出发：第 1 题的 $x_{it}$ 是一般的连续解释变量，第 2 题令 $x_{it}=D_{it}$ 变成 DiD。因此第 2 题可以直接引用第 1 题的结果，例如用第 1(a) 题的双向去均值公式直接算出 $2\times2$ 情形的 $\hat\beta$（见本章第 2 题 (a) 一节）。
+
+\subsubsection{问法以推导和表述为主，不考数值计算}
+问法是“write down / what's the formula / derive / show how it relates / how could you estimate”。得分点是：变换写对；说明为什么能消去固定效应（含“平衡面板”这一条件）；估计量公式写对；两种方法的关系说清楚；假设写全。
+
+\subsubsection{hint 就是推导路线}
+(1)(a) 的 hint “demean in cross-sectional dimension $i$ and time-series dimension $t$”就是四个均值方程；(1)(b) 的 hint 给出 $\lambda_t=a_1f_1+\cdots+a_Tf_T$；(2)(a) 的 hint 让考生逐格写 $\E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$ 等条件期望。顺着 hint 写，最稳妥。
+
+\subsubsection{题目记号较随意：先定义记号再推导}
+例如“$\alpha_i=1$ implies the units are treated”把个体效应当成了组别标签（本章第 2 题 (a) 一节详细讨论）。作答时先用一两句话把记号定义清楚，再推导。澄清记号不会被扣分，记号混乱反而会被扣分。
+
+\subsubsection{层层推进：估计 → 特例 DiD → 放松同质性}
+第 1 题是估计（30 分），第 2 题 (a) 是特例 DiD（约 10 分），第 2 题 (b) 是放松处理效应同质性（约 10 分）。最后一问是开放题，要给出具体的回归式和估计量，而不是罗列方法名。
+
+\subsection{本卷得分的三个关键句}
+
+\begin{keypt}[考场必写]
+\begin{enumerate}
+  \item 1(a)/(b)：“In a balanced panel, \dots\ eliminates both $\alpha_i$ and $\lambda_t$”，以及“the two estimators are numerically identical (FWL)”。
+  \item 2(a)：“$\hat\beta_{TWFE}=\Delta Y$ exactly; $\beta$ is the ATT under parallel trends, no anticipation and SUTVA”。
+  \item 2(b)：“interact $D_{it}$ with unit dummies / impute $\hat Y_{it}(0)=\hat\alpha_i+\hat\lambda_t$ from untreated observations; static TWFE may put negative weights under staggered adoption”。
+\end{enumerate}
+\end{keypt}
+
+\subsection{考点地图：每个小问考什么、在本章哪一节}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLll}
+\toprule
+小问 & 核心考点 & 本章位置 & 理论章节\\
+\midrule
+1(a) & 双向组内变换 $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$；$\hat\beta_{FE}=\sum\ddot x\ddot Y/\sum\ddot x^2$；$Q=M_N\otimes M_T$ & 第 1 题 (a) 一节 & 第 10 章\\
+1(b) & $\lambda_t=\sum_sa_sf_{st}$；个体去均值；虚拟变量陷阱；FWL 分块公式；算到底等于 (a) & 第 1 题 (b) 一节 & 第 10 章\\
+等价性 & 平衡面板中 (a)$=$(b)$=$LSDV 数值相等（FWL）；非平衡面板时 (a) 失效 & 数值等价一节 & 第 10、11 章\\
+2(a) & 四格条件期望 $\Rightarrow\beta=$ DiD；样本 $\hat\beta_{TWFE}=\Delta Y$；平行趋势、无预期、SUTVA；ATT & 第 2 题 (a) 一节 & 第 15 章\\
+2(b) & $D_{it}\times$ 个体虚拟变量；时变效应与事件研究；插补法与扩展 TWFE；负权重 & 第 2 题 (b) 一节 & 第 15 章\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{2025 年春季试卷考点地图}\label{tab:U17a-map}
+\end{center}
+
+\subsection{时间分配建议：约 0.9 分钟/分}
+
+全卷 90 分钟，按 100 分计（推测），约 0.9 分钟/分：
+\begin{itemize}
+  \item 通读两页：3 分钟。先写最熟的题。
+  \item 第 1 题（30 分）：约 25 分钟。(a) 约 12 分钟（均值定义、四个方程、公式、矩阵形式）；(b) 约 13 分钟（虚拟变量模型、去均值、陷阱、FWL 公式、等价结论）。
+  \item 第 2 题（20 分）：约 17 分钟。(a) 约 8 分钟，(b) 约 9 分钟。
+  \item 第 2 页（约 50 分）：约 40 分钟。
+  \item 检查：5 分钟。重点检查三处：是否写了“balanced panel”；是否写了识别假设（平行趋势、无预期、SUTVA）；双向变换公式中的 $+\bar Y_{\cdot\cdot}$ 是否漏掉。
+\end{itemize}
+开卷考试最大的风险是翻书耗时。本章每个小问的英文标准答案都按考场作答的篇幅设计，可以直接照抄，再按剩余时间增删。
+
+\subsection{本章记号约定}
+
+\subsubsection{均值、去均值与投影矩阵}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+记号 & 含义\\
+\midrule
+$\bar Y_{i\cdot},\ \bar Y_{\cdot t},\ \bar Y_{\cdot\cdot}$ & 个体 $i$ 的时间均值；第 $t$ 期的横截面均值；总均值（$x,\epsilon$ 同理）。“$\cdot$”表示对该下标求平均。文献中也常简记为 $\bar y_i,\ \bar y_t,\ \bar y$\\
+$\bar\alpha,\ \bar\lambda$ & $\bar\alpha=\frac1N\sum_i\alpha_i$，$\bar\lambda=\frac1T\sum_t\lambda_t$\\
+$\dot Y_{it}$ & 单向（个体）去均值：$\dot Y_{it}=Y_{it}-\bar Y_{i\cdot}$，只消去 $\alpha_i$\\
+$\ddot Y_{it}$ & 双向去均值：$\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$，同时消去 $\alpha_i,\lambda_t$\\
+$f_{st}$ & 时间虚拟变量 $f_{st}=\mathbf{1}\{t=s\}$（真题记作 $f_s$），$s=1,\dots,T$\\
+$P_T,\ M_T$ & $P_T=\frac1T\one_T\one_T\T$，$M_T=I_T-P_T$；$P_N,M_N$ 同理；$M_T\one_T=0$\\
+$Q$ & $Q=M_N\otimes M_T$（$NT\times NT$），双向组内变换矩阵；$I_N\otimes M_T$ 为单向组内变换矩阵\\
+$d_i,\ w_t,\ D_{it}$ & 处理组虚拟变量、处理后时期虚拟变量、处理指示；共同处理时点时 $D_{it}=d_iw_t$\\
+$N_1,N_0;\ T_0,T_1$ & 处理单位数、控制单位数；处理前期数、处理后期数；$q=N_1/N$，$p=T_1/T$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章记号}\label{tab:U17a-notation}
+\end{center}
+
+\subsubsection{数据堆叠顺序：个体在外、时间在内}
+数据按“个体在外、时间在内”堆叠：
+\[
+Y=(Y_{11},\dots,Y_{1T},\ \dots,\ Y_{N1},\dots,Y_{NT})\T\quad(NT\times1),
+\]
+$x$、$\epsilon$ 同理。本章的 $\lambda_t$ 一律是时间固定效应，不是因子载荷。
+
+\subsection{英文推导题的作答结构模板}
+
+推导类小问建议按“模型与记号 → 变换 → 估计量 → 性质与假设 → 补充说明”五段作答。下面的英文句式可直接套用。
+
+\begin{english}[answer structure for derivation questions]
+\begin{enumerate}
+  \item \emph{Model and notation.} ``Consider $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$, $i=1,\dots,N$, $t=1,\dots,T$, and assume a balanced panel. Define $\bar Y_{i\cdot}=\frac1T\sum_tY_{it}$, $\bar Y_{\cdot t}=\frac1N\sum_iY_{it}$ and $\bar Y_{\cdot\cdot}=\frac1{NT}\sum_i\sum_tY_{it}$.''
+  \item \emph{Transformation.} ``Averaging over $t$ (over $i$, over both) gives \dots; subtracting \dots\ eliminates $\alpha_i$ and $\lambda_t$ because \dots''
+  \item \emph{Estimator.} ``Applying OLS to the transformed equation gives $\hat\beta_{FE}=\dots$; in matrix form $\hat\beta_{FE}=(x'Qx)^{-1}x'QY$ with $Q=M_N\otimes M_T$.''
+  \item \emph{Properties and assumptions.} ``$\hat\beta_{FE}$ is unbiased under strict exogeneity and consistent as $N\to\infty$ with $T$ fixed, provided $\sum_i\sum_t\ddot x_{it}^2>0$.''
+  \item \emph{Remark.} ``In a balanced panel this is numerically identical to \dots; in an unbalanced panel \dots''
+\end{enumerate}
+\end{english}
+
+%======================================================================
+\section{原题全文与中文翻译}\label{sec:U17a-text}
+
+\subsection{英文原题（照录，保留原题笔误）}
+
+\begin{tcolorbox}[bxbase,colback=ceng!3,colframe=ceng,boxed title style={colback=ceng},fontupper=\small,
+  title={中南大学 2025 年春季博士研究生《高级计量经济学 DP》课程考试试卷（第 1 页）}]
+Consider a two-way fixed effects (TWFE) model of the form
+\[
+Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it},
+\]
+where $Y_{it}$ is the outcome for unit $i$ at time $t$, $\alpha_i$ are unit fixed effects, $\lambda_t$ are time fixed effects, $x_{it}$ is a continuous explanatory variable. $\epsilon_{it}$ is the error term.
+
+\textbf{(1) (30 Points).} For the above model, if the goal is to estimate $\beta$, we can consider a fixed effects (FE) estimator for $\beta$. For the FE estimation, can you
+\begin{enumerate}[label=(\alph*)]
+  \item write down the within-group transformation that eliminates both $\alpha_i$ and $\lambda_t$, what's the formula of $\hat\beta_{FE}$ in this case? [hint: consider the demean in cross-sectional dimension $i$ and time-series dimension $t$]
+  \item we use time dummy to approximate $\lambda_t$ and use the within-group transformation that only eliminates $\alpha_i$, what's the formula of $\hat\beta_{FE}$ in this case? [hint: consider the demean in cross-sectional dimension $i$ and time dummy for $\lambda_t=a_1f_1+\cdots+a_Tf_T$, where $f_t$ denotes the time dummy]
+\end{enumerate}
+
+\textbf{(2) (20 Points)} Now, let's consider the difference-in-differences (DiD) setup when $x_{it}=D_{it}$, then
+\[
+Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}
+\]
+where $D_{it}$ is a binary treatment indicator, equal to 1 if unit $i$ is treated at time $t$, and 0 otherwise. $\alpha_i=1$ implies the units are treated and $\lambda_t=1$ implies the post-treatment periods. In contrast, the classic DiD estimator can be written as:
+\[
+\Delta Y=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})
+\]
+where: $\bar Y_{T,1}$ and $\bar Y_{T,0}$ are the average outcomes for the treated group after and before treatment, respectively, $\bar Y_{C,1}$ and $\bar Y_{C,0}$ are the average outcomes for the control group after and before treatment, respectively. In a standard $2\times2$ setup, i.e., there are only two units (i.e., $i=1$ is treated and $i=2$ is untreated) and two times periods (i.e., $t=0$ is pretreated and $t=1$ is posttreated),
+\begin{enumerate}[label=(\alph*)]
+  \item Using the notation from the TWFE model, derive the DiD estimator of $\beta$ and show how it relates to the difference in averages across treatment and control groups before and after treatment. [hint: compare the outcome $Y_{it}$ for different units at different time periods, i.e., $E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$, etc.]
+  \item Suppose there are more than 1 units are units and treatment effect $\beta$ is not constant across units or over time (i.e., treatment heterogeneity exists or $\beta_i$). How could you estimate $\beta_i$ in the TWFE model?
+\end{enumerate}
+\end{tcolorbox}
+
+\subsection{中文翻译}
+
+考虑如下形式的双向固定效应（TWFE）模型
+\[
+Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it},
+\]
+其中 $Y_{it}$ 是单位 $i$ 在时期 $t$ 的结果变量，$\alpha_i$ 是个体（单位）固定效应，$\lambda_t$ 是时间固定效应，$x_{it}$ 是连续型解释变量，$\epsilon_{it}$ 是误差项。
+
+\textbf{(1)（30 分）} 对上述模型，若目标是估计 $\beta$，可以考虑 $\beta$ 的固定效应（FE）估计量。就 FE 估计而言，请你：
+\begin{enumerate}[label=(\alph*)]
+  \item 写出能同时消去 $\alpha_i$ 和 $\lambda_t$ 的组内变换；此时 $\hat\beta_{FE}$ 的公式是什么？［提示：考虑在横截面维度 $i$ 与时间序列维度 $t$ 上去均值。］
+  \item 若用时间虚拟变量来“近似”$\lambda_t$，并使用只消去 $\alpha_i$ 的组内变换，此时 $\hat\beta_{FE}$ 的公式是什么？［提示：考虑在横截面维度 $i$ 上去均值（此处应理解为对每个个体 $i$ 减去其时间均值，见下文“题目中的笔误与歧义”），并对 $\lambda_t=a_1f_1+\cdots+a_Tf_T$ 使用时间虚拟变量，$f_t$ 表示时间虚拟变量。］
+\end{enumerate}
+
+\textbf{(2)（20 分）} 现在考虑双重差分（DiD）情形：令 $x_{it}=D_{it}$，则 $Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$，其中 $D_{it}$ 是二元处理指示变量，单位 $i$ 在时期 $t$ 受处理时取 1，否则取 0。“$\alpha_i=1$”表示该单位属于处理组，“$\lambda_t=1$”表示处理后的时期。与之对照，经典 DiD 估计量可写为
+\[
+\Delta Y=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0}),
+\]
+其中 $\bar Y_{T,1},\bar Y_{T,0}$ 分别是处理组在处理后、处理前的平均结果，$\bar Y_{C,1},\bar Y_{C,0}$ 分别是控制组在处理后、处理前的平均结果。在标准的 $2\times2$ 设定下——只有两个单位（$i=1$ 受处理，$i=2$ 未受处理）和两个时期（$t=0$ 为处理前，$t=1$ 为处理后）——
+\begin{enumerate}[label=(\alph*)]
+  \item 使用 TWFE 模型的记号，推导 $\beta$ 的 DiD 估计量，并说明它与“处理组和控制组在处理前后的平均值之差”有何关系。［提示：比较不同单位在不同时期的结果 $Y_{it}$，即 $\E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$ 等。］
+  \item 假设受处理的单位多于 1 个（原文“more than 1 units are units”有笔误），且处理效应 $\beta$ 在单位之间或随时间并不恒定（即存在处理效应异质性，或写作 $\beta_i$）。在 TWFE 模型中，你将如何估计 $\beta_i$？
+\end{enumerate}
+
+\subsection{题目中的笔误与歧义及本书的处理}
+
+\subsubsection{“demean in cross-sectional dimension \texorpdfstring{$i$}{i}”在 (a)(b) 中含义不同}
+在 (1)(a) 中它与“time-series dimension $t$”并列，指两个方向都去均值。在 (1)(b) 中题目明说“only eliminates $\alpha_i$”，所以这里指\key{对每个个体 $i$ 减去它自己的时间均值} $\bar Y_{i\cdot}$（消去 $\alpha_i$），而不是“每期减去横截面均值”（那会消去 $\lambda_t$）。作答时写明“for each unit $i$, subtract its time average”。
+
+\subsubsection{“approximate”：时间虚拟变量是对 \texorpdfstring{$\lambda_t$}{lambda\_t} 的精确表示}
+$f_t$ 是第 $t$ 期的虚拟变量。更精确的写法是 $\lambda_t=\sum_{s=1}^Ta_sf_{st}$，$f_{st}=\mathbf{1}\{t=s\}$，于是 $a_t=\lambda_t$。题目说“approximate”，其实是精确表示：$\lambda_t$ 每期一个值，$T$ 个虚拟变量正好把它表示出来。
+
+\subsubsection{“\texorpdfstring{$\alpha_i=1$}{alpha\_i=1}”与“\texorpdfstring{$\lambda_t=1$}{lambda\_t=1}”：把固定效应当成组别与时期标签}
+“$\alpha_i=1$ implies the units are treated and $\lambda_t=1$ implies the post-treatment periods”把固定效应当成了“组别/时期标签”。本书在第 2 题 (a) 一节给出两种理解，并证明两种理解下结论都是 $\beta=$ DiD。
+
+\subsubsection{“more than 1 units are units”与“two times periods”}
+“more than 1 units are units”显然是笔误，应理解为“more than one treated unit”（受处理单位多于 1 个）；同时通常也有多于两个时期，否则“随时间变化”无从谈起。“two times periods”应为“two time periods”。
+
+\subsubsection{“derive the DiD estimator of \texorpdfstring{$\beta$}{beta}”：总体与样本两层都写}
+这句话既可以理解为“推导总体参数 $\beta$ 等于期望的 DiD”，也可以理解为“推导样本估计量 $\hat\beta$”。稳妥的答法是两层都写：先总体（四个条件期望），后样本（OLS 的 $\hat\beta$ 恰好等于 $\Delta Y$）。
+
+\begin{english}[stating your reading of the question]
+Throughout, I assume a balanced panel with $i=1,\dots,N$ and $t=1,\dots,T$. In (1)(b), ``demean in the cross-sectional dimension $i$'' is read as subtracting, for each unit $i$, its own time average, which removes $\alpha_i$ only. The time-dummy representation $\lambda_t=\sum_{s=1}^Ta_sf_{st}$ with $f_{st}=\mathbf{1}\{t=s\}$ is exact, with $a_t=\lambda_t$. In (2), ``$\alpha_i=1$'' is read as ``unit $i$ belongs to the treatment group'' and ``$\lambda_t=1$'' as ``period $t$ is a post-treatment period''; the fixed effects themselves remain unrestricted parameters.
+\end{english}
+
+%======================================================================
+\section{第 1 题 (a)：双向组内变换与 \texorpdfstring{$\hat\beta_{FE}$}{beta\_FE}}\label{sec:U17a-q1a}
+
+\subsection{原题与题意：写出“变换”与“公式”，并说明为何能消去}
+
+\begin{tcolorbox}[bxbase,colback=ceng!3,colframe=ceng,boxed title style={colback=ceng},fontupper=\small,title={原题 (1)(a)}]
+(a) write down the within-group transformation that eliminates both $\alpha_i$ and $\lambda_t$, what's the formula of $\hat\beta_{FE}$ in this case? [hint: consider the demean in cross-sectional dimension $i$ and time-series dimension $t$]
+\end{tcolorbox}
+
+\subsubsection{中文题意}
+题目要两样东西：(i) 一个同时消去 $\alpha_i$ 和 $\lambda_t$ 的\term{组内变换}{within-group transformation}；(ii) 对变换后的方程做 OLS 得到的 $\hat\beta_{FE}$ 的公式。
+
+\subsubsection{隐含要求：说明为什么能消去，并写出“平衡面板”}
+题目没有明说，但满分答案必须说明这个变换\key{为什么}能同时消去两种固定效应。这需要\term{平衡面板}{balanced panel}：每个个体都有全部 $T$ 期观测。阅卷时这是区分度最高的一点。
+
+\begin{keypt}[1(a) 的考点]
+\tagexam\ 四个均值方程；双向组内变换 $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$；平衡面板条件；$\hat\beta_{FE}=\sum\ddot x\ddot Y/\sum\ddot x^2$；加分项为矩阵形式 $Q=M_N\otimes M_T$、识别条件、严格外生与一致性、聚类标准误。
+\end{keypt}
+
+\subsection{思路：先消 \texorpdfstring{$\alpha_i$}{alpha\_i}，剩下的 \texorpdfstring{$\lambda_t-\bar\lambda$}{lambda\_t - lambda-bar} 再用横截面均值消掉}
+
+个体去均值 $Y_{it}-\bar Y_{i\cdot}$ 能消去 $\alpha_i$（它不随 $t$ 变），但 $\lambda_t$ 只被消掉一部分，剩下 $\lambda_t-\bar\lambda$，而这一项对所有个体都一样。“对所有个体都一样”的东西，可以用同一期的横截面平均把它减掉：第 $t$ 期的横截面均值 $\bar Y_{\cdot t}$ 再减去总均值 $\bar Y_{\cdot\cdot}$，恰好也含 $\lambda_t-\bar\lambda$。两者相减，$\alpha_i$ 和 $\lambda_t$ 全部消失。这就是\term{双重组内变换}{double within-group transformation}：写出四个均值方程，两两相减。
+
+\subsection{三种均值：个体均值、时间均值与总均值}
+
+\begin{defn}[三种均值]\UXVIIalabel{def:U17a-means}
+设面板平衡：$i=1,\dots,N$，$t=1,\dots,T$，共 $NT$ 个观测。定义
+\begin{align*}
+\bar Y_{i\cdot}&=\frac1T\sum_{t=1}^TY_{it} \why{个体 $i$ 的时间均值}\\
+\bar Y_{\cdot t}&=\frac1N\sum_{i=1}^NY_{it} \why{第 $t$ 期的横截面均值}\\
+\bar Y_{\cdot\cdot}&=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^TY_{it} \why{总均值}
+\end{align*}
+分别称为\term{个体均值}{individual mean}、\term{时间均值}{time mean}与总均值。$\bar x_{i\cdot},\bar x_{\cdot t},\bar x_{\cdot\cdot}$ 与 $\bar\epsilon_{i\cdot},\bar\epsilon_{\cdot t},\bar\epsilon_{\cdot\cdot}$ 同理；并记 $\bar\alpha=\frac1N\sum_i\alpha_i$，$\bar\lambda=\frac1T\sum_t\lambda_t$。
+\end{defn}
+
+\subsubsection{平衡面板中总均值等于个体均值的均值，也等于时间均值的均值}
+平衡面板中每个个体都有 $T$ 期、每期都有 $N$ 个个体，所以两种求和次序都可以先在内层求平均：
+\begin{align*}
+\bar Y_{\cdot\cdot}&=\frac1N\sum_{i=1}^N\Big(\frac1T\sum_{t=1}^TY_{it}\Big) \why{每个 $i$ 都有 $T$ 期}\\
+&=\frac1N\sum_{i=1}^N\bar Y_{i\cdot} \why{个体均值的定义}\\
+\bar Y_{\cdot\cdot}&=\frac1T\sum_{t=1}^T\Big(\frac1N\sum_{i=1}^NY_{it}\Big) \why{交换求和次序}\\
+&=\frac1T\sum_{t=1}^T\bar Y_{\cdot t} \why{时间均值的定义}
+\end{align*}
+非平衡面板中这两个等式一般不成立，这正是后文双向变换在非平衡面板中失效的根源。
+
+\subsection{完整推导：四个均值方程与双向组内变换}\label{sec:U17a-derive}
+
+要证：变换 $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$ 把模型变为 $\ddot Y_{it}=\beta\ddot x_{it}+\ddot\epsilon_{it}$。思路：对模型分别按 $t$、按 $i$、按 $(i,t)$ 求平均，得到四个方程，再两两相减。
+
+\subsubsection{第 1 步：对模型按 \texorpdfstring{$t$}{t}、按 \texorpdfstring{$i$}{i}、按 \texorpdfstring{$(i,t)$}{(i,t)} 求平均}
+四个方程是
+\begin{align}
+Y_{it}&=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}, \tag{E1}\\
+\bar Y_{i\cdot}&=\alpha_i+\bar\lambda+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot}, \tag{E2}\\
+\bar Y_{\cdot t}&=\bar\alpha+\lambda_t+\beta\bar x_{\cdot t}+\bar\epsilon_{\cdot t}, \tag{E3}\\
+\bar Y_{\cdot\cdot}&=\bar\alpha+\bar\lambda+\beta\bar x_{\cdot\cdot}+\bar\epsilon_{\cdot\cdot}. \tag{E4}
+\end{align}
+(E1) 是原模型。(E2) 由 (E1) 对 $t$ 平均得到：
+\begin{align*}
+\bar Y_{i\cdot}&=\frac1T\sum_{t=1}^T(\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}) \why{(E1) 对 $t$ 平均}\\
+&=\frac1T\sum_t\alpha_i+\frac1T\sum_t\lambda_t+\beta\,\frac1T\sum_tx_{it}+\frac1T\sum_t\epsilon_{it} \why{求和的线性性}\\
+&=\alpha_i+\bar\lambda+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot}. \why{$\alpha_i$ 不随 $t$ 变}
+\end{align*}
+最后一步还用到：个体 $i$ 有全部 $T$ 期，所以 $\frac1T\sum_t\lambda_t$ 对每个 $i$ 都是同一个 $\bar\lambda$。(E3) 由 (E1) 对 $i$ 平均得到：
+\begin{align*}
+\bar Y_{\cdot t}&=\frac1N\sum_{i=1}^N(\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}) \why{(E1) 对 $i$ 平均}\\
+&=\frac1N\sum_i\alpha_i+\frac1N\sum_i\lambda_t+\beta\,\frac1N\sum_ix_{it}+\frac1N\sum_i\epsilon_{it} \why{求和的线性性}\\
+&=\bar\alpha+\lambda_t+\beta\bar x_{\cdot t}+\bar\epsilon_{\cdot t}. \why{$\lambda_t$ 不随 $i$ 变}
+\end{align*}
+同样，第 $t$ 期有全部 $N$ 个个体，所以 $\frac1N\sum_i\alpha_i$ 对每个 $t$ 都是同一个 $\bar\alpha$。(E4) 由 (E2) 再对 $i$ 平均得到：
+\begin{align*}
+\bar Y_{\cdot\cdot}&=\frac1N\sum_{i=1}^N\bar Y_{i\cdot} \why{平衡面板}\\
+&=\frac1N\sum_i(\alpha_i+\bar\lambda+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot}) \why{代入 (E2)}\\
+&=\bar\alpha+\bar\lambda+\beta\bar x_{\cdot\cdot}+\bar\epsilon_{\cdot\cdot}. \why{$\bar\lambda$ 与 $i$ 无关}
+\end{align*}
+
+\subsubsection{第 2 步：两两相减，依次消去 \texorpdfstring{$\alpha_i$}{alpha\_i} 与 \texorpdfstring{$\lambda_t$}{lambda\_t}}
+先用 (E1)$-$(E2) 与 (E3)$-$(E4)：
+\begin{align*}
+Y_{it}-\bar Y_{i\cdot}&=(\lambda_t-\bar\lambda)+\beta(x_{it}-\bar x_{i\cdot})+(\epsilon_{it}-\bar\epsilon_{i\cdot}) \why{$\alpha_i-\alpha_i=0$}\\
+\bar Y_{\cdot t}-\bar Y_{\cdot\cdot}&=(\lambda_t-\bar\lambda)+\beta(\bar x_{\cdot t}-\bar x_{\cdot\cdot})+(\bar\epsilon_{\cdot t}-\bar\epsilon_{\cdot\cdot}) \why{$\bar\alpha-\bar\alpha=0$}
+\end{align*}
+第一式消去了 $\alpha_i$，但留下 $\lambda_t-\bar\lambda$；第二式右端含同一个 $\lambda_t-\bar\lambda$。两式再相减：
+\begin{align*}
+\underbrace{Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}}_{\ddot Y_{it}}
+&=\beta\,\underbrace{(x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot})}_{\ddot x_{it}}
++\underbrace{(\epsilon_{it}-\bar\epsilon_{i\cdot}-\bar\epsilon_{\cdot t}+\bar\epsilon_{\cdot\cdot})}_{\ddot\epsilon_{it}}. \why{$\lambda_t-\bar\lambda$ 抵消}
+\end{align*}
+即
+\begin{equation}\label{eq:U17a-twoway}
+\boxed{\ \ddot Y_{it}=\beta\,\ddot x_{it}+\ddot\epsilon_{it},\qquad \ddot Y_{it}\equiv Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}.\ }
+\end{equation}
+这就是\term{双向组内变换}{two-way within transformation}，又称\term{双向去均值}{double demeaning}。按“先个体去均值、再减去该期的横截面离差”的顺序，它也可以写成
+\[
+(Y_{it}-\bar Y_{i\cdot})-(\bar Y_{\cdot t}-\bar Y_{\cdot\cdot})=\big[(x_{it}-\bar x_{i\cdot})-(\bar x_{\cdot t}-\bar x_{\cdot\cdot})\big]\beta+(\epsilon_{it}-\bar\epsilon_{i\cdot})-(\bar\epsilon_{\cdot t}-\bar\epsilon_{\cdot\cdot}),
+\]
+两种写法完全相同。
+
+\subsubsection{直接验证：\texorpdfstring{$\alpha_i+\lambda_t$}{alpha\_i + lambda\_t} 经双向变换后恒为零}
+更短的写法是只验证固定效应部分。令 $c_{it}=\alpha_i+\lambda_t$。在平衡面板中
+\begin{align*}
+\bar c_{i\cdot}=\alpha_i+\bar\lambda,\qquad \bar c_{\cdot t}&=\bar\alpha+\lambda_t,\qquad \bar c_{\cdot\cdot}=\bar\alpha+\bar\lambda \why{同 (E2)–(E4)}\\
+\ddot c_{it}&=(\alpha_i+\lambda_t)-(\alpha_i+\bar\lambda)-(\bar\alpha+\lambda_t)+(\bar\alpha+\bar\lambda) \why{代入定义}\\
+&=0. \why{逐项抵消}
+\end{align*}
+双向变换是线性运算，所以 $\ddot Y_{it}=\ddot c_{it}+\beta\ddot x_{it}+\ddot\epsilon_{it}=\beta\ddot x_{it}+\ddot\epsilon_{it}$。
+
+\begin{note}[平衡面板用在哪里]
+用在 (E2)(E3)：$\bar\lambda$ 对每个个体相同、$\bar\alpha$ 对每个时期相同。若个体 $i$ 只在自己的时期集合 $S_i$ 中被观测，(E2) 中的平均变成 $\bar\lambda_{S_i}$（随 $i$ 变），(E3) 中变成 $\bar\alpha_{S_t}$（随 $t$ 变），抵消失败（见本章“非平衡面板”一节的反例）。
+\end{note}
+
+\subsection{\texorpdfstring{$\hat\beta_{FE}$}{beta\_FE} 的求和公式与“只需变换 \texorpdfstring{$x$}{x}”}
+
+\subsubsection{对变换后方程做无截距 OLS}
+双向变换后各变量的均值都是 0（下面的引理），所以对 \eqref{eq:U17a-twoway} 做 OLS 时不带截距。最小化 $S(b)=\sum_i\sum_t(\ddot Y_{it}-b\,\ddot x_{it})^2$：
+\begin{align*}
+\frac{\dd S}{\dd b}&=-2\sum_i\sum_t\ddot x_{it}(\ddot Y_{it}-b\,\ddot x_{it})=0 \why{一阶条件}\\
+\sum_i\sum_t\ddot x_{it}\ddot Y_{it}&=b\sum_i\sum_t\ddot x_{it}^2 \why{移项}
+\end{align*}
+解得
+\begin{equation}\label{eq:U17a-bfe-sum}
+\boxed{\ \hat\beta_{FE}=\frac{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}\ddot Y_{it}}{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}^2}
+=\frac{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}Y_{it}}{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}^2},\qquad \ddot x_{it}=x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot}.\ }
+\end{equation}
+第二个等号说明分子中的 $Y$ 可以不做变换，下面证明。
+
+\subsubsection{引理：\texorpdfstring{$\ddot x$}{x-double-dot} 在每个个体内、每个时期内求和都为零}
+对 $t$ 求和（固定 $i$）：
+\begin{align*}
+\sum_{t=1}^T\ddot x_{it}&=\sum_tx_{it}-T\bar x_{i\cdot}-\sum_t\bar x_{\cdot t}+T\bar x_{\cdot\cdot} \why{逐项对 $t$ 求和}\\
+&=T\bar x_{i\cdot}-T\bar x_{i\cdot}-T\bar x_{\cdot\cdot}+T\bar x_{\cdot\cdot} \why{$\sum_t\bar x_{\cdot t}=T\bar x_{\cdot\cdot}$（平衡）}\\
+&=0. \why{抵消}
+\end{align*}
+对 $i$ 求和（固定 $t$）：
+\begin{align*}
+\sum_{i=1}^N\ddot x_{it}&=\sum_ix_{it}-\sum_i\bar x_{i\cdot}-N\bar x_{\cdot t}+N\bar x_{\cdot\cdot} \why{逐项对 $i$ 求和}\\
+&=N\bar x_{\cdot t}-N\bar x_{\cdot\cdot}-N\bar x_{\cdot t}+N\bar x_{\cdot\cdot} \why{$\sum_i\bar x_{i\cdot}=N\bar x_{\cdot\cdot}$（平衡）}\\
+&=0. \why{抵消}
+\end{align*}
+特别地，$\ddot x$ 的总均值为 0，所以变换后的回归不需要截距。
+
+\subsubsection{分子中 \texorpdfstring{$Y$}{Y} 不必变换：\texorpdfstring{$\sum\ddot x\ddot Y=\sum\ddot xY$}{sum x-dd Y-dd = sum x-dd Y}}
+$\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$ 中后三项对分子的贡献都为零：
+\begin{align*}
+\sum_i\sum_t\ddot x_{it}\bar Y_{i\cdot}&=\sum_i\bar Y_{i\cdot}\Big(\sum_t\ddot x_{it}\Big)=0 \why{$\bar Y_{i\cdot}$ 不随 $t$ 变；引理}\\
+\sum_i\sum_t\ddot x_{it}\bar Y_{\cdot t}&=\sum_t\bar Y_{\cdot t}\Big(\sum_i\ddot x_{it}\Big)=0 \why{$\bar Y_{\cdot t}$ 不随 $i$ 变；引理}\\
+\sum_i\sum_t\ddot x_{it}\bar Y_{\cdot\cdot}&=\bar Y_{\cdot\cdot}\sum_i\sum_t\ddot x_{it}=0 \why{同上}\\
+\Rightarrow\ \sum_i\sum_t\ddot x_{it}\ddot Y_{it}&=\sum_i\sum_t\ddot x_{it}Y_{it}. \why{三项相加}
+\end{align*}
+所以只需对 $x$ 做双向变换，$Y$ 用原始值即可。这与普通 OLS 中 $\sum(x_i-\bar x)(y_i-\bar y)=\sum(x_i-\bar x)y_i$ 同理。
+
+\subsubsection{估计误差：\texorpdfstring{$\hat\beta_{FE}-\beta=\sum\ddot x\epsilon/\sum\ddot x^2$}{beta-hat - beta = sum x-dd e / sum x-dd^2}}
+同样的论证给出 $\sum\ddot x_{it}x_{it}=\sum\ddot x_{it}\ddot x_{it}=\sum\ddot x_{it}^2$，以及 $\sum_i\sum_t\ddot x_{it}\alpha_i=\sum_i\alpha_i\sum_t\ddot x_{it}=0$、$\sum_i\sum_t\ddot x_{it}\lambda_t=\sum_t\lambda_t\sum_i\ddot x_{it}=0$。于是
+\begin{align*}
+\sum_i\sum_t\ddot x_{it}Y_{it}&=\sum_i\sum_t\ddot x_{it}(\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}) \why{代入模型}\\
+&=0+0+\beta\sum_i\sum_t\ddot x_{it}^2+\sum_i\sum_t\ddot x_{it}\epsilon_{it} \why{引理；$\sum\ddot xx=\sum\ddot x^2$}\\
+\hat\beta_{FE}-\beta&=\frac{\sum_i\sum_t\ddot x_{it}\epsilon_{it}}{\sum_i\sum_t\ddot x_{it}^2}. \why{代入 \eqref{eq:U17a-bfe-sum}}
+\end{align*}
+固定效应无论取什么值都不进入估计误差，这是后面讨论无偏性与一致性的出发点。
+
+\subsubsection{多个解释变量：向量形式}
+若 $x_{it}$ 是 $K\times1$ 向量，同样的推导给出
+\[
+\hat\beta_{FE}=\Big(\sum_i\sum_t\ddot x_{it}\ddot x_{it}\T\Big)^{-1}\sum_i\sum_t\ddot x_{it}\ddot Y_{it}.
+\]
+
+\subsection{矩阵形式：\texorpdfstring{$Q=M_N\otimes M_T$}{Q = M\_N kron M\_T}}\label{sec:U17a-Q}
+
+\subsubsection{堆叠模型与两组虚拟变量矩阵 \texorpdfstring{$D_\alpha$}{D\_alpha}、\texorpdfstring{$D_\lambda$}{D\_lambda}}
+按“个体在外、时间在内”堆叠，模型写成
+\[
+Y=D_\alpha\alpha+D_\lambda\lambda+x\beta+\epsilon,\qquad D_\alpha=I_N\otimes\one_T\ (NT\times N),\qquad D_\lambda=\one_N\otimes I_T\ (NT\times T),
+\]
+其中 $\alpha=(\alpha_1,\dots,\alpha_N)\T$，$\lambda=(\lambda_1,\dots,\lambda_T)\T$；$D_\alpha$ 的第 $j$ 列是个体 $j$ 的虚拟变量，$D_\lambda$ 的第 $s$ 列是时间虚拟变量 $f_s$。
+
+\subsubsection{\texorpdfstring{$Q$}{Q} 的展开：四项依次给出 \texorpdfstring{$Y_{it}$}{Y}、\texorpdfstring{$\bar Y_{i\cdot}$}{Y\_i.}、\texorpdfstring{$\bar Y_{\cdot t}$}{Y\_.t}、\texorpdfstring{$\bar Y_{\cdot\cdot}$}{Y\_..}}
+令
+\begin{align*}
+Q&=M_N\otimes M_T=(I_N-P_N)\otimes(I_T-P_T) \why{$M=I-P$}\\
+&=I_N\otimes I_T-I_N\otimes P_T-P_N\otimes I_T+P_N\otimes P_T. \why{Kronecker 积的双线性}
+\end{align*}
+后三项作用在 $Y$ 上：
+\begin{align*}
+[(I_N\otimes P_T)Y]_{it}&=\tfrac1T\textstyle\sum_sY_{is}=\bar Y_{i\cdot} \why{分块对角，每块为 $P_T$}\\
+[(P_N\otimes I_T)Y]_{it}&=\tfrac1N\textstyle\sum_jY_{jt}=\bar Y_{\cdot t} \why{每块为 $\frac1NI_T$}\\
+[(P_N\otimes P_T)Y]_{it}&=\tfrac1{NT}\textstyle\sum_j\sum_sY_{js}=\bar Y_{\cdot\cdot} \why{每块为 $\frac1NP_T$}
+\end{align*}
+所以 $(QY)_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}=\ddot Y_{it}$：$Q$ 就是双向组内变换矩阵。
+
+\subsubsection{\texorpdfstring{$Q$}{Q} 消去两组固定效应：\texorpdfstring{$QD_\alpha=0$}{Q D\_alpha = 0}，\texorpdfstring{$QD_\lambda=0$}{Q D\_lambda = 0}}
+利用 \term{Kronecker 积}{Kronecker product}的混合积法则 $(A\otimes B)(C\otimes D)=AC\otimes BD$：
+\begin{align*}
+QD_\alpha&=(M_N\otimes M_T)(I_N\otimes\one_T)=M_N\otimes(M_T\one_T) \why{混合积}\\
+&=M_N\otimes0=0 \why{$M_T\one_T=0$}\\
+QD_\lambda&=(M_N\otimes M_T)(\one_N\otimes I_T)=(M_N\one_N)\otimes M_T \why{混合积}\\
+&=0\otimes M_T=0 \why{$M_N\one_N=0$}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$Q$}{Q} 对称幂等，秩为 \texorpdfstring{$(N-1)(T-1)$}{(N-1)(T-1)}}
+由 $M_N$、$M_T$ 都是对称幂等矩阵：
+\begin{align*}
+Q\T&=M_N\T\otimes M_T\T=M_N\otimes M_T=Q \why{$(A\otimes B)'=A'\otimes B'$；对称}\\
+Q^2&=(M_N\otimes M_T)(M_N\otimes M_T)=M_N^2\otimes M_T^2=Q \why{混合积；幂等}\\
+\rank Q&=\tr Q=\tr M_N\cdot\tr M_T \why{幂等阵秩 $=$ 迹；$\tr(A\otimes B)=\tr A\tr B$}\\
+&=(N-1)(T-1). \why{$\tr M_T=T-1$}
+\end{align*}
+
+\subsubsection{矩阵形式的 \texorpdfstring{$\hat\beta_{FE}=(x'Qx)^{-1}x'QY$}{beta\_FE = (x'Qx)\^{}-1 x'QY}}
+左乘 $Q$，固定效应消失：
+\begin{align*}
+QY&=QD_\alpha\alpha+QD_\lambda\lambda+Qx\beta+Q\epsilon \why{左乘 $Q$}\\
+&=Qx\beta+Q\epsilon. \why{$QD_\alpha=0$，$QD_\lambda=0$}
+\end{align*}
+对它做 OLS：
+\begin{align}
+\hat\beta_{FE}&=\big[(Qx)\T(Qx)\big]^{-1}(Qx)\T(QY)=(x\T Q\T Qx)^{-1}x\T Q\T QY \notag\\
+&=(x\T Qx)^{-1}x\T QY=\frac{x\T(M_N\otimes M_T)Y}{x\T(M_N\otimes M_T)x}, \label{eq:U17a-bfe-mat}
+\end{align}
+最后一行用到 $Q\T Q=Q^2=Q$。它与求和形式 \eqref{eq:U17a-bfe-sum} 一致，因为 $x\T QY=\sum_i\sum_t\ddot x_{it}Y_{it}$，$x\T Qx=\sum_i\sum_t\ddot x_{it}^2$。
+
+\subsection{估计量的性质：识别、无偏、一致、方差与自由度}\label{sec:U17a-props}
+
+\subsubsection{识别条件：\texorpdfstring{$x_{it}$}{x\_it} 不能是 \texorpdfstring{$a_i+b_t$}{a\_i + b\_t} 的形式}
+公式 \eqref{eq:U17a-bfe-sum} 要求分母为正：
+\[
+\sum_i\sum_t\ddot x_{it}^2=x\T Qx>0.
+\]
+若 $x_{it}=a_i+b_t$，由上面“$\alpha_i+\lambda_t$ 经双向变换后恒为零”的论证，$\ddot x_{it}\equiv0$；反之若 $\ddot x_{it}\equiv0$，则 $x_{it}=\bar x_{i\cdot}+(\bar x_{\cdot t}-\bar x_{\cdot\cdot})$ 正是 $a_i+b_t$ 的形式。所以识别条件就是\key{$x_{it}$ 不能写成 $a_i+b_t$}。只随个体变（如性别）或只随时间变（如全国利率）的变量被双向变换完全消去，其系数不可识别。
+
+\subsubsection{无偏：需要严格外生}
+设\term{严格外生}{strict exogeneity}成立：对所有 $i,t$，
+\[
+\E(\epsilon_{it}\mid x_{11},\dots,x_{NT},\alpha,\lambda)=0 .
+\]
+则
+\begin{align*}
+\E(\hat\beta_{FE}-\beta\mid x,\alpha,\lambda)&=\frac{\sum_i\sum_t\ddot x_{it}\,\E(\epsilon_{it}\mid x,\alpha,\lambda)}{\sum_i\sum_t\ddot x_{it}^2} \why{$\ddot x$ 是 $x$ 的函数，提出}\\
+&=0, \why{严格外生}
+\end{align*}
+再由迭代期望律得 $\E(\hat\beta_{FE}\mid x)=\beta$。注意 $\ddot x_{it}$ 含其他时期、其他个体的 $x$，所以需要的是严格外生，而不是同期外生。含滞后因变量的动态面板不满足严格外生（见第 12 章）。
+
+\subsubsection{一致：\texorpdfstring{$N\to\infty$}{N to infinity}、\texorpdfstring{$T$}{T} 固定}
+在短面板中（$N\to\infty$、$T$ 固定），若 $\frac1{NT}\sum\ddot x_{it}^2\pto$ 正常数，$\frac1{NT}\sum\ddot x_{it}\epsilon_{it}\pto0$，则
+\begin{align*}
+\hat\beta_{FE}-\beta&=\frac{\frac1{NT}\sum_i\sum_t\ddot x_{it}\epsilon_{it}}{\frac1{NT}\sum_i\sum_t\ddot x_{it}^2} \why{分子分母同除 $NT$}\\
+&\pto\frac{0}{\text{正常数}}=0. \why{CMT}
+\end{align*}
+$\alpha_i$、$\lambda_t$ 虽然被消去，但不需要对它们做任何分布假设，且允许它们与 $x_{it}$ 任意相关——这正是“固定效应”的含义。
+
+\subsubsection{方差：按个体聚类的稳健方差}
+允许个体内异方差与序列相关时，用按个体聚类的稳健方差：
+\[
+\widehat{\Var}(\hat\beta_{FE})=\Big(\sum_i\sum_t\ddot x_{it}^2\Big)^{-2}\sum_{i=1}^N\Big(\sum_{t=1}^T\ddot x_{it}\hat\epsilon_{it}\Big)^2,
+\]
+其中 $\hat\epsilon_{it}=\ddot Y_{it}-\ddot x_{it}\hat\beta_{FE}$。Stata 中用选项 \texttt{vce(cluster id)}。
+
+\subsubsection{残差自由度：\texorpdfstring{$(N-1)(T-1)-K$}{(N-1)(T-1)-K}}
+残差自由度为
+\[
+\rank Q-K=(N-1)(T-1)-K=NT-N-T+1-K .
+\]
+手工双向去均值后直接跑 OLS，软件会误用 $NT-K$，常规标准误偏小（修正方法见本章“自由度修正”一小节）。
+
+\subsection{\texorpdfstring{$T=2$}{T=2} 特例：TWFE 等于带截距的一阶差分回归}\label{sec:U17a-T2}
+
+\begin{thm}[$T=2$ 时的 TWFE]\UXVIIalabel{thm:U17a-T2}
+平衡面板、$T=2$ 时，记 $\Delta x_i=x_{i2}-x_{i1}$，$\Delta Y_i=Y_{i2}-Y_{i1}$，$\overline{\Delta x}=\frac1N\sum_i\Delta x_i$。则
+\[
+\hat\beta_{FE}=\frac{\sum_i(\Delta x_i-\overline{\Delta x})\Delta Y_i}{\sum_i(\Delta x_i-\overline{\Delta x})^2},
+\]
+即 $\Delta Y_i$ 对 $(1,\Delta x_i)$ 回归的斜率。
+\end{thm}
+
+思路：先写出 $T=2$ 时的 $\ddot x_{it}$，再代入 \eqref{eq:U17a-bfe-sum} 的第二种写法。
+\begin{align*}
+x_{i1}-\bar x_{i\cdot}&=x_{i1}-\tfrac12(x_{i1}+x_{i2})=-\tfrac12\Delta x_i \why{两期平均的离差}\\
+\bar x_{\cdot1}-\bar x_{\cdot\cdot}&=\bar x_{\cdot1}-\tfrac12(\bar x_{\cdot1}+\bar x_{\cdot2})=-\tfrac12\overline{\Delta x} \why{$\bar x_{\cdot2}-\bar x_{\cdot1}=\overline{\Delta x}$}\\
+\ddot x_{i1}&=(x_{i1}-\bar x_{i\cdot})-(\bar x_{\cdot1}-\bar x_{\cdot\cdot})=-\tfrac12(\Delta x_i-\overline{\Delta x}) \why{代入定义}\\
+\ddot x_{i2}&=-\ddot x_{i1}=\tfrac12(\Delta x_i-\overline{\Delta x}) \why{$\ddot x_{i1}+\ddot x_{i2}=0$}\\
+\textstyle\sum_t\ddot x_{it}Y_{it}&=\tfrac12(\Delta x_i-\overline{\Delta x})(Y_{i2}-Y_{i1}) \why{两项合并}\\
+\textstyle\sum_t\ddot x_{it}^2&=2\cdot\tfrac14(\Delta x_i-\overline{\Delta x})^2 \why{两项相等}\\
+\hat\beta_{FE}&=\frac{\sum_i\frac12(\Delta x_i-\overline{\Delta x})\Delta Y_i}{\sum_i\frac12(\Delta x_i-\overline{\Delta x})^2}
+=\frac{\sum_i(\Delta x_i-\overline{\Delta x})\Delta Y_i}{\sum_i(\Delta x_i-\overline{\Delta x})^2}. \why{约去 $\frac12$}
+\end{align*}
+这正是 $\Delta Y_i=(\lambda_2-\lambda_1)+\beta\Delta x_i+\Delta\epsilon_i$ 的 OLS 斜率：差分消去 $\alpha_i$，截距吸收 $\lambda_2-\lambda_1$。第 2 题把 $x$ 换成 $D$ 时（$\Delta D_i=d_i$），它立刻变成“处理组平均变化 $-$ 控制组平均变化”，即 DiD（见本章第 2 题 (a) 一节）。
+
+\subsection{第 1(a) 题最终答案与英文标准答案}
+
+\begin{thm}[第 1(a) 题答案]\UXVIIalabel{thm:U17a-ans1a}
+平衡面板中，同时消去 $\alpha_i,\lambda_t$ 的双向组内变换为
+\[
+\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}\quad(\ddot x_{it},\ddot\epsilon_{it}\ \text{同理}),\qquad \ddot Y_{it}=\beta\ddot x_{it}+\ddot\epsilon_{it},
+\]
+\[
+\hat\beta_{FE}=\frac{\sum_i\sum_t\ddot x_{it}\ddot Y_{it}}{\sum_i\sum_t\ddot x_{it}^2}=\frac{\sum_i\sum_t\ddot x_{it}Y_{it}}{\sum_i\sum_t\ddot x_{it}^2}=(x\T Qx)^{-1}x\T QY,\qquad Q=M_N\otimes M_T .
+\]
+\end{thm}
+
+\begin{english}[model answer to Question (1)(a)]
+Assume a balanced panel, $i=1,\dots,N$, $t=1,\dots,T$. Define the unit mean $\bar Y_{i\cdot}=\frac1T\sum_{t=1}^TY_{it}$, the time mean $\bar Y_{\cdot t}=\frac1N\sum_{i=1}^NY_{it}$ and the overall mean $\bar Y_{\cdot\cdot}=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^TY_{it}$, and similarly for $x_{it}$ and $\epsilon_{it}$; let $\bar\alpha=\frac1N\sum_i\alpha_i$ and $\bar\lambda=\frac1T\sum_t\lambda_t$. Averaging the model over $t$, over $i$, and over both gives
+\[
+\bar Y_{i\cdot}=\alpha_i+\bar\lambda+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot},\qquad
+\bar Y_{\cdot t}=\bar\alpha+\lambda_t+\beta\bar x_{\cdot t}+\bar\epsilon_{\cdot t},\qquad
+\bar Y_{\cdot\cdot}=\bar\alpha+\bar\lambda+\beta\bar x_{\cdot\cdot}+\bar\epsilon_{\cdot\cdot}.
+\]
+Demeaning in the time dimension, $Y_{it}-\bar Y_{i\cdot}=(\lambda_t-\bar\lambda)+\beta(x_{it}-\bar x_{i\cdot})+(\epsilon_{it}-\bar\epsilon_{i\cdot})$, removes $\alpha_i$ but leaves $\lambda_t-\bar\lambda$; and $\bar Y_{\cdot t}-\bar Y_{\cdot\cdot}=(\lambda_t-\bar\lambda)+\beta(\bar x_{\cdot t}-\bar x_{\cdot\cdot})+(\bar\epsilon_{\cdot t}-\bar\epsilon_{\cdot\cdot})$. Subtracting the second expression from the first, we obtain the within-group transformation that eliminates both $\alpha_i$ and $\lambda_t$, namely the two-way (double) demeaning
+\[
+\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot},\qquad \ddot Y_{it}=\beta\,\ddot x_{it}+\ddot\epsilon_{it},
+\]
+since $\alpha_i+\lambda_t-(\alpha_i+\bar\lambda)-(\bar\alpha+\lambda_t)+(\bar\alpha+\bar\lambda)=0$. (Balancedness is needed so that $\bar\lambda$ is the same for every unit and $\bar\alpha$ is the same for every period.) Applying OLS to the transformed equation,
+\[
+\hat\beta_{FE}=\frac{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}\ddot Y_{it}}{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}^2}=\frac{\sum_i\sum_t\ddot x_{it}Y_{it}}{\sum_i\sum_t\ddot x_{it}^2},
+\]
+where the second equality holds because $\sum_t\ddot x_{it}=0$ for every $i$ and $\sum_i\ddot x_{it}=0$ for every $t$. In matrix form, with $Y$ stacked as $NT\times1$ and $M_N=I_N-\frac1N\one_N\one_N'$, $M_T=I_T-\frac1T\one_T\one_T'$, the transformation is $Q=M_N\otimes M_T$, which satisfies $Q(I_N\otimes\one_T)=0$ and $Q(\one_N\otimes I_T)=0$, so
+\[
+\hat\beta_{FE}=(x'Qx)^{-1}x'QY.
+\]
+$\hat\beta_{FE}$ requires $\sum\ddot x_{it}^2>0$, i.e.\ $x_{it}$ must not be of the additive form $a_i+b_t$ (in particular, it must vary over both $i$ and $t$); it is unbiased under strict exogeneity $\E(\epsilon_{it}\mid x,\alpha,\lambda)=0$ and consistent as $N\to\infty$ with $T$ fixed; standard errors should be clustered by unit.
+\end{english}
+
+\subsection{第 1(a) 题评分要点与易错点}
+
+\begin{note}[1(a) 评分要点与易错点]
+\begin{enumerate}
+  \item \key{三种均值写清定义}：$\bar Y_{i\cdot}$ 对 $t$ 平均，$\bar Y_{\cdot t}$ 对 $i$ 平均。常见错误：把 $\bar Y_{\cdot t}$ 写成“个体 $i$ 在 $t$ 之前的平均”，或把下标写反。
+  \item \key{符号：减、减、加}。最常见的笔误是漏掉“$+\bar Y_{\cdot\cdot}$”或写成“$-\bar Y_{\cdot\cdot}$”。检验办法：把 $Y_{it}=c$（常数）代入，结果必须是 0：$c-c-c+c=0$。
+  \item \key{说明为什么能消去}，并写出“balanced panel”。只写公式不写理由会丢分。结论句写清“eliminates $\alpha_i$ and $\lambda_t$”。
+  \item \key{OLS 不带截距}；分母是 $\sum\ddot x^2$，不是 $\sum x^2$。写成 $\sum(\ddot x-\bar{\ddot x})^2$ 虽然数值相同（$\bar{\ddot x}=0$），但多此一举，显得没理解变换的性质。
+  \item 加分项：矩阵形式 $Q=M_N\otimes M_T$；识别条件；严格外生与 $N\to\infty$ 一致；按个体聚类的标准误。
+\end{enumerate}
+\end{note}
+
+\subsection{第 1(a) 题常见错误写法辨析}
+
+下面逐条列出参考答案中常见的写法，按“常见写法 → 问题 → 正确写法”辨析。总的评价是：核心公式通常是对的，但推导不严谨、缺条件。
+
+\subsubsection{记号漂移：把 \texorpdfstring{$x_{it}$}{x\_it} 改写成 \texorpdfstring{$z_{it}$}{z\_it}}
+\begin{itemize}
+  \item 常见写法：通篇把解释变量写成 $z_{it}$。
+  \item 问题：题目给的是 $x_{it}$，换记号增加阅卷人的负担，也容易与工具变量的记号混淆。
+  \item 正确写法：考场上沿用题目记号 $x_{it}$。
+\end{itemize}
+
+\subsubsection{多余的二次去均值}
+\begin{itemize}
+  \item 常见写法：先写 $\hat\beta_{FE}=\sum(\tilde z_{it}-\bar{\tilde z}_{\cdot\cdot})(\tilde Y_{it}-\bar{\tilde Y}_{\cdot\cdot})/\sum(\tilde z_{it}-\bar{\tilde z}_{\cdot\cdot})^2$，再说“由于 $\bar{\tilde z}_{\cdot\cdot}=0$ 可化简”。
+  \item 问题：双向去均值后变量的总均值恒为 0（而且每个个体内、每个时期内的和都为 0），再减一次均值没有意义，只说明对变换的性质不清楚；真正值得写出的性质 $\sum\ddot x\ddot Y=\sum\ddot xY$（只需变换 $x$）却没有写。
+  \item 正确写法：直接写 $\hat\beta_{FE}=\sum\ddot x\ddot Y/\sum\ddot x^2=\sum\ddot xY/\sum\ddot x^2$，并用“$\sum_t\ddot x_{it}=0$，$\sum_i\ddot x_{it}=0$”说明第二个等号。
+\end{itemize}
+
+\subsubsection{未说明平衡面板}
+\begin{itemize}
+  \item 常见写法：验证变换有效时，直接把 $\bar\alpha$、$\bar\lambda$ 当作常数抵消。
+  \item 问题：这一步要求平衡面板；非平衡面板中该公式不能消去固定效应（见本章“非平衡面板”一节）。
+  \item 正确写法：写明“In a balanced panel, $\bar\lambda$ is the same for every unit and $\bar\alpha$ is the same for every period”。
+\end{itemize}
+
+\subsubsection{缺少假设与矩阵形式}
+\begin{itemize}
+  \item 常见写法：只给出求和形式的公式就结束。
+  \item 问题：没有给出 $Q=M_N\otimes M_T$、识别条件 $\sum\ddot x^2>0$、严格外生与一致性条件。这些不是必答项，但属于“写全了才拿满分”的内容。
+  \item 正确写法：在公式之后补上矩阵形式与“Properties and assumptions”一段（见上面的英文标准答案末段）。
+\end{itemize}
+
+\begin{english}[short version of (1)(a) when time is short]
+In a balanced panel, the two-way within transformation is $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$ (and similarly for $x_{it}$ and $\epsilon_{it}$). Because $\bar Y_{i\cdot}$ contains $\alpha_i+\bar\lambda$, $\bar Y_{\cdot t}$ contains $\bar\alpha+\lambda_t$ and $\bar Y_{\cdot\cdot}$ contains $\bar\alpha+\bar\lambda$, the fixed effects cancel and $\ddot Y_{it}=\beta\ddot x_{it}+\ddot\epsilon_{it}$. OLS without an intercept gives $\hat\beta_{FE}=\sum_i\sum_t\ddot x_{it}\ddot Y_{it}/\sum_i\sum_t\ddot x_{it}^2=(x'Qx)^{-1}x'QY$ with $Q=M_N\otimes M_T$. It requires $x_{it}$ to vary over both $i$ and $t$ (not of the form $a_i+b_t$) and strict exogeneity of $\epsilon_{it}$.
+\end{english}
+
+%======================================================================
+\section{第 1 题 (b)：个体去均值加时间虚拟变量}\label{sec:U17a-q1b}
+
+\subsection{原题与题意：用虚拟变量表示 \texorpdfstring{$\lambda_t$}{lambda\_t}，只对个体去均值}
+
+\begin{tcolorbox}[bxbase,colback=ceng!3,colframe=ceng,boxed title style={colback=ceng},fontupper=\small,title={原题 (1)(b)}]
+(b) we use time dummy to approximate $\lambda_t$ and use the within-group transformation that only eliminates $\alpha_i$, what's the formula of $\hat\beta_{FE}$ in this case? [hint: consider the demean in cross-sectional dimension $i$ and time dummy for $\lambda_t=a_1f_1+\cdots+a_Tf_T$, where $f_t$ denotes the time dummy]
+\end{tcolorbox}
+
+\subsubsection{中文题意：这是实践中最常用的双向固定效应算法}
+用时间虚拟变量表示 $\lambda_t$，只对每个个体做时间去均值（消去 $\alpha_i$），写出此时 $\hat\beta_{FE}$ 的公式。这正是 Hansen §17.27 所说的“实践中最常用的做法”，也是 Stata 命令 \texttt{xtreg y x i.year, fe}（需要稳健标准误时加 \texttt{robust}，即按个体聚类）的做法：用年份虚拟变量估计时间效应。
+
+\subsubsection{完整答案的四层}
+\begin{enumerate}[label=(\roman*)]
+  \item 把 $\lambda_t$ 写成时间虚拟变量的线性组合并代入模型；
+  \item 个体去均值后，虚拟变量变成什么样；
+  \item \term{虚拟变量陷阱}{dummy variable trap}：去均值后 $T$ 个虚拟变量完全共线，只能保留 $T-1$ 个，且没有常数项；
+  \item 用 \term{FWL 定理}{Frisch--Waugh--Lovell theorem}（分块回归）写出 $\hat\beta_{FE}$，并（加分）把它算到底，指出它与 (a) 数值上完全相同。
+\end{enumerate}
+
+\begin{keypt}[1(b) 的考点]
+\tagexam\ $\lambda_t=\sum_sa_sf_{st}$ 是精确表示；个体去均值后 $\dot f_{st}=f_{st}-1/T$；虚拟变量陷阱（区分度最高）；FWL 公式 $\hat\beta_{FE}=(\dot x\T M_{\dot F}\dot x)^{-1}\dot x\T M_{\dot F}\dot Y$；平衡面板中与 (a) 数值相同。
+\end{keypt}
+
+\subsection{第一步：时间虚拟变量模型}
+
+\subsubsection{虚拟变量表示是精确的：\texorpdfstring{$a_t=\lambda_t$}{a\_t = lambda\_t}}
+令 $f_{st}=\mathbf{1}\{t=s\}$（第 $s$ 期取 1，其余为 0），$s=1,\dots,T$。对任一 $t$，只有 $f_{tt}=1$，所以
+\begin{align*}
+a_1f_{1t}+a_2f_{2t}+\cdots+a_Tf_{Tt}&=\sum_{s=1}^Ta_sf_{st} \why{求和记号}\\
+&=a_t. \why{只有 $s=t$ 一项非零}
+\end{align*}
+令它等于 $\lambda_t$，得 $a_t=\lambda_t$。所以“用虚拟变量近似 $\lambda_t$”其实是精确表示，没有任何近似误差。代入模型：
+\begin{equation}\label{eq:U17a-dummy}
+Y_{it}=\alpha_i+\sum_{s=1}^Ta_sf_{st}+\beta x_{it}+\epsilon_{it}.
+\end{equation}
+
+\subsubsection{不能再加常数项 \texorpdfstring{$a_0$}{a\_0}}
+$\sum_sf_{st}=1$ 对所有 $(i,t)$ 成立，即 $T$ 个虚拟变量之和就是常数列。再加 $a_0$，就是用 $T+1$ 个参数表示 $T$ 个数，参数不可识别。同理，$\alpha_i$ 与 $a_s$ 之间也可以互相转移一个常数：给所有 $\alpha_i$ 加 $c$、给所有 $a_s$ 减 $c$，模型不变。所以单个的 $a_s$ 本身不可识别，可识别的只是差 $a_s-a_1$（第三步再次出现）。
+
+\subsection{第二步：个体去均值后，虚拟变量变成 \texorpdfstring{$f_{st}-1/T$}{f\_st - 1/T}}
+
+对 \eqref{eq:U17a-dummy} 按 $t$ 求平均（个体 $i$ 有全部 $T$ 期），再与原式相减：
+\begin{align*}
+\bar f_{s,i\cdot}&=\frac1T\sum_{t=1}^Tf_{st}=\frac1T \why{$T$ 期中恰有一期取 1}\\
+\bar Y_{i\cdot}&=\alpha_i+\sum_sa_s\cdot\frac1T+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot} \why{\eqref{eq:U17a-dummy} 对 $t$ 平均}\\
+\dot Y_{it}\equiv Y_{it}-\bar Y_{i\cdot}&=\sum_{s=1}^Ta_s\dot f_{st}+\beta\dot x_{it}+\dot\epsilon_{it},\quad \dot f_{st}=f_{st}-\frac1T \why{相减，$\alpha_i$ 消去}
+\end{align*}
+其中 $\dot x_{it}=x_{it}-\bar x_{i\cdot}$，$\dot\epsilon_{it}=\epsilon_{it}-\bar\epsilon_{i\cdot}$。$\dot f_{st}$ 在第 $s$ 期取 $1-\frac1T$，在其他期取 $-\frac1T$，且与 $i$ 无关。
+
+\subsection{第三步：虚拟变量陷阱——去均值虚拟变量完全共线，常数项被消去}
+
+\subsubsection{\texorpdfstring{$T$}{T} 个去均值虚拟变量之和恒为零}
+对每个 $(i,t)$，
+\begin{align*}
+\sum_{s=1}^T\dot f_{st}&=\sum_{s=1}^Tf_{st}-T\cdot\frac1T \why{代入 $\dot f_{st}$}\\
+&=1-1=0. \why{每个 $t$ 恰有一个 $f_{st}=1$}
+\end{align*}
+所以 $T$ 列 $\dot f_1,\dots,\dot f_T$ 线性相关（和为零向量），回归元矩阵不满列秩，$(\dot F\T\dot F)^{-1}$ 不存在。
+
+\subsubsection{去掉第 1 期：可识别的是 \texorpdfstring{$\delta_s=a_s-a_1=\lambda_s-\lambda_1$}{delta\_s = a\_s - a\_1}}
+解决办法是去掉一个，例如第 1 期。由上式，$\dot f_{1t}=-\sum_{s\ge2}\dot f_{st}$，于是
+\begin{align*}
+\sum_{s=1}^Ta_s\dot f_{st}&=a_1\dot f_{1t}+\sum_{s=2}^Ta_s\dot f_{st} \why{拆出 $s=1$}\\
+&=-a_1\sum_{s=2}^T\dot f_{st}+\sum_{s=2}^Ta_s\dot f_{st} \why{代入 $\dot f_{1t}$}\\
+&=\sum_{s=2}^T(a_s-a_1)\dot f_{st}\equiv\sum_{s=2}^T\delta_s\dot f_{st}. \why{合并同类项}
+\end{align*}
+可识别的只是相对第 1 期的时间效应 $\delta_s=a_s-a_1=\lambda_s-\lambda_1$。
+
+\subsubsection{常数项被个体去均值消去}
+若模型里有常数项 $c$，个体去均值后变成 $c-c=0$，常数项被消去，所以变换后的回归\key{不含截距}。
+
+\subsubsection{剩下的 \texorpdfstring{$T-1$}{T-1} 个去均值虚拟变量线性无关}
+设 $\sum_{s\ge2}c_s\dot f_{st}=0$ 对所有 $t$ 成立，要证 $c_2=\cdots=c_T=0$：
+\begin{align*}
+t=1:\quad \sum_{s\ge2}c_s\Big(0-\frac1T\Big)&=-\frac1T\sum_{s\ge2}c_s=0 \why{$f_{s1}=0$，$s\ge2$}\\
+\Rightarrow\ \sum_{s\ge2}c_s&=0 \why{两边乘 $-T$}\\
+t=s'\ge2:\quad c_{s'}-\frac1T\sum_{s\ge2}c_s&=0 \why{只有 $f_{s's'}=1$}\\
+\Rightarrow\ c_{s'}&=0. \why{代入 $\sum c_s=0$}
+\end{align*}
+所以去掉一个之后，回归元矩阵满列秩。
+
+\subsubsection{带截距的双向 LSDV：个体与时间虚拟变量各去掉一个}
+把个体效应也用虚拟变量表示，就是双向\term{最小二乘虚拟变量估计}{least squares dummy variable estimator, LSDV}：
+\[
+Y_{it}=\alpha_1d_{1,it}+\cdots+\alpha_Nd_{N,it}+a_1f_{1t}+\cdots+a_Tf_{Tt}+\beta x_{it}+\epsilon_{it},
+\]
+对全部 $NT$ 个观测做 OLS，其中 $d_{j,it}=\mathbf{1}\{i=j\}$。若回归带截距，则截距、$N$ 个个体虚拟变量、$T$ 个时间虚拟变量三者之间有两个线性关系（$\sum_jd_{j,it}=1=\sum_sf_{st}$），所以个体虚拟变量与时间虚拟变量\key{各去掉一个}。在 (b) 的做法中，个体效应已被去均值消掉（连同截距），只需对时间虚拟变量去掉一个。
+
+\subsection{第四步：\texorpdfstring{$\hat\beta_{FE}$}{beta\_FE} 的分块回归（FWL）公式}
+
+变换后的回归方程为
+\begin{equation}\label{eq:U17a-q1b-reg}
+\dot Y_{it}=\beta\dot x_{it}+\sum_{s=2}^T\delta_s\dot f_{st}+\dot\epsilon_{it}.
+\end{equation}
+
+\subsubsection{FWL 形式：先偏出时间虚拟变量，再残差对残差回归}
+把 $\dot f_2,\dots,\dot f_T$ 排成 $NT\times(T-1)$ 矩阵 $\dot F$，$\dot Y,\dot x$ 为 $NT\times1$ 向量。对 \eqref{eq:U17a-q1b-reg} 做 OLS。由 FWL 定理（严格表述见本章数值等价一节），在含 $\dot F$ 的回归中，$\beta$ 的 OLS 系数等于“先把 $\dot x$、$\dot Y$ 对 $\dot F$ 回归取残差，再残差对残差回归”：
+\begin{equation}\label{eq:U17a-fwl-b}
+\boxed{\ \hat\beta_{FE}=\big(\dot x\T M_{\dot F}\dot x\big)^{-1}\dot x\T M_{\dot F}\dot Y,\qquad M_{\dot F}=I_{NT}-\dot F(\dot F\T\dot F)^{-1}\dot F\T.\ }
+\end{equation}
+
+\subsubsection{联合 OLS 形式}
+等价地，把 $\beta$ 与 $\delta=(\delta_2,\dots,\delta_T)\T$ 一起估计：
+\[
+\begin{pmatrix}\hat\beta\\ \hat\delta\end{pmatrix}=(Z\T Z)^{-1}Z\T\dot Y,\qquad Z=[\dot x,\ \dot F]\quad(NT\times T).
+\]
+\eqref{eq:U17a-fwl-b} 就是题目要的“公式”。下面把它算到底。
+
+\subsection{把公式算到底：拟合值是时间均值，残差就是双向去均值}\label{sec:U17a-fitted}
+
+要证：$\dot x_{it}$ 对 $\dot f_2,\dots,\dot f_T$ 回归的拟合值是
+\[
+\bar{\dot x}_{\cdot t}\equiv\frac1N\sum_{j=1}^N\dot x_{jt}=\bar x_{\cdot t}-\bar x_{\cdot\cdot},
+\]
+残差就是 $\ddot x_{it}$。思路：先看清 $\dot F$ 的列空间是什么，再在这个空间里求离 $\dot x$ 最近的点（OLS 拟合值就是列空间中离被解释变量最近的点）。
+
+\subsubsection{\texorpdfstring{$\dot F$}{F-dot} 的列空间：只依赖 \texorpdfstring{$t$}{t}、对 \texorpdfstring{$t$}{t} 求和为零的向量}
+每个 $\dot f_s$（作为 $NT$ 维向量）的元素只依赖 $t$，且对 $t$ 求和为 $(1-\frac1T)+(T-1)(-\frac1T)=0$。记
+\[
+V=\Big\{v\in\R^{NT}:\ v_{it}=g_t\ \text{只依赖}\ t,\ \textstyle\sum_{t=1}^Tg_t=0\Big\}.
+\]
+$V$ 是子空间，维数为 $T-1$（$g\in\R^T$ 受一个线性约束）。$\dot f_2,\dots,\dot f_T$ 都在 $V$ 中且线性无关，共 $T-1$ 个，所以
+\[
+\mathrm{col}(\dot F)=V .
+\]
+
+\subsubsection{在列空间中求离 \texorpdfstring{$\dot x$}{x-dot} 最近的点}
+OLS 拟合值是 $\mathrm{col}(\dot F)$ 中离 $\dot x$ 最近的点。把列空间的形式代入，问题变成对每个 $t$ 选一个数 $g_t$：
+\begin{align*}
+\min_{v\in\mathrm{col}(\dot F)}\sum_{i,t}(\dot x_{it}-v_{it})^2&=\min_{g:\,\sum_tg_t=0}\ \sum_t\sum_i(\dot x_{it}-g_t)^2 \why{代入列空间的形式}\\
+\text{无约束解：}\quad g_t&=\frac1N\sum_i\dot x_{it}=\bar{\dot x}_{\cdot t} \why{每个 $t$ 单独最小化：取均值}\\
+\sum_t\bar{\dot x}_{\cdot t}&=\frac1N\sum_i\sum_t\dot x_{it}=0 \why{$\sum_t\dot x_{it}=0$：约束自动满足}\\
+\bar{\dot x}_{\cdot t}&=\bar x_{\cdot t}-\frac1N\sum_i\bar x_{i\cdot}=\bar x_{\cdot t}-\bar x_{\cdot\cdot} \why{平衡面板}\\
+\dot x_{it}-\bar{\dot x}_{\cdot t}&=(x_{it}-\bar x_{i\cdot})-(\bar x_{\cdot t}-\bar x_{\cdot\cdot})=\ddot x_{it} \why{残差 $=$ 双向去均值}
+\end{align*}
+即 $M_{\dot F}\dot x=\ddot x$，同理 $M_{\dot F}\dot Y=\ddot Y$：个体去均值后再偏出时间虚拟变量，等于每期再减去横截面均值。
+
+\subsubsection{代入 FWL 公式：(b) 的显式形式与 (a) 逐字相同}
+先证一个恒等式：对任意 $a_{it},b_{it}$，记 $\bar a_{\cdot t}=\frac1N\sum_ia_{it}$，$\bar b_{\cdot t}$ 同理，则
+\begin{align*}
+\sum_i(a_{it}-\bar a_{\cdot t})(b_{it}-\bar b_{\cdot t})&=\sum_ia_{it}b_{it}-\bar a_{\cdot t}\sum_ib_{it}-\bar b_{\cdot t}\sum_ia_{it}+N\bar a_{\cdot t}\bar b_{\cdot t} \why{展开}\\
+&=\sum_ia_{it}b_{it}-N\bar a_{\cdot t}\bar b_{\cdot t}. \why{$\sum_ib_{it}=N\bar b_{\cdot t}$}
+\end{align*}
+代入 \eqref{eq:U17a-fwl-b}：
+\begin{align*}
+\hat\beta_{FE}&=\frac{\sum_i\sum_t(\dot x_{it}-\bar{\dot x}_{\cdot t})(\dot Y_{it}-\bar{\dot Y}_{\cdot t})}{\sum_i\sum_t(\dot x_{it}-\bar{\dot x}_{\cdot t})^2} \why{FWL：残差对残差}\\
+&=\frac{\sum_i\sum_t\dot x_{it}\dot Y_{it}-N\sum_t\bar{\dot x}_{\cdot t}\bar{\dot Y}_{\cdot t}}{\sum_i\sum_t\dot x_{it}^2-N\sum_t\bar{\dot x}_{\cdot t}^2} \why{对每个 $t$ 用恒等式}\\
+&=\frac{\sum_i\sum_t\ddot x_{it}\ddot Y_{it}}{\sum_i\sum_t\ddot x_{it}^2}. \why{残差为 $\ddot x$、$\ddot Y$}
+\end{align*}
+这说明：(b) 的公式与 (a) 的公式逐字相同——“个体去均值 $+$ 时间虚拟变量”$=$“个体去均值 $+$ 每期再减横截面均值”$=$ 双向去均值。第二行给出 (b) 自己的显式形式：个体内的协变，减去由共同时间波动解释的部分。
+
+\subsection{时间效应的估计：\texorpdfstring{$\hat\delta_t=\hat a_t-\hat a_1$}{delta-hat\_t = a-hat\_t - a-hat\_1}}
+
+联合 OLS 关于 $\delta$ 的正规方程给出 $\hat\delta=(\dot F\T\dot F)^{-1}\dot F\T(\dot Y-\dot x\hat\beta)$，即 $\dot F\hat\delta$ 是 $\dot Y-\hat\beta\dot x$ 对 $\dot F$ 回归的拟合值。由上一小节的投影论证，这个拟合值在 $(i,t)$ 处为
+\[
+g_t=\bar{\dot Y}_{\cdot t}-\hat\beta\,\bar{\dot x}_{\cdot t}.
+\]
+另一方面，拟合值 $\sum_{s\ge2}\hat\delta_s\dot f_{st}$ 在第 $t\ge2$ 期等于 $\hat\delta_t-\frac1T\sum_s\hat\delta_s$，在第 1 期等于 $-\frac1T\sum_s\hat\delta_s$，两者之差为 $\hat\delta_t$。所以
+\begin{align*}
+\hat\delta_t&=g_t-g_1 \why{两期拟合值之差}\\
+&=(\bar{\dot Y}_{\cdot t}-\bar{\dot Y}_{\cdot1})-\hat\beta(\bar{\dot x}_{\cdot t}-\bar{\dot x}_{\cdot1}) \why{代入 $g_t$}\\
+&=(\bar Y_{\cdot t}-\bar Y_{\cdot1})-\hat\beta(\bar x_{\cdot t}-\bar x_{\cdot1}),\qquad t=2,\dots,T. \why{$\bar{\dot Y}_{\cdot t}=\bar Y_{\cdot t}-\bar Y_{\cdot\cdot}$}
+\end{align*}
+即 $\hat\delta_t=\hat a_t-\hat a_1$ 是第 $t$ 期相对第 1 期的横截面平均变化，扣掉由 $x$ 的平均变化解释的部分。这就是“用年份虚拟变量估计时间效应”的含义。
+
+\subsection{矩阵形式：\texorpdfstring{$I_N\otimes M_T$}{I\_N kron M\_T} 与时间虚拟变量矩阵 \texorpdfstring{$F$}{F}}\label{sec:U17a-q1b-mat}
+
+\subsubsection{单向组内变换与去均值后的虚拟变量矩阵 \texorpdfstring{$\dot F=\one_N\otimes(M_TI_T^*)$}{F-dot = 1\_N kron (M\_T I\_T*)}}
+记 $F=D_\lambda=\one_N\otimes I_T$（$NT\times T$，全部 $T$ 个时间虚拟变量），$F^*=\one_N\otimes I_T^*$（去掉第 1 列；$I_T^*$ 为 $I_T$ 去掉第一列后的 $T\times(T-1)$ 矩阵）。个体去均值矩阵为 $I_N\otimes M_T$。则
+\begin{align*}
+\dot Y&=(I_N\otimes M_T)Y,\qquad \dot x=(I_N\otimes M_T)x \why{单向组内变换}\\
+\dot F&=(I_N\otimes M_T)F^*=(I_N\otimes M_T)(\one_N\otimes I_T^*) \why{对虚拟变量做同一变换}\\
+&=\one_N\otimes(M_TI_T^*). \why{混合积}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$\hat\beta_{FE}$}{beta\_FE} 的矩阵表达}
+把 $\dot x=(I_N\otimes M_T)x$、$\dot Y=(I_N\otimes M_T)Y$ 代入 \eqref{eq:U17a-fwl-b}（$I_N\otimes M_T$ 对称）：
+\[
+\hat\beta_{FE}=\big[x\T(I_N\otimes M_T)M_{\dot F}(I_N\otimes M_T)x\big]^{-1}x\T(I_N\otimes M_T)M_{\dot F}(I_N\otimes M_T)Y.
+\]
+本章数值等价一节证明 $M_{\dot F}(I_N\otimes M_T)=M_N\otimes M_T=Q$，于是上式化为 $(x\T Qx)^{-1}x\T QY$。
+
+\subsubsection{原始虚拟变量与去均值虚拟变量：哪些组合正确}
+若只对 $Y,x$ 做个体去均值，而把\key{原始}虚拟变量放进回归，结论取决于放几个、带不带截距。以全部 $T$ 个原始虚拟变量 $F$ 为例：
+\begin{align*}
+P_F&=(\one_N\otimes I_T)\big[(\one_N\otimes I_T)\T(\one_N\otimes I_T)\big]^{-1}(\one_N\otimes I_T)\T \why{投影矩阵定义}\\
+&=(\one_N\otimes I_T)(NI_T)^{-1}(\one_N\T\otimes I_T)=P_N\otimes I_T \why{混合积；$\one_N\T\one_N=N$}\\
+M_F(I_N\otimes M_T)&=(M_N\otimes I_T)(I_N\otimes M_T)=M_N\otimes M_T \why{混合积}
+\end{align*}
+
+\begin{note}[原始虚拟变量与去均值虚拟变量]
+\begin{itemize}
+  \item 个体去均值的 $Y,x$ $+$ 全部 $T$ 个原始 $f_{st}$、不加截距：\key{正确}。偏出的是 $F$ 本身，$M_F(I_N\otimes M_T)=Q$。
+  \item 个体去均值的 $Y,x$ $+$ $T-1$ 个原始虚拟变量、不加截距：\key{错误}。第 1 期没有被横截面去均值（拟合值在第 1 期被强制为 0）。
+  \item 再加上截距：又\key{正确}，因为列空间恢复为全部 $T$ 个虚拟变量的列空间。
+\end{itemize}
+最不容易出错的写法就是本节的“去均值虚拟变量、去掉一个、不加截距”。软件命令 \texttt{xtreg y x i.year, fe} 会自动处理。
+\end{note}
+
+\subsection{第 1(b) 题最终答案与英文标准答案}
+
+\begin{thm}[第 1(b) 题答案]\UXVIIalabel{thm:U17a-ans1b}
+令 $\lambda_t=\sum_{s=1}^Ta_sf_{st}$，$f_{st}=\mathbf{1}\{t=s\}$。个体去均值后
+\[
+\dot Y_{it}=\beta\dot x_{it}+\sum_{s=2}^T\delta_s\dot f_{st}+\dot\epsilon_{it},\qquad \dot Y_{it}=Y_{it}-\bar Y_{i\cdot},\quad \dot f_{st}=f_{st}-\tfrac1T,\quad \delta_s=a_s-a_1
+\]
+（$T$ 个 $\dot f_s$ 之和恒为 0，只能保留 $T-1$ 个；无截距）。由 FWL，
+\[
+\hat\beta_{FE}=(\dot x\T M_{\dot F}\dot x)^{-1}\dot x\T M_{\dot F}\dot Y
+=\frac{\sum_i\sum_t\dot x_{it}\dot Y_{it}-N\sum_t\bar{\dot x}_{\cdot t}\bar{\dot Y}_{\cdot t}}{\sum_i\sum_t\dot x_{it}^2-N\sum_t\bar{\dot x}_{\cdot t}^2}
+=\frac{\sum_i\sum_t\ddot x_{it}\ddot Y_{it}}{\sum_i\sum_t\ddot x_{it}^2},
+\]
+在平衡面板中与 (a) 的 $\hat\beta_{FE}$ 数值上完全相同（任何样本量）。
+\end{thm}
+
+\begin{english}[model answer to Question (1)(b)]
+Write the time effects with time dummies, $\lambda_t=\sum_{s=1}^Ta_sf_{st}$, where $f_{st}=1$ if $t=s$ and 0 otherwise (so $a_t=\lambda_t$; the representation is exact). The model becomes
+\[
+Y_{it}=\alpha_i+\sum_{s=1}^Ta_sf_{st}+\beta x_{it}+\epsilon_{it}.
+\]
+For each unit $i$, subtract its time average. Since $\frac1T\sum_tf_{st}=\frac1T$, the within-group (one-way) transformation removes $\alpha_i$ and gives
+\[
+\dot Y_{it}=\beta\dot x_{it}+\sum_{s=1}^Ta_s\dot f_{st}+\dot\epsilon_{it},\qquad \dot Y_{it}=Y_{it}-\bar Y_{i\cdot},\quad \dot f_{st}=f_{st}-\tfrac1T.
+\]
+Because $\sum_{s=1}^T\dot f_{st}=1-1=0$ for every $(i,t)$, the $T$ demeaned dummies are perfectly collinear (dummy-variable trap), and any intercept is also eliminated by the demeaning. Hence we drop one dummy (say $s=1$) and estimate
+\[
+\dot Y_{it}=\beta\dot x_{it}+\sum_{s=2}^T\delta_s\dot f_{st}+\dot\epsilon_{it},\qquad \delta_s=a_s-a_1,
+\]
+by OLS without an intercept. Let $\dot F$ be the $NT\times(T-1)$ matrix of $\dot f_2,\dots,\dot f_T$ and $M_{\dot F}=I_{NT}-\dot F(\dot F'\dot F)^{-1}\dot F'$. By the Frisch--Waugh--Lovell theorem,
+\[
+\hat\beta_{FE}=(\dot x'M_{\dot F}\dot x)^{-1}\dot x'M_{\dot F}\dot Y,
+\]
+with $\dot x=(I_N\otimes M_T)x$, $\dot Y=(I_N\otimes M_T)Y$. In a balanced panel the fitted value from regressing $\dot x_{it}$ on the demeaned dummies is the time mean $\bar{\dot x}_{\cdot t}=\bar x_{\cdot t}-\bar x_{\cdot\cdot}$, so the residual is $\dot x_{it}-\bar{\dot x}_{\cdot t}=x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot}=\ddot x_{it}$. Therefore
+\[
+\hat\beta_{FE}=\frac{\sum_i\sum_t\dot x_{it}\dot Y_{it}-N\sum_t\bar{\dot x}_{\cdot t}\bar{\dot Y}_{\cdot t}}{\sum_i\sum_t\dot x_{it}^2-N\sum_t\bar{\dot x}_{\cdot t}^2}=\frac{\sum_i\sum_t\ddot x_{it}\ddot Y_{it}}{\sum_i\sum_t\ddot x_{it}^2},
+\]
+which is numerically identical to the two-way within estimator in (a) (and to the LSDV estimator with unit and time dummies) in any balanced sample, not only asymptotically. The time effects are estimated as $\hat a_t-\hat a_1=(\bar Y_{\cdot t}-\bar Y_{\cdot1})-\hat\beta(\bar x_{\cdot t}-\bar x_{\cdot1})$. In unbalanced panels this dummy-variable approach remains valid (with the dummies demeaned over each unit's own observed periods), whereas the simple double-demeaning formula in (a) does not.
+\end{english}
+
+\subsection{第 1(b) 题评分要点与易错点}
+
+\begin{note}[1(b) 评分要点与易错点]
+\begin{enumerate}
+  \item 写出 $\lambda_t=\sum_sa_sf_{st}$ 并代入模型；说明个体去均值后 $\dot f_{st}=f_{st}-1/T$。
+  \item \key{虚拟变量陷阱必须处理}：$T$ 个去均值虚拟变量之和为 0，只能保留 $T-1$ 个；去均值后没有截距。这是本小问最容易丢分、也是区分度最高的一点。
+  \item $\hat\beta_{FE}$ 写成 FWL 形式 $(\dot x\T M_{\dot F}\dot x)^{-1}\dot x\T M_{\dot F}\dot Y$ 或联合 OLS 形式 $(Z\T Z)^{-1}Z\T\dot Y$ 都给分；能指出“平衡面板中与 (a) 完全相同”是满分答案的标志。
+  \item 不要写“两者渐近等价”——它们是数值恒等（见本章数值等价一节）。
+\end{enumerate}
+\end{note}
+
+\subsection{第 1(b) 题常见错误写法辨析}
+
+\subsubsection{保留全部 \texorpdfstring{$T$}{T} 个去均值虚拟变量（实质错误）}
+\begin{itemize}
+  \item 常见写法：$\lambda_t=a_0+a_1f_{1t}+\cdots+a_Tf_{Tt}$，并称“为完整表达保留所有 $T$ 个”；在去均值后的回归 $\breve Y_{it}=\beta\breve z_{it}+a_1\breve f_{1t}+\cdots+a_T\breve f_{Tt}+\breve\epsilon_{it}$ 中保留全部 $T$ 个去均值虚拟变量，再写 $M_{\breve F}=I-\breve F(\breve F\T\breve F)^{-1}\breve F\T$。
+  \item 问题：$\sum_{k=1}^T\breve f_{kt}=1-T\cdot\frac1T=0$，$T$ 列完全共线，$\breve F\T\breve F$ 奇异，$(\breve F\T\breve F)^{-1}$ 不存在，公式无定义。数值上，$[\dot x,\dot f_1,\dots,\dot f_T]$ 的秩是 $T$ 而不是 $T+1$，$\dot F\T\dot F$ 的条件数约为 $10^{15}$ 量级（见本章数值验证一例）。
+  \item 正确写法：只保留 $T-1$ 个（系数为相对基期的 $a_s-a_1$）；或者用广义逆、投影矩阵表示（投影只依赖列空间）。
+\end{itemize}
+
+\subsubsection{常数项 \texorpdfstring{$a_0$}{a\_0} 的处理前后矛盾}
+\begin{itemize}
+  \item 常见写法：在 \eqref{eq:U17a-dummy} 中再加 $a_0$；随后提到“$a_0$ 被抵消”“通常省略 1 个基期虚拟变量”，却仍在公式中保留全部 $T$ 个去均值虚拟变量并对 $\breve F\T\breve F$ 求逆。
+  \item 问题：$T$ 个虚拟变量之和已是常数列，加 $a_0$ 本身就多了一个参数；个体去均值后 $a_0-a_0=0$ 被消去，但剩下的 $T$ 个去均值虚拟变量之间仍然完全共线。
+  \item 正确写法：不加 $a_0$；在公式里真正去掉一个虚拟变量。
+\end{itemize}
+
+\subsubsection{没有把公式算到底}
+\begin{itemize}
+  \item 常见写法：停在“$\hat\beta_{FE}=\sum\breve z^{\perp}\breve Y^{\perp}/\sum(\breve z^{\perp})^2$”（残差对残差回归）。
+  \item 问题：没有指出残差 $\breve z^{\perp}_{it}$ 就是双向去均值的 $\ddot x_{it}$，因而错过了 (a)(b) 的关系。
+  \item 正确写法：写出“拟合值 $=$ 时间均值、残差 $=\ddot x_{it}$”，并指出与 (a) 的公式相同。
+\end{itemize}
+
+\subsubsection{“大样本下等价、小样本可能略有差异”}
+\begin{itemize}
+  \item 常见写法：“两种方法大样本下等价，小样本因自由度调整可能略有差异。”
+  \item 问题：错误。平衡面板中两者对任何样本数值完全相同；差别只出现在非平衡面板（此时应以虚拟变量法为准）；自由度只影响标准误，是另一回事。
+  \item 正确写法：“In a balanced panel the two estimators are numerically identical in every sample.”
+\end{itemize}
+
+\begin{english}[short version of (1)(b) when time is short]
+Represent the time effects exactly by time dummies, $\lambda_t=\sum_{s=1}^Ta_sf_{st}$ with $f_{st}=\mathbf{1}\{t=s\}$. Demeaning each unit over time removes $\alpha_i$ and turns the dummies into $\dot f_{st}=f_{st}-1/T$, which sum to zero over $s$; hence one dummy must be dropped and no intercept is included. Regressing $\dot Y_{it}$ on $\dot x_{it}$ and $\dot f_{2t},\dots,\dot f_{Tt}$ gives, by the FWL theorem, $\hat\beta_{FE}=(\dot x'M_{\dot F}\dot x)^{-1}\dot x'M_{\dot F}\dot Y$. In a balanced panel $M_{\dot F}\dot x=\ddot x$, so this equals the two-way within estimator of (a) exactly.
+\end{english}
+
+%======================================================================
+\section{两种 FE 写法的数值等价（FWL）与非平衡面板}\label{sec:U17a-equiv}
+
+本节回答阅卷人很可能追问的问题：“(a) 和 (b) 两个 $\hat\beta_{FE}$ 是什么关系？”答案是：\key{平衡面板中，二者以及带全部虚拟变量的 LSDV 估计，在任何样本中数值上完全相同}；非平衡面板中 (a) 的简单公式失效，(b) 与 LSDV 仍然正确且相同。第 2 题令 $x_{it}=D_{it}$ 后，可以直接引用本节与第 1 题的结论（例如 $2\times2$ 情形下用双向去均值公式算出 $\hat\beta$）。
+
+\subsection{工具：FWL 定理与投影分解引理}
+
+\subsubsection{FWL 定理}
+
+\begin{thm}[Frisch--Waugh--Lovell（FWL）定理]\UXVIIalabel{thm:U17a-fwl}
+设 $Y=X_1b_1+X_2b_2+e$，$P_1$ 是到 $\mathrm{col}(X_1)$ 的正交投影矩阵，$M_1=I-P_1$。则 OLS 中 $b_2$ 的估计与残差可以这样得到：把 $Y$ 与 $X_2$ 分别对 $X_1$ 回归取残差 $M_1Y$、$M_1X_2$，再残差对残差回归：
+\[
+\hat b_2=(X_2\T M_1X_2)^{-1}X_2\T M_1Y,
+\]
+且全回归的残差等于 $M_1Y-M_1X_2\hat b_2$。$X_1$ 不满列秩时结论不变（$P_1$ 只依赖列空间，可用广义逆计算）。
+\end{thm}
+
+证明的关键步骤如下（完整讨论见第 3 章 FWL 定理一节）。记全回归的 OLS 拟合为 $Y=X_1\hat b_1+X_2\hat b_2+\hat e$，正规方程给出 $X_1\T\hat e=0$、$X_2\T\hat e=0$。
+\begin{align*}
+M_1Y&=M_1X_1\hat b_1+M_1X_2\hat b_2+M_1\hat e \why{左乘 $M_1$}\\
+&=M_1X_2\hat b_2+\hat e \why{$M_1X_1=0$；$\hat e\perp\mathrm{col}(X_1)$}\\
+X_2\T M_1Y&=X_2\T M_1X_2\hat b_2+X_2\T\hat e \why{左乘 $X_2\T$}\\
+&=X_2\T M_1X_2\hat b_2 \why{$X_2\T\hat e=0$}\\
+\hat b_2&=(X_2\T M_1X_2)^{-1}X_2\T M_1Y. \why{两边左乘逆}
+\end{align*}
+第二行同时说明全回归的残差 $\hat e=M_1Y-M_1X_2\hat b_2$。
+
+\subsubsection{投影分解引理：\texorpdfstring{$P_{[A,B]}=P_A+P_{M_AB}$}{P[A,B] = P\_A + P\_(M\_A B)}}
+\begin{thm}[投影的分解]\UXVIIalabel{thm:U17a-projdecomp}
+对任意矩阵 $A,B$（行数相同），$P_{[A,B]}=P_A+P_{M_AB}$，从而 $M_{[A,B]}=M_A-P_{M_AB}$。
+\end{thm}
+理由分三步：
+\begin{align*}
+B&=P_AB+M_AB,\quad P_AB\in\mathrm{col}(A) \why{投影分解}\\
+\mathrm{col}[A,B]&=\mathrm{col}[A,\ M_AB] \why{$B$ 与 $M_AB$ 只差 $\mathrm{col}(A)$ 中的项}\\
+A\T(M_AB)&=(M_AA)\T B=0 \why{$M_A$ 对称，$M_AA=0$}
+\end{align*}
+所以 $\mathrm{col}[A,B]$ 是两个正交子空间 $\mathrm{col}(A)$ 与 $\mathrm{col}(M_AB)$ 之和，而两个正交子空间之和的投影等于各自投影之和。
+
+\subsection{定理：平衡面板中 (a) \texorpdfstring{$=$}{=} (b) \texorpdfstring{$=$}{=} LSDV（任何样本量）}
+
+\begin{thm}[TWFE 的三种算法数值等价（平衡面板）]\UXVIIalabel{thm:U17a-equiv}
+设面板平衡，$N\ge2$，$T\ge2$，$x\T Qx>0$。以下三种算法给出完全相同的 $\hat\beta$（以及相同的残差）：
+\begin{enumerate}[label=(\Alph*)]
+  \item 双向去均值后 OLS：$\hat\beta=(x\T Qx)^{-1}x\T QY$，$Q=M_N\otimes M_T$（第 1(a) 题）；
+  \item 个体去均值 $+$ $T-1$ 个去均值时间虚拟变量：$\hat\beta=(\dot x\T M_{\dot F}\dot x)^{-1}\dot x\T M_{\dot F}\dot Y$（第 1(b) 题）；
+  \item 双向 LSDV：$Y$ 对 $x$、$N$ 个个体虚拟变量、$T-1$ 个时间虚拟变量做 OLS。
+\end{enumerate}
+\end{thm}
+
+证明分三步：先求出偏出时间虚拟变量的投影矩阵，再分别证明 (B)$=$(A) 与 (C)$=$(A)。
+
+\subsubsection{第 1 步：\texorpdfstring{$P_{\dot F}=P_N\otimes M_T$}{P\_F-dot = P\_N kron M\_T}}
+记 $A=M_TI_T^*$（$T\times(T-1)$），则 $\dot F=\one_N\otimes A$。
+\begin{align*}
+\dot F\T\dot F&=(\one_N\T\otimes A\T)(\one_N\otimes A)=(\one_N\T\one_N)\otimes(A\T A)=N\,A\T A \why{混合积}\\
+P_{\dot F}&=(\one_N\otimes A)\,\tfrac1N(A\T A)^{-1}\,(\one_N\T\otimes A\T) \why{$P=\dot F(\dot F\T\dot F)^{-1}\dot F\T$}\\
+&=\big(\tfrac1N\one_N\one_N\T\big)\otimes\big(A(A\T A)^{-1}A\T\big)=P_N\otimes P_A \why{混合积}\\
+\mathrm{col}(A)&=\mathrm{col}(M_T) \why{见下}\\
+P_A&=M_T \why{$M_T$ 对称幂等}
+\end{align*}
+第四行的理由：记 $e_s$ 为 $I_T$ 的第 $s$ 列，$A$ 的列是 $M_Te_2,\dots,M_Te_T$；由 $M_T\one_T=M_T\sum_se_s=0$ 得 $M_Te_1=-\sum_{s\ge2}M_Te_s$，故 $A$ 的列已张成 $M_T$ 的全部列空间（$\rank A=T-1$，$A\T A$ 可逆）。最后一行：$M_T$ 对称幂等，它本身就是到 $\mathrm{col}(M_T)$ 的正交投影。
+
+\subsubsection{第 2 步：(B) \texorpdfstring{$=$}{=} (A)}
+把第 1 步代入 (b) 的变换矩阵：
+\begin{align*}
+M_{\dot F}(I_N\otimes M_T)&=(I_N\otimes M_T)-(P_N\otimes M_T)(I_N\otimes M_T) \why{$M_{\dot F}=I-P_{\dot F}$，第 1 步}\\
+&=I_N\otimes M_T-P_N\otimes M_T \why{混合积，$M_T^2=M_T$}\\
+&=(I_N-P_N)\otimes M_T=M_N\otimes M_T=Q \why{分配律}\\
+(I_N\otimes M_T)M_{\dot F}(I_N\otimes M_T)&=(I_N\otimes M_T)Q=Q \why{混合积}
+\end{align*}
+代入 (b) 的矩阵表达：$\hat\beta_{(B)}=(x\T Qx)^{-1}x\T QY=\hat\beta_{(A)}$。
+
+\subsubsection{第 3 步：(C) \texorpdfstring{$=$}{=} (A)}
+(C) 中要偏出的是 $W=[D_\alpha,F]$（个体虚拟变量与时间虚拟变量）。用 $T$ 个还是 $T-1$ 个时间虚拟变量不影响列空间，因为 $\one_{NT}=D_\alpha\one_N$ 已在其中，而 $f_1=\one_{NT}-\sum_{s\ge2}f_s$。由投影分解引理，取 $A=D_\alpha$、$B=F$：
+\begin{align*}
+P_{D_\alpha}&=I_N\otimes P_T \why{$D_\alpha=I_N\otimes\one_T$，$D_\alpha\T D_\alpha=TI_N$}\\
+M_{D_\alpha}F&=(I_N\otimes M_T)(\one_N\otimes I_T)=\one_N\otimes M_T \why{混合积}\\
+P_{M_{D_\alpha}F}&=P_N\otimes M_T \why{$\mathrm{col}(\one_N\otimes M_T)=\mathrm{col}(\dot F)$，第 1 步}\\
+M_W&=I_N\otimes I_T-I_N\otimes P_T-P_N\otimes M_T \why{引理}\\
+&=I_N\otimes M_T-P_N\otimes M_T=Q \why{合并}
+\end{align*}
+由 FWL，$\hat\beta_{(C)}=(x\T M_Wx)^{-1}x\T M_WY=(x\T Qx)^{-1}x\T QY=\hat\beta_{(A)}$。再由 FWL 的残差结论，三种算法的残差都等于 $QY-Qx\hat\beta=\ddot Y-\ddot x\hat\beta$。\hfill$\blacksquare$
+
+\subsubsection{直观：两种平均运算可交换，各减一次就够}
+个体去均值之后，剩下的时间效应 $\lambda_t-\bar\lambda$ 对所有个体相同；用时间虚拟变量去吸收它，等于“每期减去该期的横截面均值”。平衡面板中“按个体平均”和“按时期平均”两种运算可交换：
+\[
+(I_N\otimes P_T)(P_N\otimes I_T)=P_N\otimes P_T=(P_N\otimes I_T)(I_N\otimes P_T),
+\]
+从而 $Q=(I_N\otimes M_T)(M_N\otimes I_T)=(M_N\otimes I_T)(I_N\otimes M_T)$：两种去均值各做一次就够了，顺序也无所谓。
+
+\subsection{为什么“大样本下等价、小样本可能略有差异”是错的}
+
+结论~\ref{thm:U17a-equiv} 是\key{代数恒等式}：三种算法用到的投影矩阵完全相同（都是 $Q$），所以对任何一组平衡面板数据——哪怕 $N=2$、$T=2$——都给出同一个数。它与样本量、误差分布、一致性都无关。本节最后的数值验证中，$N=2,T=3$ 与 $N=3,T=2$ 的“迷你面板”同样逐位相等。真正可能出现差异的只有两种情况：
+\begin{enumerate}
+  \item \key{非平衡面板}：(a) 的简单双向去均值公式对应的矩阵不再等于 $M_W$，与 LSDV 不同；(b) 与 LSDV 仍相同（见下文非平衡面板一节）。
+  \item \key{标准误}：点估计相同，但若自由度算错，方差估计不同（下一小节）。这与“$\hat\beta$ 是否相同”是两回事。
+\end{enumerate}
+
+\subsection{自由度修正只影响标准误，不影响 \texorpdfstring{$\hat\beta$}{beta-hat}}\label{sec:U17a-dof}
+
+\subsubsection{正确的误差方差估计：分母为 \texorpdfstring{$(N-1)(T-1)-K$}{(N-1)(T-1)-K}}
+三种算法的残差相同，所以残差平方和 SSR 相同。正确的误差方差估计要扣除 $N$ 个个体效应、$T-1$ 个时间效应和 $K$ 个斜率：
+\begin{align*}
+\hat\sigma^2&=\frac{\mathrm{SSR}}{NT-N-(T-1)-K} \why{扣除全部被估参数}\\
+&=\frac{\mathrm{SSR}}{(N-1)(T-1)-K}. \why{$NT-N-T+1=(N-1)(T-1)$}
+\end{align*}
+LSDV 与 \texttt{xtreg y x i.year, fe} 自动这样计算；但若手工双向去均值后用普通 OLS 命令，软件只扣 $K$，分母为 $NT-K$，常规标准误偏小。
+
+\subsubsection{手工去均值时标准误的修正因子}
+标准误与 $\hat\sigma$ 成正比，所以正确的标准误是软件输出的
+\[
+\sqrt{\frac{NT-K}{(N-1)(T-1)-K}}\ \text{倍}.
+\]
+
+\begin{exmp}[标准误修正因子的数值]\UXVIIalabel{ex:U17a-dof}
+$N=50$，$T=5$，$K=1$。手工双向去均值后用普通 OLS 命令，软件输出的常规标准误低估了多少？
+\solution
+\begin{align*}
+NT-K&=250-1=249 \why{软件使用的分母}\\
+(N-1)(T-1)-K&=49\times4-1=195 \why{正确的分母}\\
+\sqrt{249/195}&\approx\sqrt{1.277}\approx1.13 \why{修正因子}\\
+1-1/1.13&\approx0.11 \why{低估比例}
+\end{align*}
+正确的标准误约为软件输出的 1.13 倍，即软件输出的标准误低估约 11\%。
+\end{exmp}
+
+聚类稳健标准误在不同命令（\texttt{xtreg}、\texttt{areg}、\texttt{reghdfe}）中的小样本修正因子也略有不同。这些差别只影响标准误，与 $\hat\beta$ 无关。
+
+\subsection{非平衡面板：简单双向去均值不能消去固定效应}\label{sec:U17a-unbal}
+
+\subsubsection{记号：每个个体的观测期与每期的观测个体}
+在\term{非平衡面板}{unbalanced panel}中，设个体 $i$ 只在时期集合 $S_i$（共 $T_i$ 期）中被观测，第 $t$ 期被观测的个体集合为 $S_t$（共 $N_t$ 个），总观测数 $n=\sum_iT_i$。按实际样本计算均值：
+\[
+\bar Y_{i\cdot}=\frac1{T_i}\sum_{t\in S_i}Y_{it},\qquad \bar Y_{\cdot t}=\frac1{N_t}\sum_{i\in S_t}Y_{it},\qquad \bar Y_{\cdot\cdot}=\frac1n\sum_i\sum_{t\in S_i}Y_{it}.
+\]
+
+\subsubsection{残留项 \texorpdfstring{$\bar c_{\cdot\cdot}-\bar\lambda_{S_i}-\bar\alpha_{S_t}$}{c.. - lambda\_Si - alpha\_St} 一般不为零}
+对 $c_{it}=\alpha_i+\lambda_t$：
+\begin{align*}
+\bar c_{i\cdot}&=\alpha_i+\bar\lambda_{S_i},\qquad \bar\lambda_{S_i}=\tfrac1{T_i}\textstyle\sum_{t\in S_i}\lambda_t \why{随 $i$ 变}\\
+\bar c_{\cdot t}&=\bar\alpha_{S_t}+\lambda_t,\qquad \bar\alpha_{S_t}=\tfrac1{N_t}\textstyle\sum_{i\in S_t}\alpha_i \why{随 $t$ 变}\\
+\ddot c_{it}&=(\alpha_i+\lambda_t)-(\alpha_i+\bar\lambda_{S_i})-(\bar\alpha_{S_t}+\lambda_t)+\bar c_{\cdot\cdot} \why{代入定义}\\
+&=\bar c_{\cdot\cdot}-\bar\lambda_{S_i}-\bar\alpha_{S_t}. \why{$\alpha_i$、$\lambda_t$ 本身抵消}
+\end{align*}
+平衡时 $\bar\lambda_{S_i}=\bar\lambda$、$\bar\alpha_{S_t}=\bar\alpha$、$\bar c_{\cdot\cdot}=\bar\alpha+\bar\lambda$，残留项为 0；非平衡时残留项随 $(i,t)$ 变化，一般不为 0。
+
+\subsubsection{例：可手算的反例}
+
+\begin{exmp}[非平衡面板中双向去均值的反例]\UXVIIalabel{ex:U17a-unbal}
+个体 1 在 $t=1,2,3$ 被观测，个体 2 只在 $t=1,2$ 被观测（共 5 个观测）。取 $\alpha=(0,3)$，$\lambda=(0,1,5)$，$c_{it}=\alpha_i+\lambda_t$。计算简单双向去均值后的 $\ddot c_{it}$。
+\solution
+先列出 $c_{it}$ 与各均值：
+\begin{center}
+\small
+\begin{tabular}{l|ccc|c}
+\toprule
+ & $t=1$ & $t=2$ & $t=3$ & 个体均值\\
+\midrule
+个体 1 & 0 & 1 & 5 & $\bar c_{1\cdot}=6/3=2$\\
+个体 2 & 3 & 4 & — & $\bar c_{2\cdot}=7/2=3.5$\\
+\midrule
+时期均值 & $\bar c_{\cdot1}=1.5$ & $\bar c_{\cdot2}=2.5$ & $\bar c_{\cdot3}=5$ & $\bar c_{\cdot\cdot}=13/5=2.6$\\
+\bottomrule
+\end{tabular}
+\end{center}
+逐个计算 $\ddot c_{it}=c_{it}-\bar c_{i\cdot}-\bar c_{\cdot t}+\bar c_{\cdot\cdot}$：
+\begin{align*}
+\ddot c_{11}&=0-2-1.5+2.6=-0.9,\qquad \ddot c_{12}=1-2-2.5+2.6=-0.9 \why{个体 1}\\
+\ddot c_{13}&=5-2-5+2.6=0.6 \why{个体 1}\\
+\ddot c_{21}&=3-3.5-1.5+2.6=0.6,\qquad \ddot c_{22}=4-3.5-2.5+2.6=0.6 \why{个体 2}
+\end{align*}
+用残留项公式核对：$\bar\lambda_{S_1}=2$，$\bar\lambda_{S_2}=0.5$，$\bar\alpha_{S_1}=\bar\alpha_{S_2}=1.5$，$\bar\alpha_{S_3}=0$，例如 $\ddot c_{11}=2.6-2-1.5=-0.9$，$\ddot c_{21}=2.6-0.5-1.5=0.6$，一致。
+
+本应全为 0，结果却不是：固定效应没有被消干净。若 $\alpha_i$ 或 $\lambda_t$ 与 $x_{it}$ 相关，简单双向去均值的 OLS 就有偏、不一致。
+\end{exmp}
+
+\subsection{非平衡面板的正确做法：虚拟变量法与交替去均值}
+
+Hansen §17.27 指出：非平衡面板的双向 FE 估计等价于加入所有时期的虚拟变量。可以直接把时间虚拟变量放进单向 FE（\texttt{xtreg}/\texttt{areg}，Hansen 称之为实践中最常用的做法），也可以用下面第一种残差回归来算（两者由 FWL 相同）；第二种是大型面板常用的迭代算法（不是 Hansen 原文的内容）。
+
+\subsubsection{虚拟变量法与残差回归（第 1(b) 题的做法）}
+对 $Y,x$ 按个体自己的 $T_i$ 期去均值；时间虚拟变量也按个体去均值：
+\[
+\dot f_{st}=f_{st}-\frac{\mathbf{1}\{s\in S_i\}}{T_i}\qquad(\text{注意随 } i \text{ 变});
+\]
+再对去均值后的虚拟变量做普通回归。Hansen 强调：“the second step is not a within transformation across the time index but rather standard regression”。由 FWL，它等于 LSDV。此时第 1(b) 题中“拟合值 $=$ 时间均值”的显式公式不再成立，必须真的跑这个回归。
+
+\subsubsection{交替去均值}
+\term{交替去均值}{alternating projections}：反复“按个体去均值 → 按时期去均值 → 按个体去均值 → $\cdots$”直到收敛，极限就是 $M_Wx$、$M_WY$。平衡面板中两种去均值可交换，一轮即收敛（得到 $\ddot x$）；非平衡时需要迭代。社区命令 \texttt{reghdfe} 就用这种思路吸收多组固定效应。
+
+\subsubsection{Stata 命令对照：只有手工简单双向去均值会出错}
+下列命令在任何面板（平衡或非平衡）下都给出同一个 $\hat\beta$：
+\begin{itemize}
+  \item \texttt{xtreg y x i.year, fe}
+  \item \texttt{areg y x i.year, absorb(id)}
+  \item \texttt{reg y x i.id i.year}
+  \item \texttt{reghdfe y x, absorb(id year)}
+\end{itemize}
+只有“手工简单双向去均值”在非平衡面板中出错。
+
+\subsection{数值验证：(a)\texorpdfstring{$=$}{=}(b)\texorpdfstring{$=$}{=}LSDV 与非平衡面板的反例}
+
+\begin{exmp}[数值验证：(a)$=$(b)$=$LSDV，非平衡时 (a) 失效]\UXVIIalabel{ex:U17a-sim}
+用 Python（numpy，随机种子 2025）生成平衡面板 $N=8$、$T=5$：$\alpha_i\sim N(0,1)$，$\lambda_t\sim N(0,4)$，$x_{it}=\alpha_i+\lambda_t+N(0,1)$ 噪声（与 $\alpha_i$、$\lambda_t$ 都相关），$Y_{it}=\alpha_i+\lambda_t+1.5x_{it}+\epsilon_{it}$，$\epsilon_{it}\sim N(0,1)$。验证本节的结论，再随机删去部分观测，比较非平衡面板中的各种算法。
+\solution
+\begin{enumerate}
+  \item \key{平衡面板中 8 种算法逐位相同。}以下 8 种算法得到的 $\hat\beta$ 全部为 1.416836382780，最大差异 $1.1\times10^{-15}$（机器精度）：(a) $\sum\ddot x\ddot Y/\sum\ddot x^2$；(a) $\sum\ddot xY/\sum\ddot x^2$；对双向去均值变量再减一次总均值的写法；(b) 个体去均值 $+$ $T-1$ 个去均值虚拟变量的 OLS；(b) 的显式公式 $\big[\sum\dot x\dot Y-N\sum_t\bar{\dot x}_{\cdot t}\bar{\dot Y}_{\cdot t}\big]/\big[\sum\dot x^2-N\sum_t\bar{\dot x}_{\cdot t}^2\big]$；双向 LSDV；$(x\T Qx)^{-1}x\T QY$；$(I_N\otimes M_T)M_F(I_N\otimes M_T)$ 形式。
+  \item \key{残差与时间效应。}$\dot x$ 对去均值虚拟变量回归的残差与 $\ddot x$ 的最大差 $4.4\times10^{-16}$；回归给出的 $\hat\delta_t$ 与公式 $(\bar Y_{\cdot t}-\bar Y_{\cdot1})-\hat\beta(\bar x_{\cdot t}-\bar x_{\cdot1})$ 的最大差 $5.6\times10^{-15}$，完全一致。
+  \item \key{迷你面板。}$N=2,T=3$ 与 $N=3,T=2$：双向去均值与 LSDV 逐位相同（分别为 2.559161819705 与 1.642668627957），与样本量无关。$T=2$ 时 TWFE 与“$\Delta Y_i$ 对 $(1,\Delta x_i)$ 回归”的斜率相同（1.642668627957）。
+  \item \key{保留全部 $T$ 个去均值虚拟变量的设定。}$[\one,\dot x,\dot f_1,\dots,\dot f_5]$ 共 7 列、秩只有 6；去掉常数后 6 列、秩 5；含全部 5 个去均值虚拟变量的 $\dot F\T\dot F$ 条件数约 $2.6\times10^{15}$，即数值上奇异。
+  \item \key{非平衡面板。}随机删去 40 个观测中的 9 个：简单双向去均值得 1.4310；LSDV、按个体去均值 $+$ 去均值虚拟变量回归、交替去均值三者都得 1.3597。$\alpha_i+\lambda_t$ 经简单双向去均值后的残留最大绝对值为 0.442。
+\end{enumerate}
+结论：平衡面板中三类算法是同一个估计量；非平衡面板中只有手工简单双向去均值偏离正确答案。
+\end{exmp}
+
+\begin{english}[equivalence and unbalanced panels: a copy-ready remark]
+In a balanced panel the two estimators in (a) and (b) are numerically identical in every sample, not only asymptotically. By the Frisch--Waugh--Lovell theorem, partialling out the demeaned time dummies after the within transformation uses the annihilator $M_{\dot F}(I_N\otimes M_T)=(I_N\otimes M_T)-(P_N\otimes M_T)=M_N\otimes M_T=Q$, which is exactly the two-way within transformation; the two-way LSDV regression with unit and time dummies also has residual-maker $Q$. Differences in degrees-of-freedom corrections affect only the standard errors, not $\hat\beta$. In an unbalanced panel the simple formula $Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$ no longer eliminates $\alpha_i+\lambda_t$, because the average of $\lambda_t$ over the periods in which unit $i$ is observed differs across units, and the average of $\alpha_i$ over the units observed in period $t$ differs across periods; the dummy-variable approach in (b) (equivalently LSDV, or iterated demeaning) remains valid.
+\end{english}

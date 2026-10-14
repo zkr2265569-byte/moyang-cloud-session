@@ -1,0 +1,1794 @@
+%======================================================================
+% U01b  第 1 章（续）：概率统计工具、分布、估计量评价、大样本工具、推导技巧、本章小结
+%======================================================================
+\section{随机变量、期望与方差}\label{sec:U01b-rv}
+
+本章前半部分的矩阵代数解决“怎么算”；从本节起转向概率与统计工具，回答“估计量是随机变量，它的中心、离散程度和大样本行为如何刻画”。本节复习单个随机变量与随机变量对的基本概念；随机向量见本章随机向量一节。
+
+\subsection{随机变量与分布}
+
+\subsubsection{分布函数、概率质量函数与概率密度函数}
+
+\term{随机变量}{random variable} $X$ 的分布由\term{累积分布函数}{cumulative distribution function, CDF}
+\[
+F(x)=P(X\le x)
+\]
+刻画。离散型随机变量用\term{概率质量函数}{probability mass function} $p(x)=P(X=x)$ 描述；连续型用\term{概率密度函数}{probability density function, pdf} $f(x)$ 描述：
+\[
+P(a\le X\le b)=\int_a^b f(x)\,\dd x .
+\]
+
+\subsubsection{联合分布、边际分布与条件分布}
+
+两个随机变量 $(X,Y)$ 的\term{联合分布}{joint distribution}用联合密度 $f(x,y)$（离散时为联合概率 $p(x,y)$）描述。由联合分布可得\term{边际分布}{marginal distribution}与\term{条件分布}{conditional distribution}：
+\[
+f_X(x)=\int f(x,y)\,\dd y\ \ \text{（离散时对 $y$ 求和）},\qquad
+f(y\mid x)=\frac{f(x,y)}{f_X(x)}\ \ \text{（$f_X(x)>0$）}.
+\]
+
+\subsubsection{独立性与 i.i.d.\ 样本的联合密度}
+
+$X$、$Y$ \term{独立}{independence}，当且仅当对一切 $(x,y)$ 有 $f(x,y)=f_X(x)f_Y(y)$；等价地 $f(y\mid x)=f_Y(y)$，即知道 $X$ 不改变 $Y$ 的分布。
+
+若 $W_1,\dots,W_n$ 独立同分布（i.i.d.），密度均为 $f(w;\theta)$，则样本的联合密度等于各观测密度之积：
+\[
+f(w_1,\dots,w_n;\theta)=\prod_{i=1}^n f(w_i;\theta).
+\]
+这是极大似然估计的出发点（第 4 章）。
+
+\subsection{期望及其线性性}
+
+\subsubsection{期望与函数的期望}
+
+\term{期望}{expectation}定义为
+\[
+\E X=\sum_x x\,p(x)\ \ \text{（离散）}\qquad\text{或}\qquad \E X=\int x\,f(x)\,\dd x\ \ \text{（连续）}.
+\]
+函数的期望可直接用 $X$ 的分布计算，不必先求 $g(X)$ 的分布：$\E g(X)=\int g(x)f(x)\,\dd x$。下文记 $\mu=\E X$。
+
+\subsubsection{期望的线性性：不需要独立}
+
+\begin{thm}[期望的线性性]\label{thm:U01b-linE}
+对常数 $a,b,c$ 与随机变量 $X,Y$：
+\[
+\E(a+bX+cY)=a+b\,\E X+c\,\E Y,
+\]
+\key{无需任何独立性}。矩阵形式：$A$、$B$、$c$ 非随机且维度相容，$Z$ 为随机矩阵，则 $\E(AZB+c)=A\,\E(Z)\,B+c$。
+\end{thm}
+
+矩阵形式只是逐元素使用标量线性性。设 $A$ 为 $m\times k$，$Z$ 为 $k\times l$，$B$ 为 $l\times p$：
+\begin{align*}
+[\E(AZB)]_{jq} &= \E\Big(\sum_{s=1}^k\sum_{t=1}^l a_{js}Z_{st}b_{tq}\Big) \why{矩阵乘积的元素}\\
+&= \sum_{s=1}^k\sum_{t=1}^l a_{js}\,\E(Z_{st})\,b_{tq} \why{标量期望的线性性}\\
+&= [A\,\E(Z)\,B]_{jq} \why{矩阵乘积的元素}
+\end{align*}
+
+\subsubsection{期望不能穿过非线性函数：Jensen 不等式}
+
+\begin{note}[期望不能穿过非线性函数]
+一般 $\E g(X)\ne g(\E X)$。例如 $\E(1/X)\ne 1/\E X$；$\E(X^2)\ge(\E X)^2$（差额正是 $\Var X$）。\term{Jensen 不等式}{Jensen's inequality}：$g$ 凸时 $\E g(X)\ge g(\E X)$，$g$ 凹时不等号反向。另外，$\E(XY)=\E X\,\E Y$ 只在 $X$、$Y$ 不相关时成立。
+
+所以比值型、含逆矩阵的估计量（如 $\hat\beta-\beta=(X\T X)\inv X\T u$）往往难以证明无偏；而一致性可借助连续映射定理（本章大样本工具一节）轻松得到，因为概率极限可以穿过连续函数。
+\end{note}
+
+\subsection{方差、协方差与相关系数}
+
+\subsubsection{方差、协方差与相关系数的定义}
+
+\begin{defn}[方差、协方差、相关系数]\label{def:U01b-var}
+记 $\mu_X=\E X$，$\mu_Y=\E Y$。
+\begin{itemize}
+  \item \term{方差}{variance}：$\Var(X)=\E(X-\mu_X)^2$；
+  \item \term{协方差}{covariance}：$\Cov(X,Y)=\E[(X-\mu_X)(Y-\mu_Y)]=\E(XY)-\mu_X\mu_Y$；
+  \item \term{相关系数}{correlation coefficient}：$\Corr(X,Y)=\dfrac{\Cov(X,Y)}{\sqrt{\Var X\,\Var Y}}\in[-1,1]$。
+\end{itemize}
+\end{defn}
+
+\subsubsection{简便公式 \texorpdfstring{$\Var X=\E X^2-\mu^2$}{Var X = E X\^2 - mu\^2}}
+
+展开平方，再用期望的线性性：
+\begin{align*}
+\Var X &= \E(X^2-2\mu X+\mu^2) \why{展开平方}\\
+&= \E X^2-2\mu\,\E X+\mu^2 \why{期望的线性性}\\
+&= \E X^2-2\mu^2+\mu^2=\E X^2-\mu^2 \why{$\E X=\mu$}
+\end{align*}
+同理可得 $\Cov(X,Y)=\E(XY)-\mu_X\mu_Y$。
+
+\subsubsection{方差与协方差的运算规则}
+
+\begin{thm}[方差与协方差的运算规则]\label{thm:U01b-varrules}
+$a,b,c,d$ 为常数。
+\begin{enumerate}
+  \item $\Var(a+bX)=b^2\Var X$；
+  \item $\Var(aX+bY)=a^2\Var X+b^2\Var Y+2ab\Cov(X,Y)$；
+  \item $\Cov(aX+b,\ cY+d)=ac\Cov(X,Y)$（协方差对两个变量都是线性的，称\key{双线性}）；
+  \item $\Var\big(\sum_i X_i\big)=\sum_i\sum_j\Cov(X_i,X_j)$；两两不相关时 $=\sum_i\Var X_i$；
+  \item $X_1,\dots,X_n$ i.i.d.、方差为 $\sigma^2$ 时，$\Var(\bar X)=\sigma^2/n$，其中 $\bar X=\frac1n\sum_{i=1}^n X_i$。
+\end{enumerate}
+\end{thm}
+
+以第 2 条为例（第 4 条是它的多变量推广）：
+\begin{align*}
+\Var(aX+bY) &= \E\big[a(X-\mu_X)+b(Y-\mu_Y)\big]^2 \why{$\E(aX+bY)=a\mu_X+b\mu_Y$}\\
+&= a^2\E(X-\mu_X)^2+b^2\E(Y-\mu_Y)^2+2ab\,\E[(X-\mu_X)(Y-\mu_Y)] \why{展开；线性性}\\
+&= a^2\Var X+b^2\Var Y+2ab\Cov(X,Y) \why{定义}
+\end{align*}
+第 5 条：
+\begin{align*}
+\Var(\bar X) &= \frac1{n^2}\Var\Big(\sum_{i=1}^n X_i\Big) \why{第 1 条，$b=1/n$}\\
+&= \frac1{n^2}\sum_{i=1}^n\Var X_i \why{独立 $\Rightarrow$ 两两不相关}\\
+&= \frac{n\sigma^2}{n^2}=\frac{\sigma^2}{n} \why{同分布}
+\end{align*}
+
+\subsubsection{例：相关观测的样本均值——为什么要聚类、为什么怕截面相关}
+
+\begin{exmp}[相关观测的均值]\label{ex:U01b-corrmean}
+设 $X_1,\dots,X_n$ 的方差均为 $\sigma^2$、两两相关系数均为 $\rho$。求 $\Var(\sum_iX_i)$、$\Var(\bar X)$ 及 $n\to\infty$ 时 $\Var(\bar X)$ 的极限。
+
+\solution $i\ne j$ 时 $\Cov(X_i,X_j)=\rho\sigma^2$。双重求和中有 $n$ 个 $i=j$ 的项和 $n(n-1)$ 个 $i\ne j$ 的项：
+\begin{align*}
+\Var\Big(\sum_iX_i\Big) &= \sum_i\Var X_i+\sum_{i\ne j}\Cov(X_i,X_j) \why{运算规则第 4 条}\\
+&= n\sigma^2+n(n-1)\rho\sigma^2 \why{计数}\\
+\Var(\bar X) &= \frac{1}{n^2}\big[n\sigma^2+n(n-1)\rho\sigma^2\big] \why{除以 $n^2$}\\
+&= \frac{\sigma^2}{n}\big[1+(n-1)\rho\big]\ \xrightarrow{\,n\to\infty\,}\ \rho\sigma^2 \why{$\frac{n-1}{n}\to1$}
+\end{align*}
+$\rho>0$ 时样本均值的方差不随 $n$ 增大而消失，大数定律失效；若仍按“$\sigma^2/n$”计算，会严重低估方差。聚类稳健标准误（第 5 章）背后就是这一算术。截面上也一样：若 $N\times1$ 误差向量 $u_t$ 的协方差矩阵 $\Sigma_u$ 对角元为 $\sigma^2$、非对角元为 $\rho\sigma^2$，则 $\frac1N\one_N\T\Sigma_u\one_N=\sigma^2[1+(N-1)\rho]\to\infty$，这就是强截面相关（第 13 章）。
+\end{exmp}
+
+\subsection{矩与有限矩条件}
+
+\subsubsection{\texorpdfstring{$r$}{r} 阶矩与 \texorpdfstring{$r$}{r} 阶中心矩}
+
+$\E X^r$ 称 $r$ 阶\term{矩}{moment}，$\E(X-\mu)^r$ 称 $r$ 阶中心矩。均值是一阶矩，方差是二阶中心矩。\key{有限的高阶矩蕴含有限的低阶矩}：若 $\E|X|^r<\infty$，则对 $0<s<r$ 有 $\E|X|^s<\infty$\whyin{$|X|^s\le1+|X|^r$}。
+
+\subsubsection{有限四阶矩假设：保证中心极限定理可用}
+
+回归模型常设\key{有限四阶矩}（bounded moments）假设：
+\[
+\E y_i^4<\infty,\qquad \E\|x_i\|^4<\infty\quad(\text{逐元素写作 } \E x_{ik}^4<\infty).
+\]
+它排除了极端离群值，作用是保证 $\E\|x_iu_i\|^2<\infty$，从而中心极限定理可用、稳健方差估计一致（第 5 章）。思路：用 Cauchy--Schwarz 不等式把 $x_iu_i$ 的二阶矩拆成两个四阶矩。
+\begin{align*}
+\E\|x_iu_i\|^2 &= \E\big(\|x_i\|^2u_i^2\big) \why{$u_i$ 为标量}\\
+&\le \big(\E\|x_i\|^4\big)^{1/2}\big(\E u_i^4\big)^{1/2} \why{Cauchy--Schwarz 不等式}
+\end{align*}
+而 $u_i=y_i-x_i\T\beta$，$|u_i|\le|y_i|+\|x_i\|\,\|\beta\|$，所以 $\E u_i^4<\infty$ 由 $\E y_i^4<\infty$ 与 $\E\|x_i\|^4<\infty$ 保证。
+
+\subsubsection{反例：\texorpdfstring{$t_2$}{t\_2} 分布与 Cauchy 分布}
+
+自由度为 2 的 $t$ 分布方差无穷；Cauchy 分布（即 $t_1$）连均值都不存在，其样本均值不收敛（i.i.d.\ Cauchy 观测的样本均值仍服从同一 Cauchy 分布，不随 $n$ 集中）。
+
+\begin{prac}[方差运算与一元投影系数]\label{pr:U01b-var}
+(1) $\Var X=4$，$\Var Y=9$，$\Cov(X,Y)=-2$，求 $\Var(X-2Y)$ 与 $\Corr(X,Y)$。(2) 令 $\beta=\Cov(X,Y)/\Var(X)$，证明 $\Cov(X,\ Y-\beta X)=0$。
+
+\answer (1) 取 $a=1$、$b=-2$：
+\begin{align*}
+\Var(X-2Y) &= 1^2\times4+(-2)^2\times9+2\times1\times(-2)\times(-2) \why{运算规则第 2 条}\\
+&= 4+36+8=48\\
+\Corr(X,Y) &= \frac{-2}{\sqrt{4\times9}}=-\frac{2}{6}=-\frac13 \why{定义}
+\end{align*}
+(2)
+\begin{align*}
+\Cov(X,\ Y-\beta X) &= \Cov(X,Y)-\beta\Cov(X,X) \why{协方差的双线性}\\
+&= \Cov(X,Y)-\frac{\Cov(X,Y)}{\Var X}\,\Var X=0 \why{代入 $\beta$}
+\end{align*}
+这就是“线性投影误差与回归元不相关”的一元版本（第 2 章）。
+\end{prac}
+
+\begin{english}
+By linearity of expectation, $E(a+bX)=a+bE(X)$ regardless of the dependence structure, whereas $\operatorname{Var}(\sum_iX_i)=\sum_i\sum_j\operatorname{Cov}(X_i,X_j)$ depends on the covariances. If observations are positively correlated, the variance of the sample mean does not shrink at rate $1/n$, which is why clustered or cross-sectionally dependent data require adjusted standard errors. Expectation does not pass through nonlinear functions: in general $E[g(X)]\neq g(E[X])$, and by Jensen's inequality $E[g(X)]\ge g(E[X])$ for convex $g$. Finite fourth moments guarantee $E\|x_iu_i\|^2<\infty$, so that the central limit theorem applies.
+\end{english}
+
+%======================================================================
+\section{条件期望、迭代期望律与方差分解}\label{sec:U01b-ce}
+
+回归分析的核心对象是条件期望 $\E(y\mid x)$。本节依次给出：条件期望的定义与性质，迭代期望律（LIE）及其标准用法，“独立—均值独立—不相关”三个概念的层级，信息集版本的 LIE，条件方差，以及方差分解。CEF 的经济含义、线性 CEF 与线性投影见第 2 章。
+
+\subsection{条件期望：作为函数与作为随机变量}
+
+\begin{defn}[条件期望]\label{def:U01b-ce}
+给定 $X=x$ 时 $Y$ 的\term{条件期望}{conditional expectation}
+\[
+\E(Y\mid X=x)=\int y\,f(y\mid x)\,\dd y\equiv m(x)
+\]
+是 $x$ 的（非随机）函数，称为\term{条件期望函数}{conditional expectation function, CEF}。把 $x$ 换成随机的 $X$，$\E(Y\mid X)=m(X)$ 是一个\key{随机变量}（$X$ 的函数）。
+\end{defn}
+
+两种读法要分清：$\E(Y\mid X=x)$ 对固定的 $x$ 是一个数；$\E(Y\mid X)$ 是随机变量，所以才能“对它再取期望”（迭代期望律）。
+
+\subsection{条件期望的性质：线性与“取出已知因子”}
+
+\subsubsection{四条基本性质}
+
+\begin{thm}[条件期望的性质]\label{thm:U01b-ceprop}
+\begin{enumerate}
+  \item 线性：$\E\big(a(X)Y_1+b(X)Y_2\mid X\big)=a(X)\,\E(Y_1\mid X)+b(X)\,\E(Y_2\mid X)$；
+  \item \term{取出已知因子}{taking out what is known}（Hansen 定理 2.3，Conditioning Theorem）：$\E[g(X)Y\mid X]=g(X)\,\E(Y\mid X)$；特别地 $\E[g(X)\mid X]=g(X)$；
+  \item 若 $Y$ 与 $X$ 独立，则 $\E(Y\mid X)=\E Y$；
+  \item 迭代期望律（下一小节）。
+\end{enumerate}
+\end{thm}
+\idx{conditioning theorem}{取出已知因子}
+
+\subsubsection{直觉：给定 \texorpdfstring{$X$}{X} 后，\texorpdfstring{$X$}{X} 的函数就是常数}
+
+一旦“知道了 $X$”，$X$ 的任何函数都是常数，可以像常数一样提到条件期望外面。例：$\E(x_iu_i\mid x_i)=x_i\,\E(u_i\mid x_i)$。
+
+\subsubsection{例：CEF 误差的条件均值为零}
+
+\begin{exmp}[CEF 误差的条件均值为零]\label{ex:U01b-cefe}
+定义 $u_i\equiv y_i-\E(y_i\mid x_i)$。证明 $\E(u_i\mid x_i)=0$。
+
+\solution 先“加一项减一项”分解 $y_i$：
+\[
+y_i=\E(y_i\mid x_i)+\big[y_i-\E(y_i\mid x_i)\big]=\E(y_i\mid x_i)+u_i .
+\]
+再对 $u_i$ 取条件期望：
+\begin{align*}
+\E(u_i\mid x_i) &= \E(y_i\mid x_i)-\E\big[\E(y_i\mid x_i)\mid x_i\big] \why{线性}\\
+&= \E(y_i\mid x_i)-\E(y_i\mid x_i)=0 \why{$\E(y_i\mid x_i)$ 是 $x_i$ 的函数}
+\end{align*}
+第二步用的是“取出已知因子”的特例 $\E[g(x_i)\mid x_i]=g(x_i)$。可见 $\E(u_i\mid x_i)=0$ 是 CEF 分解的\key{构造性质}：不论 $y_i$ 是否依赖 $x_i$，它都成立。
+\end{exmp}
+
+\subsection{迭代期望律（LIE）}
+
+\term{迭代期望律}{law of iterated expectations, LIE}把条件期望“再取期望”还原为无条件期望。
+
+\subsubsection{简单形式与一般形式：“小信息集胜出”}
+
+\begin{thm}[迭代期望律（Hansen 定理 2.1--2.2）]\label{thm:U01b-lie}
+(1) 简单形式：$\E\big[\E(Y\mid X)\big]=\E(Y)$。\\
+(2) 一般形式：$\E\big[\E(Y\mid X_1,X_2)\mid X_1\big]=\E(Y\mid X_1)$。
+\end{thm}
+
+一般形式的记忆法：先对大信息集 $(X_1,X_2)$ 求条件期望，再对小信息集 $X_1$ 求，结果等于直接对小信息集求——\key{小信息集胜出}。简单形式是“小信息集为空”（只知道常数）的特例。
+
+\subsubsection{离散情形的证明}
+
+思路：按 $X$ 的分布把各组条件均值加权平均，再交换求和次序。
+\begin{align*}
+\E\big[\E(Y\mid X)\big] &= \sum_x\E(Y\mid X=x)\,p_X(x) \why{按 $X$ 的分布求期望}\\
+&= \sum_x\Big[\sum_y y\,\frac{p(x,y)}{p_X(x)}\Big]p_X(x) \why{条件分布的定义}\\
+&= \sum_y y\sum_x p(x,y) \why{约去 $p_X(x)$；交换求和}\\
+&= \sum_y y\,p_Y(y)=\E Y \why{对 $x$ 求和得边际分布}
+\end{align*}
+直觉：总体均值 = 各组均值按组概率的加权平均。
+
+\subsubsection{例：由联合分布表手算 LIE}
+
+\begin{exmp}[联合分布表与 LIE]\label{ex:U01b-table}
+$(X,Y)$ 的联合分布如下：
+\begin{center}
+\begin{tabular}{ccccc}
+\toprule
+ & $Y=1$ & $Y=2$ & $Y=3$ & $p_X$\\
+\midrule
+$X=0$ & 0.2 & 0.1 & 0.1 & 0.4\\
+$X=1$ & 0.1 & 0.2 & 0.3 & 0.6\\
+\midrule
+$p_Y$ & 0.3 & 0.3 & 0.4 & 1\\
+\bottomrule
+\end{tabular}
+\end{center}
+求 $\E(Y\mid X)$，并验证 $\E[\E(Y\mid X)]=\E Y$。
+
+\solution
+\begin{align*}
+\E(Y\mid X=0) &= \frac{1(0.2)+2(0.1)+3(0.1)}{0.4}=\frac{0.7}{0.4}=1.75 \why{$p(y\mid0)=p(0,y)/0.4$}\\
+\E(Y\mid X=1) &= \frac{1(0.1)+2(0.2)+3(0.3)}{0.6}=\frac{1.4}{0.6}=\frac73\approx2.333 \why{$p(y\mid1)=p(1,y)/0.6$}\\
+\E\big[\E(Y\mid X)\big] &= 0.4(1.75)+0.6(7/3)=0.7+1.4=2.1 \why{按 $p_X$ 加权}\\
+\E Y &= 1(0.3)+2(0.3)+3(0.4)=2.1 \why{用边际分布 $p_Y$}
+\end{align*}
+两种算法一致。本节方差分解一小节继续使用此表。
+\end{exmp}
+
+\subsection{LIE 的标准用法：由 \texorpdfstring{$\E(u\mid x)=0$}{E(u|x)=0} 推出无条件矩条件}
+
+要证：条件矩条件 $\E(u\mid x)=0$ 推出一系列无条件矩条件。思路：先对 $x$ 取条件期望，把 $x$ 的函数提出来，再用 LIE。
+\begin{align*}
+\E(u) &= \E\big[\E(u\mid x)\big]=\E(0)=0 \why{LIE}\\
+\E(xu) &= \E\big[\E(xu\mid x)\big] \why{LIE}\\
+&= \E\big[x\,\E(u\mid x)\big]=0 \why{取出已知因子}\\
+\E[h(x)u] &= \E\big[h(x)\,\E(u\mid x)\big]=0\quad\text{（任意函数 $h$）} \why{同上}
+\end{align*}
+可见条件矩条件比无条件矩条件强得多：它使 $u$ 与 $x$ 的\key{任何}函数都不相关。后文用处：OLS 一致性所需的 $\E(x_iu_i)=0$（第 5 章）；IV 矩条件 $\E(z_iu_i)=0$ 由 $\E(u_i\mid z_i)=0$ 得到（第 8 章）；无偏性证明 $\E\hat\beta=\E[\E(\hat\beta\mid X)]$（第 4 章）。
+
+\begin{keypt}[英文试卷常见问法]
+“Show that $E(u\mid x)=0$ implies $E(xu)=0$.” 标准写法：$E(xu)=E[E(xu\mid x)]=E[x\,E(u\mid x)]=0$，两步分别注明 law of iterated expectations 与 conditioning theorem（taking out what is known）。
+\end{keypt}
+
+\subsection{独立 \texorpdfstring{$\Rightarrow$}{=>} 均值独立 \texorpdfstring{$\Rightarrow$}{=>} 不相关：层级与反例}
+
+\subsubsection{三个概念的定义}
+
+\begin{defn}[独立、均值独立、不相关]\label{def:U01b-indep}
+(a) $u$ 与 $x$ \key{独立}：$u$ 的条件分布不依赖 $x$；\\
+(b) \term{均值独立}{mean independence}：$\E(u\mid x)=\E(u)$；\\
+(c) \term{不相关}{uncorrelated}：$\Cov(u,x)=0$。
+\end{defn}
+
+\subsubsection{层级关系及其证明}
+
+\begin{thm}[三者的层级]\label{thm:U01b-hier}
+(a) $\Rightarrow$ (b) $\Rightarrow$ (c)，反向均不成立。
+\end{thm}
+
+(a)$\Rightarrow$(b)：条件分布等于边际分布，条件均值自然等于无条件均值。(b)$\Rightarrow$(c)：
+\begin{align*}
+\Cov(x,u) &= \E(xu)-\E x\,\E u \why{协方差的简便公式}\\
+&= \E\big[x\,\E(u\mid x)\big]-\E x\,\E u \why{LIE；取出已知因子}\\
+&= \E\big[x\,\E u\big]-\E x\,\E u \why{均值独立}\\
+&= \E x\,\E u-\E x\,\E u=0 \why{$\E u$ 是常数}
+\end{align*}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}
+\draw[fill=gray!8] (0,0) ellipse (3.0cm and 1.1cm);
+\draw[fill=blue!6] (-0.55,0) ellipse (2.1cm and 0.8cm);
+\draw[fill=blue!18] (-1.2,0) ellipse (1.0cm and 0.5cm);
+\node at (-1.2,0) {独立};
+\node at (0.55,0) {均值独立};
+\node at (2.25,0) {不相关};
+\end{tikzpicture}
+\captionof{figure}{独立 $\subset$ 均值独立 $\subset$ 不相关}
+\end{minipage}\end{center}
+
+\subsubsection{反例 1：不相关但不均值独立}
+
+\begin{exmp}[不相关但不均值独立]\label{ex:U01b-cex1}
+$x$ 在 $\{-1,0,1\}$ 上等概率取值，$u=x^2-\tfrac23$。判断 $u$ 与 $x$ 是否不相关、是否均值独立。
+
+\solution
+\begin{align*}
+\E u &= \E x^2-\tfrac23=\tfrac13(1+0+1)-\tfrac23=0 \why{期望的线性性}\\
+\Cov(x,u) &= \E(xu)-\E x\,\E u=\E(xu) \why{$\E u=0$}\\
+&= \E(x^3)-\tfrac23\,\E x \why{代入 $u$}\\
+&= 0-0=0 \why{$x$ 的分布关于 0 对称}
+\end{align*}
+所以 $x$ 与 $u$ 不相关。但 $\E(u\mid x)=x^2-\tfrac23$ 随 $x$ 变化（$x=0$ 时为 $-\tfrac23$，$x=\pm1$ 时为 $\tfrac13$），不均值独立。教训：不相关只排除\key{线性}关系。
+\end{exmp}
+
+\subsubsection{反例 2：均值独立但不独立（异方差）}
+
+\begin{exmp}[均值独立但不独立]\label{ex:U01b-cex2}
+$x\in\{1,2\}$ 等概率；给定 $x$，$u=x$ 与 $u=-x$ 各以概率 $\tfrac12$ 出现。判断 $u$ 与 $x$ 是否均值独立、是否独立。
+
+\solution
+\begin{align*}
+\E(u\mid x) &= \tfrac12x+\tfrac12(-x)=0=\E u \why{条件分布}\\
+\Var(u\mid x) &= \E(u^2\mid x)-0=x^2 \why{$u^2=x^2$}
+\end{align*}
+$\E(u\mid x)$ 不依赖 $x$，均值独立；但 $\Var(u\mid x)=x^2$ 依赖 $x$（条件分布的取值范围 $\{-x,x\}$ 随 $x$ 变），不独立。教训：外生性 $\E(u\mid x)=0$ 允许异方差（第 4、5 章）。
+\end{exmp}
+
+\subsubsection{外生性的两个推论：零均值与不相关}
+
+回归模型的外生性假设 $\E(u\mid x)=0$ 推出两条：
+\begin{enumerate}
+  \item[(a)] $\E(u)=0$。只要模型含截距，这一条总能满足：若 $\E u=a\ne0$，把 $y=\beta_0+x_1\beta_1+u$ 写成
+  \[
+  y=(\beta_0+a)+x_1\beta_1+(u-a),
+  \]
+  常数 $a$ 并入截距，新误差 $u-a$ 的均值为零。
+  \item[(b)] $\Cov(u,x)=0$。几何图像：$y$ 的变动被分成互不重叠的两块——由 $x$ 解释的部分与误差 $u$（下图）。
+\end{enumerate}
+反之，(a)+(b) 推不出 $\E(u\mid x)=0$（反例 1）。
+
+\begin{center}
+\begin{tikzpicture}
+\draw[thick] (0,0) ellipse (2.6cm and 1.0cm);
+\draw[thick] (0.3,0.985) -- (0.3,-0.985);
+\node at (-1.1,0) {$x$ 解释的部分};
+\node at (1.4,0) {$u$};
+\node[font=\small] at (0,-1.35) {$y$ 的变动：两部分互不重叠（$\Cov(x,u)=0$）};
+\end{tikzpicture}
+\end{center}
+
+\subsection{信息集版本的 LIE 与序列外生性}
+
+\subsubsection{信息集与时间约定}
+
+设 $I_t$ 为时期 $t$ 可用的\term{信息集}{information set}，$I_{t-1}\subset I_t\subset I_{t+1}$。LIE 的信息集版本（小信息集胜出）：
+\[
+\E\big[\E(Z\mid I_t)\mid I_{t-1}\big]=\E(Z\mid I_{t-1}).
+\]
+时间约定：$x_t\in I_t$，$y_{t-1}\in I_t$；而 $u_t$ 与 $y_t$ 一同实现，属于 $I_{t+1}$。
+
+\subsubsection{例：滞后水平值为何是差分方程的有效工具（第 12 章铺垫）}
+
+\begin{exmp}[滞后水平值作差分方程的工具]\label{ex:U01b-seqexo}
+动态面板 $y_{it}=\rho y_{i,t-1}+\alpha_i+u_{it}$ 一阶差分后，误差为 $\Delta u_{it}=u_{it}-u_{i,t-1}$。设\term{序列外生}{sequential exogeneity} $\E(u_{it}\mid I_t)=0$ 对一切 $t$ 成立。证明：$s\ge2$ 时 $\E(y_{i,t-s}\Delta u_{it})=0$；$s=1$ 时不成立。
+
+\solution 对 $s\ge2$，$y_{i,t-s}\in I_{t-1}\subset I_t$：
+\begin{align*}
+\E(y_{i,t-s}u_{it}) &= \E\big[y_{i,t-s}\,\E(u_{it}\mid I_t)\big]=0 \why{LIE；取出已知因子}\\
+\E(y_{i,t-s}u_{i,t-1}) &= \E\big[y_{i,t-s}\,\E(u_{i,t-1}\mid I_{t-1})\big]=0 \why{$s\ge2$ 时 $y_{i,t-s}\in I_{t-1}$}\\
+\Rightarrow\ \E(y_{i,t-s}\Delta u_{it}) &= 0-0=0 \why{线性}
+\end{align*}
+$s=1$ 时，$y_{i,t-1}\in I_t$ 仍使第一项为零，但 $y_{i,t-1}$ 与 $u_{i,t-1}$ 同期实现、含有 $u_{i,t-1}$，不属于 $I_{t-1}$：
+\begin{align*}
+\E(y_{i,t-1}\Delta u_{it}) &= \E(y_{i,t-1}u_{it})-\E(y_{i,t-1}u_{i,t-1}) \why{线性}\\
+&= 0-\E(y_{i,t-1}u_{i,t-1})\ne0 \why{$y_{i,t-1}$ 含 $u_{i,t-1}$}
+\end{align*}
+所以 Anderson--Hsiao 与 Arellano--Bond 估计只用 $y_{i,t-2},y_{i,t-3},\dots$ 作工具（第 12 章）。
+\end{exmp}
+
+\subsection{条件方差、同方差与异方差}
+
+\subsubsection{条件方差的定义与简便公式}
+
+\term{条件方差}{conditional variance}定义为
+\[
+\Var(Y\mid X)=\E\big[(Y-\E(Y\mid X))^2\mid X\big]=\E(Y^2\mid X)-[\E(Y\mid X)]^2 .
+\]
+第二个等号与无条件情形同理，只是把 $m(X)=\E(Y\mid X)$ 当作已知常数：
+\begin{align*}
+\Var(Y\mid X) &= \E\big[Y^2-2Y\,m(X)+m(X)^2\mid X\big] \why{展开平方}\\
+&= \E(Y^2\mid X)-2m(X)\,\E(Y\mid X)+m(X)^2 \why{线性；取出已知因子}\\
+&= \E(Y^2\mid X)-m(X)^2 \why{$\E(Y\mid X)=m(X)$}
+\end{align*}
+
+\subsubsection{同方差与异方差的定义}
+
+对 CEF 误差（$\E(u\mid x)=0$），$\Var(u\mid x)=\E(u^2\mid x)\equiv\sigma^2(x)$。$\sigma^2(x)$ 为常数 $\sigma^2$ 时称\term{同方差}{homoskedasticity}，否则称\term{异方差}{heteroskedasticity}。
+
+\subsubsection{只有同方差时 \texorpdfstring{$\E(x_ix_i'u_i^2)$}{E(xx'u\^2)} 才能拆开}
+
+LIE 的典型用法（$x_i$ 为 $K\times1$ 回归元向量，$x_ix_i\T$ 为 $K\times K$）：
+\begin{align*}
+\E(x_ix_i\T u_i^2) &= \E\big[\E(x_ix_i\T u_i^2\mid x_i)\big] \why{LIE}\\
+&= \E\big[x_ix_i\T\,\E(u_i^2\mid x_i)\big] \why{取出已知因子}\\
+&= \E\big[x_ix_i\T\,\sigma^2(x_i)\big] \why{条件方差的定义}\\
+&= \sigma^2\,\E(x_ix_i\T) \why{仅当同方差 $\sigma^2(x_i)\equiv\sigma^2$}
+\end{align*}
+
+\begin{note}[同方差拆分的适用范围]
+由于 $\E(x_iu_i)=0$，$\Var(x_iu_i)=\E(x_ix_i\T u_i^2)$。常见写法 $\Var(x_iu_i)=\E(x_ix_i\T)\cdot\E(u_i^2)$ 后面必须注明 for homoskedasticity：这一拆分只在同方差下成立（此时 $\E u_i^2=\sigma^2$）。异方差时必须保留 $\E(x_ix_i\T u_i^2)$，这正是异方差稳健（HC）标准误的来源（第 5 章）。
+\end{note}
+
+\subsection{方差分解（全方差公式）}
+
+\term{方差分解}{law of total variance}把总方差拆成“组内”与“组间”两部分。
+
+\subsubsection{定理：总方差 = 组内方差的平均 + 组间方差}
+
+\begin{thm}[方差分解（Hansen 定理 2.8）]\label{thm:U01b-ltv}
+\[
+\Var(Y)=\E\big[\Var(Y\mid X)\big]+\Var\big(\E[Y\mid X]\big):
+\]
+总方差 = 组内方差的平均 + 组间（条件均值）方差。
+\end{thm}
+
+\subsubsection{证明：两次使用 LIE}
+
+记 $m(X)=\E(Y\mid X)$。思路：对 $\Var Y$ 简便公式的两项分别用 LIE，再代入条件方差的简便公式。
+\begin{align*}
+\Var(Y) &= \E(Y^2)-(\E Y)^2 \why{简便公式}\\
+&= \E\big[\E(Y^2\mid X)\big]-\big(\E[m(X)]\big)^2 \why{LIE 用于两项}\\
+&= \E\big[\Var(Y\mid X)+m(X)^2\big]-\big(\E[m(X)]\big)^2 \why{条件方差简便公式}\\
+&= \E\big[\Var(Y\mid X)\big]+\Big\{\E[m(X)^2]-\big(\E[m(X)]\big)^2\Big\} \why{线性；重新组合}\\
+&= \E\big[\Var(Y\mid X)\big]+\Var\big(m(X)\big) \why{方差的简便公式}
+\end{align*}
+
+\subsubsection{数值核对：续联合分布表}
+
+\begin{exmp}[方差分解的数值核对]\label{ex:U01b-ltvnum}
+续例~\ref{ex:U01b-table}，验证方差分解。
+
+\solution
+\begin{align*}
+\E(Y^2\mid X=0) &= \frac{1(0.2)+4(0.1)+9(0.1)}{0.4}=\frac{1.5}{0.4}=3.75 \why{条件分布}\\
+\Var(Y\mid X=0) &= 3.75-1.75^2=0.6875 \why{条件方差简便公式}\\
+\E(Y^2\mid X=1) &= \frac{1(0.1)+4(0.2)+9(0.3)}{0.6}=\frac{3.6}{0.6}=6 \why{条件分布}\\
+\Var(Y\mid X=1) &= 6-(7/3)^2=5/9\approx0.556 \why{条件方差简便公式}\\
+\E\big[\Var(Y\mid X)\big] &= 0.4(0.6875)+0.6(5/9)\approx0.608 \why{按 $p_X$ 加权}\\
+\Var\big(m(X)\big) &= 0.4(1.75-2.1)^2+0.6(7/3-2.1)^2\approx0.082 \why{$\E m(X)=2.1$}\\
+\E\big[\Var(Y\mid X)\big]+\Var\big(m(X)\big) &= 0.608+0.082=0.69 \why{相加}\\
+\Var Y &= \underbrace{1(0.3)+4(0.3)+9(0.4)}_{\E Y^2=5.1}-2.1^2=0.69 \why{直接计算}
+\end{align*}
+两边一致。
+\end{exmp}
+
+\subsubsection{面板中的对应物：组内平方和与组间平方和}
+
+对个体 $i$ 的 $T\times1$ 观测向量 $Y_i=(y_{i1},\dots,y_{iT})\T$，用本章 Kronecker 积一节的平均矩阵 $P_T=\frac1T\one_T\one_T\T$ 与去均值矩阵 $M_T=I_T-P_T$（均为对称幂等），记 $\bar y_i=\frac1T\sum_ty_{it}$：
+\begin{align*}
+Y_i\T Y_i &= Y_i\T(M_T+P_T)Y_i \why{$M_T+P_T=I_T$}\\
+&= (M_TY_i)\T(M_TY_i)+(P_TY_i)\T(P_TY_i) \why{对称幂等}\\
+\sum_t y_{it}^2 &= \sum_t(y_{it}-\bar y_i)^2+T\bar y_i^2 \why{$M_TY_i$ 去均值，$P_TY_i=\bar y_i\one_T$}
+\end{align*}
+即总平方和 = 组内（within）+ 组间（between）。组内估计量只用前一部分变异（第 10 章）。
+
+\begin{prac}[条件期望的计算]\label{pr:U01b-ce}
+(1) 化简 $\E\big[\E(Y\mid X_1)\mid X_1,X_2\big]$。(2) $X\sim N(0,1)$，$\E(Y\mid X)=X^2$，求 $\E Y$ 与 $\Cov(X,Y)$，并评论。(3) 用 LIE 由例~\ref{ex:U01b-table} 的表求 $\Cov(X,Y)$。
+
+\answer (1) $\E(Y\mid X_1)$ 是 $X_1$ 的函数，在更大的信息集 $(X_1,X_2)$ 下已知，取出已知因子：结果就是 $\E(Y\mid X_1)$。这与 LIE 的方向相反（先小后大），但同样是“小信息集胜出”。
+
+(2)
+\begin{align*}
+\E Y &= \E\big[\E(Y\mid X)\big]=\E X^2=1 \why{LIE；$\Var X=1$}\\
+\Cov(X,Y) &= \E(XY)-\E X\,\E Y=\E\big[X\,\E(Y\mid X)\big]-0 \why{LIE；$\E X=0$}\\
+&= \E X^3=0 \why{正态对称}
+\end{align*}
+$Y$ 的均值明显依赖 $X$，却与 $X$ 不相关——不相关只排除线性关系。
+
+(3) 记 $m(X)=\E(Y\mid X)$，由例~\ref{ex:U01b-table}，$m(0)=1.75$，$m(1)=7/3$：
+\begin{align*}
+\E(XY) &= \E\big[X\,m(X)\big]=0.4\times0\times1.75+0.6\times1\times\tfrac73=1.4 \why{LIE；取出已知因子}\\
+\E X &= 0.6,\qquad \E Y=2.1\\
+\Cov(X,Y) &= 1.4-0.6\times2.1=1.4-1.26=0.14\ne0 \why{简便公式}
+\end{align*}
+对比：CEF 误差 $u=Y-m(X)$ 满足 $\Cov(X,u)=\E(Xu)=\E[X\,\E(u\mid X)]=0$。$X$ 与 $Y$ 相关，而 $X$ 与 $u$ 不相关——后者是 CEF 分解的构造性质，与 $Y$ 是否依赖 $X$ 无关。
+\end{prac}
+
+\begin{english}
+By the law of iterated expectations and the conditioning theorem, $E(x_iu_i)=E[x_iE(u_i\mid x_i)]=0$ whenever $E(u_i\mid x_i)=0$. Hence exogeneity implies $E(u_i)=0$ and $\operatorname{Cov}(x_i,u_i)=0$, but zero correlation does not imply $E(u_i\mid x_i)=0$. Note also that $E(u_i\mid x_i)=0$ allows the conditional variance $E(u_i^2\mid x_i)$ to depend on $x_i$ (heteroskedasticity). The law of total variance states that $\operatorname{Var}(Y)=E[\operatorname{Var}(Y\mid X)]+\operatorname{Var}(E[Y\mid X])$.
+\end{english}
+
+%======================================================================
+\section{随机向量：期望向量与协方差矩阵}\label{sec:U01b-rvec}
+
+计量经济学中的误差、回归元和估计量大多是向量。本节把期望与方差推广到随机向量，核心结论只有一条：$\Var(AZ+b)=A\Var(Z)A\T$。
+
+\subsection{期望向量与协方差矩阵的定义}
+
+\subsubsection{定义}
+
+\begin{defn}[期望向量与协方差矩阵]\label{def:U01b-covmat}
+随机向量 $Z=(Z_1,\dots,Z_k)\T$ 的\term{期望向量}{mean vector}为 $\mu=\E Z=(\E Z_1,\dots,\E Z_k)\T$；其\term{协方差矩阵}{covariance matrix}为
+\[
+\Var(Z)=\E\big[(Z-\mu)(Z-\mu)\T\big]=\E(ZZ\T)-\mu\mu\T\qquad(k\times k).
+\]
+对角元为各分量的方差，$(j,l)$ 元为 $\Cov(Z_j,Z_l)$；它对称、半正定。
+\end{defn}
+
+第二个等号：
+\begin{align*}
+\E\big[(Z-\mu)(Z-\mu)\T\big] &= \E\big[ZZ\T-Z\mu\T-\mu Z\T+\mu\mu\T\big] \why{展开外积}\\
+&= \E(ZZ\T)-\mu\mu\T-\mu\mu\T+\mu\mu\T \why{期望的线性性}\\
+&= \E(ZZ\T)-\mu\mu\T
+\end{align*}
+
+\subsubsection{外积与内积不要混淆：\texorpdfstring{$\E[(Z-\mu)'(Z-\mu)]=\tr\Var(Z)$}{E[(Z-mu)'(Z-mu)] = tr Var(Z)}}
+
+协方差矩阵用的是\key{外积} $(Z-\mu)(Z-\mu)\T$（$k\times k$），不是内积 $(Z-\mu)\T(Z-\mu)$（标量）。后者的期望等于协方差矩阵的迹：
+\begin{align*}
+\E\big[(Z-\mu)\T(Z-\mu)\big] &= \E\,\tr\big[(Z-\mu)\T(Z-\mu)\big] \why{标量等于其迹}\\
+&= \E\,\tr\big[(Z-\mu)(Z-\mu)\T\big] \why{$\tr(AB)=\tr(BA)$}\\
+&= \tr\,\E\big[(Z-\mu)(Z-\mu)\T\big]=\tr\Var(Z) \why{迹与期望可交换}
+\end{align*}
+
+\subsubsection{交叉协方差矩阵}
+
+$Z$（$k\times1$）与 $W$（$m\times1$）的交叉协方差矩阵为 $\Cov(Z,W)=\E[(Z-\mu_Z)(W-\mu_W)\T]$（$k\times m$），且 $\Cov(W,Z)=\Cov(Z,W)\T$。
+
+\subsection{线性变换：\texorpdfstring{$\Var(AZ+b)=A\Var(Z)A'$}{Var(AZ+b) = A Var(Z) A'} 与 \texorpdfstring{$\Var(a'Z)$}{Var(a'Z)}}
+
+\subsubsection{结论}
+
+\begin{thm}[线性变换的期望与方差]\label{thm:U01b-linvar}
+$A$（$m\times k$）、$b$（$m\times1$）非随机，$\E Z=\mu$，则
+\[
+\E(AZ+b)=A\mu+b,\qquad \Var(AZ+b)=A\Var(Z)A\T .
+\]
+特别地，对 $k\times1$ 非随机向量 $a$，$\Var(a\T Z)=a\T\Var(Z)a$。另有 $\Var(Z+W)=\Var Z+\Var W+\Cov(Z,W)+\Cov(W,Z)$。
+\end{thm}
+
+\subsubsection{证明}
+
+\begin{align*}
+\Var(AZ+b) &= \E\big[(AZ+b-A\mu-b)(AZ+b-A\mu-b)\T\big] \why{定义；$\E(AZ+b)=A\mu+b$}\\
+&= \E\big[A(Z-\mu)\big(A(Z-\mu)\big)\T\big] \why{$b$ 抵消}\\
+&= \E\big[A(Z-\mu)(Z-\mu)\T A\T\big] \why{$(AV)\T=V\T A\T$}\\
+&= A\,\E\big[(Z-\mu)(Z-\mu)\T\big]A\T=A\Var(Z)A\T \why{线性性，$A$ 非随机}
+\end{align*}
+
+\subsubsection{推论：协方差矩阵一定半正定}
+
+取 $A=a\T$（$1\times k$）即得 $\Var(a\T Z)=a\T\Var(Z)a$。标量的方差非负，所以对任意 $a$ 都有 $a\T\Var(Z)a\ge0$，即协方差矩阵半正定（半正定的定义见本章二次型一节）。
+
+\subsubsection{两个随机向量之和的方差}
+
+$Z$、$W$ 同维，记 $\tilde Z=Z-\mu_Z$，$\tilde W=W-\mu_W$：
+\begin{align*}
+\Var(Z+W) &= \E\big[(\tilde Z+\tilde W)(\tilde Z+\tilde W)\T\big] \why{定义}\\
+&= \E(\tilde Z\tilde Z\T)+\E(\tilde W\tilde W\T)+\E(\tilde Z\tilde W\T)+\E(\tilde W\tilde Z\T) \why{展开；线性性}\\
+&= \Var Z+\Var W+\Cov(Z,W)+\Cov(W,Z) \why{定义}
+\end{align*}
+注意交叉项是两个互为转置的矩阵 $\Cov(Z,W)+\Cov(Z,W)\T$，不能写成 $2\Cov(Z,W)$（除非它对称）。
+
+\subsubsection{例：二维随机向量的和与差}
+
+\begin{exmp}[和与差的协方差矩阵]\label{ex:U01b-AVA}
+$\Var(Z)=\begin{pmatrix}1&0.5\\0.5&2\end{pmatrix}$，$A=\begin{pmatrix}1&1\\1&-1\end{pmatrix}$，于是 $AZ=(Z_1+Z_2,\ Z_1-Z_2)\T$。求 $\Var(AZ)$。
+
+\solution
+\begin{align*}
+A\Var(Z) &= \begin{pmatrix}1&1\\1&-1\end{pmatrix}\begin{pmatrix}1&0.5\\0.5&2\end{pmatrix}=\begin{pmatrix}1.5&2.5\\0.5&-1.5\end{pmatrix} \why{行乘列}\\
+A\Var(Z)A\T &= \begin{pmatrix}1.5&2.5\\0.5&-1.5\end{pmatrix}\begin{pmatrix}1&1\\1&-1\end{pmatrix}=\begin{pmatrix}4&-1\\-1&2\end{pmatrix} \why{$A\T=A$}
+\end{align*}
+逐元素核对：
+\begin{align*}
+\Var(Z_1+Z_2) &= 1+2+2(0.5)=4 \why{运算规则第 2 条}\\
+\Var(Z_1-Z_2) &= 1+2-2(0.5)=2 \why{同上，$b=-1$}\\
+\Cov(Z_1+Z_2,\ Z_1-Z_2) &= \Var Z_1-\Var Z_2=1-2=-1 \why{双线性，交叉项抵消}
+\end{align*}
+\end{exmp}
+
+\subsubsection{后文用处：Wald 检验、夹心公式与渐近方差的化简}
+
+\begin{enumerate}
+  \item[(i)] $R$ 为 $q\times K$ 非随机矩阵：$\Var(R\hat\beta)=R\Var(\hat\beta)R\T$（Wald 检验，第 6 章）。
+  \item[(ii)] 条件于 $X$（$n\times K$）时，$A=(X\T X)\inv X\T$ 非随机，且 $\hat\beta-\beta=Au$，故
+  \begin{align*}
+  \Var(\hat\beta\mid X) &= A\Var(u\mid X)A\T \why{线性变换}\\
+  &= (X\T X)\inv X\T\Var(u\mid X)X(X\T X)\inv \why{$[(X\T X)\inv]\T=(X\T X)\inv$}
+  \end{align*}
+  这就是“夹心”公式（第 4 章）；同方差 $\Var(u\mid X)=\sigma^2I_n$ 时化为 $\sigma^2(X\T X)\inv$。
+  \item[(iii)] 渐近分布的化简：记 $Q=\E(x_ix_i\T)$（对称），常见写法 $Q\inv N\big(0,\sigma^2Q\big)=N\big(0,\sigma^2Q\inv\big)$。取 $A=Q\inv$：
+  \[
+  A(\sigma^2Q)A\T=\sigma^2Q\inv QQ\inv=\sigma^2Q\inv .
+  \]
+\end{enumerate}
+
+\subsection{误差向量协方差矩阵的常见结构}
+
+\subsubsection{五种结构一览}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLl}
+\toprule
+结构 & 协方差矩阵 & 本书位置\\
+\midrule
+同方差 & $\Var(u\mid X)=\sigma^2I_n$ & 第 4 章\\
+异方差 & $\diag(\sigma_1^2,\dots,\sigma_n^2)$ & 第 4、5 章（HC）\\
+聚类 & $\diag(\Omega_1,\dots,\Omega_G)$（块对角） & 第 5、10 章（CRVE）\\
+随机效应（每个个体） & $\Var(V_i)=\sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T$ & 第 11 章\\
+因子 / 截面相关（每期） & $\Var(u_t)=\Lambda\Sigma_f\Lambda\T+\Sigma_v$（$N\times N$） & 第 13、14 章\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{误差协方差矩阵的常见结构}
+\end{minipage}\end{center}
+
+\subsubsection{随机效应结构的来源}
+
+个体 $i$ 的 $T\times1$ 复合误差 $V_i=\alpha_i\one_T+U_i$，$\alpha_i$ 与 $U_i$ 不相关，$\Var(\alpha_i)=\sigma_\alpha^2$，$\Var(U_i)=\sigma_u^2I_T$：
+\begin{align*}
+\Var(V_i) &= \Var(\alpha_i\one_T)+\Var(U_i) \why{$\alpha_i$ 与 $U_i$ 不相关}\\
+&= \one_T\,\sigma_\alpha^2\,\one_T\T+\sigma_u^2I_T \why{取 $A=\one_T$}
+\end{align*}
+其非对角元 $\Cov(v_{it},v_{is})=\sigma_\alpha^2\ne0$（$t\ne s$）：同一个体不同时期的误差因共享 $\alpha_i$ 而相关（第 11 章）。
+
+\subsubsection{因子结构的来源}
+
+每期 $N\times1$ 误差 $u_t=\Lambda f_t+v_t$，其中 $\Lambda$ 为 $N\times r$ 载荷矩阵（第 $i$ 行为 $\lambda_i\T$），$f_t$ 为 $r\times1$ 因子，$\Var(f_t)=\Sigma_f$，$\Var(v_t)=\Sigma_v$，$f_t$ 与 $v_t$ 不相关：
+\begin{align*}
+\Var(u_t) &= \Var(\Lambda f_t)+\Var(v_t) \why{$f_t$ 与 $v_t$ 不相关}\\
+&= \Lambda\Sigma_f\Lambda\T+\Sigma_v \why{取 $A=\Lambda$}
+\end{align*}
+若 $v_{it}$ 截面不相关（$\Sigma_v$ 为对角阵），则 $i\ne j$ 时 $\Cov(u_{it},u_{jt})=\lambda_i\T\Sigma_f\lambda_j$：截面相关完全来自共同因子（第 13 章）。
+
+\begin{prac}[样本均值与残差的协方差矩阵]\label{pr:U01b-covmat}
+(1) $Z_1,\dots,Z_n$ i.i.d.，$\Var(Z_i)=\Sigma$，求 $\Var(\bar Z)$。(2) 设 $\Var(u\mid X)=\sigma^2I_n$，求残差 $\hat u=M_Xu$ 的条件协方差矩阵，并说明残差即使在同方差下也相关、异方差。
+
+\answer (1) $\bar Z=\frac1n\sum_iZ_i$，独立故交叉协方差为零：
+\begin{align*}
+\Var(\bar Z) &= \frac1{n^2}\Var\Big(\sum_iZ_i\Big) \why{$A=\frac1nI$}\\
+&= \frac1{n^2}\sum_i\Var(Z_i)=\frac{\Sigma}{n} \why{独立；同分布}
+\end{align*}
+(2) 条件于 $X$，$M_X=I_n-X(X\T X)\inv X\T$ 非随机、对称幂等：
+\begin{align*}
+\Var(\hat u\mid X) &= M_X(\sigma^2I_n)M_X\T \why{线性变换}\\
+&= \sigma^2M_XM_X=\sigma^2M_X \why{对称；幂等}
+\end{align*}
+$M_X$ 的非对角元一般不为零（残差相关）；对角元 $1-h_{ii}$ 各不相同（残差异方差），其中 $h_{ii}$ 为 $P_X$ 的对角元，称杠杆值。
+\end{prac}
+
+\begin{english}
+For a non-random matrix $A$, $\operatorname{Var}(AZ+b)=A\operatorname{Var}(Z)A'$; in particular $\operatorname{Var}(a'Z)=a'\operatorname{Var}(Z)a\ge0$, so every covariance matrix is positive semidefinite. Conditional on $X$, $\hat\beta-\beta=(X'X)^{-1}X'u$, so $\operatorname{Var}(\hat\beta\mid X)=(X'X)^{-1}X'\operatorname{Var}(u\mid X)X(X'X)^{-1}$, which reduces to $\sigma^2(X'X)^{-1}$ under homoskedasticity. Under the random-effects structure, $\operatorname{Var}(V_i)=\sigma_\alpha^2\mathbf{1}_T\mathbf{1}_T'+\sigma_u^2I_T$, so errors of the same individual are correlated over time.
+\end{english}
+
+%======================================================================
+\section{常用分布与正态二次型}\label{sec:U01b-dist}
+
+有限样本的精确推断（$t$、$F$）与大样本推断（$N(0,1)$、$\chi^2$）都建立在本节的四个分布与两个正态二次型定理之上。本节最后的“应用地图”给出后文每个检验统计量的分布来源。
+
+\subsection{正态分布与标准化}
+
+\subsubsection{密度、线性变换与标准化}
+
+$X\sim N(\mu,\sigma^2)$（\term{正态分布}{normal distribution}）的密度为
+\[
+f(x)=\frac{1}{\sqrt{2\pi\sigma^2}}\exp\Big\{-\frac{(x-\mu)^2}{2\sigma^2}\Big\}.
+\]
+标准正态 $Z\sim N(0,1)$ 的密度、分布函数分别记为 $\phi$、$\Phi$。性质：$a+bX\sim N(a+b\mu,\ b^2\sigma^2)$；\term{标准化}{standardization} $Z=(X-\mu)/\sigma\sim N(0,1)$。
+
+\subsubsection{标准正态的矩：\texorpdfstring{$\E Z^4=3$}{E Z\^4 = 3}}
+
+$\E Z=\E Z^3=0$（对称），$\E Z^2=1$，$\E Z^4=3$。最后一条用分部积分：因 $\phi'(z)=-z\phi(z)$，
+\begin{align*}
+\E Z^4 &= \int z^3\cdot z\phi(z)\,\dd z=\int z^3\big(-\phi'(z)\big)\,\dd z \why{$z\phi=-\phi'$}\\
+&= \big[-z^3\phi(z)\big]_{-\infty}^{\infty}+\int3z^2\phi(z)\,\dd z=0+3\E Z^2=3 \why{分部积分}
+\end{align*}
+
+\subsubsection{双侧临界值：1.645、1.960、2.576}
+
+标准正态的双侧临界值：10\% 水平为 1.645，5\% 为 1.960，1\% 为 2.576（常近似为 2.58）。
+
+\subsection{多元正态分布及其线性变换}
+
+\subsubsection{多元正态的密度}
+
+$k$ 维\term{多元正态分布}{multivariate normal distribution} $Z\sim N(\mu,\Sigma)$（$\Sigma>0$）的密度为
+\[
+f(z)=(2\pi)^{-k/2}\det(\Sigma)^{-1/2}\exp\Big\{-\tfrac12(z-\mu)\T\Sigma\inv(z-\mu)\Big\}.
+\]
+
+\subsubsection{三条性质：线性变换、不相关即独立、标准化}
+
+\begin{thm}[多元正态的性质（Hansen 定理 5.3）]\label{thm:U01b-mvn}
+\begin{enumerate}
+  \item 线性变换仍正态：$AZ+b\sim N(A\mu+b,\ A\Sigma A\T)$；任意分量、子向量都是正态。
+  \item 联合正态时，不相关 $\iff$ 独立（一般分布只有“独立 $\Rightarrow$ 不相关”）。
+  \item 标准化：$\Sigma^{-1/2}(Z-\mu)\sim N(0,I_k)$，各分量为独立的标准正态。
+\end{enumerate}
+\end{thm}
+
+性质 1 的均值与方差就是上一节的线性变换公式；“仍为正态”是正态族的特性。性质 2 的理由：把 $Z$ 分成 $(Z_1\T,Z_2\T)\T$，不相关即 $\Sigma=\diag(\Sigma_{11},\Sigma_{22})$，此时
+\begin{align*}
+(z-\mu)\T\Sigma\inv(z-\mu) &= (z_1-\mu_1)\T\Sigma_{11}\inv(z_1-\mu_1)+(z_2-\mu_2)\T\Sigma_{22}\inv(z_2-\mu_2) \why{分块对角阵的逆}\\
+\det\Sigma &= \det\Sigma_{11}\cdot\det\Sigma_{22} \why{分块对角}
+\end{align*}
+所以密度分解为 $f(z)=f_1(z_1)f_2(z_2)$，即独立。注意前提是\key{联合}正态，仅各分量分别服从正态不够。性质 3 中 $\Sigma^{-1/2}$ 是由谱分解得到的对称平方根之逆（本章谱分解一节），由性质 1，协方差为 $\Sigma^{-1/2}\Sigma\Sigma^{-1/2}=I_k$；再由性质 2，各分量独立。
+
+\subsubsection{例：Wald 推导的第一步}
+
+若 $\hat\beta\overset{a}{\sim}N\big(\beta,\frac1nV\big)$，$R$ 为 $q\times K$ 非随机矩阵，则由性质 1，
+\[
+R\hat\beta\overset{a}{\sim}N\Big(R\beta,\ \frac1nRVR\T\Big).
+\]
+
+\subsection{\texorpdfstring{$\chi^2$}{chi-square} 分布：定义、均值 \texorpdfstring{$k$}{k}、方差 \texorpdfstring{$2k$}{2k}}
+
+\subsubsection{定义：独立标准正态的平方和}
+
+\begin{defn}[卡方分布]\label{def:U01b-chi2}
+$z_1,\dots,z_k\overset{\iid}{\sim}N(0,1)$，则
+\[
+Q=\sum_{j=1}^k z_j^2=z\T z\sim\chi^2_k,
+\]
+称为自由度为 $k$ 的\term{卡方分布}{chi-square distribution}，$z=(z_1,\dots,z_k)\T$。
+\end{defn}
+
+例：$(x_1,x_2)\T\sim N(0,I_2)\Rightarrow x_1^2+x_2^2\sim\chi^2_2$；$[N(0,1)]^2\sim\chi^2_1$。
+
+\subsubsection{均值、方差与可加性}
+
+\begin{thm}[卡方分布的性质]\label{thm:U01b-chi2}
+$\E\chi^2_k=k$，$\Var\chi^2_k=2k$；独立的 $\chi^2$ 变量相加，自由度相加；$\chi^2$ 非负、右偏。
+\end{thm}
+
+先算单项 $z_j^2$ 的均值与方差，再利用独立性相加：
+\begin{align*}
+\E(z_j^2) &= \Var(z_j)+(\E z_j)^2=1+0=1 \why{方差简便公式}\\
+\Var(z_j^2) &= \E(z_j^4)-\big(\E z_j^2\big)^2=3-1=2 \why{$\E z^4=3$}\\
+\E Q &= \sum_{j=1}^k\E z_j^2=k \why{期望的线性性}\\
+\Var Q &= \sum_{j=1}^k\Var(z_j^2)=2k \why{独立 $\Rightarrow$ 方差可加}
+\end{align*}
+可加性：$Q_1\sim\chi^2_a$、$Q_2\sim\chi^2_b$ 独立，则 $Q_1+Q_2$ 是 $a+b$ 个独立标准正态的平方和，服从 $\chi^2_{a+b}$。
+
+\subsubsection{临界值表与 \texorpdfstring{$\chi^2_1=Z^2$}{chi2(1) = Z\^2}}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabular}{lcccccc}
+\toprule
+自由度 $k$ & 1 & 2 & 3 & 4 & 5 & 10\\
+\midrule
+5\% 临界值 & 3.84 & 5.99 & 7.81 & 9.49 & 11.07 & 18.31\\
+1\% 临界值 & 6.63 & 9.21 & 11.34 & 13.28 & 15.09 & 23.21\\
+\bottomrule
+\end{tabular}
+\captionof{table}{$\chi^2_k$ 的上侧临界值}
+\end{minipage}\end{center}
+注意 $3.84=1.96^2$，$6.63=2.576^2$，因为 $\chi^2_1=Z^2$：$P(Z^2>1.96^2)=P(|Z|>1.96)=0.05$。
+
+\subsubsection{大自由度的正态近似：\texorpdfstring{$(Q-k)/\sqrt{2k}\to N(0,1)$}{(Q-k)/sqrt(2k) -> N(0,1)}}
+
+$Q$ 是 $k$ 个独立同分布项 $z_j^2$（均值 1、方差 2）之和，由中心极限定理（本章大样本工具一节），$k\to\infty$ 时
+\[
+\frac{Q-k}{\sqrt{2k}}\dto N(0,1).
+\]
+
+\subsubsection{例：截面相关 LM 检验的标准化}
+
+\begin{exmp}[截面相关 LM 检验]\label{ex:U01b-lm}
+面板中个体 $i$、$j$ 残差的样本相关系数为 $\hat\rho_{ij}$。原假设（无截面相关）下 $T\hat\rho_{ij}^2\overset{a}{\sim}\chi^2_1$。说明 $LM=T\sum_{i<j}\hat\rho_{ij}^2$ 的渐近分布，以及 $N$ 大时如何标准化。
+
+\solution 不同的 $(i,j)$ 对（$i<j$）共 $k=N(N-1)/2$ 个，各项渐近独立，由 $\chi^2$ 的可加性
+\[
+LM=T\sum_{i<j}\hat\rho_{ij}^2\ \overset{a}{\sim}\ \chi^2_{N(N-1)/2}.
+\]
+$N=100$ 时 $k=4950$，自由度太大，改用正态近似。由 $\E\chi^2_k=k$、$\Var\chi^2_k=2k$：
+\begin{align*}
+\sqrt{2k} &= \sqrt{2\cdot N(N-1)/2}=\sqrt{N(N-1)} \why{$k=N(N-1)/2$}\\
+\frac{LM-N(N-1)/2}{\sqrt{N(N-1)}} &\dto N(0,1) \why{大自由度正态近似}
+\end{align*}
+有的写法把该统计量记作 $CD$、标准化后记作 $CD^*$（第 14 章）。
+\end{exmp}
+
+\begin{note}[LM 标准化的两个易错点]
+(1) 分母是 $\sqrt{2k}=\sqrt{N(N-1)}$，不是 $\sqrt{N(N-1)/2}$。(2) 求和只对 $i<j$；若写成 $\sum_{i=1}^N\sum_{j\ne i}$，每一对被算两次（共 $N(N-1)$ 项），要得到 $\chi^2_{N(N-1)/2}$ 必须再除以 2。
+\end{note}
+
+\subsection{\texorpdfstring{$t$}{t} 分布}
+
+\subsubsection{定义}
+
+\begin{defn}[$t$ 分布]\label{def:U01b-t}
+$Z\sim N(0,1)$ 与 $Q\sim\chi^2_m$ 独立，则
+\[
+t=\frac{Z}{\sqrt{Q/m}}\sim t_m,
+\]
+称为自由度为 $m$ 的\term{$t$ 分布}{Student's t distribution}。
+\end{defn}
+
+\subsubsection{性质、临界值与用途}
+
+$t_m$ 关于 0 对称，比正态厚尾。$m\to\infty$ 时 $Q/m=\frac1m\sum_jz_j^2\pto\E z_j^2=1$（弱大数定律），由 Slutsky 定理 $t_m\dto N(0,1)$。双侧 5\% 临界值：
+
+\begin{center}
+\small
+\begin{tabular}{lccccc}
+\toprule
+自由度 & $t_5$ & $t_{10}$ & $t_{30}$ & $t_{120}$ & $t_\infty$\\
+\midrule
+双侧 5\% 临界值 & 2.571 & 2.228 & 2.042 & 1.980 & 1.960\\
+\bottomrule
+\end{tabular}
+\end{center}
+正态误差下 $(\hat\beta_j-\beta_j)/se(\hat\beta_j)\sim t_{n-K}$（第 4 章）。
+
+\subsection{\texorpdfstring{$F$}{F} 分布及 \texorpdfstring{$t_m^2\sim F(1,m)$}{t\^2 ~ F(1,m)}、\texorpdfstring{$qF(q,m)\to\chi^2_q$}{qF(q,m) -> chi2(q)}}
+
+\subsubsection{定义}
+
+\begin{defn}[$F$ 分布]\label{def:U01b-F}
+$Q_1\sim\chi^2_q$ 与 $Q_2\sim\chi^2_m$ 独立，则
+\[
+F=\frac{Q_1/q}{Q_2/m}\sim F(q,m),
+\]
+称为\term{$F$ 分布}{F distribution}，$q$、$m$ 分别为分子、分母自由度。
+\end{defn}
+
+\subsubsection{两条关系及证明}
+
+\begin{thm}[$t$、$F$、$\chi^2$ 的关系]\label{thm:U01b-tF}
+(1) $t_m^2\sim F(1,m)$；(2) $m\to\infty$ 时 $qF(q,m)\dto\chi^2_q$。
+\end{thm}
+
+(1)：
+\[
+t^2=\frac{Z^2}{Q/m}=\frac{Z^2/1}{Q/m},
+\]
+$Z^2\sim\chi^2_1$ 且与 $Q$ 独立，正合 $F(1,m)$ 的定义。(2)：
+\[
+qF=\frac{Q_1}{Q_2/m},\qquad Q_2/m\pto1\ \ (m\to\infty),
+\]
+分母依概率收敛到 1，由 Slutsky 定理 $qF\dto Q_1\sim\chi^2_q$。
+
+\subsubsection{数值核对与“\texorpdfstring{$t$}{t}、\texorpdfstring{$F$}{F} 检验是 Wald 检验的特例”}
+
+数值：$F_{0.05}(1,30)=4.17=2.042^2$；$F_{0.05}(2,\infty)=3.00=5.99/2$。所以 $t$ 检验、$F$ 检验都是 Wald 检验的特例：$t\overset{a}{\sim}N(0,1)\Rightarrow t^2\overset{a}{\sim}\chi^2_1$；$qF\overset{a}{\sim}\chi^2_q$（第 6 章）。
+
+\subsection{正态二次型定理 1：\texorpdfstring{$z\sim N(0,\Sigma)\Rightarrow z'\Sigma^{-1}z\sim\chi^2_k$}{z ~ N(0,Sigma) => z' Sigma\^-1 z ~ chi2(k)}}
+
+\subsubsection{定理与证明}
+
+\begin{thm}[正态二次型定理 1]\label{thm:U01b-qf1}
+$z\sim N(0,\Sigma)$，$\Sigma$ 为 $k\times k$ 正定矩阵，则 $z\T\Sigma\inv z\sim\chi^2_k$。
+\end{thm}
+
+思路：先把 $z$ 标准化成 $N(0,I_k)$，二次型就变成平方和。
+\begin{align*}
+w &\equiv \Sigma^{-1/2}z\sim N\big(0,\ \Sigma^{-1/2}\Sigma\Sigma^{-1/2}\big)=N(0,I_k) \why{线性变换；对称平方根}\\
+z\T\Sigma\inv z &= z\T\Sigma^{-1/2}\Sigma^{-1/2}z \why{$\Sigma\inv=\Sigma^{-1/2}\Sigma^{-1/2}$}\\
+&= (\Sigma^{-1/2}z)\T(\Sigma^{-1/2}z) \why{$\Sigma^{-1/2}$ 对称}\\
+&= w\T w=\sum_{j=1}^k w_j^2\sim\chi^2_k \why{$\chi^2$ 的定义}
+\end{align*}
+
+\subsubsection{含义：用协方差矩阵的逆做二次型，自由度等于维数}
+
+\key{正态向量用其协方差矩阵的逆做二次型，自动服从 $\chi^2$，自由度 = 向量维数。}Wald 统计量（$q$ 维 $R\hat\beta-r$，第 6 章）、Hausman 统计量（$K$ 维 $\hat\beta_{FE}-\hat\beta_{RE}$，第 11 章）都是它的渐近版本，需再配合连续映射定理与 Slutsky 定理（本章大样本工具一节）。
+
+\subsection{正态二次型定理 2：\texorpdfstring{$z\sim N(0,I)$}{z ~ N(0,I)}、\texorpdfstring{$M$}{M} 幂等秩 \texorpdfstring{$r\Rightarrow z'Mz\sim\chi^2_r$}{r => z'Mz ~ chi2(r)}}
+
+\subsubsection{定理}
+
+\begin{thm}[正态二次型定理 2]\label{thm:U01b-qf2}
+$z\sim N(0,I_n)$，$M$ 为 $n\times n$ 对称幂等矩阵，$\rank(M)=r$，则 $z\T Mz\sim\chi^2_r$。若另一对称幂等矩阵 $B$ 满足 $MB=0$，则 $z\T Mz$ 与 $z\T Bz$ 独立。
+\end{thm}
+
+\subsubsection{证明：谱分解把二次型化为 \texorpdfstring{$r$}{r} 个平方和}
+
+思路：对称幂等矩阵的特征值只能是 0 或 1，且 1 的个数等于秩（本章幂等矩阵一节）；用正交阵旋转后，二次型只剩 $r$ 个平方项。
+\begin{align*}
+M &= H\Lambda H\T,\quad \Lambda=\diag(\underbrace{1,\dots,1}_{r},0,\dots,0) \why{谱分解；特征值 0/1}\\
+w &\equiv H\T z\sim N(0,\ H\T H)=N(0,I_n) \why{线性变换；$H$ 正交}\\
+z\T Mz &= z\T H\Lambda H\T z=w\T\Lambda w \why{代入谱分解}\\
+&= \sum_{j=1}^r w_j^2\sim\chi^2_r \why{只有 $r$ 个系数为 1}
+\end{align*}
+独立性：$Mz$ 与 $Bz$ 是 $z$ 的线性变换，联合正态，且
+\begin{align*}
+\Cov(Mz,Bz) &= M\,\Var(z)\,B\T=MB=0 \why{$\Var(z)=I_n$；$B$ 对称}
+\end{align*}
+由多元正态性质 2，$Mz$ 与 $Bz$ 独立；而 $z\T Mz=(Mz)\T(Mz)$、$z\T Bz=(Bz)\T(Bz)$ 分别是二者的函数，故独立。
+
+\subsubsection{推论 (i)：残差平方和 \texorpdfstring{$\hat u'\hat u/\sigma^2\sim\chi^2_{n-K}$}{u'u/sigma\^2 ~ chi2(n-K)}}
+
+$u\sim N(0,\sigma^2I_n)$ 时，$z=u/\sigma\sim N(0,I_n)$，$\hat u=M_Xu$，$\rank M_X=\tr M_X=n-K$：
+\[
+\frac{\hat u\T\hat u}{\sigma^2}=\Big(\frac u\sigma\Big)\T M_X\Big(\frac u\sigma\Big)\sim\chi^2_{n-K}.
+\]
+这是 $t_{n-K}$、$F(q,n-K)$ 精确分布的来源；$P_XM_X=0$ 保证分子分母独立（第 4、6 章）。
+
+\subsubsection{推论 (ii)：样本方差“丢一个自由度”}
+
+$z\sim N(0,I_T)$ 时，$M_T=I_T-\frac1T\one_T\one_T\T$ 对称幂等、秩为 $T-1$：
+\[
+z\T M_Tz=\sum_{t=1}^T(z_t-\bar z)^2\sim\chi^2_{T-1}.
+\]
+去均值用掉一个自由度。
+
+\subsubsection{推论 (iii)：过度识别 \texorpdfstring{$J$}{J} 检验的自由度 \texorpdfstring{$L-K$}{L-K}}
+
+过度识别 $J$ 检验的自由度 $L-K$（工具数减参数个数）同样来自一个秩为 $L-K$ 的对称幂等矩阵（第 9 章）。
+
+\subsection{应用地图：后文检验统计量的分布从何而来}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+统计量 & 分布 & 依据\\
+\midrule
+$t$ 比率 & 精确 $t_{n-K}$；渐近 $N(0,1)$ & $t$ 的定义；CLT + Slutsky\\
+$t^2$ & $F(1,n-K)$；渐近 $\chi^2_1$ & $t_m^2\sim F(1,m)$；CMT\\
+$F$ 统计量 & $F(q,n-K)$；$qF\overset{a}{\sim}\chi^2_q$ & 定理 2；$qF\to\chi^2_q$\\
+Wald $W$ & $\chi^2_q$ & 定理 1（渐近）\\
+Sargan--Hansen $J$ & $\chi^2_{L-K}$ & 定理 2 型（渐近）\\
+Hausman $H$ & $\chi^2_K$ & 定理 1（渐近）\\
+截面相关 LM & $\chi^2_{N(N-1)/2}$；标准化后 $N(0,1)$ & $\chi^2$ 可加；均值 $k$、方差 $2k$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{检验统计量的分布来源}
+\end{minipage}\end{center}
+
+\begin{prac}[正态二次型]\label{pr:U01b-qf}
+(1) $z\sim N(0,I_3)$，写出 $z_1^2+z_2^2$、$\dfrac{(z_1^2+z_2^2)/2}{z_3^2}$、$z_1/|z_3|$ 的分布。(2) $z\sim N(0,\Sigma)$，$\Sigma=\begin{pmatrix}2&1\\1&2\end{pmatrix}$，写出 $z\T\Sigma\inv z$ 并给出其分布与均值。(3) 用迹技巧证明：$z\sim N(0,I_n)$、$M$ 对称幂等秩 $r$ 时 $\E(z\T Mz)=r$，与 $\E\chi^2_r=r$ 一致。
+
+\answer (1) $z_1^2+z_2^2\sim\chi^2_2$；$\dfrac{(z_1^2+z_2^2)/2}{z_3^2/1}\sim F(2,1)$（分子分母独立）；$z_1/|z_3|=z_1\big/\sqrt{z_3^2/1}\sim t_1$。
+
+(2) $\det\Sigma=4-1=3$：
+\begin{align*}
+\Sigma\inv &= \frac13\begin{pmatrix}2&-1\\-1&2\end{pmatrix} \why{二阶矩阵求逆}\\
+z\T\Sigma\inv z &= \frac13\big(2z_1^2-2z_1z_2+2z_2^2\big)\sim\chi^2_2 \why{定理 1，$k=2$}
+\end{align*}
+均值为 2。
+
+(3)
+\begin{align*}
+\E(z\T Mz) &= \E\,\tr(z\T Mz)=\E\,\tr(Mzz\T) \why{标量等于其迹；循环性}\\
+&= \tr\big(M\,\E(zz\T)\big)=\tr(M) \why{迹与期望可交换；$\E zz\T=I_n$}\\
+&= \rank(M)=r \why{对称幂等阵：秩 = 迹}
+\end{align*}
+\end{prac}
+
+\begin{english}
+If $z\sim N(0,\Sigma)$ with $\Sigma>0$, then $\Sigma^{-1/2}z\sim N(0,I_k)$ and therefore $z'\Sigma^{-1}z\sim\chi^2_k$. If $z\sim N(0,I_n)$ and $M$ is symmetric idempotent with rank $r$, then $z'Mz\sim\chi^2_r$; in particular $\hat u'\hat u/\sigma^2\sim\chi^2_{n-K}$ under normal errors. The chi-square distribution with $k$ degrees of freedom has mean $k$ and variance $2k$, and $t_m^2\sim F(1,m)$ while $qF(q,m)\to\chi^2_q$ as $m\to\infty$. These results, combined with the continuous mapping theorem, give the asymptotic $\chi^2$ distributions of the Wald, Hausman and $J$ statistics.
+\end{english}
+
+%======================================================================
+\section{估计量的评价标准}\label{sec:U01b-est}
+
+估计量是样本的函数，因而是随机变量。评价估计量就是评价它的抽样分布：中心是否对准真值（无偏、一致），离散程度有多大（方差、有效性），二者合起来有多准（MSE）。前四项是固定 $n$ 下的有限样本性质，一致性与渐近正态是 $n\to\infty$ 时的大样本性质。
+
+\subsection{估计量、估计值与抽样分布}
+
+\term{估计量}{estimator} $\hat\theta=\hat\theta(W_1,\dots,W_n)$ 是样本的函数，因而是随机变量；代入一组具体数据得到的数是\term{估计值}{estimate}。$\hat\theta$ 在重复抽样下的分布称为\term{抽样分布}{sampling distribution}。评价估计量就是评价抽样分布的“中心”与“离散程度”。
+
+\subsection{偏差与无偏性}
+
+\subsubsection{定义}
+
+\term{偏差}{bias}：$\text{bias}(\hat\theta)=\E\hat\theta-\theta$。若对一切 $\theta$ 偏差都为 0，称 $\hat\theta$ \term{无偏}{unbiased}。
+
+\subsubsection{例：样本方差除以 \texorpdfstring{$n-1$}{n-1} 还是 \texorpdfstring{$n$}{n}}
+
+\begin{exmp}[样本方差的无偏性]\label{ex:U01b-s2}
+$X_1,\dots,X_n$ i.i.d.，均值 $\mu$、方差 $\sigma^2$。比较 $s^2=\frac1{n-1}\sum_i(X_i-\bar X)^2$ 与 $\hat\sigma^2=\frac1n\sum_i(X_i-\bar X)^2$ 的偏差。
+
+\solution 记 $X=(X_1,\dots,X_n)\T=\mu\one_n+e$，$\E e=0$，$\E(ee\T)=\sigma^2I_n$。用本章投影矩阵一节的 $M_1=I_n-\frac1n\one_n\one_n\T$（对常数项投影后的残差制造矩阵，对称幂等，$M_1\one_n=0$，$\tr M_1=n-1$）：
+\begin{align*}
+\sum_i(X_i-\bar X)^2 &= X\T M_1X \why{$M_1X$ 为去均值向量}\\
+&= (\mu\one_n+e)\T M_1(\mu\one_n+e)=e\T M_1e \why{$M_1\one_n=0$}\\
+\E\sum_i(X_i-\bar X)^2 &= \E\,\tr(M_1ee\T)=\tr\big(M_1\,\E ee\T\big) \why{迹技巧}\\
+&= \sigma^2\tr(M_1)=(n-1)\sigma^2 \why{$\tr M_1=n-1$}
+\end{align*}
+故 $\E s^2=\sigma^2$，$s^2$ 无偏；$\E\hat\sigma^2=\frac{n-1}{n}\sigma^2$，$\hat\sigma^2$ 有偏，偏差为 $-\sigma^2/n$。
+\end{exmp}
+
+\subsection{方差与标准误}
+
+$\Var(\hat\theta)$ 衡量抽样分布的离散程度；其平方根的估计值称为\term{标准误}{standard error}：
+\[
+se(\hat\theta)=\sqrt{\widehat{\Var}(\hat\theta)}.
+\]
+向量情形看协方差矩阵 $\widehat{\Var}(\hat\theta)$，各系数的标准误是其对角元的平方根。
+
+\subsection{均方误差：MSE = 偏差\texorpdfstring{$^2$}{\^2} + 方差}
+
+\subsubsection{标量版本及其推导}
+
+\term{均方误差}{mean squared error, MSE}同时衡量偏差与离散程度。
+
+\begin{thm}[MSE 分解]\label{thm:U01b-mse}
+\[
+\text{MSE}(\hat\theta)=\E(\hat\theta-\theta)^2=\text{bias}(\hat\theta)^2+\Var(\hat\theta);
+\]
+向量版本：$\E[(\hat\theta-\theta)(\hat\theta-\theta)\T]=\Var(\hat\theta)+bb\T$，其中 $b=\E\hat\theta-\theta$。
+\end{thm}
+
+思路：在 $\hat\theta-\theta$ 中加一项减一项 $\E\hat\theta$。
+\begin{align*}
+\E(\hat\theta-\theta)^2 &= \E\big[(\hat\theta-\E\hat\theta)+(\E\hat\theta-\theta)\big]^2 \why{加一项减一项 $\E\hat\theta$}\\
+&= \E(\hat\theta-\E\hat\theta)^2+2(\E\hat\theta-\theta)\,\E(\hat\theta-\E\hat\theta)+(\E\hat\theta-\theta)^2 \why{展开；$\E\hat\theta-\theta$ 非随机}\\
+&= \Var(\hat\theta)+0+\text{bias}^2 \why{$\E(\hat\theta-\E\hat\theta)=0$}
+\end{align*}
+
+\subsubsection{向量版本的推导}
+
+同样加一项减一项，记 $d=\hat\theta-\E\hat\theta$（$\E d=0$），$b=\E\hat\theta-\theta$（非随机）：
+\begin{align*}
+\E\big[(d+b)(d+b)\T\big] &= \E(dd\T)+\E(d)\,b\T+b\,\E(d)\T+bb\T \why{展开外积；$b$ 非随机}\\
+&= \Var(\hat\theta)+bb\T \why{$\E d=0$}
+\end{align*}
+
+\subsubsection{例：有偏可能更好——\texorpdfstring{$s^2$}{s\^2} 与 \texorpdfstring{$\hat\sigma^2$}{sigma-hat\^2} 的 MSE}
+
+\begin{exmp}[$s^2$ 与 $\hat\sigma^2$ 的 MSE]\label{ex:U01b-msecomp}
+正态样本下比较 $s^2$ 与 $\hat\sigma^2=\frac{n-1}{n}s^2$ 的 MSE，并取 $n=10$ 计算。
+
+\solution 正态样本下 $(n-1)s^2/\sigma^2\sim\chi^2_{n-1}$（上一节正态二次型定理 2 的推论 (ii)），$\Var\chi^2_{n-1}=2(n-1)$：
+\begin{align*}
+\text{MSE}(s^2) &= \Var(s^2)=\frac{\sigma^4}{(n-1)^2}\cdot2(n-1)=\frac{2\sigma^4}{n-1} \why{无偏；$\Var(cQ)=c^2\Var Q$}\\
+\Var(\hat\sigma^2) &= \Big(\frac{n-1}{n}\Big)^2\frac{2\sigma^4}{n-1}=\frac{2(n-1)\sigma^4}{n^2} \why{$\hat\sigma^2=\frac{n-1}{n}s^2$}\\
+\text{bias}(\hat\sigma^2)^2 &= \Big(-\frac{\sigma^2}{n}\Big)^2=\frac{\sigma^4}{n^2} \why{上例}\\
+\text{MSE}(\hat\sigma^2) &= \frac{2(n-1)\sigma^4+\sigma^4}{n^2}=\frac{(2n-1)\sigma^4}{n^2} \why{MSE 分解}
+\end{align*}
+$n=10$ 时，$\text{MSE}(s^2)=\frac29\sigma^4\approx0.222\sigma^4$，$\text{MSE}(\hat\sigma^2)=\frac{19}{100}\sigma^4=0.190\sigma^4$。有偏的 $\hat\sigma^2$ 反而更准：无偏不等于 MSE 最小，这就是\key{偏差—方差权衡}（机器学习中的正则化也基于此）。
+\end{exmp}
+
+\subsection{有效性与 BLUE}
+
+\subsubsection{有效性的定义：用半正定序比较方差}
+
+在一类估计量（如线性无偏估计量，或一致且渐近正态的估计量）中方差最小者称为\term{有效}{efficient}。向量情形用半正定序比较（本章正定性一节）：$\hat\theta$ 比 $\tilde\theta$ 有效，指 $\Var(\tilde\theta)-\Var(\hat\theta)\ge0$（半正定）。
+
+\subsubsection{后文的三种“有效”}
+
+\begin{enumerate}
+  \item Gauss--Markov 定理：OLS 是\term{最佳线性无偏估计量}{best linear unbiased estimator, BLUE}（第 4 章）；
+  \item 正态误差下 OLS = MLE，达到 Cramér--Rao 下界（第 4 章）；
+  \item 有效 GMM：权重矩阵 $W=\Omega\inv$（第 8 章）。
+\end{enumerate}
+Hausman 检验利用“有效估计量与它和任一一致估计量之差不相关”这一性质（第 11 章）。
+
+\subsection{一致性}
+
+\subsubsection{定义：一致性是有效推断的最低要求}
+
+\begin{defn}[一致性]\label{def:U01b-consist}
+若 $\hat\theta_n\pto\theta$（$n\to\infty$），称 $\hat\theta$ \term{一致}{consistent}（依概率收敛见本章大样本工具一节）。
+\end{defn}
+
+一致性是有效推断的最低要求（Consistency is a minimum requirement for valid inference）：样本再大都收敛不到真值的估计量，任何推断都无从谈起。
+
+\subsubsection{充分条件：偏差与方差都趋于零 \texorpdfstring{$\Rightarrow$}{=>} 一致}
+
+若 $\text{bias}(\hat\theta_n)\to0$ 且 $\Var(\hat\theta_n)\to0$（即 $\text{MSE}\to0$），则 $\hat\theta_n$ 一致。证明用 Markov 不等式（Chebyshev 不等式的推广），对任意 $\delta>0$：
+\begin{align*}
+P\big(|\hat\theta_n-\theta|>\delta\big) &\le \frac{\E(\hat\theta_n-\theta)^2}{\delta^2} \why{Markov 不等式}\\
+&= \frac{\text{bias}(\hat\theta_n)^2+\Var(\hat\theta_n)}{\delta^2}\ \to\ 0 \why{MSE 分解}
+\end{align*}
+
+\subsection{渐近正态、\texorpdfstring{$\sqrt n$}{root-n}-一致与收敛速度}
+
+\subsubsection{定义}
+
+\begin{defn}[渐近正态与 $\sqrt n$-一致]\label{def:U01b-an}
+若 $\sqrt n(\hat\theta-\theta)\dto N(0,V)$，称 $\hat\theta$ \term{渐近正态}{asymptotically normal}，$V$ 为\term{渐近方差}{asymptotic variance}；常写成 $\hat\theta\overset{a}{\sim}N(\theta,V/n)$，“$\overset{a}{\sim}$”读作“渐近服从”。此时 $\hat\theta-\theta=O_p(n^{-1/2})$，称 $\hat\theta$ 为 \term{$\sqrt n$-一致}{root-n consistent}。
+\end{defn}
+
+\subsubsection{收敛速度因问题而异}
+
+固定 $T$ 的面板（$N\to\infty$）收敛速度为 $\sqrt N$；$N$、$T$ 都大时常为 $\sqrt{NT}$（第 12、14 章）。
+
+\subsubsection{渐近偏误：一致但置信区间失效}
+
+若 $\sqrt{NT}(\hat\rho-\rho)\dto N(c,V)$ 而 $c\ne0$，称估计量一致但\term{渐近有偏}{asymptotically biased}：$\hat\rho$ 仍收敛到 $\rho$，但以 $\hat\rho\pm1.96\,se$ 构造的置信区间中心偏离真值，覆盖率达不到 95\%，推断失效（第 12 章）。
+
+\subsection{有限样本性质与大样本性质的对照}
+
+\subsubsection{对照表}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 有限样本性质（固定 $n$） & 大样本性质（$n\to\infty$）\\
+\midrule
+概念 & 无偏、方差、MSE、BLUE、精确分布 & 一致、渐近正态、渐近有效\\
+所需假设 & 较强（同方差、正态误差、严格外生等） & 较弱（矩条件 + LLN/CLT）\\
+推断工具 & $t_{n-K}$、$F(q,n-K)$ & $N(0,1)$、$\chi^2_q$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{有限样本性质与大样本性质}
+\end{minipage}\end{center}
+
+\subsubsection{例：无偏但不一致、有偏但一致}
+
+\begin{itemize}
+  \item $\tilde\mu=X_1$（只用第一个观测）无偏，但方差恒为 $\sigma^2$，不一致；
+  \item $\hat\sigma^2$ 与 $\bar X+1/n$ 有偏，但偏差 $\to0$、方差 $\to0$，一致。
+\end{itemize}
+无偏性可以在小样本（如 $n=1,10,20$）下讨论，一致性需要大样本（经验法则 $n\ge500$，第 5 章）。
+
+\begin{prac}[无偏性、一致性与最优收缩]\label{pr:U01b-est}
+(1) $\tilde\mu=\frac12(X_1+X_2)$ 是否无偏、是否一致？(2) 求 $c\bar X$ 的 MSE 及使之最小的 $c$，并评论。
+
+\answer (1) $\E\tilde\mu=\frac12(\mu+\mu)=\mu$，无偏；$\Var\tilde\mu=\frac14(\sigma^2+\sigma^2)=\sigma^2/2$ 不随 $n$ 变小，$\tilde\mu$ 不依概率收敛到 $\mu$，不一致。
+
+(2)
+\begin{align*}
+\text{bias}(c\bar X) &= c\mu-\mu=(c-1)\mu,\qquad \Var(c\bar X)=c^2\sigma^2/n \why{线性性；运算规则}\\
+\text{MSE}(c) &= (c-1)^2\mu^2+c^2\sigma^2/n \why{MSE 分解}\\
+\frac{\dd\,\text{MSE}}{\dd c} &= 2(c-1)\mu^2+2c\sigma^2/n=0 \why{一阶条件}\\
+\Rightarrow\ c^* &= \frac{\mu^2}{\mu^2+\sigma^2/n}<1 \why{解一次方程}
+\end{align*}
+最优估计量把 $\bar X$ 向 0“收缩”，但 $c^*$ 依赖未知的 $\mu$（与 $\sigma^2$），不可行；$n\to\infty$ 时 $c^*\to1$。
+\end{prac}
+
+\begin{english}
+An estimator is unbiased if $E(\hat\theta)=\theta$ and consistent if $\hat\theta\xrightarrow{p}\theta$ as $n\to\infty$. Unbiasedness is a finite-sample property, whereas consistency is a large-sample property and is the minimum requirement for valid inference. Since $\mathrm{MSE}=\mathrm{bias}^2+\mathrm{variance}$, an estimator whose bias and variance both vanish as $n\to\infty$ is consistent. An estimator is asymptotically normal if $\sqrt n(\hat\theta-\theta)\xrightarrow{d}N(0,V)$, where $V$ is the asymptotic variance.
+\end{english}
+
+%======================================================================
+\section{大样本工具}\label{sec:U01b-asy}
+
+\subsection{为什么需要渐近理论}
+
+OLS、IV、GMM 与面板估计量的精确分布一般依赖误差分布（如正态），而且难以求得。渐近理论的思路：把估计量写成\key{样本均值的函数}，再用四件工具——大数定律（均值 $\to$ 期望）、中心极限定理（放大 $\sqrt n$ 倍后 $\to$ 正态）、连续映射定理（连续函数保持收敛）、Slutsky 定理（收敛到常数的部分可当常数）——得到 $n$ 大时的近似分布。
+
+\subsection{依概率收敛与概率极限（plim）}
+
+\subsubsection{定义}
+
+\begin{defn}[依概率收敛（Hansen 定义 6.1）]\label{def:U01b-pconv}
+随机向量序列 $Z_n$ \term{依概率收敛}{convergence in probability}到 $Z$，记 $Z_n\pto Z$ 或 $\plim_{n\to\infty}Z_n=Z$：对任意 $\delta>0$，
+\[
+\lim_{n\to\infty}P\big(\|Z_n-Z\|>\delta\big)=0 .
+\]
+$Z$ 称为\term{概率极限}{probability limit, plim}。
+\end{defn}
+
+\subsubsection{直觉与证明工具：Chebyshev 不等式}
+
+直觉：$n$ 足够大时，$Z_n$ 落在 $Z$ 的任意小邻域内的概率趋于 1。向量、矩阵的依概率收敛等价于逐元素依概率收敛。证明依概率收敛的基本工具是 \term{Chebyshev 不等式}{Chebyshev's inequality}：
+\[
+P\big(|Z-\E Z|>\delta\big)\le\frac{\Var(Z)}{\delta^2}.
+\]
+
+\subsection{依分布收敛}
+
+\begin{defn}[依分布收敛（Hansen 定义 6.2）]\label{def:U01b-dconv}
+若 $Z_n$ 的分布函数 $F_n(u)$ 在极限分布函数 $F(u)$ 的每个连续点处都收敛到 $F(u)$，称 $Z_n$ \term{依分布收敛}{convergence in distribution}，记 $Z_n\dto Z$；$F$ 称为\term{渐近分布}{asymptotic distribution}（极限分布）。
+\end{defn}
+
+\subsection{两种收敛的关系}
+
+\[
+Z_n\pto Z\ \Rightarrow\ Z_n\dto Z;
+\]
+反之一般不成立，但极限为常数时成立：$Z_n\dto c\ \Rightarrow\ Z_n\pto c$。直觉：依分布收敛只说“分布形状接近”，不说“随机变量本身接近”。例如 $Z\sim N(0,1)$，令 $Z_n=-Z$，则 $Z_n$ 与 $Z$ 同分布，$Z_n\dto Z$ 平凡成立，但 $|Z_n-Z|=2|Z|$ 并不趋于 0。
+
+\subsection{弱大数定律（WLLN）}
+
+\subsubsection{定理：样本矩 \texorpdfstring{$\to$}{->} 总体矩}
+
+\term{弱大数定律}{weak law of large numbers, WLLN}：样本均值依概率收敛到总体期望。
+
+\begin{thm}[WLLN（Hansen 定理 6.1--6.2）]\label{thm:U01b-wlln}
+$Y_i\in\R^k$ i.i.d.，$\E\|Y\|<\infty$，则
+\[
+\bar Y=\frac1n\sum_{i=1}^nY_i\pto\E Y .
+\]
+对任意函数 $h$，若 $\E\|h(Y)\|<\infty$，则 $\frac1n\sum_ih(Y_i)\pto\E h(Y)$——“样本矩 $\to$ 总体矩”。
+\end{thm}
+
+\subsubsection{有限方差时用 Chebyshev 不等式证明}
+
+设 $Y_i$ 为标量、方差 $\sigma^2<\infty$：
+\begin{align*}
+P\big(|\bar Y-\mu|>\delta\big) &\le \frac{\Var\bar Y}{\delta^2} \why{Chebyshev 不等式}\\
+&= \frac{\sigma^2}{n\delta^2}\ \to\ 0 \why{$\Var\bar Y=\sigma^2/n$}
+\end{align*}
+
+\subsubsection{计量中的典型用法}
+
+$\frac1n\sum_ix_ix_i\T\pto\E(x_ix_i\T)$；$\frac1n\sum_ix_iu_i\pto\E(x_iu_i)$。一句话：LLN: sample mean $\to$ expectation。矩估计法就是“用 $\frac1n\sum_i$ 替换 $\E$”（第 8 章）。
+
+\subsection{中心极限定理（一元、多元）}
+
+\term{中心极限定理}{central limit theorem, CLT}：中心化并乘以 $\sqrt n$ 的样本均值依分布收敛到正态。
+
+\subsubsection{一元与多元 Lindeberg--Lévy CLT}
+
+\begin{thm}[CLT（Lindeberg--Lévy，Hansen 定理 6.3）]\label{thm:U01b-clt}
+一元：$Y_i$ i.i.d.，$\E Y=\mu$，$0<\Var Y=\sigma^2<\infty$，则
+\[
+\sqrt n(\bar Y-\mu)=\frac1{\sqrt n}\sum_{i=1}^n(Y_i-\mu)\dto N(0,\sigma^2),\qquad\text{即}\qquad \frac{\sqrt n(\bar Y-\mu)}{\sigma}\dto N(0,1).
+\]
+多元：$Y_i\in\R^k$ i.i.d.，$\E\|Y\|^2<\infty$，则 $\sqrt n(\bar Y-\mu)\dto N(0,V)$，$V=\E[(Y-\mu)(Y-\mu)\T]$。
+\end{thm}
+
+\subsubsection{三种缩放：除以 1、\texorpdfstring{$n$}{n}、\texorpdfstring{$\sqrt n$}{sqrt n}}
+
+\begin{align*}
+\Var\Big(\sum_i(Y_i-\mu)\Big) &= n\sigma^2\to\infty \why{不缩放：发散}\\
+\Var\Big(\frac1n\sum_i(Y_i-\mu)\Big) &= \sigma^2/n\to0 \why{除以 $n$：退化为 0，即 LLN}\\
+\Var\Big(\frac1{\sqrt n}\sum_i(Y_i-\mu)\Big) &= \sigma^2 \why{除以 $\sqrt n$：非退化，即 CLT}
+\end{align*}
+只有除以 $\sqrt n$ 才得到非退化的正态极限。务必分清：CLT 用 $\frac1{\sqrt n}$，LLN 用 $\frac1n$。
+
+\subsubsection{Cramér--Wold 方法与其他 CLT}
+
+多元 CLT 等价于：对任意固定的 $k\times1$ 向量 $\lambda$，$\lambda\T\sqrt n(\bar Y-\mu)\dto N(0,\lambda\T V\lambda)$（\term{Cramér--Wold 方法}{Cramer-Wold device}）。独立不同分布、按聚类求和（聚类数 $G\to\infty$）等情形也有相应的 CLT（第 5 章）。
+
+\subsubsection{CLT 作用于中心化之和}
+
+\begin{note}[不要漏掉中心化]
+正确写法：$\frac1{\sqrt n}\sum_i\big(x_iu_i-\E(x_iu_i)\big)\dto N\big(0,\Var(x_iu_i)\big)$。若写成 $\frac1{\sqrt n}\sum_ix_iu_i\overset{a}{\sim}N\big(\E(x_iu_i),\Var(x_iu_i)\big)$ 是错的：$\E(x_iu_i)\ne0$ 时未中心化之和以 $\sqrt n\,\E(x_iu_i)$ 的速度发散。外生性下 $\E(x_iu_i)=0$，二者才一致。
+\end{note}
+
+\subsection{连续映射定理（CMT）}
+
+\term{连续映射定理}{continuous mapping theorem, CMT}：连续函数保持（依概率、依分布）收敛。
+
+\begin{thm}[CMT（Hansen 定理 6.6--6.7）]\label{thm:U01b-cmt}
+(1) $Z_n\pto c$，$g$ 在 $c$ 处连续 $\Rightarrow$ $g(Z_n)\pto g(c)$；\\
+(2) $Z_n\dto Z$，$g$ 连续 $\Rightarrow$ $g(Z_n)\dto g(Z)$。
+\end{thm}
+
+例：
+\begin{itemize}
+  \item $\big(\frac1nX\T X\big)\inv\pto Q_{xx}\inv$（求逆在可逆点连续），$Q_{xx}=\E(x_ix_i\T)$；
+  \item $\hat\sigma=\sqrt{\hat\sigma^2}\pto\sigma$；
+  \item $t_n\dto N(0,1)\Rightarrow t_n^2\dto\chi^2_1$；$z_n\dto N(0,\Sigma)\Rightarrow z_n\T\Sigma\inv z_n\dto\chi^2_k$（正态二次型定理 1）。
+\end{itemize}
+对比：plim 可以穿过连续的非线性函数，期望不能（本章随机变量一节的 Jensen 不等式）。
+
+\subsection{Slutsky 定理}
+
+\term{Slutsky 定理}{Slutsky's theorem}：依分布收敛的量与依概率收敛到常数的量做四则运算。
+
+\begin{thm}[Slutsky 定理]\label{thm:U01b-slutsky}
+$X_n\dto X$，$Y_n\pto c$（常数），则
+\[
+X_n+Y_n\dto X+c,\qquad Y_nX_n\dto cX,\qquad X_n/Y_n\dto X/c\ \ (c\ne0).
+\]
+矩阵版：$A_n\pto A$、$z_n\dto N(0,V)$ $\Rightarrow$ $A_nz_n\dto N(0,AVA\T)$；若 $\hat V\pto V>0$，则 $z_n\T\hat V\inv z_n\dto\chi^2_k$。
+\end{thm}
+
+用途：用一致估计（$\hat V$、$s^2$）替换未知的真值而不改变渐近分布——一切“可行”检验统计量的依据。
+
+\subsection{比值与乘积的概率极限怎么算}
+
+\subsubsection{运算规则与关键动作：分子分母同除以 \texorpdfstring{$n$}{n}}
+
+以下规则都是 CMT 的推论：
+\begin{gather*}
+\plim(X_n\pm Y_n)=\plim X_n\pm\plim Y_n,\qquad \plim(X_nY_n)=\plim X_n\cdot\plim Y_n,\\
+\plim(X_n/Y_n)=\plim X_n/\plim Y_n\ \ (\text{分母极限}\ne0),\qquad \plim(A_n\inv b_n)=(\plim A_n)\inv\plim b_n\ \ (\text{极限可逆}).
+\end{gather*}
+\key{关键动作：分子分母同除以 $n$。}$\sum_i(\cdot)$ 本身发散，没有有限的 plim；除以 $n$ 变成样本均值后才能用 WLLN。
+
+\subsubsection{例：一元回归斜率的概率极限与遗漏变量偏误}
+
+\begin{exmp}[一元回归斜率的 plim]\label{ex:U01b-plimslope}
+$y_i=\beta_0+\beta_1x_i+u_i$，$(x_i,y_i)$ i.i.d.，$\hat\beta_1=\sum_i(x_i-\bar x)(y_i-\bar y)\big/\sum_i(x_i-\bar x)^2$。求 $\plim\hat\beta_1$。
+
+\solution
+\begin{align*}
+\hat\beta_1 &= \frac{\frac1n\sum_i(x_i-\bar x)(y_i-\bar y)}{\frac1n\sum_i(x_i-\bar x)^2}=\frac{\frac1n\sum_ix_iy_i-\bar x\bar y}{\frac1n\sum_ix_i^2-\bar x^2} \why{同除以 $n$；展开}\\
+&\pto \frac{\E(xy)-\E x\,\E y}{\E(x^2)-(\E x)^2}=\frac{\Cov(x,y)}{\Var(x)} \why{WLLN 用于各样本矩；CMT}\\
+&= \frac{\Cov(x,\ \beta_0+\beta_1x+u)}{\Var(x)}=\beta_1+\frac{\Cov(x,u)}{\Var(x)} \why{协方差的双线性}
+\end{align*}
+外生（$\Cov(x,u)=0$）时一致；内生时多出偏误项 $\Cov(x,u)/\Var(x)$，遗漏变量与测量误差的偏误公式都由此得到（第 7 章）。注意：plim 可以“分子分母分别取极限”，而 $\E\hat\beta_1\ne\E(\text{分子})/\E(\text{分母})$。
+\end{exmp}
+
+\subsection{Delta 方法}
+
+\term{Delta 方法}{delta method}：渐近正态估计量的光滑函数仍渐近正态，方差用一阶导数“传递”。
+
+\subsubsection{一元与多元形式}
+
+\begin{thm}[Delta 方法（Hansen 定理 6.8）]\label{thm:U01b-delta}
+一元：$\sqrt n(\hat\theta-\theta)\dto N(0,\sigma^2)$，$g$ 在 $\theta$ 处连续可导，则
+\[
+\sqrt n\big(g(\hat\theta)-g(\theta)\big)\dto N\big(0,\ [g'(\theta)]^2\sigma^2\big).
+\]
+多元：$\sqrt n(\hat\theta-\theta)\dto N(0,V)$，$g:\R^k\to\R^q$，$G=\partial g(\theta)/\partial\theta\T$（$q\times k$ 雅可比矩阵），则
+\[
+\sqrt n\big(g(\hat\theta)-g(\theta)\big)\dto N(0,\ GVG\T).
+\]
+\end{thm}
+
+\subsubsection{一元证明：中值定理 + CMT + Slutsky}
+
+思路：中值定理 $g(\hat\theta)=g(\theta)+g'(\bar\theta)(\hat\theta-\theta)$，$\bar\theta$ 介于 $\hat\theta$ 与 $\theta$ 之间。
+\begin{align*}
+\sqrt n\big(g(\hat\theta)-g(\theta)\big) &= g'(\bar\theta)\cdot\sqrt n(\hat\theta-\theta) \why{中值定理}\\
+&\dto g'(\theta)\cdot N(0,\sigma^2)=N\big(0,[g'(\theta)]^2\sigma^2\big) \why{$\bar\theta\pto\theta$，CMT；Slutsky}
+\end{align*}
+其中 $\bar\theta\pto\theta$ 是因为 $|\bar\theta-\theta|\le|\hat\theta-\theta|$ 且 $\hat\theta$ 一致；由 CMT 得 $g'(\bar\theta)\pto g'(\theta)$。
+
+\subsubsection{与 Hansen 记号的对照：\texorpdfstring{$G'VG$}{G'VG} 与 \texorpdfstring{$GVG'$}{GVG'}}
+
+Hansen 把 $G$ 定义为 $\partial g\T/\partial\theta$（$k\times q$），因此写成 $G\T VG$；与本书的 $GVG\T$（$G$ 为 $q\times k$）是同一个矩阵。
+
+\subsubsection{例：倒数与比值的渐近方差}
+
+\begin{exmp}[Delta 方法的两个例子]\label{ex:U01b-delta}
+(a) $\sqrt n(\bar X-\mu)\dto N(0,\sigma^2)$，求 $1/\bar X$ 的渐近分布（$\mu\ne0$）。(b) $\sqrt n(\hat\beta-\beta)\dto N(0,V)$，$\beta=(\beta_1,\beta_2)\T$，求 $\theta=\beta_1/\beta_2$ 估计量的渐近方差。
+
+\solution (a) $g(\mu)=1/\mu$，$g'(\mu)=-1/\mu^2$：
+\[
+\sqrt n\big(1/\bar X-1/\mu\big)\dto N\big(0,\ \sigma^2/\mu^4\big).
+\]
+(b) $g(\beta)=\beta_1/\beta_2$，$G=\big(\partial g/\partial\beta_1,\ \partial g/\partial\beta_2\big)=\big(1/\beta_2,\ -\beta_1/\beta_2^2\big)$，渐近方差为 $GVG\T$。参数的非线性函数（第 5 章）、非线性约束的 Wald 检验（第 6 章）、动态面板的长期效应 $\beta/(1-\rho)$（第 12 章）都用 Delta 方法。
+\end{exmp}
+
+\subsection{随机阶记号 \texorpdfstring{$O_p$}{Op} 与 \texorpdfstring{$o_p$}{op}}
+
+\term{随机阶记号}{stochastic order symbols}用来简洁地表达“趋于零”与“有界”的速度。
+
+\subsubsection{定义}
+
+\begin{defn}[随机阶记号]\label{def:U01b-op}
+$Z_n=o_p(1)$：$Z_n\pto0$；$Z_n=o_p(a_n)$：$Z_n/a_n\pto0$。\\
+$Z_n=O_p(1)$：\term{依概率有界}{bounded in probability}，即对任意 $\varepsilon>0$ 存在 $M_\varepsilon$，使 $\limsup_nP(|Z_n|>M_\varepsilon)\le\varepsilon$；$Z_n=O_p(a_n)$：$Z_n/a_n=O_p(1)$。
+\end{defn}
+
+\subsubsection{运算规则}
+
+\[
+o_p(1)+o_p(1)=o_p(1),\quad o_p(1)+O_p(1)=O_p(1),\quad O_p(1)O_p(1)=O_p(1),\quad o_p(1)O_p(1)=o_p(1).
+\]
+依分布收敛的序列都是 $O_p(1)$。
+
+\subsubsection{例：样本均值与 OLS 的随机阶}
+
+由 Chebyshev 不等式，$\bar Y-\mu=O_p(n^{-1/2})$：取 $M_\varepsilon=\sigma/\sqrt\varepsilon$，则 $P(\sqrt n|\bar Y-\mu|>M_\varepsilon)\le\sigma^2/M_\varepsilon^2=\varepsilon$。OLS 中 $\frac1nX\T X=O_p(1)$（WLLN），$\frac1{\sqrt n}X\T u=O_p(1)$（CLT），故
+\begin{align*}
+\hat\beta-\beta &= \Big(\frac1nX\T X\Big)\inv\cdot\frac1{\sqrt n}\cdot\frac1{\sqrt n}X\T u \why{乘以 $\frac{n}{n}$ 并拆分}\\
+&= O_p(1)\cdot n^{-1/2}\cdot O_p(1)=O_p(n^{-1/2}) \why{运算规则}
+\end{align*}
+渐近线性表示：$\sqrt n(\hat\beta-\beta)=Q_{xx}\inv\frac1{\sqrt n}X\T u+o_p(1)$。
+
+\subsubsection{确定性阶 \texorpdfstring{$O(\cdot)$}{O(.)}}
+
+确定性的 $O(\cdot)$、$o(\cdot)$ 用于非随机序列，如偏误的阶数：Nickell 偏误为 $O(1/T)$（第 12 章）。
+
+\subsection{完整演示：样本均值的一致性与渐近正态}
+
+\subsubsection{六步推导}
+
+设定：$X_1,\dots,X_n$ i.i.d.，$\E X=\mu$，$\Var X=\sigma^2\in(0,\infty)$。目标：证明 $\bar X$ 一致、渐近正态，并构造可行的检验与置信区间。
+\begin{align*}
+&\text{\textcircled{\scriptsize 1}}\ \ \E\bar X=\frac1n\sum_i\E X_i=\mu,\qquad \Var\bar X=\frac1{n^2}\sum_i\Var X_i=\frac{\sigma^2}{n} \why{线性性；独立 $\Rightarrow$ 方差可加}\\
+&\text{\textcircled{\scriptsize 2}}\ \ \bar X\pto\mu \why{WLLN（或 Chebyshev）}\\
+&\text{\textcircled{\scriptsize 3}}\ \ \sqrt n(\bar X-\mu)\dto N(0,\sigma^2) \why{CLT}\\
+&\text{\textcircled{\scriptsize 4}}\ \ s^2=\frac{n}{n-1}\Big[\frac1n\sum_iX_i^2-\bar X^2\Big]\pto\E X^2-\mu^2=\sigma^2 \why{WLLN；CMT；$\frac{n}{n-1}\to1$}\\
+&\text{\textcircled{\scriptsize 5}}\ \ t_n=\frac{\sqrt n(\bar X-\mu)}{s}\dto\frac{N(0,\sigma^2)}{\sigma}=N(0,1) \why{第 3、4 步；$s\pto\sigma$；Slutsky}\\
+&\text{\textcircled{\scriptsize 6}}\ \ P\big(\mu\in[\bar X\pm1.96\,s/\sqrt n]\big)=P(|t_n|\le1.96)\to0.95 \why{由第 5 步}
+\end{align*}
+这六步是后文所有渐近证明的模板。
+
+\subsubsection{数值例：\texorpdfstring{$n=400$}{n=400} 的置信区间与 \texorpdfstring{$t$}{t} 检验}
+
+$n=400$，$\bar X=2.3$，$s=4$：$se=s/\sqrt n=4/20=0.2$，95\% 置信区间为 $2.3\pm1.96\times0.2=[1.908,\ 2.692]$。检验 $H_0:\mu=2$：$t=(2.3-2)/0.2=1.5<1.96$，5\% 水平下不拒绝。
+
+\subsection{模板：OLS 渐近性证明的骨架（第 5 章展开）}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLl}
+\toprule
+步骤 & 式子 & 工具\\
+\midrule
+代入模型 & $\hat\beta-\beta=(X\T X)\inv X\T u$ & 代数\\
+乘 $\sqrt n$、分配 $n$ & $\sqrt n(\hat\beta-\beta)=\big(\frac1n\sum_ix_ix_i\T\big)\inv\big(\frac1{\sqrt n}\sum_ix_iu_i\big)$ & 乘以 $\frac nn$\\
+“分母” & $\frac1n\sum_ix_ix_i\T\pto Q_{xx}$，其逆 $\pto Q_{xx}\inv$ & WLLN + CMT\\
+“分子” & $\frac1{\sqrt n}\sum_ix_iu_i\dto N(0,\Omega)$，$\Omega=\E(x_ix_i\T u_i^2)$ & CLT（需 $\E(x_iu_i)=0$）\\
+合并 & $\sqrt n(\hat\beta-\beta)\dto N\big(0,\ Q_{xx}\inv\Omega Q_{xx}\inv\big)$ & Slutsky + $\Var(AZ)=A\Var(Z)A\T$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{OLS 渐近正态性的证明骨架}
+\end{minipage}\end{center}
+
+\begin{prac}[Delta 方法、plim 与随机阶]\label{pr:U01b-asy}
+(1) $X_i\overset{\iid}{\sim}\text{Bernoulli}(p)$，用 Delta 方法求优势比 $g(\bar X)=\bar X/(1-\bar X)$ 的渐近分布；$p=0.5$ 时渐近方差是多少？(2) $y_i=\beta x_i+u_i$（无截距），$\tilde\beta=\sum_ix_iy_i/\sum_ix_i^2$，求 $\plim\tilde\beta$。(3) 设 $\E(x_iu_i)=0$、$\Var(x_iu_i)<\infty$，证明 $\frac1n\sum_ix_iu_i=O_p(n^{-1/2})$。
+
+\answer (1) Bernoulli 的均值为 $p$、方差为 $p(1-p)$，由 CLT，$\sqrt n(\bar X-p)\dto N(0,p(1-p))$。
+\begin{align*}
+g'(p) &= \frac{(1-p)+p}{(1-p)^2}=\frac1{(1-p)^2} \why{商的求导}\\
+\sqrt n\big(g(\bar X)-g(p)\big) &\dto N\Big(0,\ \frac{p(1-p)}{(1-p)^4}\Big)=N\Big(0,\ \frac{p}{(1-p)^3}\Big) \why{Delta 方法}
+\end{align*}
+$p=0.5$ 时渐近方差为 $0.5/0.125=4$。
+
+(2)
+\begin{align*}
+\tilde\beta &= \frac{\sum_ix_i(\beta x_i+u_i)}{\sum_ix_i^2}=\beta+\frac{\frac1n\sum_ix_iu_i}{\frac1n\sum_ix_i^2} \why{代入模型；同除以 $n$}\\
+&\pto \beta+\frac{\E(xu)}{\E(x^2)} \why{WLLN + CMT}
+\end{align*}
+$\E(xu)=0$ 时一致。
+
+(3) 由 CLT，
+\[
+\sqrt n\cdot\frac1n\sum_ix_iu_i=\frac1{\sqrt n}\sum_ix_iu_i\dto N\big(0,\Var(x_iu_i)\big).
+\]
+依分布收敛的序列是 $O_p(1)$，故 $\frac1n\sum_ix_iu_i=O_p(n^{-1/2})$，自然也是 $o_p(1)$。
+\end{prac}
+
+\begin{english}
+Write $\sqrt n(\hat\beta-\beta)=\big(n^{-1}\sum_ix_ix_i'\big)^{-1}n^{-1/2}\sum_ix_iu_i$. By the weak law of large numbers, $n^{-1}\sum_ix_ix_i'\xrightarrow{p}Q_{xx}$, which is invertible; by the central limit theorem, $n^{-1/2}\sum_ix_iu_i\xrightarrow{d}N(0,\Omega)$ since $E(x_iu_i)=0$. By the continuous mapping theorem and Slutsky's theorem, $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N\big(0,Q_{xx}^{-1}\Omega Q_{xx}^{-1}\big)$. For a smooth function $g$, the delta method gives $\sqrt n\big(g(\hat\theta)-g(\theta)\big)\xrightarrow{d}N(0,GVG')$ with $G=\partial g(\theta)/\partial\theta'$.
+\end{english}
+
+%======================================================================
+\section{读懂推导的技巧与符号速查}\label{sec:U01b-read}
+
+后文的推导大多由少数几个代数动作组合而成。本节给出检查推导的两件利器（维度检查、识别夹心结构）、常用代数动作与常见错误清单，以及全书统一的符号表。
+
+\subsection{维度检查：每一步都标出维度}
+
+\subsubsection{四条规则}
+
+\begin{enumerate}
+  \item 相乘时内侧维度必须相等：$(m\times k)(k\times l)=m\times l$；
+  \item 相加的各项维度必须相同；
+  \item 只有方阵才能求逆、取迹、取行列式；
+  \item 最终维度应与等式左边一致。
+\end{enumerate}
+
+\subsubsection{例：GMM 估计量的维度}
+
+$X$ 为 $n\times K$，$Z$ 为 $n\times L$，$W$ 为 $L\times L$，$Y$ 为 $n\times1$：
+\[
+\hat\beta_{GMM}=\Big(\underset{K\times n}{X\T}\,\underset{n\times L}{Z}\,\underset{L\times L}{W}\,\underset{L\times n}{Z\T}\,\underset{n\times K}{X}\Big)\inv\ \underset{K\times n}{X\T}\,\underset{n\times L}{Z}\,\underset{L\times L}{W}\,\underset{L\times n}{Z\T}\,\underset{n\times 1}{Y}.
+\]
+括号内为 $K\times K$（可逆），后半部分为 $K\times1$，结果为 $K\times1$，与 $\beta$ 的维度一致。
+
+\subsubsection{用维度检查发现书写错误}
+
+\begin{itemize}
+  \item 写出 $\big(X\T(I_N\otimes M_T)\big)\inv$：括号内是 $K\times NT$ 的非方阵，不能求逆，必定漏了 $X$；正确写法为 $\big(X\T(I_N\otimes M_T)X\big)\inv$（本章 Kronecker 积一节）。
+  \item $U$ 为 $N\times T$ 时，$U\T U$ 是 $T\times T$，其谱分解应有 $T$ 项（本章谱分解一节），不是 $N$ 项。
+\end{itemize}
+
+\subsubsection{\texorpdfstring{$UU'$}{UU'} 与 \texorpdfstring{$U'U$}{U'U} 的非零特征值相同}
+
+$UU\T$（$N\times N$）与 $U\T U$（$T\times T$）的非零特征值相同，主成分分析可以选维数小的那个计算。理由：设 $U\T Uh=\lambda h$，$\lambda\ne0$，$h\ne0$，
+\begin{align*}
+UU\T(Uh) &= U(U\T Uh)=U(\lambda h)=\lambda(Uh) \why{结合律}
+\end{align*}
+且 $Uh\ne0$（否则 $\lambda h=U\T Uh=0$，矛盾），所以 $\lambda$ 也是 $UU\T$ 的特征值，特征向量为 $Uh$。
+
+\subsection{识别“夹心”结构 \texorpdfstring{$A^{-1}BA^{-1}$}{A\^-1 B A\^-1}}
+
+\subsubsection{面包与肉}
+
+形如 $A\inv BA\inv$ 的方差称为\term{夹心形式}{sandwich form}：外层“面包” $A$ 来自目标函数的二阶导（如 $X\T X$），中间的“肉” $B$ 是得分（如 $X\T u$）的方差。当 $B\propto A$ 时，夹心塌缩为单个逆矩阵。
+
+\subsubsection{五种常见夹心及其塌缩条件}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLl}
+\toprule
+情形 & 夹心 & 塌缩条件与结果\\
+\midrule
+OLS 条件方差 & $(X\T X)\inv X\T\Omega X(X\T X)\inv$，$\Omega=\Var(u\mid X)$ & $\Omega=\sigma^2I$：$\sigma^2(X\T X)\inv$\\
+OLS 渐近（HC） & $Q_{xx}\inv\Omega Q_{xx}\inv$，$\Omega=\E(x_ix_i\T u_i^2)$ & 同方差：$\sigma^2Q_{xx}\inv$\\
+聚类（CRVE） & $(X\T X)\inv\big[\sum_gX_g\T\hat u_g\hat u_g\T X_g\big](X\T X)\inv$ & —\\
+FE 聚类 & $\big(\sum_iX_i\T M_TX_i\big)\inv\big[\sum_iX_i\T M_T\hat u_i\hat u_i\T M_TX_i\big]\big(\sum_iX_i\T M_TX_i\big)\inv$ & —\\
+GMM & $(X\T ZWZ\T X)\inv X\T ZW\Omega WZ\T X(X\T ZWZ\T X)\inv$ & $W=\Omega\inv$：$(X\T Z\Omega\inv Z\T X)\inv$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{夹心形式一览（GMM 行中 $\Omega$ 为矩条件 $Z\T u$ 的方差）}
+\end{minipage}\end{center}
+
+\subsubsection{两个塌缩的验证}
+
+OLS 同方差：
+\begin{align*}
+(X\T X)\inv X\T(\sigma^2I_n)X(X\T X)\inv &= \sigma^2(X\T X)\inv(X\T X)(X\T X)\inv \why{$\sigma^2$ 为标量}\\
+&= \sigma^2(X\T X)\inv \why{$A\inv A=I$}
+\end{align*}
+有效 GMM：记 $A=X\T Z\Omega\inv Z\T X$，取 $W=\Omega\inv$：
+\begin{align*}
+A\inv X\T Z\Omega\inv\,\Omega\,\Omega\inv Z\T X\,A\inv &= A\inv\big(X\T Z\Omega\inv Z\T X\big)A\inv \why{$\Omega\inv\Omega=I$}\\
+&= A\inv AA\inv=A\inv \why{$A$ 的定义}
+\end{align*}
+
+\subsection{常见代数动作清单}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lLl}
+\toprule
+动作 & 示例 & 出处\\
+\midrule
+代入模型 & $\hat\beta=(X\T X)\inv X\T(X\beta+u)=\beta+(X\T X)\inv X\T u$ & 第 4、5 章\\
+加一项减一项 & $y_i=\E(y_i\mid x_i)+[y_i-\E(y_i\mid x_i)]$；MSE 分解 & 本章条件期望、估计量两节\\
+乘以单位阵 / 乘 $\frac nn$ & $(X\T X)\inv X\T u=\big(\frac1nX\T X\big)\inv\frac1nX\T u$ & 第 5 章\\
+标量转置 & $Y\T X\beta=\beta\T X\T Y$ & 本章转置一节\\
+标量写成迹、循环换序 & $\E(u\T Mu)=\tr(M\,\E uu\T)$；$\tr(UFF\T U\T)=\tr(F\T U\T UF)$ & 本章迹一节\\
+幂等与零化 & $MM=M$，$MX=0$，$M_T\one_T=0$ & 本章投影、Kronecker 积两节\\
+LIE + 取出已知因子 & $\E(xu)=\E[x\,\E(u\mid x)]$ & 本章条件期望一节\\
+求和与矩阵互换 & $\sum_i\sum_tx_{it}x_{it}\T=\sum_iX_i\T X_i=X\T X$ & 本章矩阵记号一节\\
+展开二次型 & $(a-b)\T(a-b)=a\T a-2a\T b+b\T b$（$a$、$b$ 同维） & 本章转置一节\\
+Kronecker 混合积 & $(I_N\otimes M_T)(\alpha\otimes\one_T)=\alpha\otimes M_T\one_T=0$ & 本章 Kronecker 积一节\\
+分子分母同除以 $n$ & 取 plim 前先变成样本均值 & 本章大样本工具一节\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{常见代数动作}
+\end{minipage}\end{center}
+
+\subsection{常见错误清单}
+
+\begin{itemize}
+  \item 矩阵“相除”；把 $AB$ 写成 $BA$；$(AB)\inv$ 不反序；把 $(X\T X)\inv$ 拆成 $X\inv(X\T)\inv$（$X$ 非方阵，不可逆）。
+  \item 混淆 $x_i\T x_i$（标量）与 $x_ix_i\T$（矩阵）；混淆 $UU\T$ 与 $U\T U$。
+  \item 把 $\tr(ABC)$ 随意换成 $\tr(ACB)$（只能循环轮转）。
+  \item 写 $\E(1/X)=1/\E X$、$\E(XY)=\E X\,\E Y$、$\E(\text{比值})=$ 期望之比（都错）；混淆 $\E$ 与 plim。
+  \item CLT 忘记中心化，或把 $\frac1n$ 与 $\frac1{\sqrt n}$ 用反；把同方差公式用在异方差场合。
+  \item 把“不相关”当成“均值独立”或“独立”。
+\end{itemize}
+
+\begin{prac}[维度检查]\label{pr:U01b-dim}
+(1) 检查 $\hat\beta_{GLS}=(X\T\Omega\inv X)\inv X\T\Omega\inv Y$（$\Omega$ 为 $n\times n$）各部分的维度。(2) 有人在过度识别（$L>K$）时写 $\hat\beta=(Z\T X)\inv Z\T Y$，错在哪里？(3) 指出把 $\sum_ix_i\T\hat u_i^2x_i$ 当作 HC 方差“肉”的错误。
+
+\answer (1) $X\T$（$K\times n$）$\Omega\inv$（$n\times n$）$X$（$n\times K$）为 $K\times K$，可逆；$X\T\Omega\inv Y$ 为 $K\times1$；结果为 $K\times1$。
+
+(2) $Z\T X$ 是 $L\times K$，$L>K$ 时为非方阵，不能求逆——方程个数多于未知数。这正是需要用权重矩阵 $W$ 把 $L$ 个矩条件合成 $K$ 个的原因（GMM，第 8 章）。$L=K$ 时 $Z\T X$ 为方阵，上式就是 IV 估计量。
+
+(3) $x_i\T\hat u_i^2x_i$ 是标量（内积），而“肉”应为 $K\times K$ 矩阵 $\sum_ix_ix_i\T\hat u_i^2=X\T\hat DX$（外积），其中 $\hat D=\diag(\hat u_1^2,\dots,\hat u_n^2)$。
+\end{prac}
+
+\subsection{全书统一符号速查表}
+
+\begin{small}
+\begin{longtable}{@{}p{2.4cm}p{4.9cm}p{2.4cm}p{4.9cm}@{}}
+\toprule
+符号 & 含义 & 符号 & 含义\\
+\midrule
+\endfirsthead
+\toprule
+符号 & 含义 & 符号 & 含义\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+$n$ & 横截面样本量 & $N$、$T$ & 面板个体数、时期数\\
+$K$ & 回归元个数（含常数项） & $L$ & 工具变量个数\\
+$r$ & 因子个数 & $q$ & 约束个数（$R$ 的行数）\\
+$G$ & 聚类个数 & $T_0$ & 处理前时期数\\
+$y_i$、$x_i$ & 标量、$K\times1$ 列向量 & $Y$、$X$ & $n\times1$、$n\times K$\\
+$u_i$、$u$ & 误差（Hansen 记 $e$） & $\hat u_i$、$\hat u$ & 残差（Hansen 记 $\hat e$）\\
+$\beta$、$\hat\beta$ & 参数（$K\times1$）及其估计 & $\sigma^2$、$s^2$ & 误差方差及其无偏估计\\
+$y_{it}$、$x_{it}$ & 面板观测 & $Y_i$、$X_i$ & $T\times1$、$T\times K$ 个体块\\
+$\alpha_i$、$\lambda_t$ & 个体效应、时间效应 & $\bar y_{i\cdot}$、$\bar y_{\cdot t}$、$\bar y$ & 个体均值、时期均值、总均值\\
+$\tilde y_{it}$ & 去均值后的变量 & $\Delta y_{it}$ & 一阶差分 $y_{it}-y_{i,t-1}$\\
+$z_i$、$Z$ & $L\times1$ 工具、$n\times L$ & $W$ & GMM 权重矩阵（$L\times L$）\\
+$f_t$、$\lambda_i$ & $r\times1$ 因子、载荷 & $F$、$\Lambda$ & $T\times r$、$N\times r$\\
+$I_n$、$\one_n$ & 单位阵、全 1 列向量 & $J_n$ & $\one_n\one_n\T$\\
+$P_X$、$M_X$ & 投影阵、残差制造阵 & $P_Z$ & 对工具的投影（2SLS）\\
+$P_T$、$M_T$ & $\frac1T\one_T\one_T\T$、$I_T-P_T$ & $\otimes$ & Kronecker 积\\
+$A\T$ & 转置（同 $A^{\top}$） & $\tr$、$\rank$、$\det$ & 迹、秩、行列式\\
+$A>0$、$A\ge0$ & 正定、半正定 & $A^{1/2}$、$A^{-1/2}$ & 对称平方根及其逆\\
+$Q_{xx}$ & $\E(x_ix_i\T)$ & $\Omega$ & 得分方差，如 $\E(x_ix_i\T u_i^2)$\\
+$V$ & 渐近方差 & $\Omega_v$ & 随机效应误差协方差\\
+$\E$、$\Var$、$\Cov$ & 期望、方差、协方差 & $\E(\cdot\mid\cdot)$ & 条件期望\\
+$\pto$、$\plim$ & 依概率收敛、概率极限 & $\dto$ & 依分布收敛\\
+$\overset{a}{\sim}$ & 渐近服从 & $O_p$、$o_p$ & 随机阶\\
+$\hat\theta$ & $\theta$ 的估计量 & $\tilde y_{it}$、$\tilde\beta$ & 变换后的变量、另一估计量\\
+\end{longtable}
+\end{small}
+
+\subsection{与 Hansen 教材的记号对照}
+
+Hansen 用大写 $Y_i$、$X_i$ 表示随机变量（向量），用粗体 $\bm Y$、$\bm X$ 表示数据矩阵；误差记 $e_i$、残差记 $\hat e_i$；投影与零化矩阵记 $\bm P$、$\bm M$；$\bm Q_{XX}=\E[XX\T]$；回归元个数记 $k$。本书采用：小写 $y_i$、$x_i$ 为观测，大写 $Y$、$X$ 为数据矩阵，误差 $u_i$、残差 $\hat u_i$，回归元个数 $K$。读 Hansen 时只需逐一替换。
+
+\begin{english}
+To verify a matrix expression, check the dimensions of every term: in $(X'ZWZ'X)^{-1}X'ZWZ'Y$ the bracket is $K\times K$ and the result is $K\times1$. Variance formulas of the form $A^{-1}BA^{-1}$ are sandwich estimators; they collapse to $A^{-1}$ (up to scale) when the meat is proportional to the bread, e.g.\ under homoskedasticity or with the efficient GMM weight matrix $W=\Omega^{-1}$. The matrices $UU'$ and $U'U$ share the same nonzero eigenvalues.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U01b-summary}
+
+\subsection{核心公式与结论表}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\small
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+主题 & 核心公式与结论\\
+\midrule
+求和与矩阵 & $X\T X=\sum_ix_ix_i\T$，$X\T Y=\sum_ix_iy_i$；面板 $X\T X=\sum_iX_i\T X_i$\\
+转置与逆 & $(AB)\T=B\T A\T$，$(AB)\inv=B\inv A\inv$；标量 $Y\T X\beta=\beta\T X\T Y$；$X\T X$ 可逆 $\iff\rank X=K$\\
+迹 & $\tr(AB)=\tr(BA)$；$\E(u\T Au)=\tr(A\Sigma)+\mu\T A\mu$（$\mu=\E u$，$\Sigma=\Var u$）；$\tr(V\T V)=\sum v_{it}^2$\\
+投影 & $P=X(X\T X)\inv X\T$，$M=I-P$，对称幂等；$PX=X$，$MX=0$，$PM=0$；$\tr P=K$，$\tr M=n-K$；$\hat u=Mu$\\
+分块 & $A_{11\cdot2}=A_{11}-A_{12}A_{22}\inv A_{21}$；$\hat\beta_1=(X_1\T M_2X_1)\inv X_1\T M_2Y$\\
+Kronecker & $(A\otimes B)(C\otimes D)=AC\otimes BD$；$M_{I_N\otimes\one_T}=I_N\otimes M_T$；$M_N\otimes M_T$ 给出 $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y$\\
+特征值 & $A=\sum_j\lambda_jh_jh_j\T$；$\tr A=\sum_j\lambda_j$，$\det A=\prod_j\lambda_j$；$(aM+bP)\inv=a\inv M+b\inv P$\\
+矩阵微分 & $\partial a\T x/\partial x=a$；$\partial x\T Ax/\partial x=(A+A\T)x$；$\partial\tr(BA)/\partial A=B\T$\\
+约束优化 & $\max_{x\T x=1}x\T Ax=\lambda_{\max}$；$\max_{F\T F=I_r}\tr(F\T AF)=\sum_{j\le r}\lambda_j$\\
+期望与方差 & $\E$ 线性，无需独立；$\Var(aX+bY)=a^2\Var X+b^2\Var Y+2ab\Cov(X,Y)$；i.i.d.\ 时 $\Var\bar X=\sigma^2/n$\\
+条件期望 & LIE $\E[\E(Y\mid X)]=\E Y$；取出已知因子；$\Var Y=\E\Var(Y\mid X)+\Var\E(Y\mid X)$；独立 $\Rightarrow$ 均值独立 $\Rightarrow$ 不相关\\
+随机向量 & $\Var(AZ+b)=A\Var(Z)A\T$；$\Var(a\T Z)=a\T\Var(Z)a\ge0$\\
+分布 & $\E\chi^2_k=k$，$\Var\chi^2_k=2k$；$z\T\Sigma\inv z\sim\chi^2_k$；$z\T Mz\sim\chi^2_{\rank M}$；$t_m^2\sim F(1,m)$；$qF\to\chi^2_q$\\
+估计量 & $\text{MSE}=\text{bias}^2+\Var$；$\text{MSE}\to0\Rightarrow$ 一致；$\sqrt n(\hat\theta-\theta)\dto N(0,V)$ 即渐近正态\\
+渐近工具 & WLLN、CLT、CMT、Slutsky、Delta（$GVG\T$）；$\sqrt n(\hat\beta-\beta)\dto N(0,Q_{xx}\inv\Omega Q_{xx}\inv)$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 1 章核心公式}
+\end{minipage}\end{center}
+
+\subsection{方法对照与选择要点}
+
+\subsubsection{遇到什么问题，用哪件工具}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{LL}
+\toprule
+推导中遇到的问题 & 首选工具\\
+\midrule
+把 $\sum_i$ 写成矩阵或反过来 & $X\T X=\sum_ix_ix_i\T$；面板 $\sum_iX_i\T X_i$\\
+求二次型 $u\T Mu$ 的期望 & 标量写成迹 + 循环换序：$\E(u\T Mu)=\tr(M\,\E uu\T)$\\
+证明某统计量服从 $\chi^2$ & 协方差已知 $\Rightarrow$ 定理 1（$z\T\Sigma\inv z$，自由度 = 维数）；标准正态 + 幂等阵 $\Rightarrow$ 定理 2（自由度 = 秩 = 迹）\\
+由条件矩推无条件矩 & LIE + 取出已知因子\\
+求线性变换的方差 & $\Var(AZ)=A\Var(Z)A\T$，注意 $A$ 必须非随机（或已条件化）\\
+比值型估计量的极限 & 分子分母同除以 $n$ $\to$ WLLN $\to$ CMT\\
+渐近分布 & 分母 WLLN + CMT，分子 CLT，合并用 Slutsky\\
+未知方差换成估计值 & Slutsky（一致估计替换真值不改变渐近分布）\\
+参数的非线性函数 & Delta 方法，渐近方差 $GVG\T$\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsubsection{有限样本与大样本、期望与概率极限}
+
+\begin{itemize}
+  \item \key{有限样本}（无偏、精确 $t$、$F$）需要强假设（正态误差、同方差、严格外生）；\key{大样本}（一致、渐近正态、$N(0,1)$、$\chi^2$）只需矩条件与 LLN/CLT。考试中若题目不给正态性，一般走大样本路线。
+  \item \key{期望}不能穿过非线性函数（比值、逆矩阵），所以无偏性常难证；\key{概率极限}可以穿过连续函数，所以一致性容易证。
+  \item 两个正态二次型定理：已知协方差、用其逆加权时用定理 1；标准正态向量与幂等矩阵（残差、去均值）时用定理 2。
+\end{itemize}
+
+\subsubsection{一句话结论}
+
+后文的推导几乎都是“求和 $\leftrightarrow$ 矩阵 + 投影 / 零化 + 迹 + LIE + LLN / CLT / CMT / Slutsky”这几样工具的组合；遇到卡住的一步，先查维度，再查它用了本章哪一条。
+
+\subsection{常见错误清单}
+
+\begin{itemize}
+  \item \key{矩阵代数}：$(AB)\T$、$(AB)\inv$ 不反序；把 $(X\T X)\inv$ 拆成 $X\inv(X\T)\inv$；$\tr(ABC)$ 非循环换序；混淆 $x_i\T x_i$ 与 $x_ix_i\T$、$UU\T$ 与 $U\T U$；对非方阵求逆。
+  \item \key{期望与条件期望}：让期望穿过非线性函数；$\E(XY)=\E X\,\E Y$ 不加条件地使用；把“不相关”当成“均值独立”；忘记 $\E(u\mid x)=0$ 允许异方差。
+  \item \key{方差}：$\Var(\sum X_i)$ 漏掉协方差项；$\Var(Z+W)$ 的交叉项写成 $2\Cov(Z,W)$；$\Var(AZ)$ 写成 $A\T\Var(Z)A$（维度不对）；异方差下仍把 $\E(x_ix_i\T u_i^2)$ 拆成 $\sigma^2\E(x_ix_i\T)$。
+  \item \key{分布}：$\chi^2$ 自由度数错（应为维数或幂等阵的秩）；LM 标准化分母写成 $\sqrt{N(N-1)/2}$；求和对 $i\ne j$ 而非 $i<j$。
+  \item \key{渐近}：CLT 忘记中心化；$\frac1n$ 与 $\frac1{\sqrt n}$ 用反；对发散的 $\sum_i(\cdot)$ 直接取 plim；混淆 $\E$ 与 plim。
+\end{itemize}
+
+\subsection{本章综合练习}
+
+\begin{prac}[Projection matrices and the residual variance]\label{pr:U01b-c1}
+Let $Y=X\beta+u$, where $X$ is $n\times K$ with full column rank and $u\mid X\sim N(0,\sigma^2I_n)$. Let $P=X(X'X)^{-1}X'$ and $M=I_n-P$. (a) Show that $P$ and $M$ are symmetric and idempotent, and that $MX=0$. (b) Show that $\hat u=Mu$ and $\hat u'\hat u=u'Mu$. (c) Show that $E(\hat u'\hat u\mid X)=(n-K)\sigma^2$ and that $\hat u'\hat u/\sigma^2\sim\chi^2_{n-K}$.
+
+\answer (a)
+\begin{align*}
+P\T &= X[(X\T X)\inv]\T X\T=X(X\T X)\inv X\T=P \why{转置反序；$X\T X$ 对称}\\
+PP &= X(X\T X)\inv X\T X(X\T X)\inv X\T=X(X\T X)\inv X\T=P \why{$(X\T X)\inv X\T X=I_K$}\\
+M\T &= I_n-P\T=M,\qquad MM=I_n-2P+PP=I_n-P=M \why{$P$ 对称幂等}\\
+MX &= X-X(X\T X)\inv X\T X=X-X=0 \why{$(X\T X)\inv X\T X=I_K$}
+\end{align*}
+(b)
+\begin{align*}
+\hat u &= Y-X\hat\beta=Y-PY=MY \why{$X\hat\beta=X(X\T X)\inv X\T Y$}\\
+&= M(X\beta+u)=Mu \why{$MX=0$}\\
+\hat u\T\hat u &= u\T M\T Mu=u\T Mu \why{对称幂等}
+\end{align*}
+(c) 迹技巧：
+\begin{align*}
+\E(\hat u\T\hat u\mid X) &= \E(u\T Mu\mid X)=\tr\big(M\,\E(uu\T\mid X)\big) \why{标量写成迹；循环}\\
+&= \sigma^2\tr(M) \why{$\E(uu\T\mid X)=\sigma^2I_n$}\\
+\tr M &= n-\tr\big(X(X\T X)\inv X\T\big)=n-\tr\big((X\T X)\inv X\T X\big)=n-K \why{$\tr(AB)=\tr(BA)$}
+\end{align*}
+所以 $\E(\hat u\T\hat u\mid X)=(n-K)\sigma^2$。分布：$z=u/\sigma\mid X\sim N(0,I_n)$，$M$ 对称幂等、$\rank M=\tr M=n-K$，由正态二次型定理 2，$z\T Mz=\hat u\T\hat u/\sigma^2\sim\chi^2_{n-K}$。
+\end{prac}
+
+\begin{prac}[Two-way within transformation]\label{pr:U01b-c2}
+Consider a balanced panel $y_{it}=\alpha_i+\lambda_t+\beta x_{it}+u_{it}$, $i=1,\dots,N$, $t=1,\dots,T$, stacked with $t$ running fastest. Let $D=I_N\otimes\mathbf 1_T$ and $Q=M_N\otimes M_T$. (a) Show that $I_{NT}-D(D'D)^{-1}D'=I_N\otimes M_T$. (b) Show that $Q$ removes both $\alpha_i$ and $\lambda_t$, and write the typical element of $QY$. (c) Write the resulting fixed-effects estimator of $\beta$ in summation form.
+
+\answer (a)
+\begin{align*}
+D\T D &= (I_N\otimes\one_T\T)(I_N\otimes\one_T)=I_N\otimes(\one_T\T\one_T)=TI_N \why{混合积；$\one_T\T\one_T=T$}\\
+D(D\T D)\inv D\T &= \tfrac1T(I_N\otimes\one_T)(I_N\otimes\one_T\T)=I_N\otimes\tfrac1T\one_T\one_T\T=I_N\otimes P_T \why{混合积}\\
+I_{NT}-I_N\otimes P_T &= I_N\otimes I_T-I_N\otimes P_T=I_N\otimes M_T \why{Kronecker 积对加法分配}
+\end{align*}
+(b) 堆叠后 $Y=\alpha\otimes\one_T+\one_N\otimes\lambda+\beta X+u$，其中 $\alpha=(\alpha_1,\dots,\alpha_N)\T$，$\lambda=(\lambda_1,\dots,\lambda_T)\T$：
+\begin{align*}
+Q(\alpha\otimes\one_T) &= (M_N\alpha)\otimes(M_T\one_T)=0 \why{混合积；$M_T\one_T=0$}\\
+Q(\one_N\otimes\lambda) &= (M_N\one_N)\otimes(M_T\lambda)=0 \why{混合积；$M_N\one_N=0$}\\
+Q &= (I_N-P_N)\otimes(I_T-P_T) \why{定义}\\
+&= I_N\otimes I_T-I_N\otimes P_T-P_N\otimes I_T+P_N\otimes P_T \why{分配律}
+\end{align*}
+$(I_N\otimes P_T)Y$ 的典型元为 $\bar y_{i\cdot}$，$(P_N\otimes I_T)Y$ 的为 $\bar y_{\cdot t}$，$(P_N\otimes P_T)Y$ 的为 $\bar y_{\cdot\cdot}$，故
+\[
+(QY)_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}.
+\]
+(c) 记 $\ddot y_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$，$\ddot x_{it}$ 同理。$Q$ 对称幂等（两个对称幂等阵的 Kronecker 积）：
+\begin{align*}
+\hat\beta &= (X\T QX)\inv X\T QY=\big[(QX)\T(QX)\big]\inv(QX)\T(QY) \why{$Q=Q\T Q$}\\
+&= \frac{\sum_i\sum_t\ddot x_{it}\ddot y_{it}}{\sum_i\sum_t\ddot x_{it}^2} \why{单个回归元}
+\end{align*}
+\end{prac}
+
+\begin{prac}[Asymptotics and the delta method]\label{pr:U01b-c3}
+Let $X_1,\dots,X_n$ be i.i.d.\ with mean $\mu>0$ and variance $\sigma^2<\infty$, and let $\hat\theta=\log\bar X$. (a) Show that $\hat\theta$ is consistent for $\theta=\log\mu$. (b) Derive the asymptotic distribution of $\sqrt n(\hat\theta-\theta)$. (c) Construct an asymptotic 95\% confidence interval for $\theta$ and explain why it is feasible.
+
+\answer (a) 由 WLLN，$\bar X\pto\mu$；$\log$ 在 $\mu>0$ 处连续，由 CMT，$\log\bar X\pto\log\mu$。
+
+(b) 由 CLT，$\sqrt n(\bar X-\mu)\dto N(0,\sigma^2)$；$g(x)=\log x$，$g'(\mu)=1/\mu$；由 Delta 方法，
+\[
+\sqrt n(\hat\theta-\theta)\dto N\big(0,\ \sigma^2/\mu^2\big).
+\]
+(c) 用 $s/\bar X$ 估计 $\sigma/\mu$：$s\pto\sigma$、$\bar X\pto\mu$，由 CMT，$s/\bar X\pto\sigma/\mu$。
+\begin{align*}
+\frac{\sqrt n(\hat\theta-\theta)}{s/\bar X} &\dto \frac{N(0,\sigma^2/\mu^2)}{\sigma/\mu}=N(0,1) \why{Slutsky}\\
+P\Big(\theta\in\Big[\log\bar X\pm1.96\frac{s}{\bar X\sqrt n}\Big]\Big) &\to 0.95 \why{由上式}
+\end{align*}
+区间 $\log\bar X\pm1.96\,s/(\bar X\sqrt n)$ 只用由样本可算出的量（$\bar X$、$s$、$n$），不含未知参数 $\mu$、$\sigma$，因而可行。
+\end{prac}
+
+\begin{prac}[Trace maximization]\label{pr:U01b-c4}
+Let $A=\begin{pmatrix}3&1&0\\1&3&0\\0&0&1\end{pmatrix}$. (a) Find the eigenvalues and orthonormal eigenvectors of $A$ and write its spectral decomposition. (b) Solve $\max_F\tr(F'AF)$ subject to $F'F=I_2$, $F$ being $3\times2$. (c) Show that the maximizer is not unique and explain the connection with factor-model identification.
+
+\answer (a) $A$ 分块对角。左上 $2\times2$ 块 $\begin{pmatrix}3&1\\1&3\end{pmatrix}$ 的特征方程 $(3-\lambda)^2-1=0$，得特征值 4、2，单位特征向量 $h_1=\frac1{\sqrt2}(1,1,0)\T$、$h_2=\frac1{\sqrt2}(1,-1,0)\T$；第三个特征值为 1，$h_3=(0,0,1)\T$。谱分解：
+\[
+A=4h_1h_1\T+2h_2h_2\T+1\cdot h_3h_3\T .
+\]
+(b) 取前两大特征值对应的特征向量：$F=(h_1,h_2)$，最大值为 $4+2=6$。验证：
+\begin{align*}
+\tr(F\T AF) &= h_1\T Ah_1+h_2\T Ah_2 \why{对角元之和}\\
+&= 4h_1\T h_1+2h_2\T h_2=4+2=6 \why{$Ah_j=\lambda_jh_j$；单位向量}
+\end{align*}
+(c) 对任意 $2\times2$ 正交矩阵 $C$（$CC\T=C\T C=I_2$）：
+\begin{align*}
+(FC)\T(FC) &= C\T F\T FC=C\T C=I_2 \why{$F\T F=I_2$}\\
+\tr\big((FC)\T A(FC)\big) &= \tr(C\T F\T AFC)=\tr(F\T AF\,CC\T)=6 \why{迹的循环性}
+\end{align*}
+所以 $FC$ 同样满足约束且达到最大值，解不唯一，只有 $F$ 张成的空间被确定。因子模型中 $\lambda_i\T f_t=\lambda_i\T CC\inv f_t$，因子与载荷只能识别到一个可逆变换，需要 $F\T F=I_r$（或 $F\T F/T=I_r$）与载荷矩阵对角化等标准化条件才能识别（第 13 章）。
+\end{prac}

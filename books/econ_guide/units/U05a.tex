@@ -1,0 +1,978 @@
+\chapter{大样本理论：一致性、渐近正态与稳健标准误}
+\label{ch:U05a-asym}
+
+第 3、4 章在“给定 $X$、有限样本”的框架下研究了 OLS 的代数性质、无偏性与 Gauss--Markov 定理，但那些结论要么只给出均值与方差，要么依赖误差正态。实际研究中既不知道误差分布，也很少相信同方差。本章回答两个问题：(1) $n$ 足够大时，$\hat\beta_{OLS}$ 会不会靠近真值 $\beta$（\key{一致性}）；(2) $\hat\beta$ 围绕 $\beta$ 的波动服从什么分布、有多大（\key{渐近正态性}与\key{标准误}）。全章只用一个分解式 $\hat\beta=\beta+(\frac1nX\T X)\inv(\frac1nX\T u)$ 和两把工具（大数定律、中心极限定理）。标准误有同方差、异方差稳健（HC）、聚类稳健（CRVE）三种算法：同一个 $\hat\beta$、不同的 se，从而不同的 $t$、$p$ 与“星号”——这是实证论文中最容易被操纵（p-hacking）的环节。第 6 章用本章结果构造 $t$、$F$、Wald 检验，第 7 章讨论外生性不成立的情形。
+
+\begin{center}
+\begin{tikzpicture}[
+  box/.style={draw,rounded corners=2pt,align=center,font=\small,inner sep=3pt,fill=chead!4},
+  >={Stealth[length=2mm]}]
+\node[box] (D) at (0,0) {$\hat\beta=\beta+\bigl(\frac1nX\T X\bigr)\inv\bigl(\frac1nX\T u\bigr)$\\“分母”\,/\,“分子”};
+\node[box] (C) at (4.6,0) {LLN + 外生性\\$\Rightarrow$ 一致性};
+\node[box] (N) at (8.6,0) {CLT + Slutsky\\$\Rightarrow$ 渐近正态};
+\node[box] (V) at (5.2,-1.5) {$\Var(\hat\beta)$ 的三种情形：(i) 同方差\quad (ii) 异方差（HC）\quad (iii) 聚类（CRVE）};
+\node[box] (T) at (5.2,-2.7) {se $\to t\to p\to$ 星号\quad $\Rightarrow$ 第 6 章的检验};
+\draw[->] (D) -- (C); \draw[->] (C) -- (N); \draw[->] (N) -- (V); \draw[->] (V) -- (T);
+\end{tikzpicture}
+\captionof{figure}{本章路线图}
+\end{center}
+
+本章内容对应 Hansen 第 6 章（大样本工具）、第 7.1--7.13 节（最小二乘的渐近理论）、第 4.14--4.16 节（协方差矩阵估计与标准误）与第 4.22--4.24 节（聚类抽样与聚类推断）。
+
+\begin{keypt}[英文试卷的常见问法]
+“Show that the OLS estimator is consistent.”“Derive the asymptotic distribution of \mbox{$\sqrt n(\hat\beta-\beta)$}.”“What does the standard error of $\hat\beta$ depend on?”“Is an unbiased estimator always consistent?”这几问分别对应本章的一致性、渐近正态、三种情形总览与“一致性 vs 无偏性”各节。答题的骨架都是同一条分解式。
+\end{keypt}
+
+%======================================================================
+\section{出发点：OLS 的两个目标与“分母/分子”分解}\label{sec:U05a-start}
+
+\subsection{横截面线性模型与 OLS 公式}
+
+\subsubsection{逐个观测的形式与矩阵形式（标出维度）}
+
+数据为横截面 $(y_i,x_i)$，$i=1,\dots,n$，其中 $y_i$ 为标量，$x_i$ 为 $K\times1$ 向量（若含截距，第一个元素为 1）。线性模型为
+\begin{equation}\label{eq:U05a-model}
+y_i=x_i\T\beta+u_i,\qquad i=1,\dots,n,
+\end{equation}
+$\beta$ 为 $K\times1$ 的未知参数，$u_i$ 为误差。把 $n$ 个方程上下叠起来，得到矩阵形式
+\[
+\underset{n\times1}{Y}=\underset{n\times K}{X}\ \underset{K\times1}{\beta}+\underset{n\times1}{u},\qquad
+X=\begin{pmatrix}x_1\T\\ x_2\T\\ \vdots\\ x_n\T\end{pmatrix},\qquad
+Y=\begin{pmatrix}y_1\\ y_2\\ \vdots\\ y_n\end{pmatrix},\qquad
+u=\begin{pmatrix}u_1\\ u_2\\ \vdots\\ u_n\end{pmatrix}.
+\]
+$X$ 的第 $i$ 行是 $x_i\T$；等价地，$X\T=(x_1,x_2,\dots,x_n)$ 是 $K\times n$ 矩阵，它的第 $i$ 列就是 $x_i$。
+
+\subsubsection{OLS 估计量 \texorpdfstring{$\hat\beta=(X'X)^{-1}X'Y$}{beta-hat = (X'X)inv X'Y}}
+
+OLS 最小化残差平方和 $\sum_{i=1}^n(y_i-x_i\T b)^2$，一阶条件（推导见第 3 章）给出
+\begin{equation}\label{eq:U05a-ols}
+\hat\beta_{OLS}=(X\T X)\inv X\T Y=\Bigl(\sum_{i=1}^n x_ix_i\T\Bigr)\inv\Bigl(\sum_{i=1}^n x_iy_i\Bigr).
+\end{equation}
+第二个等号用到下面的求和恒等式。
+
+\subsubsection{三条“矩阵乘积 = 求和”恒等式}
+
+本章反复用到
+\[
+X\T X=\sum_{i=1}^n x_ix_i\T\ \ (K\times K),\qquad X\T Y=\sum_{i=1}^n x_iy_i\ \ (K\times1),\qquad X\T u=\sum_{i=1}^n x_iu_i\ \ (K\times1).
+\]
+以 $X\T u$ 为例说明（另两条同理）：分块矩阵乘法中，“行向量块 $\times$ 列向量”等于“对应块相乘再相加”。
+\begin{align*}
+X\T u&=(x_1,x_2,\dots,x_n)\begin{pmatrix}u_1\\ \vdots\\ u_n\end{pmatrix} \why{$X\T$ 的第 $i$ 列是 $x_i$}\\
+&=x_1u_1+x_2u_2+\dots+x_nu_n \why{分块乘法：列 $\times$ 对应元素}\\
+&=\sum_{i=1}^n x_iu_i. \why{求和记号}
+\end{align*}
+同样，$X\T X=(x_1,\dots,x_n)(x_1,\dots,x_n)\T=\sum_i x_ix_i\T$，每一项 $x_ix_i\T$ 是 $K\times1$ 乘 $1\times K$，为 $K\times K$。这三条把矩阵式变成了\key{求和}，再除以 $n$ 就是\key{样本均值}，从而可以套用大数定律和中心极限定理。
+
+\subsection{OLS 的两个目标：估计与推断}
+
+\subsubsection{目标一：估计——算出一个数}
+
+用 \eqref{eq:U05a-ols} 算出 $\hat\beta$，例如 $\hat\beta_1=0.15$。但 $0.15$ 只是\key{一次抽样}的结果：换一个样本，会得到另一个数。
+
+\subsubsection{目标二：推断——单个约束用 \texorpdfstring{$t$}{t} 比率，多个约束用 \texorpdfstring{$F$}{F} 统计量}
+
+真值 $\beta_1$ 到底是 0 还是 1？回答这类问题要做检验：单个约束用 \term{$t$ 比率}{t-ratio}，多个约束用 $F$ 统计量（第 6 章）。以 $t$ 为例，原假设 $H_0:\beta_1=\beta_1^0$（$\beta_1^0$ 为假设值，hypothesized value）下
+\begin{equation}\label{eq:U05a-t}
+t=\frac{\hat\beta_1-\beta_1^0}{\operatorname{se}(\hat\beta_1)}=\frac{\hat\beta_1-\beta_1^0}{\sqrt{\widehat\Var(\hat\beta_1)}}\ \overset{a}{\sim}\ N(0,1).
+\end{equation}
+要让这个式子成立，必须知道 $\hat\beta_1$ 在重复抽样中的\key{分布}：它的\key{中心}（是否在 $\beta$ 附近：一致性）、\key{形状}（是否正态：渐近正态）和\key{宽度}（方差：标准误）。
+
+\subsubsection{\texorpdfstring{$t$}{t} 统计量中唯一需要估计的是 \texorpdfstring{$\Var(\hat\beta_1)$}{Var(beta1-hat)}}
+
+在 \eqref{eq:U05a-t} 中：$\hat\beta_1$ 已经算出，$\beta_1^0$ 由假设给定，二者都是已知数；唯一未知的是分母 $\operatorname{se}(\hat\beta_1)=\sqrt{\widehat\Var(\hat\beta_1)}$。所以本章后半部分全部围绕“$\Var(\hat\beta_1)$ 是多少、怎么估”展开。
+
+\subsection{关键分解：\texorpdfstring{$\hat\beta=\beta+(\frac1n X'X)^{-1}(\frac1n X'u)$}{beta-hat = beta + (X'X/n)inv (X'u/n)}}
+
+\subsubsection{分解式的逐步推导}
+
+要证：$\hat\beta$ 可以写成“真值 + 估计误差”，且估计误差是两个样本均值的组合。思路：把真实模型代入 OLS 公式。
+\begin{align*}
+\hat\beta&=(X\T X)\inv X\T Y \why{OLS 公式}\\
+&=(X\T X)\inv X\T(X\beta+u) \why{代入 $Y=X\beta+u$}\\
+&=(X\T X)\inv(X\T X)\beta+(X\T X)\inv X\T u \why{矩阵乘法分配律}\\
+&=I_K\beta+(X\T X)\inv X\T u \why{$A\inv A=I$}\\
+&=\beta+(X\T X)\inv X\T u \why{$I_K\beta=\beta$}\\
+&=\beta+\Bigl(\tfrac1nX\T X\Bigr)\inv\Bigl(\tfrac1nX\T u\Bigr) \why{$(X\T X)\inv=\frac1n(\frac1nX\T X)\inv$}\\
+&=\beta+\underbrace{\Bigl(\frac1n\sum_{i=1}^n x_ix_i\T\Bigr)\inv}_{\text{“分母”（denominator）}}\ \underbrace{\Bigl(\frac1n\sum_{i=1}^n x_iu_i\Bigr)}_{\text{“分子”（numerator）}}. \why{求和恒等式}
+\end{align*}
+倒数第二步是“乘除同一个 $n$”：$(X\T X)\inv X\T u=\bigl[n\cdot\frac1nX\T X\bigr]\inv X\T u=(\frac1nX\T X)\inv\cdot\frac1nX\T u$。结论记为
+\begin{equation}\label{eq:U05a-decomp}
+\hat\beta-\beta=\Bigl(\frac1n\sum_{i=1}^n x_ix_i\T\Bigr)\inv\Bigl(\frac1n\sum_{i=1}^n x_iu_i\Bigr).
+\end{equation}
+这说明：估计误差 $\hat\beta-\beta=$（回归元的样本二阶矩）$^{-1}\times$（回归元与误差的样本交叉矩）。在 $\E u_i=0$ 时，后者的总体对应量 $\E(x_iu_i)$ 就是 $x_i$ 与 $u_i$ 的协方差。
+
+\subsubsection{“分母”与“分子”的直观含义}
+
+\begin{itemize}
+\item “分母”$\frac1n\sum x_ix_i\T$：回归元自身的变异有多大。变异越大，分母越大，估计误差越小（数据中的信息越多）。它会收敛到一个正定矩阵 $Q_{xx}=\E(x_ix_i\T)$。
+\item “分子”$\frac1n\sum x_iu_i$：回归元与误差“共同变动”的样本均值。外生性 $\E(u_i\mid x_i)=0$ 保证它的总体均值为 0。
+\end{itemize}
+
+\subsubsection{后续理论的总路线：对分子、分母分别取极限}
+
+本章后面的全部理论都是对 \eqref{eq:U05a-decomp} 的分子、分母分别取极限：
+\begin{itemize}
+\item 分母用 LLN，分子用 LLN $\Rightarrow$ \key{一致性}（第 \ref{sec:U05a-consist} 节）；
+\item 分子乘 $\sqrt n$ 后用 CLT $\Rightarrow$ \key{渐近正态}（第 \ref{sec:U05a-asynorm} 节）；
+\item 分子的方差怎么算 $\Rightarrow$ \key{三种标准误}（第 \ref{sec:U05a-three} 节起）。
+\end{itemize}
+
+\subsection{记号约定：\texorpdfstring{$Q_{xx}$、$\Omega$、$D$、$\Omega_g$}{Qxx, Omega, D, Omega\_g}}
+
+\begin{itemize}
+\item $Q_{xx}=\E(x_ix_i\T)$（$K\times K$），样本对应量 $\widehat Q_{xx}=\frac1n\sum_i x_ix_i\T=\frac1nX\T X$。也常简写为 $Q_x$；写“$Q_x=\frac1n\sum x_ix_i\T$”时指的是它的极限。
+\item $\Omega=\E(x_ix_i\T u_i^2)$（$K\times K$）是 $x_iu_i$ 的方差，也就是放大 $\sqrt n$ 倍后的分子 $\frac1{\sqrt n}\sum_i x_iu_i$ 的方差，称为“肉”（meat）。
+\item $D=\Var(u\mid X)$ 是 $n\times n$ 的误差条件协方差矩阵（记号与 Hansen 相同）。有的文献也把它记作 $\Omega$，注意与上一条区分。
+\item 聚类情形的 $\Omega_g=\E(u_gu_g\T\mid X_g)$ 是第 $g$ 簇的 $n_g\times n_g$ 误差协方差矩阵（见本章聚类稳健标准误一节）。
+\item Hansen 用 $e$ 表示误差、$k$ 表示回归元个数；本书用 $u$ 和 $K$。
+\end{itemize}
+
+\subsection{大样本工具回顾：WLLN、CLT、CMT、Slutsky 与 Delta 方法}
+
+本章只\key{使用}下列结论，证明见第 1 章。设 $\{w_i\}$ 独立同分布（\iid）。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.3cm}LL}
+\toprule
+工具 & 内容 & 在本章的用途\\
+\midrule
+\term{弱大数定律}{weak law of large numbers, WLLN} & $\E\|w_i\|<\infty\Rightarrow\frac1n\sum_i w_i\pto\E(w_i)$ & 分母 $\to Q_{xx}$；分子 $\to\E(x_iu_i)=0$\\
+\term{中心极限定理}{central limit theorem, CLT} & $\E\|w_i\|^2<\infty\Rightarrow\frac1{\sqrt n}\sum_i(w_i-\E w_i)\dto N\bigl(0,\Var(w_i)\bigr)$ & $\frac1{\sqrt n}\sum_i x_iu_i\dto N(0,\Omega)$\\
+\term{连续映射定理}{continuous mapping theorem, CMT} & $Z_n\pto c$，$g$ 在 $c$ 处连续 $\Rightarrow g(Z_n)\pto g(c)$；对 $\dto$ 亦成立（$g$ 连续） & $\widehat Q_{xx}\inv\pto Q_{xx}\inv$；$t^2$、$W$ 的极限\\
+\term{Slutsky 定理}{Slutsky's theorem} & $A_n\pto A$，$Z_n\dto Z\Rightarrow A_nZ_n\dto AZ$ & 分母 $\times$ 分子的极限\\
+\term{Delta 方法}{delta method} & $\sqrt n(\hat\beta-\beta)\dto N(0,V)\Rightarrow\sqrt n\bigl(r(\hat\beta)-r(\beta)\bigr)\dto N(0,RVR\T)$，$R=\partial r(\beta)/\partial\beta\T$ & 参数的非线性函数、非线性检验\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章用到的大样本工具}
+\end{center}
+
+记号：$\pto$ 表示依概率收敛；$\dto$ 表示依分布收敛；$\overset{a}{\sim}$ 表示“渐近服从”（读作 asymptotically distributed as）\idx{asymptotically distributed}{渐近服从}。
+
+\subsubsection{LLN 用 \texorpdfstring{$\frac1n$}{1/n}，CLT 用 \texorpdfstring{$\frac1{\sqrt n}$}{1/sqrt(n)}}
+
+两条定律作用于同一个和式 $\sum_i x_iu_i$，区别只在除以什么：
+\begin{align*}
+\text{LLN：}&\quad \frac1n\sum_{i=1}^n x_iu_i\pto\E(x_iu_i) &&\text{（样本均值 $\to$ 期望）};\\
+\text{CLT：}&\quad \frac{1}{\sqrt n}\sum_{i=1}^n\bigl(x_iu_i-\E(x_iu_i)\bigr)\ \dto\ N\bigl(0,\ \Var(x_iu_i)\bigr) &&\text{（先中心化）}.
+\end{align*}
+外生性下 $\E(x_iu_i)=0$，CLT 一行就是 $\frac1{\sqrt n}\sum_i x_iu_i\dto N(0,\Omega)$。务必分清 $\frac1{\sqrt n}$ 与 $\frac1n$：前者得到一个分布，后者得到一个常数。为什么必须中心化、为什么恰好除以 $\sqrt n$，见第 \ref{sec:U05a-asynorm} 节。
+
+\subsection{本章的基本假设 A1--A5}
+
+\subsubsection{假设清单及各自的作用}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLLl}
+\toprule
+编号 & 内容 & 作用 & Hansen 对应\\
+\midrule
+A1 & 线性于参数：$y_i=x_i\T\beta+u_i$ & 模型设定 & 线性模型\\
+A2 & \iid 抽样：$(y_i,x_i)\indep(y_j,x_j)$，$i\ne j$，且同分布 & LLN/CLT 的前提；聚类数据违背此条 & 假设 7.1(1)\\
+A3 & 秩条件（识别）：$\rank(X)=K$，$Q_{xx}=\E(x_ix_i\T)$ 正定 & 分母可逆 & 假设 7.1(4)\\
+A4 & 外生性：$\E(u_i\mid x_i)=0$ & 分子均值为 0 $\Rightarrow$ 一致性 & 投影模型中 $\E(x_ie_i)=0$\\
+A5 & 有界矩：$\E(y_i^4)<\infty$，$\E\|x_i\|^4<\infty$（“无离群值”） & 保证 $\Omega<\infty$，CLT 成立 & 假设 7.2(2)(3)\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章的基本假设}
+\end{center}
+
+\term{秩条件}{rank condition}、\term{外生性}{exogeneity} 在第 2、4 章已有讨论，这里只强调它们在大样本理论中的分工：A3 管分母，A4 管分子的均值，A5 管分子的方差。
+
+\subsubsection{假设的编号因文献而异}
+
+不同教材与文献对这几条假设的编号和顺序并不统一（例如有的把 \iid 抽样列为第 1 条，于是写“A1: iid sampling”；有的列为第 2 条）。答题时把假设的\key{内容}写出来即可，不必拘泥于编号。Hansen 的对应关系是：假设 7.1（一致性所需：\iid、$\E y_i^2<\infty$、$\E\|x_i\|^2<\infty$、$Q_{xx}>0$）与假设 7.2（渐近正态所需：再把二阶矩换成四阶矩有限）。
+
+\begin{english}
+Consider the linear model $y_i=x_i'\beta+u_i$, $i=1,\dots,n$, where $(y_i,x_i)$ are i.i.d., $Q_{xx}=E(x_ix_i')$ is positive definite, $E(u_i\mid x_i)=0$, and $Ey_i^4<\infty$, $E\|x_i\|^4<\infty$. Substituting $Y=X\beta+u$ into $\hat\beta=(X'X)^{-1}X'Y$ gives
+$\hat\beta=\beta+\bigl(\frac1n\sum_i x_ix_i'\bigr)^{-1}\bigl(\frac1n\sum_i x_iu_i\bigr)$.
+Hence the large-sample behaviour of OLS is determined by the two sample moments $\frac1n\sum_i x_ix_i'$ (the denominator) and $\frac1n\sum_i x_iu_i$ (the numerator).
+\end{english}
+
+
+%======================================================================
+\section{一致性}\label{sec:U05a-consist}
+
+\subsection{一致性的定义：依概率收敛}
+
+\subsubsection{定义与三种等价写法}
+
+\begin{defn}[一致性]\label{def:U05a-consist}
+称估计量 $\hat\beta$ 为 $\beta$ 的\term{一致估计量}{consistent estimator}，若 $\hat\beta\pto\beta$（\term{依概率收敛}{convergence in probability}），即对任意 $\varepsilon>0$，
+\[
+\lim_{n\to\infty}P\bigl(\|\hat\beta-\beta\|>\varepsilon\bigr)=0.
+\]
+也写作 $\plim_{n\to\infty}\hat\beta=\beta$，或 $\hat\beta=\beta+o_p(1)$（$o_p(1)$ 表示依概率收敛到 0 的随机量）。
+\end{defn}
+
+\subsubsection{通俗含义：估计值聚集在真值附近}
+
+通俗地说：样本量大时，$\hat\beta$ 会非常接近 $\beta$（If $n$ is large, then $\hat\beta$ will be very close to $\beta$）。在模型与假设都正确时，大样本下 $\hat\beta_{OLS}\approx\beta$（$\beta$ 本身未知）。图 \ref{fig:U05a-consist} 示意：重复抽样得到的许多个 $\hat\beta$ 聚集在真值附近；$n$ 越大，聚得越紧。
+
+\begin{center}
+\begin{tikzpicture}[>={Stealth[length=2mm]},font=\small]
+% 左图：估计值聚集在真值附近
+\draw[->] (-0.2,0) -- (4.4,0) node[below] {$\beta$ 轴};
+\draw (2.3,0.08) -- (2.3,-0.08) node[below] {$\beta_{\text{true}}$};
+\foreach \x/\y in {1.2/1.5,1.75/1.15,2.15/1.6,2.6/1.25,3.0/1.65,3.4/1.2,1.55/1.85,2.45/1.95}
+  {\node at (\x,\y) {$\hat\beta$}; \draw[->,gray] (\x,\y-0.18) -- (\x,0.05);}
+\draw[dashed,rounded corners=6pt] (0.9,1.0) rectangle (3.7,2.2);
+\node at (2.3,2.5) {估计值聚集在真值附近};
+% 右图：抽样分布随 n 收缩
+\begin{scope}[xshift=7.9cm]
+\draw[->] (-2.4,0) -- (2.6,0);
+\draw[->] (-2.4,0) -- (-2.4,2.3);
+\draw (0,0.08) -- (0,-0.08) node[below] {$\beta$};
+\draw[gray,thick,domain=-2.3:2.3,samples=80] plot (\x,{0.48*exp(-\x*\x/2)});
+\draw[blue,thick,domain=-2.3:2.3,samples=80] plot (\x,{0.96*exp(-2*\x*\x)});
+\draw[red,thick,domain=-1.2:1.2,samples=80] plot (\x,{1.92*exp(-8*\x*\x)});
+\draw[gray,thick] (2.8,1.9) -- (3.2,1.9) node[right,black] {$n=50$};
+\draw[blue,thick] (2.8,1.5) -- (3.2,1.5) node[right,black] {$n=200$};
+\draw[red,thick] (2.8,1.1) -- (3.2,1.1) node[right,black] {$n=800$};
+\end{scope}
+\end{tikzpicture}
+\captionof{figure}{左：估计值聚集在真值附近；右：$\hat\beta$ 的抽样分布随 $n$ 增大向真值收缩（方差 $\propto1/n$）}\label{fig:U05a-consist}
+\end{center}
+
+\subsection{OLS 的一致性：定理与证明}
+
+\begin{thm}[OLS 的一致性（Hansen 定理 7.1）]\label{thm:U05a-consist}
+在 A1--A4 及二阶矩有限（$\E y_i^2<\infty$，$\E\|x_i\|^2<\infty$）下，$\hat\beta_{OLS}\pto\beta$。
+\end{thm}
+
+\subsubsection{证明思路：分母收敛到可逆矩阵，分子收敛到 0}
+
+由分解式 \eqref{eq:U05a-decomp}，$\hat\beta-\beta=(\text{分母})\inv(\text{分子})$。只需证明：分母收敛到一个可逆矩阵，分子收敛到 0，再用 CMT 把两者合起来。
+
+\subsubsection{步骤 1：分母 \texorpdfstring{$\widehat Q_{xx}\pto Q_{xx}$}{Qxx-hat -> Qxx}（WLLN）}
+
+\begin{align*}
+\widehat Q_{xx}=\frac1n\sum_{i=1}^n x_ix_i\T\ \pto\ \E(x_ix_i\T)=Q_{xx}. \why{WLLN：$x_ix_i\T$ \iid，$\E\|x_i\|^2<\infty$}
+\end{align*}
+$x_ix_i\T$ 的每个元素 $x_{ij}x_{il}$ 满足 $\E|x_{ij}x_{il}|\le\E\|x_i\|^2<\infty$，所以 WLLN 适用。
+
+\subsubsection{步骤 2：分子 \texorpdfstring{$\frac1n\sum x_iu_i\pto\E(x_iu_i)$}{(1/n) sum x u -> E(xu)}（WLLN）}
+
+\begin{align*}
+\frac1n\sum_{i=1}^n x_iu_i\ \pto\ \E(x_iu_i). \why{WLLN：$x_iu_i$ \iid，期望有限}
+\end{align*}
+$x_iu_i$ 是 $(y_i,x_i)$ 的函数，A2 下仍为 \iid；二阶矩有限保证其期望有限（Cauchy--Schwarz 不等式）。
+
+\subsubsection{步骤 3：外生性使 \texorpdfstring{$\E(x_iu_i)=0$}{E(xu)=0}（迭代期望律）}
+
+\begin{align*}
+\E(x_iu_i)&=\E\bigl[\E(x_iu_i\mid x_i)\bigr] \why{迭代期望律 LIE}\\
+&=\E\bigl[x_i\,\E(u_i\mid x_i)\bigr] \why{给定 $x_i$ 时 $x_i$ 可提出}\\
+&=\E[x_i\cdot0] \why{外生性 A4}\\
+&=0.
+\end{align*}
+
+\subsubsection{步骤 4：用 CMT 合成}
+
+\begin{align*}
+\hat\beta-\beta&=\widehat Q_{xx}\inv\Bigl(\frac1n\sum_{i=1}^n x_iu_i\Bigr) \why{分解式 \eqref{eq:U05a-decomp}}\\
+&\pto Q_{xx}\inv\cdot0 \why{CMT：$g(A,b)=A\inv b$ 在 $A=Q_{xx}$ 处连续（A3）}\\
+&=0.
+\end{align*}
+所以 $\hat\beta\pto\beta$。\hfill$\square$
+
+CMT 在这里的用法：$\bigl(\widehat Q_{xx},\frac1n\sum x_iu_i\bigr)\pto(Q_{xx},0)$，函数 $g(A,b)=A\inv b$ 在所有 $A$ 可逆处连续；A3 保证 $Q_{xx}$ 正定因而可逆，于是 $g(\widehat Q_{xx},\frac1n\sum x_iu_i)\pto g(Q_{xx},0)=0$。
+
+\subsubsection{一行版论证：\texorpdfstring{$\frac1nX'u\approx0\Rightarrow\hat\beta\approx\beta$}{X'u/n ≈ 0 implies beta-hat ≈ beta}}
+
+把上面的证明压缩成一行（答题时可作为提纲）：
+\[
+\hat\beta=(X\T X)\inv X\T Y=\underbrace{(X\T X)\inv(X\T X)}_{=I}\beta+\underbrace{(X\T X)\inv X\T u}_{\approx0}
+=\beta+\underbrace{\Bigl(\tfrac1nX\T X\Bigr)\inv}_{\text{denominator}}\underbrace{\Bigl(\tfrac1nX\T u\Bigr)}_{\text{numerator}},
+\]
+其中 $\frac1nX\T u=\frac1n\sum_i x_iu_i\xrightarrow{\text{LLN}}\E(x_iu_i)=0$（若 $\E(u_i\mid x_i)=0$，即外生），所以 $\hat\beta\approx\beta$——这就是一致性（consistency）。
+
+\subsubsection{一致性的三个要素：大样本、外生性、秩条件}
+
+证明只用到三样东西：\key{大样本}（让 LLN 起作用）、\key{外生性}（让分子的极限为 0）、\key{秩条件}（让分母可逆）。缺一不可。
+
+\subsection{外生性的作用}
+
+\subsubsection{证明真正用到的是 \texorpdfstring{$\E(x_iu_i)=0$}{E(xu)=0}}
+
+证明中真正用到的只是 $\E(x_iu_i)=0$：$u_i$ 与每个回归元不相关（含截距时还包括 $\E u_i=0$）。$\E(u_i\mid x_i)=0$ 是更强的条件：它推出 $\E(u_i)=0$ 与 $\Cov(x_i,u_i)=0$，反之不成立（见第 2 章）。因此一致性只需要“不相关”这一较弱的条件；而第 4 章的有限样本无偏性需要条件均值为零。
+
+\subsubsection{外生性不成立时的概率极限：\texorpdfstring{$\plim\hat\beta=\beta+Q_{xx}^{-1}\E(x_iu_i)$}{plim beta-hat = beta + Qxx inv E(xu)}}
+
+若外生性不成立，$\E(x_iu_i)\ne0$，前两步照旧，只是分子的极限不再为 0：
+\begin{align*}
+\hat\beta-\beta&=\widehat Q_{xx}\inv\Bigl(\frac1n\sum_{i=1}^n x_iu_i\Bigr) \why{分解式}\\
+&\pto Q_{xx}\inv\,\E(x_iu_i) \why{WLLN 与 CMT}\\
+&\ne0. \why{$\E(x_iu_i)\ne0$，$Q_{xx}\inv$ 可逆}
+\end{align*}
+即
+\begin{equation}\label{eq:U05a-plimendo}
+\plim\hat\beta=\beta+Q_{xx}\inv\E(x_iu_i)\ne\beta .
+\end{equation}
+OLS \key{不一致}：偏差 $Q_{xx}\inv\E(x_iu_i)$ 是一个与 $n$ 无关的常数，不会随 $n$ 增大而消失。这就是第 7 章“内生性”的出发点。
+
+\begin{prac}[一致性的条件]\label{pr:U05a-endo}
+设 $y_i=\beta_0+\beta_1x_i+u_i$，$x_i$ 为标量，$\Var(x_i)=4$，$\E(u_i)=0$，但 $\Cov(x_i,u_i)=0.8$。求 $\plim\hat\beta_1$ 与 $\beta_1$ 的差，并说明 $n\to\infty$ 能否消除该偏差。
+\answer 含截距的一元回归中 $\hat\beta_1=\widehat\Cov(x,y)/\widehat\Var(x)$（样本协方差除以样本方差）。由 WLLN 与 CMT：
+\begin{align*}
+\plim\hat\beta_1&=\frac{\Cov(x_i,y_i)}{\Var(x_i)} \why{样本矩 $\pto$ 总体矩，CMT}\\
+&=\frac{\Cov(x_i,\beta_0+\beta_1x_i+u_i)}{\Var(x_i)} \why{代入模型}\\
+&=\frac{\beta_1\Var(x_i)+\Cov(x_i,u_i)}{\Var(x_i)} \why{协方差的线性性}\\
+&=\beta_1+\frac{\Cov(x_i,u_i)}{\Var(x_i)} \why{拆分分式}\\
+&=\beta_1+\frac{0.8}{4}=\beta_1+0.2. \why{代入数值}
+\end{align*}
+偏差 $0.2$ 是概率极限中的一项，与 $n$ 无关，$n\to\infty$ 无法消除：OLS 不一致。这正是“外生性不成立 $\Rightarrow$ 不一致”（第 7 章）。它也是 \eqref{eq:U05a-plimendo} 在一元情形下的具体形式。
+\end{prac}
+
+\subsection{“好估计”的两个条件：大样本与外生性}
+
+\subsubsection{估计好坏的判据：大样本且外生}
+
+一个估计“好”（在大样本意义下可信），要求下面两条同时满足：
+\begin{enumerate}
+\item 大样本：经验上 $n\ge500$（也有写作 $n>500$ 的）；
+\item 外生性：$\E(u_i\mid x_i)=0$。
+\end{enumerate}
+一致性是\term{大样本性质}{large-sample property}：描述的是 $n\to\infty$ 时的行为。
+
+\subsubsection{一致性是有效推断的最低要求}
+
+“Consistency is a minimum requirement for valid inference.”一个不一致的估计量，即使有无穷多数据也不会靠近真值，在它基础上算出的 $t$、$p$ 都没有意义。因此做实证首先要论证外生性（或用 IV/GMM 处理内生性，第 8 章），然后才谈标准误。
+
+\subsubsection{\texorpdfstring{$n\ge500$}{n >= 500} 只是经验门槛，不是定理}
+
+$n\ge500$ 是一个经验门槛，不是定理。渐近近似需要多大的 $n$，取决于误差分布（厚尾、偏态需要更大的 $n$）、回归元个数 $K$、是否存在高杠杆点；在聚类数据中，起作用的是簇数 $G$ 而非 $n$（见本章聚类稳健标准误一节）。Hansen 第 7.3 节强调：不存在一个对所有分布都适用的 $n$。
+
+\subsection{一致性与无偏性：有限样本性质与大样本性质}
+
+\subsubsection{无偏性的定义}
+
+\begin{defn}[无偏性]\label{def:U05a-unbiased}
+$\hat\beta$ 是 $\beta$ 的\term{无偏估计量}{unbiased estimator}，若 $\E(\hat\beta)=\beta$。OLS 情形常写作条件形式 $\E(\hat\beta\mid X)=\beta$。
+\end{defn}
+
+\subsubsection{两种性质的对照}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 无偏性（unbiasedness） & 一致性（consistency）\\
+\midrule
+性质类型 & \term{有限样本性质}{finite-sample property}：对每个固定的 $n$（可以是 $n=1,10,20$）都成立 & 大样本性质：只描述 $n\to\infty$ 时的行为\\
+描述对象 & 抽样分布的均值（中心）在 $\beta$ & 抽样分布整体向 $\beta$ 坍缩\\
+OLS 所需条件 & $\E(u\mid X)=0$（对全部样本的 $X$ 条件均值为 0；见第 4 章） & $\E(x_iu_i)=0$ + 大样本\\
+相互关系 & \multicolumn{2}{l}{二者互不蕴含（见下面的反例）；但“无偏 + 方差 $\to0$”$\Rightarrow$ 一致（Chebyshev 不等式）}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{无偏性与一致性}
+\end{center}
+
+\subsubsection{“无偏 + 方差趋于 0”蕴含一致：Chebyshev 不等式}
+
+要证：若 $\E(\hat\theta_n)=\theta$ 且 $\Var(\hat\theta_n)\to0$，则 $\hat\theta_n\pto\theta$。思路：用 \term{Chebyshev 不等式}{Chebyshev's inequality} 把“偏离的概率”控制在“均方误差”之下。对任意 $\varepsilon>0$，
+\begin{align*}
+P\bigl(|\hat\theta_n-\theta|>\varepsilon\bigr)&\le\frac{\E(\hat\theta_n-\theta)^2}{\varepsilon^2} \why{Chebyshev（Markov）不等式}\\
+&=\frac{\Var(\hat\theta_n)+\bigl[\E(\hat\theta_n)-\theta\bigr]^2}{\varepsilon^2} \why{均方误差 = 方差 + 偏差$^2$}\\
+&=\frac{\Var(\hat\theta_n)}{\varepsilon^2} \why{无偏：偏差为 0}\\
+&\to0. \why{$\Var(\hat\theta_n)\to0$}
+\end{align*}
+从第二行还可看出更一般的结论：只要偏差 $\to0$ 且方差 $\to0$（均方误差 $\to0$），估计量就一致。下面的 $\hat\sigma^2$ 就属于这种情形。
+
+\subsubsection{反例一：无偏但不一致}
+
+\begin{exmp}[只用第一个观测的估计量]\label{ex:U05a-y1}
+$y_i\overset{\iid}{\sim}(\mu,\sigma^2)$。考虑估计量 $\tilde\mu=y_1$（只用第一个观测）。判断它是否无偏、是否一致。
+\solution
+\begin{align*}
+\E(\tilde\mu)&=\E(y_1)=\mu, \why{同分布}\\
+P(|\tilde\mu-\mu|>\varepsilon)&=P(|y_1-\mu|>\varepsilon). \why{与 $n$ 无关}
+\end{align*}
+所以 $\tilde\mu$ 无偏；但无论 $n$ 多大，$\tilde\mu$ 的分布都是 $y_1$ 的分布，偏离概率不随 $n$ 变小（只要 $\sigma^2>0$ 它就是一个正的常数），因此\key{不一致}。原因：没有利用新增数据，方差 $\Var(\tilde\mu)=\sigma^2$ 不收敛到 0。
+\end{exmp}
+
+\subsubsection{反例二：一致但有偏}
+
+\begin{exmp}[三个一致但有偏的估计量]\label{ex:U05a-biascons}
+(1) $\hat\sigma^2=\frac1n\sum_i(y_i-\bar y)^2$，$y_i\overset{\iid}{\sim}(\mu,\sigma^2)$；(2) 用 $\hat\theta=\hat\beta^2$ 估计 $\theta=\beta^2$（$\beta$ 为标量，$\hat\beta$ 为 OLS）；(3) 时间序列 AR(1) 模型 $y_t=\rho y_{t-1}+u_t$（$|\rho|<1$，$u_t$ 独立同分布、均值 0）中的 OLS 估计 $\hat\rho$。说明它们为何有偏但一致。
+\solution
+(1) 先算期望。思路：在 $\sum(y_i-\bar y)^2$ 中加减 $\mu$。
+\begin{align*}
+\sum_{i=1}^n(y_i-\bar y)^2&=\sum_{i=1}^n\bigl[(y_i-\mu)-(\bar y-\mu)\bigr]^2 \why{加一项减一项}\\
+&=\sum_{i=1}^n(y_i-\mu)^2-2(\bar y-\mu)\sum_{i=1}^n(y_i-\mu)+n(\bar y-\mu)^2 \why{展开平方}\\
+&=\sum_{i=1}^n(y_i-\mu)^2-n(\bar y-\mu)^2, \why{$\sum_i(y_i-\mu)=n(\bar y-\mu)$}\\
+\E\sum_{i=1}^n(y_i-\bar y)^2&=n\sigma^2-n\cdot\frac{\sigma^2}{n}=(n-1)\sigma^2. \why{$\Var(\bar y)=\sigma^2/n$}
+\end{align*}
+所以 $\E\hat\sigma^2=\frac{n-1}{n}\sigma^2\ne\sigma^2$，有偏，偏差为 $-\sigma^2/n\to0$。再看一致性：
+\begin{align*}
+\hat\sigma^2&=\frac1n\sum_{i=1}^n y_i^2-\bar y^2 \why{展开平方并整理}\\
+&\pto\E(y_i^2)-\mu^2=\sigma^2. \why{WLLN 与 CMT}
+\end{align*}
+一致。
+
+(2) 设 OLS 条件无偏，$\E(\hat\beta\mid X)=\beta$：
+\begin{align*}
+\E(\hat\beta^2\mid X)&=\Var(\hat\beta\mid X)+\bigl[\E(\hat\beta\mid X)\bigr]^2 \why{$\E Z^2=\Var Z+(\E Z)^2$}\\
+&=\beta^2+\Var(\hat\beta\mid X)>\beta^2. \why{条件无偏，方差 $>0$}
+\end{align*}
+有偏，偏差恰为 $\Var(\hat\beta\mid X)$；但 $\hat\beta\pto\beta$，而 $g(b)=b^2$ 连续，由 CMT 得 $\hat\beta^2\pto\beta^2$，一致。
+
+(3)\ \tagext\ AR(1) 中第 $t$ 期的误差 $u_t$ 进入 $y_t$，而 $y_t$ 又是第 $t+1$ 期方程的回归元，所以误差与\key{未来}的回归元相关，$\E(u\mid X)=0$ 不成立，$\hat\rho$ 在有限样本有偏（$\rho>0$ 时向下偏）。但同期的 $y_{t-1}=u_{t-1}+\rho u_{t-2}+\rho^2u_{t-3}+\cdots$ 只依赖过去的误差，与 $u_t$ 独立，$\E(y_{t-1}u_t)=0$；再由平稳序列的大数定律（$|\rho|<1$），$\hat\rho\pto\rho$，一致。
+\end{exmp}
+
+\begin{keypt}[常考判断题]
+\begin{itemize}
+\item “OLS 无偏 $\Leftrightarrow$ OLS 一致”——错。二者互不蕴含，所需条件也不同。
+\item “若估计量有偏，则不可用于大样本推断”——错。只要一致且渐近正态即可。
+\item “若 $\E(u_i\mid x_i)=0$ 但样本只有 $n=20$，$t$ 检验仍精确有效”——错。$t$ 的 $N(0,1)$ 近似是大样本结论；只有在误差正态时才有精确的 $t$ 分布（第 4 章）。
+\end{itemize}
+\end{keypt}
+
+\begin{prac}[判断并说明理由]\label{pr:U05a-judge}
+(a) $\tilde\beta=\hat\beta_{OLS}+\frac1{\sqrt n}$ 是 $\beta$ 的一致估计吗？是无偏估计吗？\quad (b) 若 $\E(\hat\theta_n)=\theta$ 且 $\Var(\hat\theta_n)\to0$，$\hat\theta_n$ 是否一致？
+\answer
+(a) 在 A1--A4 下 $\hat\beta_{OLS}\pto\beta$，而 $1/\sqrt n\to0$，故 $\tilde\beta\pto\beta$，一致。但若 OLS 无偏，则 $\E\tilde\beta=\beta+1/\sqrt n\ne\beta$，有偏（偏差随 $n$ 增大而趋于 0）。
+
+(b) 一致。由 Chebyshev 不等式：$P(|\hat\theta_n-\theta|>\varepsilon)\le\E(\hat\theta_n-\theta)^2/\varepsilon^2=\Var(\hat\theta_n)/\varepsilon^2\to0$。其中等号用到无偏：此时均方误差等于方差。
+\end{prac}
+
+\subsection{误差方差估计量 \texorpdfstring{$\hat\sigma^2$}{sigma2-hat} 与 \texorpdfstring{$s^2$}{s2} 的一致性}
+
+\subsubsection{两个估计量的定义}
+
+构造标准误时要用到 $\sigma^2=\E(u_i^2)$ 的估计。定义残差 $\hat u_i=y_i-x_i\T\hat\beta$，
+\[
+\hat\sigma^2=\frac1n\sum_{i=1}^n\hat u_i^2,\qquad s^2=\frac1{n-K}\sum_{i=1}^n\hat u_i^2 .
+\]
+
+\subsubsection{\texorpdfstring{$\hat\sigma^2\pto\sigma^2$}{sigma2-hat -> sigma2} 的证明}
+
+思路：把残差写成“误差 + 一个趋于 0 的偏离”，平方后取平均，偏离项全部消失（Hansen 定理 7.4）。
+\begin{align*}
+\hat u_i&=y_i-x_i\T\hat\beta=x_i\T\beta+u_i-x_i\T\hat\beta \why{代入 $y_i=x_i\T\beta+u_i$}\\
+&=u_i-x_i\T(\hat\beta-\beta), \why{合并同类项}\\
+\hat u_i^2&=u_i^2-2u_ix_i\T(\hat\beta-\beta)+(\hat\beta-\beta)\T x_ix_i\T(\hat\beta-\beta), \why{展开平方}\\
+\hat\sigma^2&=\frac1n\sum_i u_i^2-2\Bigl(\frac1n\sum_i u_ix_i\T\Bigr)(\hat\beta-\beta)+(\hat\beta-\beta)\T\widehat Q_{xx}(\hat\beta-\beta) \why{对 $i$ 取平均}\\
+&\pto\sigma^2-2\cdot0\T\cdot0+0\T Q_{xx}\,0 \why{WLLN，$\hat\beta-\beta\pto0$，CMT}\\
+&=\sigma^2.
+\end{align*}
+其中用到三个 WLLN：$\frac1n\sum u_i^2\pto\E u_i^2=\sigma^2$，$\frac1n\sum u_ix_i\T\pto\E(u_ix_i\T)=0\T$，$\widehat Q_{xx}\pto Q_{xx}$。
+
+\subsubsection{\texorpdfstring{$s^2$}{s2} 的一致性与无偏性}
+
+\begin{align*}
+s^2=\frac{n}{n-K}\,\hat\sigma^2\ \pto\ 1\cdot\sigma^2=\sigma^2. \why{$\frac{n}{n-K}\to1$，CMT}
+\end{align*}
+两者都一致；$s^2$ 在同方差下还是条件无偏的（第 4 章），$\hat\sigma^2$ 则有向下的有限样本偏差。
+
+\subsection{参数函数的一致性：连续映射定理}
+
+若感兴趣的是 $\theta=r(\beta)$（如比值 $\beta_1/\beta_2$、$\exp(\beta_1)$、边际效应 $\beta_1+2\beta_2x$），只要 $r(\cdot)$ 在真值 $\beta$ 处连续，由 CMT 就有
+\[
+\hat\theta=r(\hat\beta)\pto r(\beta)=\theta\qquad\text{（Hansen 定理 7.8）}.
+\]
+\key{一致性在连续变换下保持，但无偏性不保持}——上面“一致但有偏”例中第 (2) 问的 $\hat\beta^2$ 就是反例：$\hat\beta$ 无偏，$\hat\beta^2$ 却有偏。
+
+\begin{english}
+By the WLLN, $\frac1n\sum_i x_ix_i'\xrightarrow{p}Q_{xx}$ and $\frac1n\sum_i x_iu_i\xrightarrow{p}E(x_iu_i)$. Exogeneity, $E(u_i\mid x_i)=0$, implies $E(x_iu_i)=E[x_iE(u_i\mid x_i)]=0$ by the law of iterated expectations. Since $Q_{xx}$ is positive definite, the map $(A,b)\mapsto A^{-1}b$ is continuous at $(Q_{xx},0)$, so by the continuous mapping theorem $\hat\beta-\beta\xrightarrow{p}Q_{xx}^{-1}\cdot0=0$. Hence OLS is consistent. If instead $E(x_iu_i)\neq0$, then $\operatorname{plim}\hat\beta=\beta+Q_{xx}^{-1}E(x_iu_i)\neq\beta$ and OLS is inconsistent. Consistency is a large-sample property, whereas unbiasedness is a finite-sample property; neither implies the other.
+\end{english}
+
+%======================================================================
+\section{渐近正态性}\label{sec:U05a-asynorm}
+
+\subsection{为什么还需要分布：\texorpdfstring{$t$}{t} 统计量为何近似正态}
+
+\subsubsection{一致性的极限是一个“点”，不足以做推断}
+
+一致性只说 $\hat\beta-\beta\pto0$：极限分布是退化在 0 上的一个“点”，无法据此判断 $\hat\beta_1=0.15$ 与 0 的差距算不算大。检验要用的是
+\[
+t=\frac{\hat\beta-\beta}{\operatorname{se}(\hat\beta)}=\frac{\hat\beta-\beta}{\sqrt{\widehat\Var(\hat\beta)}}\ \dto\ N(0,1)\qquad\longleftarrow\ \text{why normal?}
+\]
+问题是：误差分布未知、也不假设正态，$t$ 凭什么是正态的？
+
+\subsubsection{一句话的答案：随机部分是独立项之和}
+
+$\hat\beta=\beta+(X\T X)\inv X\T u$ 中的随机部分 $(X\T X)\inv X\T u=(\frac1nX\T X)\inv\frac1n\sum_i x_iu_i$ 是\key{许多独立项之和}的（近似）线性变换，按 CLT 近似正态，于是 $\hat\beta\overset{a}{\sim}N\bigl(\beta,\Var(\hat\beta)\bigr)$，再\key{标准化}即得 $N(0,1)$。下面把这一句话严格化。
+
+\subsection{\texorpdfstring{$\sqrt n$}{sqrt(n)} 放大：LLN 的 \texorpdfstring{$\frac1n$}{1/n} 与 CLT 的 \texorpdfstring{$\frac1{\sqrt n}$}{1/sqrt(n)}}
+
+\subsubsection{同一个和式，两种标准化，两种极限}
+
+同一个和式 $\sum_i x_iu_i$，除以不同的量得到完全不同的极限：
+\[
+\underbrace{\frac1n\sum_{i=1}^n x_iu_i\ \pto\ \E(x_iu_i)=0}_{\text{LLN：除以 }n\text{，收敛到常数}}
+\qquad\qquad
+\underbrace{\frac1{\sqrt n}\sum_{i=1}^n x_iu_i\ \dto\ N\bigl(0,\ \Var(x_iu_i)\bigr)}_{\text{CLT：除以 }\sqrt n\text{，收敛到正态分布}}
+\]
+
+\subsubsection{为什么恰好是 \texorpdfstring{$\sqrt n$}{sqrt(n)}：方差保持为常数}
+
+记 $\Omega=\Var(x_iu_i)$。要说明：除以 $n$ 时方差趋于 0，除以 $\sqrt n$ 时方差恰为常数。
+\begin{align*}
+\Var\Bigl(\sum_{i=1}^n x_iu_i\Bigr)&=\sum_{i=1}^n\Var(x_iu_i) \why{独立：协方差项为 0}\\
+&=n\,\Omega, \why{同分布}\\
+\Var\Bigl(\frac1n\sum_{i=1}^n x_iu_i\Bigr)&=\frac1{n^2}\cdot n\,\Omega=\frac{\Omega}{n}\to0, \why{$\Var(cZ)=c^2\Var(Z)$}\\
+\Var\Bigl(\frac1{\sqrt n}\sum_{i=1}^n x_iu_i\Bigr)&=\frac1n\cdot n\,\Omega=\Omega. \why{同上，$c=1/\sqrt n$}
+\end{align*}
+除以 $n$ 太“狠”，波动被压没了；除以 $\sqrt n$ 恰好让方差保持为常数，于是极限是一个非退化的分布。
+
+\subsubsection{分子的方差 \texorpdfstring{$\Omega=\E(x_ix_i'u_i^2)$}{Omega = E(x x' u2)}}
+
+由于 $\E(x_iu_i)=0$，
+\begin{align*}
+\Omega\equiv\Var(x_iu_i)&=\E\bigl[(x_iu_i)(x_iu_i)\T\bigr]-\E(x_iu_i)\,\E(x_iu_i)\T \why{方差的定义}\\
+&=\E\bigl[(x_iu_i)(x_iu_i)\T\bigr] \why{$\E(x_iu_i)=0$}\\
+&=\E\bigl(x_iu_iu_ix_i\T\bigr) \why{$(x_iu_i)\T=u_ix_i\T$}\\
+&=\E\bigl(x_ix_i\T u_i^2\bigr). \why{$u_i$ 是标量}
+\end{align*}
+$\Omega$ 是 $K\times K$ 对称半正定矩阵。
+
+\subsubsection{A5 保证 \texorpdfstring{$\Omega$}{Omega} 有限}
+
+要证 $\Omega$ 的每个元素 $\E(x_{ij}x_{il}u_i^2)$ 有限。思路：两次 Cauchy--Schwarz 不等式，把它拆成各变量四阶矩的乘积。
+\begin{align*}
+|\E(x_{ij}x_{il}u_i^2)|&\le\E|x_{ij}x_{il}|\,u_i^2 \why{$|\E Z|\le\E|Z|$}\\
+&\le\bigl[\E(x_{ij}^2x_{il}^2)\bigr]^{1/2}\bigl[\E u_i^4\bigr]^{1/2} \why{Cauchy--Schwarz}\\
+&\le(\E x_{ij}^4)^{1/4}(\E x_{il}^4)^{1/4}(\E u_i^4)^{1/2}. \why{再用一次 Cauchy--Schwarz}
+\end{align*}
+A5 给出 $\E x_{ij}^4\le\E\|x_i\|^4<\infty$；又 $u_i=y_i-x_i\T\beta$，由 Minkowski 不等式 $(\E u_i^4)^{1/4}\le(\E y_i^4)^{1/4}+(\E|x_i\T\beta|^4)^{1/4}<\infty$。所以 $\Omega<\infty$，多元 CLT 适用。
+
+\subsubsection{CLT 必须作用于中心化后的和}
+
+有时把 CLT 简写为 $\frac1{\sqrt n}\sum x_iu_i\to N\bigl(\E(x_iu_i),\Var(x_iu_i)\bigr)$。严格地说，CLT 适用于\key{中心化}后的和：
+\[
+\frac1{\sqrt n}\sum_{i=1}^n\bigl(x_iu_i-\E(x_iu_i)\bigr)\ \dto\ N\bigl(0,\Var(x_iu_i)\bigr);
+\]
+若 $\E(x_iu_i)\ne0$，未中心化的和 $\frac1{\sqrt n}\sum x_iu_i=\frac1{\sqrt n}\sum(x_iu_i-\E x_iu_i)+\sqrt n\,\E(x_iu_i)$ 中第二项发散。外生性下 $\E(x_iu_i)=0$，两种写法一致，正确版本为 $N(0,\Omega)$。
+
+\subsection{OLS 的渐近正态性：定理与完整推导}
+
+\begin{thm}[OLS 的渐近正态性（Hansen 定理 7.3）]\label{thm:U05a-asynorm}
+在 A1--A5 下，
+\begin{equation}\label{eq:U05a-asynorm}
+\sqrt n(\hat\beta-\beta)\ \dto\ N(0,\,V),\qquad V=Q_{xx}\inv\,\Omega\,Q_{xx}\inv,\qquad Q_{xx}=\E(x_ix_i\T),\quad \Omega=\E(x_ix_i\T u_i^2).
+\end{equation}
+$V$ 称为 $\hat\beta$ 的\term{渐近协方差矩阵}{asymptotic covariance matrix}，其形式称为\term{夹心形式}{sandwich form}：$Q_{xx}\inv$ 是两片“面包”（bread）\idx{bread}{面包}，$\Omega$ 是中间的“肉”（meat）\idx{meat}{肉}。
+\end{thm}
+
+\subsubsection{推导思路：分母用 LLN，分子用 CLT，相乘用 Slutsky}
+
+把分解式两边乘 $\sqrt n$，分母用 LLN，放大后的分子用 CLT，二者相乘用 Slutsky 定理。
+
+\subsubsection{步骤 1：把 \texorpdfstring{$\sqrt n$}{sqrt(n)} 乘进分解式}
+
+\begin{align*}
+\hat\beta-\beta&=(X\T X)\inv X\T u \why{分解式}\\
+\sqrt n(\hat\beta-\beta)&=\sqrt n\,(X\T X)\inv X\T u \why{两边乘 $\sqrt n$}\\
+&=\Bigl(\frac1nX\T X\Bigr)\inv\Bigl(\frac1{\sqrt n}X\T u\Bigr). \why{$\sqrt n(X\T X)\inv=(\frac1nX\T X)\inv\cdot\frac1{\sqrt n}$}
+\end{align*}
+最后一步：$\sqrt n\,(X\T X)\inv=\sqrt n\cdot\frac1n(\frac1nX\T X)\inv=(\frac1nX\T X)\inv\cdot\frac1{\sqrt n}$。
+
+\subsubsection{步骤 2：分母的逆 \texorpdfstring{$\to Q_{xx}^{-1}$}{-> Qxx inv}}
+
+\begin{align*}
+\Bigl(\frac1nX\T X\Bigr)\inv=\Bigl(\frac1n\sum_{i=1}^n x_ix_i\T\Bigr)\inv\ \pto\ Q_{xx}\inv. \why{WLLN + CMT（求逆连续）}
+\end{align*}
+
+\subsubsection{步骤 3：放大后的分子 \texorpdfstring{$\to N(0,\Omega)$}{-> N(0,Omega)}（多元 CLT）}
+
+\begin{align*}
+\frac1{\sqrt n}X\T u=\frac1{\sqrt n}\sum_{i=1}^n x_iu_i\ \dto\ Z\sim N(0,\Omega). \why{多元 CLT：\iid，均值 0，$\Omega<\infty$}
+\end{align*}
+
+\subsubsection{步骤 4：Slutsky 合成与正态向量的线性变换}
+
+\begin{align*}
+\sqrt n(\hat\beta-\beta)&\dto Q_{xx}\inv Z \why{Slutsky：$A_n\pto A$，$Z_n\dto Z\Rightarrow A_nZ_n\dto AZ$}\\
+Q_{xx}\inv Z&\sim N\bigl(0,\ Q_{xx}\inv\Omega\,(Q_{xx}\inv)\T\bigr) \why{$AZ\sim N(0,A\Omega A\T)$}\\
+&=N\bigl(0,\ Q_{xx}\inv\Omega\,Q_{xx}\inv\bigr). \why{$Q_{xx}\inv$ 对称}
+\end{align*}
+这说明：$\hat\beta$ 的抽样分布在大样本下近似正态，中心在 $\beta$，“宽度”由夹心矩阵 $V$ 决定。
+
+\subsubsection{同方差下的简化路线：\texorpdfstring{$\sqrt n(\hat\beta-\beta)\overset{a}{\sim}N(0,\sigma^2Q_{xx}^{-1})$}{asymptotic variance sigma2 Qxx inv}}
+
+很多场合直接写同方差版本的推导路线。仍从 $\sqrt n(\hat\beta-\beta)=(\frac1nX\T X)\inv(\frac1{\sqrt n}X\T u)$ 出发：
+\begin{align*}
+\text{(i)}\quad &\tfrac1nX\T X=\tfrac1n\textstyle\sum_i x_ix_i\T\ \pto\ \E(x_ix_i\T) \why{LLN}\\
+\text{(ii)}\quad &\tfrac1{\sqrt n}\textstyle\sum_i x_iu_i\ \dto\ N\bigl(0,\ \Var(x_iu_i)\bigr) \why{CLT，$\E(x_iu_i)=0$}\\
+&\phantom{\tfrac1{\sqrt n}\textstyle\sum_i x_iu_i\ \dto\ }=N\bigl(0,\ \E(x_ix_i\T)\,\E(u_i^2)\bigr) \why{同方差（见下注）}\\
+&\phantom{\tfrac1{\sqrt n}\textstyle\sum_i x_iu_i\ \dto\ }=N\bigl(0,\ \sigma^2\E(x_ix_i\T)\bigr) \why{$\sigma^2=\E u_i^2$}\\
+\Rightarrow\quad &\sqrt n(\hat\beta-\beta)\ \overset{a}{\sim}\ [\E(x_ix_i\T)]\inv N\bigl(0,\sigma^2\E(x_ix_i\T)\bigr) \why{Slutsky}\\
+&\phantom{\sqrt n(\hat\beta-\beta)\ }\overset{a}{\sim}\ N\bigl(0,\ \sigma^2[\E(x_ix_i\T)]\inv\bigr). \why{$A\,\sigma^2Q\,A\T$，$A=Q\inv$}
+\end{align*}
+其中“$A\,N(0,\Sigma)$”是简写，指 $AZ$，$Z\sim N(0,\Sigma)$，其分布为 $N(0,A\Sigma A\T)$；这里 $Q=\E(x_ix_i\T)$，$A=Q\inv$ 对称，$A\,\sigma^2Q\,A\T=\sigma^2Q\inv QQ\inv=\sigma^2Q\inv$。这就是同方差下 $\hat\beta$ 的渐近正态性（asymptotic normality of $\hat\beta$ for homoskedasticity）。
+
+\begin{note}[第 (ii) 步的因式分解需要同方差]
+第 (ii) 步写 $\Var(x_iu_i)=\E(x_ix_i\T)\E(u_i^2)$。一般地 $\Var(x_iu_i)=\E(x_ix_i\T u_i^2)$，只有在\key{同方差} $\E(u_i^2\mid x_i)=\sigma^2$ 下才能分解：
+\[
+\E(x_ix_i\T u_i^2)=\E\bigl[x_ix_i\T\,\E(u_i^2\mid x_i)\bigr]=\sigma^2\E(x_ix_i\T).
+\]
+所以这一路线对应本章后面的情形 (i)（第 \ref{sec:U05a-homo} 节）；一般情形就是 \eqref{eq:U05a-asynorm} 的夹心形式。同方差下 OLS 还是 BLUE（Gauss--Markov 定理，见第 \ref{sec:U05a-homo} 节）。
+\end{note}
+
+\subsection{渐近方差的含义：\texorpdfstring{$\Var(\hat\beta)\approx V/n\to0$}{Var(beta-hat) ≈ V/n -> 0}}
+
+\subsubsection{从 \texorpdfstring{$\sqrt n(\hat\beta-\beta)$}{sqrt(n)(beta-hat - beta)} 的分布到 \texorpdfstring{$\hat\beta$}{beta-hat} 本身的近似分布}
+
+把定理改写成对 $\hat\beta$ 本身的近似。思路：$\hat\beta=\beta+\frac1{\sqrt n}\cdot\sqrt n(\hat\beta-\beta)$，对近似正态的量做平移和伸缩。
+\begin{align*}
+\sqrt n(\hat\beta-\beta)&\overset{a}{\sim}N(0,V) \why{渐近正态 \eqref{eq:U05a-asynorm}}\\
+\hat\beta=\beta+\tfrac1{\sqrt n}\cdot\sqrt n(\hat\beta-\beta)&\overset{a}{\sim}N\Bigl(\beta,\ \tfrac1{\sqrt n}V\tfrac1{\sqrt n}\Bigr) \why{平移不改方差；$\Var(cZ)=c^2\Var Z$}\\
+&=N\Bigl(\beta,\ \tfrac1nV\Bigr). \why{化简}
+\end{align*}
+即
+\begin{equation}\label{eq:U05a-varbeta}
+\sqrt n(\hat\beta-\beta)\overset{a}{\sim}N(0,V)\quad\Longleftrightarrow\quad\hat\beta\overset{a}{\sim}N\Bigl(\beta,\ \frac1nV\Bigr),\qquad\Var(\hat\beta)\approx\frac{V}{n}.
+\end{equation}
+这里的“$\Leftrightarrow$”只是记号上的等价：右边的写法是对有限 $n$ 的近似，严格的极限陈述是左边。
+
+\subsubsection{两套记号：\texorpdfstring{$V$}{V} 与 \texorpdfstring{$V_{\hat\beta}\approx V/n$}{V\_beta-hat ≈ V/n}}
+
+\begin{itemize}
+\item $V=\avar\bigl[\sqrt n(\hat\beta-\beta)\bigr]$ 是“$\sqrt n(\hat\beta-\beta)$ 的（渐近）方差”，不随 $n$ 变，适合做理论；
+\item $V_{\hat\beta}=\Var(\hat\beta\mid X)$ 是“$\hat\beta$ 本身的方差”，大样本下 $V_{\hat\beta}\approx V/n$，用来算标准误。
+\end{itemize}
+两套记号要分清（Hansen 第 7.8 节）。二者的估计量满足精确关系 $\widehat V=n\,\widehat V_{\hat\beta}$（例如 $\hat\sigma^2\widehat Q_{xx}\inv=n\cdot\hat\sigma^2(X\T X)\inv$）。
+
+\subsubsection{\texorpdfstring{$V/n\to0$}{V/n -> 0}：\texorpdfstring{$\hat\beta$}{beta-hat} 退化为常数，se 按 \texorpdfstring{$1/\sqrt n$}{1/sqrt(n)} 下降}
+
+$\Var(\hat\beta)=V/n\to0$：大样本下 $\hat\beta$ 的分布越来越窄，$\hat\beta$ 几乎退化为常数 $\beta$。标准误按 $1/\sqrt n$ 的速度下降：
+\[
+\operatorname{se}(\hat\beta_j)\approx\sqrt{V_{jj}/n}\quad\Rightarrow\quad\text{样本量扩大 4 倍，se 减半}.
+\]
+
+\subsubsection{收敛速度：\texorpdfstring{$\sqrt n$}{root-n} 一致}
+
+渐近正态结论 \eqref{eq:U05a-asynorm} 还给出收敛速度：$\sqrt n(\hat\beta-\beta)$ 依分布收敛，因而\key{依概率有界}（不会发散），记作 $\sqrt n(\hat\beta-\beta)=O_p(1)$，即
+\[
+\hat\beta-\beta=O_p(n^{-1/2}).
+\]
+这比一致性的 $\hat\beta-\beta=o_p(1)$ 更强：不仅误差趋于 0，而且以 $1/\sqrt n$ 的速度趋于 0。称 OLS 为 \term{$\sqrt n$ 一致}{root-n consistent}。
+
+\subsection{有限样本条件方差的夹心形式（与第 4 章衔接）}
+
+\subsubsection{\texorpdfstring{$\Var(\hat\beta\mid X)=(X'X)^{-1}X'DX(X'X)^{-1}$}{Var(beta-hat|X) sandwich} 的推导}
+
+不取极限，直接从分解式计算给定 $X$ 的条件方差（详见第 4 章）。记 $D=\Var(u\mid X)$（$n\times n$）。
+\begin{align*}
+V_{\hat\beta}\equiv\Var(\hat\beta\mid X)&=\Var\bigl(\beta+(X\T X)\inv X\T u\bigm|X\bigr) \why{分解式}\\
+&=\Var\bigl((X\T X)\inv X\T u\bigm|X\bigr) \why{$\beta$ 是常数}\\
+&=(X\T X)\inv X\T\,\Var(u\mid X)\,X(X\T X)\inv \why{$\Var(Au)=A\Var(u)A\T$，$A=(X\T X)\inv X\T$}\\
+&=(X\T X)\inv X\T DX(X\T X)\inv. \why{记 $D=\Var(u\mid X)$}
+\end{align*}
+这也是夹心形式（sandwich form）。第三步中 $A\T=X(X\T X)\inv$，用到 $(X\T X)\inv$ 对称。标准误的平方 $\operatorname{se}(\hat\beta_j)^2$ 就是对 $V_{\hat\beta}$ 第 $j$ 个对角元的估计。
+
+\subsubsection{两种特例：同方差 \texorpdfstring{$D=\sigma^2I_n$}{D = sigma2 I} 与异方差 \texorpdfstring{$D=\operatorname{diag}(\sigma_i^2)$}{D = diag(sigma\_i2)}}
+
+\begin{itemize}
+\item 同方差：$D=\sigma^2I_n$，于是
+\[
+\Var(\hat\beta\mid X)=(X\T X)\inv X\T\sigma^2I_nX(X\T X)\inv=\sigma^2(X\T X)\inv(X\T X)(X\T X)\inv=\sigma^2(X\T X)\inv .
+\]
+它是线性无偏估计量方差的最低界（lowest bound）：在 Gauss--Markov 定理下，OLS 是线性无偏估计量中方差最小的（BLUE，见第 4 章）。
+\item 异方差：$D=\diag(\sigma_1^2,\dots,\sigma_n^2)$，方差保持夹心形式，需要“插入估计”（plug-in），见本章异方差稳健标准误一节。
+\end{itemize}
+
+\subsubsection{有限样本夹心与渐近夹心是同一个东西的两种标度}
+
+要证：$n\Var(\hat\beta\mid X)\pto V$。思路：把三个因子各配上一个 $\frac1n$。设观测独立，$D=\diag(\sigma_1^2,\dots,\sigma_n^2)$，$\sigma_i^2=\E(u_i^2\mid x_i)$。
+\begin{align*}
+n\Var(\hat\beta\mid X)&=n\,(X\T X)\inv X\T DX(X\T X)\inv \why{上式}\\
+&=\Bigl(\tfrac1nX\T X\Bigr)\inv\Bigl(\tfrac1nX\T DX\Bigr)\Bigl(\tfrac1nX\T X\Bigr)\inv \why{各因子配 $\frac1n$，$n$ 相消}\\
+&=\widehat Q_{xx}\inv\Bigl(\frac1n\sum_{i=1}^n x_ix_i\T\sigma_i^2\Bigr)\widehat Q_{xx}\inv \why{$X\T DX=\sum_i x_ix_i\T\sigma_i^2$}\\
+&\pto Q_{xx}\inv\,\E(x_ix_i\T\sigma_i^2)\,Q_{xx}\inv \why{WLLN + CMT}\\
+&=Q_{xx}\inv\,\Omega\,Q_{xx}\inv=V. \why{LIE：$\E(x_ix_i\T\sigma_i^2)=\E(x_ix_i\T u_i^2)$}
+\end{align*}
+第二步的含义：$n(X\T X)\inv=(\frac1nX\T X)\inv$，而 $X\T DX=n\cdot\frac1nX\T DX$，再乘一个 $(X\T X)\inv=\frac1n(\frac1nX\T X)\inv$，多出的 $n$ 与 $\frac1n$ 恰好抵消。所以第 4 章的有限样本夹心与本章的渐近夹心是同一个东西的两种标度：$V_{\hat\beta}\approx V/n$。
+
+\subsection{正态近似的局限}
+
+\begin{itemize}
+\item 渐近正态只是近似：对任何固定的 $n$，总能找到满足假设但正态近似很差的分布（厚尾误差、强偏态误差；Hansen 第 7.3 节的模拟）。
+\item 小样本下常用 $t_{n-K}$ 而非 $N(0,1)$ 的临界值（Stata 默认如此）。这是一个“稳妥”的修正，但在非正态误差下并无一般的理论依据（第 6 章）。
+\item 聚类数据中，近似的精度取决于簇数 $G$ 而非 $n$（见本章聚类稳健标准误一节）。
+\end{itemize}
+
+\subsection{参数函数的渐近正态：Delta 方法}
+
+\subsubsection{结论：\texorpdfstring{$V_\theta=RVR'$}{V\_theta = R V R'}}
+
+很多问题关心 $\theta=r(\beta)\in\R^q$（如工资最高时的经验年限、弹性、比值）。设 $r$ 在 $\beta$ 处连续可微，记雅可比矩阵 $R=\dfrac{\partial r(\beta)}{\partial\beta\T}$（$q\times K$，秩为 $q$）。由 Delta 方法（第 1 章）：
+\begin{equation}\label{eq:U05a-delta}
+\sqrt n(\hat\theta-\theta)\ \dto\ N(0,\,V_\theta),\qquad V_\theta=RVR\T,\qquad
+\widehat\Var(\hat\theta)=\widehat R\,\widehat\Var(\hat\beta)\,\widehat R\T,\qquad\widehat R=\frac{\partial r(\hat\beta)}{\partial\beta\T}.
+\end{equation}
+直觉：一阶泰勒展开 $r(\hat\beta)\approx r(\beta)+R(\hat\beta-\beta)$，于是 $\hat\theta-\theta$ 近似是 $\hat\beta-\beta$ 的线性变换（Hansen 定理 7.9）。
+
+\subsubsection{线性情形 \texorpdfstring{$r(\beta)=R\beta$}{r(beta) = R beta}}
+
+线性情形 $r(\beta)=R\beta$ 时 $R$ 就是常数矩阵，泰勒展开没有余项，结论精确地是“线性变换的方差”：$\Var(R\hat\beta)=R\Var(\hat\beta)R\T$。
+
+\begin{note}[与 Hansen 的记号差别]
+Hansen 把雅可比写成 $K\times q$ 的 $R=\partial r(\beta)\T/\partial\beta$，于是 $V_\theta=R\T VR$，线性约束写成 $R\T\beta=\theta_0$。本书取 $R$ 为 $q\times K$，约束写成 $R\beta=r$，$V_\theta=RVR\T$。两者只差一个转置。
+\end{note}
+
+\subsubsection{例：经验—工资曲线的拐点及其标准误}
+
+\begin{exmp}[经验—工资曲线的拐点]\label{ex:U05a-turn}
+$\log(wage)=\beta_1\,exp+\beta_2\,exp^2+\cdots$，工资最高时的经验年限为 $\theta=-\beta_1/(2\beta_2)$。设 $\hat\beta_1=0.08$，$\hat\beta_2=-0.002$，且
+\[
+\widehat\Var\begin{pmatrix}\hat\beta_1\\ \hat\beta_2\end{pmatrix}=\begin{pmatrix}1\times10^{-4}&-8\times10^{-7}\\ -8\times10^{-7}&1\times10^{-8}\end{pmatrix}.
+\]
+求 $\hat\theta$、$\operatorname{se}(\hat\theta)$ 与 95\% 置信区间。
+\solution
+\begin{align*}
+\hat\theta&=-\frac{0.08}{2\times(-0.002)}=20 \why{插入估计}\\
+\frac{\partial\theta}{\partial\beta_1}&=-\frac1{2\beta_2},\qquad\frac{\partial\theta}{\partial\beta_2}=\frac{\beta_1}{2\beta_2^2} \why{求偏导}\\
+\widehat R&=\Bigl(-\frac1{2(-0.002)},\ \frac{0.08}{2(0.002)^2}\Bigr)=(250,\ 10000) \why{代入 $\hat\beta$}\\
+\widehat\Var(\hat\theta)&=250^2(10^{-4})+10000^2(10^{-8})+2(250)(10000)(-8\times10^{-7}) \why{$\widehat R\,\widehat\Var(\hat\beta)\widehat R\T$ 展开}\\
+&=6.25+1-4=3.25, \why{逐项计算}\\
+\operatorname{se}(\hat\theta)&=\sqrt{3.25}=1.803. \why{开方}
+\end{align*}
+95\% 置信区间：$20\pm1.96\times1.803=[16.47,\ 23.53]$ 年。注意协方差项（$-4$）不可忽略：若漏掉它，方差会被高估为 $7.25$。
+\end{exmp}
+
+\begin{prac}[Delta 方法：\texorpdfstring{$\theta=\exp(\beta)$}{theta = exp(beta)}]\label{pr:U05a-delta}
+回归 $y=\alpha+\beta x+u$ 得 $\hat\beta=0.5$，$\operatorname{se}(\hat\beta)=0.1$。感兴趣的参数为 $\theta=\exp(\beta)$。求 $\hat\theta$ 与 $\operatorname{se}(\hat\theta)$，并在 5\% 水平检验 $H_0:\theta=1$。
+\answer
+\begin{align*}
+\hat\theta&=e^{0.5}=1.6487, \why{插入估计}\\
+R&=\frac{\dd e^{\beta}}{\dd\beta}=e^{\beta},\qquad\widehat R=e^{\hat\beta}=1.6487, \why{求导再代入}\\
+\operatorname{se}(\hat\theta)&=\widehat R\cdot\operatorname{se}(\hat\beta)=1.6487\times0.1=0.1649, \why{标量情形 $\sqrt{R^2\Var}$}\\
+t&=\frac{1.6487-1}{0.1649}=3.93>1.96. \why{$t$ 统计量}
+\end{align*}
+拒绝 $H_0$。\par
+注：$H_0:\theta=1$ 等价于 $H_0:\beta=0$，用后者 $t=0.5/0.1=5.0$。两个 $t$ 值不同——非线性改写会改变 Wald/$t$ 统计量的数值，这是“Wald 检验对非线性改写不具不变性”的例子（第 6 章）；应优先用线性形式 $\beta=0$。
+\end{prac}
+
+\begin{english}
+Multiplying by $\sqrt n$, $\sqrt n(\hat\beta-\beta)=\bigl(\frac1n\sum_i x_ix_i'\bigr)^{-1}\frac{1}{\sqrt n}\sum_i x_iu_i$. The first factor converges in probability to $Q_{xx}^{-1}$ by the WLLN and the CMT; the second converges in distribution to $N(0,\Omega)$, $\Omega=E(x_ix_i'u_i^2)$, by the CLT since $x_iu_i$ is i.i.d.\ with mean zero and finite variance. By Slutsky's theorem, $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,Q_{xx}^{-1}\Omega Q_{xx}^{-1})$. Hence $\hat\beta$ is approximately $N(\beta,V/n)$ in large samples, and its variance shrinks to zero at rate $1/n$. For a smooth function $\theta=r(\beta)$, the delta method gives $\sqrt n(\hat\theta-\theta)\xrightarrow{d}N(0,RVR')$ with $R=\partial r(\beta)/\partial\beta'$.
+\end{english}
+
+%======================================================================
+\section{标准误取决于什么：三种情形总览}\label{sec:U05a-three}
+
+\subsection{\texorpdfstring{$t$}{t} 检验中唯一需要估计的量：\texorpdfstring{$\widehat\Var(\hat\beta_1)$}{Var-hat(beta1-hat)}}
+
+回到 $t$ 检验 $t_1=(\hat\beta_1-\beta_1^0)/\operatorname{se}(\hat\beta_1)$：$\hat\beta_1$ 已算出，$\beta_1^0$ 已给定，只有 $\operatorname{se}(\hat\beta_1)$ 待定，而
+\[
+\operatorname{se}(\hat\beta_1)=\sqrt{\widehat\Var(\hat\beta_1)},\qquad\widehat\Var(\hat\beta_1)\ \text{是}\ \Var(\hat\beta_1)\ \text{的一个估计量（estimator）}.
+\]
+$\operatorname{se}(\hat\beta_1)$ 取决于误差的结构：(i) 同方差（homoskedasticity）；(ii) 异方差（heteroskedasticity）；(iii) 聚类结构（cluster structure）。
+
+\subsection{面包不变、肉在变：三种误差结构下的 \texorpdfstring{$\Omega$}{Omega}}
+
+由 \eqref{eq:U05a-varbeta}，$\Var(\hat\beta)\approx\frac1nQ_{xx}\inv\Omega\,Q_{xx}\inv$。其中“面包”$Q_{xx}$ 只与回归元有关、与误差无关；三种情形的区别\key{全在“肉”$\Omega$}，即放大后的分子 $\frac1{\sqrt n}\sum_i x_iu_i$ 的（极限）方差 $\Omega=\lim_{n\to\infty}\Var\bigl(\frac1{\sqrt n}X\T u\bigr)$。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+情形 & 误差结构 & 分子的方差（“肉”）\\
+\midrule
+(i) 同方差 & $\E(u_i^2\mid x_i)=\sigma^2$，观测间独立 & $\Omega=\sigma^2Q_{xx}$，夹心坍缩为 $\sigma^2Q_{xx}\inv$\\
+(ii) 异方差 & $\E(u_i^2\mid x_i)=\sigma_i^2$，观测间独立 & $\Omega=\lim\frac1n\sum_i x_ix_i\T\sigma_i^2$\\
+(iii) 聚类 & 簇内相关、簇间独立 & $\Omega=\lim\frac1n\sum_g X_g\T\Omega_gX_g$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{三种情形下的“肉”$\Omega$}
+\end{center}
+
+表中 $X_g$ 为第 $g$ 簇的 $n_g\times K$ 回归元矩阵，$\Omega_g=\E(u_gu_g\T\mid X_g)$ 为该簇 $n_g\times n_g$ 的误差协方差矩阵。三种情形从上到下越来越一般：同方差是异方差的特例（$\sigma_i^2\equiv\sigma^2$），异方差是聚类的特例（每簇只有一个观测）。本节之后依次讨论情形 (i)（下一节）、情形 (ii) 与情形 (iii)（本章后续各节）。
+
+\subsection{方差估计量的选择与 p-hacking}
+
+三种算法给出\key{同一个} $\hat\beta$、\key{不同的} se，从而不同的 $t$、$p$ 值与显著性星号。方差估计量的选择直接决定显著性，研究者可能“挑”一个让结果显著的 se——这是 \textbf{p-hacking}\idx{p-hacking}{挑选显著结果} 最容易发生的环节之一（见本章 $t$ 统计量一节）。正确的做法是根据数据的误差结构\key{事先}确定 se 的类型。
+
+\begin{english}
+The $t$-statistic $t_1=(\hat\beta_1-\beta_1^0)/\operatorname{se}(\hat\beta_1)$ requires only an estimate of $\operatorname{Var}(\hat\beta_1)$. Since $\operatorname{Var}(\hat\beta)\approx n^{-1}Q_{xx}^{-1}\Omega Q_{xx}^{-1}$, the standard error depends on the error structure only through the ``meat'' $\Omega$: under homoskedasticity $\Omega=\sigma^2Q_{xx}$; under heteroskedasticity $\Omega=\lim n^{-1}\sum_i x_ix_i'\sigma_i^2$; under clustering $\Omega=\lim n^{-1}\sum_g X_g'\Omega_gX_g$. The three choices give the same $\hat\beta$ but different standard errors, $t$-values and $p$-values.
+\end{english}
+
+%======================================================================
+\section{情形 (i)：同方差下的渐近方差与标准误}\label{sec:U05a-homo}
+
+\subsection{条件同方差的定义}
+
+\begin{defn}[条件同方差]\label{def:U05a-homo}
+\term{同方差}{homoskedasticity}：$\E(u_i^2\mid x_i)=\sigma^2$，与 $x_i$ 无关（观测间独立）。此时 $\sigma^2=\E(u_i^2)$；矩阵形式为 $D=\Var(u\mid X)=\sigma^2I_n$。
+\end{defn}
+
+\subsection{同方差下 \texorpdfstring{$\Omega=\sigma^2Q_{xx}$}{Omega = sigma2 Qxx}，夹心坍缩为 \texorpdfstring{$\sigma^2Q_{xx}^{-1}$}{sigma2 Qxx inv}}
+
+要证：同方差下“肉”与“面包”成比例，夹心坍缩。思路：对 $\Omega$ 用迭代期望律，再代入同方差。
+\begin{align*}
+\Omega=\E(x_ix_i\T u_i^2)&=\E\bigl[\E(x_ix_i\T u_i^2\mid x_i)\bigr] \why{LIE}\\
+&=\E\bigl[x_ix_i\T\,\E(u_i^2\mid x_i)\bigr] \why{给定 $x_i$ 时 $x_ix_i\T$ 可提出}\\
+&=\E\bigl[x_ix_i\T\sigma^2\bigr] \why{同方差}\\
+&=\sigma^2\E(x_ix_i\T)=\sigma^2Q_{xx}, \why{$\sigma^2$ 是常数}\\
+V=Q_{xx}\inv\Omega\,Q_{xx}\inv&=Q_{xx}\inv\sigma^2Q_{xx}Q_{xx}\inv \why{代入 $\Omega$}\\
+&=\sigma^2Q_{xx}\inv\equiv V^0. \why{夹心坍缩}
+\end{align*}
+上标 $0$ 表示同方差版本（与 Hansen 的 $V_\beta^0$ 一致）。
+
+\subsection{由渐近分布读出 \texorpdfstring{$\Var(\hat\beta)=\frac1n\sigma^2\E(x_ix_i')^{-1}$}{Var(beta-hat) = sigma2 E(xx')inv / n}}
+
+要证：$\hat\beta$ 本身的（近似）方差是 $\frac1n\sigma^2\E(x_ix_i\T)\inv$。思路：先读出 $\sqrt n(\hat\beta-\beta)$ 的方差，再用 $\Var(cZ)=c^2\Var(Z)$ 换回 $\hat\beta$。
+\begin{align*}
+\sqrt n(\hat\beta-\beta)&\overset{a}{\sim}N\bigl(0,\ \sigma^2\E(x_ix_i\T)\inv\bigr) \why{CLT，同方差}\\
+\Var\bigl(\sqrt n(\hat\beta-\beta)\bigr)&=\sigma^2\E(x_ix_i\T)\inv \why{读出渐近方差}\\
+\Var\bigl(\sqrt n(\hat\beta-\beta)\bigr)&=\Var(\sqrt n\,\hat\beta)=n\Var(\hat\beta) \why{$\beta$ 为常数；$\Var(cZ)=c^2\Var(Z)$}\\
+\Rightarrow\quad\Var(\hat\beta)&=\frac1n\,\sigma^2\,\E(x_ix_i\T)\inv. \why{两式联立}
+\end{align*}
+\begin{equation}\label{eq:U05a-varhomo}
+\boxed{\ \Var(\hat\beta)=\frac1n\,\sigma^2\,\E(x_ix_i\T)\inv\ }
+\end{equation}
+（严格地说这是近似等号，意义同 \eqref{eq:U05a-varbeta}。）
+
+\subsection{大样本直觉：\texorpdfstring{$n=10000$}{n = 10000} 时方差几乎为零}
+
+\subsubsection{方差按 \texorpdfstring{$1/n$}{1/n} 缩小}
+
+\eqref{eq:U05a-varhomo} 中 $\sigma^2\E(x_ix_i\T)\inv$ 是固定常数，分母是 $n$。大样本 $n\to\infty$ 时，例如 $n=10000$，
+\[
+\Var(\hat\beta)=\frac{\sigma^2\E(x_ix_i\T)\inv}{10000}\approx0:
+\]
+方差缩小到原来的万分之一，se 缩小到百分之一。
+
+\subsubsection{标准误大小的经验判断：0.0345 与 0.258}
+
+在 $n$ 很大的实证中（无论 OLS、GMM 还是面板 TWFE），正常的标准误应当很小，例如 $\operatorname{se}(\hat\beta)=0.0345$；若看到 $\operatorname{se}(\hat\beta)=0.258$ 这样的大数，说明估计很不精确。常见原因是：有效样本量其实很小（如聚类数 $G$ 少）、关键变量的变异很小，或与其他变量高度共线（分母 $Q_{xx}$ 接近奇异）。
+
+\subsubsection{一致 + 渐近正态 \texorpdfstring{$\Rightarrow$}{=>} \texorpdfstring{$\hat\beta$}{beta-hat} 的分布退化到常数 \texorpdfstring{$\beta$}{beta}}
+
+$\hat\beta_{OLS}$ 一致且渐近正态 $\Rightarrow\Var(\hat\beta)=\frac{\sigma^2\E(x_ix_i\T)\inv}{n}\to0$（$n\to\infty$）$\Rightarrow$ $\hat\beta$ 几乎就是常数 $\beta$。
+
+\subsection{插入估计（plug-in）：用 \texorpdfstring{$\hat\sigma^2$}{sigma2-hat} 与样本矩代替未知量}
+
+\subsubsection{公式中的两个未知量：\texorpdfstring{$\sigma^2$}{sigma2} 与 \texorpdfstring{$\E(x_ix_i')$}{E(xx')}}
+
+\eqref{eq:U05a-varhomo} 中 $\frac1n$ 已知，$\sigma^2$ 与 $\E(x_ix_i\T)$ 都是未知的总体量。\term{插入法}{plug-in method}：把公式中的未知总体量换成它们的一致估计量。
+
+\subsubsection{用样本矩代替总体矩：矩估计}
+
+\begin{itemize}
+\item $\E(x_ix_i\T)$ 用样本均值估计：$\widehat\E(x_ix_i\T)=\frac1n\sum_{i=1}^n x_ix_i\T=\widehat Q_{xx}$。这是\term{矩估计}{method of moments, MM}（总体矩 $\to$ 样本矩）。
+\item $\sigma^2=\E(u_i^2)$ 用残差平方的均值估计：$\hat\sigma^2=\frac1n\sum_{i=1}^n\hat u_i^2$，$\hat u_i$ 为 OLS 残差。
+\end{itemize}
+
+\subsubsection{同方差方差估计量 \texorpdfstring{$\hat\sigma^2(X'X)^{-1}$}{sigma2-hat (X'X)inv} 与标准误}
+
+把两个估计代入 \eqref{eq:U05a-varhomo}：
+\begin{align*}
+\widehat\Var{}^0(\hat\beta)&=\frac1n\,\hat\sigma^2\,\widehat\E(x_ix_i\T)\inv \why{插入估计}\\
+&=\frac1n\,\hat\sigma^2\Bigl(\frac1n\sum_{i=1}^n x_ix_i\T\Bigr)\inv \why{矩估计}\\
+&=\frac1n\,\hat\sigma^2\Bigl(\frac1nX\T X\Bigr)\inv \why{求和恒等式}\\
+&=\frac1n\,\hat\sigma^2\cdot n\,(X\T X)\inv \why{$(\frac1nA)\inv=nA\inv$}\\
+&=\hat\sigma^2(X\T X)\inv. \why{$n$ 相消}
+\end{align*}
+第 $j$ 个系数的标准误取对角元再开方：
+\begin{equation}\label{eq:U05a-sehomo}
+\operatorname{se}(\hat\beta_j)=\sqrt{\bigl[\hat\sigma^2(X\T X)\inv\bigr]_{jj}}\,.
+\end{equation}
+
+\subsubsection{用 \texorpdfstring{$s^2$}{s2} 代替 \texorpdfstring{$\hat\sigma^2$}{sigma2-hat}：经典公式（Stata 默认）}
+
+若用 $s^2=\frac1{n-K}\sum_i\hat u_i^2$ 代替 $\hat\sigma^2$，得到经典公式
+\[
+\widehat V^0_{\hat\beta}=s^2(X\T X)\inv,
+\]
+这是 Stata \texttt{reg y x} 默认报告的标准误。两者只差因子 $\frac{n}{n-K}\to1$，渐近等价；小样本下 $s^2$ 版本稍大，且在同方差下条件无偏（第 4 章）。
+
+\subsubsection{估计量的一致性及其局限}
+
+由 $\hat\sigma^2\pto\sigma^2$（$\sigma^2=\E u_i^2$，见第 \ref{sec:U05a-consist} 节）与 $\widehat Q_{xx}\pto Q_{xx}$，用 CMT：
+\begin{align*}
+n\,\widehat\Var{}^0(\hat\beta)=\hat\sigma^2\,\widehat Q_{xx}\inv\ \pto\ \sigma^2Q_{xx}\inv \why{CMT（Hansen 定理 7.5）}
+\end{align*}
+但要注意：这个估计量\key{无论是否同方差}都收敛到 $\sigma^2Q_{xx}\inv$；只有在同方差下，$\sigma^2Q_{xx}\inv$ 才等于真正的 $V=Q_{xx}\inv\Omega Q_{xx}\inv$。异方差下它收敛到一个“错误的目标”（见本节最后的拓展）。
+
+\begin{method}[同方差标准误的计算步骤]
+\begin{enumerate}
+\item 算 $X\T X$、$X\T Y$，求 $\hat\beta=(X\T X)\inv X\T Y$；
+\item 算拟合值 $\hat y=X\hat\beta$ 与残差 $\hat u=y-\hat y$（检查 $\sum\hat u_i=0$、$X\T\hat u=0$）；
+\item 算 $\mathrm{SSR}=\sum\hat u_i^2$，$s^2=\mathrm{SSR}/(n-K)$（或 $\hat\sigma^2=\mathrm{SSR}/n$）；
+\item $\widehat\Var{}^0(\hat\beta)=s^2(X\T X)\inv$，取第 $j$ 个对角元开方得 $\operatorname{se}(\hat\beta_j)$；
+\item $t=\hat\beta_j/\operatorname{se}(\hat\beta_j)$（检验 $\beta_j=0$）。
+\end{enumerate}
+若题目给的是 $\widehat Q_{xx}$ 而非 $X\T X$，则用 $\widehat\Var{}^0(\hat\beta)=\hat\sigma^2\widehat Q_{xx}\inv/n$。
+\end{method}
+
+\subsubsection{例：由样本矩计算同方差标准误}
+
+\begin{exmp}[由样本矩计算同方差标准误]\label{ex:U05a-n400}
+$n=400$，含截距的一元回归 $y_i=\beta_1+\beta_2x_i+u_i$。已知
+\[
+\widehat Q_{xx}=\frac1n\sum_i x_ix_i\T=\begin{pmatrix}1&2\\ 2&5\end{pmatrix},\qquad\hat\sigma^2=4,\qquad\hat\beta_2=0.27 .
+\]
+求 $\operatorname{se}(\hat\beta_2)$ 与检验 $\beta_2=0$ 的 $t$ 值。
+\solution
+\begin{align*}
+\widehat Q_{xx}\inv&=\frac1{1\cdot5-2\cdot2}\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}=\begin{pmatrix}5&-2\\ -2&1\end{pmatrix} \why{$2\times2$ 求逆，$\det=1$}\\
+\widehat V^0=\hat\sigma^2\widehat Q_{xx}\inv&=\begin{pmatrix}20&-8\\ -8&4\end{pmatrix} \why{乘以 $\hat\sigma^2=4$}\\
+\widehat\Var(\hat\beta)=\frac{\widehat V^0}{400}&=\begin{pmatrix}0.05&-0.02\\ -0.02&0.01\end{pmatrix} \why{除以 $n$}\\
+\operatorname{se}(\hat\beta_2)&=\sqrt{0.01}=0.10 \why{取 $(2,2)$ 元开方}\\
+t&=\frac{0.27}{0.10}=2.70. \why{$t$ 统计量}
+\end{align*}
+$2\times2$ 矩阵求逆的规则：对角元互换、副对角元变号、再除以行列式。$|t|=2.70>1.96$，在 5\% 水平显著。本章后文将用同一组数据比较 HC 与 CRVE 标准误。
+\end{exmp}
+
+\subsubsection{例：5 个观测的手算（同方差 se）}
+
+\begin{exmp}[5 个观测的手算例子]\label{ex:U05a-5obs}
+数据：$x=(0,1,2,3,4)$，$y=(1,1,3,2,5)$，回归 $y_i=\beta_1+\beta_2x_i+u_i$。求 $\hat\beta$、$s^2$、$\operatorname{se}(\hat\beta_2)$ 与 $t$ 值。
+\solution 先算各和式：$\sum x_i=10$，$\sum x_i^2=30$，$\sum y_i=12$，$\sum x_iy_i=0+1+6+6+20=33$。
+\begin{align*}
+X\T X&=\begin{pmatrix}5&10\\ 10&30\end{pmatrix},\qquad X\T Y=\begin{pmatrix}12\\ 33\end{pmatrix} \why{由上面的和式}\\
+(X\T X)\inv&=\frac1{50}\begin{pmatrix}30&-10\\ -10&5\end{pmatrix}=\begin{pmatrix}0.6&-0.2\\ -0.2&0.1\end{pmatrix} \why{$\det=150-100=50$}\\
+\hat\beta&=\begin{pmatrix}0.6\cdot12-0.2\cdot33\\ -0.2\cdot12+0.1\cdot33\end{pmatrix}=\begin{pmatrix}0.6\\ 0.9\end{pmatrix} \why{$(X\T X)\inv X\T Y$}\\
+\hat y&=X\hat\beta=(0.6,\ 1.5,\ 2.4,\ 3.3,\ 4.2) \why{拟合值 $0.6+0.9x_i$}\\
+\hat u&=y-\hat y=(0.4,\ -0.5,\ 0.6,\ -1.3,\ 0.8) \why{和为 0，与 $x$ 正交}\\
+\mathrm{SSR}&=0.16+0.25+0.36+1.69+0.64=3.10 \why{残差平方和}\\
+s^2&=\frac{3.10}{5-2}=1.0333 \why{$n-K=3$}\\
+\widehat\Var{}^0(\hat\beta_2)&=s^2\bigl[(X\T X)\inv\bigr]_{22}=1.0333\times0.1=0.1033 \why{取 $(2,2)$ 元}\\
+\operatorname{se}^0(\hat\beta_2)&=\sqrt{0.1033}=0.3215, \why{开方}\\
+t&=0.9/0.3215=2.80. \why{$t$ 统计量}
+\end{align*}
+检查正交性：$\sum x_i\hat u_i=0-0.5+1.2-3.9+3.2=0$。若改用 $\hat\sigma^2=3.10/5=0.62$，则 $\operatorname{se}=\sqrt{0.062}=0.249$，$t=3.61$：小样本下 $s^2$ 与 $\hat\sigma^2$ 的差别不可忽略。$n=5$ 当然谈不上“大样本”，此例仅用于练习计算；本章异方差稳健标准误一节会看到，小样本下各种 se 的差异很大。
+\end{exmp}
+
+\subsection{Gauss--Markov 定理与效率（见第 4 章）}
+
+\subsubsection{同方差下 OLS 是 BLUE}
+
+在同方差（及 $\E(u\mid X)=0$）下，$\sigma^2(X\T X)\inv$ 是所有线性无偏估计量方差的下界（lowest bound）：OLS 是\term{最优线性无偏估计量}{best linear unbiased estimator, BLUE}（“the best one”）。这就是 \term{Gauss--Markov 定理}{Gauss--Markov theorem}，证明见第 4 章。
+
+\subsubsection{异方差下：OLS 仍一致，但不再有效，且经典 se 失效}
+
+\begin{itemize}
+\item 异方差下，OLS 仍然一致、渐近正态（第 \ref{sec:U05a-consist}、\ref{sec:U05a-asynorm} 节的证明没有用到同方差），但可能不再有效：GLS/WLS 的方差更小。
+\item 更要紧的是，同方差公式 $s^2(X\T X)\inv$ 不再是 $\hat\beta$ 方差的正确估计——这需要稳健标准误（本章下一节）。
+\end{itemize}
+
+\subsection{同方差标准误在异方差下为何出错：峰度比例 \texorpdfstring{$\kappa$}{kappa}}
+
+\begin{extend}[峰度比例 $\kappa$（Hansen 第 4.14 节）]
+设一元无截距回归 $y_i=\beta x_i+u_i$，$\E x_i=0$，且真实误差方差 $\sigma_i^2=\E(u_i^2\mid x_i)=x_i^2$（方差随 $|x_i|$ 增大）。于是 $\sigma^2=\E(u_i^2)=\E(\sigma_i^2)=\E(x_i^2)$。要算：真实方差与同方差公式（的期望）之比。
+\begin{align*}
+V_{\hat\beta}=\Var(\hat\beta\mid X)&=\Bigl(\sum_i x_i^2\Bigr)\inv\Bigl(\sum_i x_i^2\sigma_i^2\Bigr)\Bigl(\sum_i x_i^2\Bigr)\inv \why{夹心公式，$K=1$}\\
+&=\frac{\sum_i x_i^4}{\bigl(\sum_i x_i^2\bigr)^2}, \why{$\sigma_i^2=x_i^2$}\\
+\E\bigl[\widehat V^0_{\hat\beta}\bigm|X\bigr]&\approx\frac{\sigma^2}{\sum_i x_i^2}, \why{$\widehat V^0=s^2/\sum x_i^2$，$\E s^2\approx\sigma^2$}\\
+\frac{V_{\hat\beta}}{\E[\widehat V^0_{\hat\beta}\mid X]}&\approx\frac{\sum_i x_i^4}{\sigma^2\sum_i x_i^2}=\frac{\frac1n\sum_i x_i^4}{\sigma^2\cdot\frac1n\sum_i x_i^2} \why{两式相除，分子分母同除 $n$}\\
+&\approx\frac{\E(x_i^4)}{\E(x_i^2)\cdot\E(x_i^2)}=\frac{\E(x_i^4)}{(\E x_i^2)^2}\equiv\kappa. \why{WLLN，$\sigma^2=\E x_i^2$}
+\end{align*}
+$\kappa$ 是 $x_i$ 的标准化四阶矩（\term{峰度}{kurtosis}），可以是任何大于 1 的数。
+\begin{itemize}
+\item 若 $x_i\sim N(0,\sigma_x^2)$，$\kappa=3$：真实方差是同方差公式的 3 倍，同方差 se 低估约 $\sqrt3=1.73$ 倍；
+\item 若 $x_i\sim\chi^2_1-1$，$\kappa=15$：se 低估约 $\sqrt{15}\approx3.9$ 倍。
+\end{itemize}
+低估 se $\Rightarrow$ 高估 $|t|$ $\Rightarrow$ 过度拒绝原假设（“虚假显著”）。
+\end{extend}
+
+\begin{english}
+Under conditional homoskedasticity, $E(u_i^2\mid x_i)=\sigma^2$, we have $\Omega=\sigma^2Q_{xx}$ and the asymptotic variance simplifies to $V^0=\sigma^2Q_{xx}^{-1}$, so $\operatorname{Var}(\hat\beta)\approx n^{-1}\sigma^2E(x_ix_i')^{-1}$. A consistent plug-in estimator is $\hat V^0=\hat\sigma^2\hat Q_{xx}^{-1}$ with $\hat\sigma^2=\frac1n\sum_i\hat u_i^2$ and $\hat Q_{xx}=\frac1n\sum_i x_ix_i'$, so that $\widehat{\operatorname{Var}}(\hat\beta)=\hat\sigma^2(X'X)^{-1}$ (or $s^2(X'X)^{-1}$, the default in most software). Under homoskedasticity OLS is BLUE by the Gauss--Markov theorem. This variance formula is valid only under homoskedasticity; otherwise it is inconsistent for the true variance and the resulting $t$-tests may over-reject.
+\end{english}
+
+情形 (i) 的结论在异方差下失效。下一节放松同方差假设，在夹心形式中直接估计“肉”$\Omega$，得到异方差稳健（HC / White）标准误。

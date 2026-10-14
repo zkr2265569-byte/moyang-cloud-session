@@ -1,0 +1,994 @@
+% U11b  第 11 章（续）：FEF 两步法、FEF-IV、非平衡面板、面板二元选择、Mundlak 设定与相关随机效应、本章小结
+
+\section{识别时不变效应 \texorpdfstring{$\gamma$}{gamma} 的两步法：FEF 估计量}\label{sec:U11b-fef}
+
+本章前文已经说明：组内变换把时不变回归元 $z_i$ 与 $\alpha_i$ 一起消去，WG 不能识别 $\gamma$；RE/GLS 能识别 $\gamma$，代价是假设 $\alpha_i$ 与全部回归元无关。本节介绍 Pesaran \& Zhou (2018) 的折中做法：$\beta$ 仍用 WG 估计（对 $\alpha_i$ 不作任何假设），$\gamma$ 另用一个只要求“$z_i$ 与 $\alpha_i$ 无关”的截面回归来识别。
+
+\subsection{问题与思路}
+
+\subsubsection{模型：时不变回归元 \texorpdfstring{$z_i$}{z\_i} 与个体效应并存}
+
+\begin{equation}\label{eq:U11b-model}
+y_{it}=\alpha_i+z_i\T\gamma+x_{it}\T\beta+u_{it},\qquad i=1,\dots,N,\ t=1,\dots,T,
+\end{equation}
+其中 $x_{it}$（$K\times1$）随时间变化，$z_i$（$L\times1$）可观测但不随时间变化（性别、种族、出生地），$\alpha_i$ 不可观测（能力、偏好）。$\gamma$ 衡量\term{时不变效应}{time-invariant effects}。
+
+两条已知结论是本节的出发点：
+\begin{enumerate}
+  \item WG 不能识别 $\gamma$：组内变换后 $z_i-z_i=0$，$z_i\T\gamma$ 与 $\alpha_i$ 一起消失。
+  \item WG 能一致估计 $\beta$，且不需要对 $\alpha_i$ 作任何假设（只需严格外生与秩条件，第 10 章）。
+\end{enumerate}
+因此识别 $\gamma$ 不应借助 GLS（那要求 $\E(\alpha_i\mid X_i,z_i)=0$），而应在 $\hat\beta_{WG}$ 的基础上另想办法。
+
+\subsubsection{关键观察：先用 \texorpdfstring{$\hat\beta_{WG}$}{beta\_WG} 把 \texorpdfstring{$x_{it}'\beta$}{x'beta} 过滤掉}
+
+由于 $\hat\beta\pto\beta$（大样本中 $\hat\beta\approx\beta$），
+\[
+y_{it}\approx\alpha_i+z_i\T\gamma+x_{it}\T\hat\beta+u_{it}.
+\]
+把已知的 $x_{it}\T\hat\beta$ 移到左边，剩下的只含 $\alpha_i+z_i\T\gamma$ 与噪声；再在个体层面上对 $z_i$ 回归，就能估计 $\gamma$。这就是\term{固定效应过滤估计量}{fixed effects filtered estimator}（FEF estimator；Pesaran \& Zhou, 2018, \emph{Econometric Reviews}）。
+
+\subsubsection{定义：FEF 估计量的两步}
+
+\begin{defn}[固定效应过滤（FEF）估计量]\label{def:U11b-fef}
+对模型 \eqref{eq:U11b-model}：
+\begin{enumerate}
+  \item 第一步：用 WG 估计 $\beta$，得 $\hat\beta=\hat\beta_{WG}$；构造个体平均的过滤残差 $\bar r_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta$，$i=1,\dots,N$。
+  \item 第二步：把 $\bar r_i$ 对 $(1,z_i)$ 做截面 OLS（$N$ 个观测），$z_i$ 的系数即 $\hat\gamma_{FEF}$。
+\end{enumerate}
+\end{defn}
+
+\subsection{第一步：WG 估计 \texorpdfstring{$\beta$}{beta}，构造过滤残差}
+
+\subsubsection{过滤残差 \texorpdfstring{$r_{it}$}{r\_it} 的分解}
+
+定义过滤残差 $r_{it}\equiv y_{it}-x_{it}\T\hat\beta$（也常记作 $\hat u_{it}$，它是“观测得到的”量）。代入模型：
+\begin{align*}
+r_{it} &= \alpha_i+z_i\T\gamma+x_{it}\T\beta+u_{it}-x_{it}\T\hat\beta \why{代入 \eqref{eq:U11b-model}}\\
+&= \alpha_i+z_i\T\gamma+u_{it}-x_{it}\T(\hat\beta-\beta) \why{合并 $x_{it}$ 项}\\
+&\approx \underbrace{\alpha_i}_{\text{误差}}+\underbrace{z_i\T\gamma}_{\text{可观测}}+u_{it} \why{$\hat\beta\pto\beta$}
+\end{align*}
+$\alpha_i$ 不可观测，只能当作误差的一部分；$z_i\T\gamma$ 中的 $z_i$ 可观测。
+
+\subsubsection{对时间求平均：每个个体一个观测的截面模型}
+
+对 $t$ 求平均（$\alpha_i$、$z_i$ 不随 $t$ 变）：
+\begin{align*}
+\bar r_i &= \frac1T\sum_{t=1}^T(y_{it}-x_{it}\T\hat\beta)=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta \why{$r_{it}$ 的定义}\\
+&= \alpha_i+z_i\T\gamma+\bar u_{i\cdot}-\bar x_{i\cdot}\T(\hat\beta-\beta) \why{上式对 $t$ 平均}
+\end{align*}
+即
+\begin{equation}\label{eq:U11b-rbar}
+\bar r_i=z_i\T\gamma+\underbrace{\alpha_i+\bar u_{i\cdot}}_{\text{复合误差}}-\bar x_{i\cdot}\T(\hat\beta-\beta),\qquad i=1,\dots,N.
+\end{equation}
+这是一个\key{截面模型}：每个个体一个观测，误差是复合误差 $\alpha_i+\bar u_{i\cdot}$，外加一项第一步估计误差 $-\bar x_{i\cdot}\T(\hat\beta-\beta)$（$N\to\infty$ 时趋于零）。
+
+\subsubsection{\texorpdfstring{$\bar r_i$}{r-bar\_i} 就是 LSDV 估计的个体效应}
+
+第 10 章 LSDV 一节证明了个体效应的 LSDV 估计为 $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta_{WG}$。在模型 \eqref{eq:U11b-model} 中，个体虚拟变量的系数吸收的是“总个体效应” $\alpha_i+z_i\T\gamma$，因此
+\[
+\bar r_i=\widehat{\alpha_i+z_i\T\gamma}\big|_{\text{LSDV}} .
+\]
+FEF 的第二步就是“把估计出的固定效应对 $z_i$ 回归”。
+
+\subsection{第二步：\texorpdfstring{$\bar r_i$}{r-bar\_i} 对 \texorpdfstring{$(1,z_i)$}{(1, z\_i)} 做截面 OLS}
+
+\subsubsection{公共截距：\texorpdfstring{$\E(\alpha_i)\neq0$}{E(alpha) != 0} 时把均值并入截距}
+
+一般 $\E(\alpha_i)=\mu\neq0$。把 $\alpha_i$ 写成 $\mu+(\alpha_i-\mu)$，并把中心化后的 $\alpha_i-\mu$ 仍记作 $\alpha_i$（于是 $\E(\alpha_i)=0$），\eqref{eq:U11b-rbar} 变为
+\[
+\bar r_i=\mu+z_i\T\gamma+(\alpha_i+\bar u_{i\cdot})-\bar x_{i\cdot}\T(\hat\beta-\beta),
+\]
+$\mu$ 是公共截距。所以第二步的回归要含截距。
+
+\subsubsection{\texorpdfstring{$\hat\gamma_{FEF}$}{gamma\_FEF} 的离差形式}
+
+$\bar r_i$ 对 $(1,z_i)$ 做 OLS。由 FWL 定理（第 3 章），偏出常数项等于对变量去样本均值，所以斜率为
+\begin{equation}\label{eq:U11b-gfef}
+\boxed{\ \hat\gamma_{FEF}=\Bigl(\sum_{i=1}^N(z_i-\bar z)(z_i-\bar z)\T\Bigr)\inv\sum_{i=1}^N(z_i-\bar z)\bar r_i,\qquad \bar z=\frac1N\sum_{i=1}^Nz_i,\ }
+\end{equation}
+截距为 $\hat\mu=\frac1N\sum_i\bar r_i-\bar z\T\hat\gamma_{FEF}$。分子中 $\bar r_i$ 去不去均值都一样，因为 $\sum_i(z_i-\bar z)=0$。当 $z_i$ 是单个二值变量时，斜率等于两组 $\bar r_i$ 的均值之差（见本节数值例）。
+
+\subsection{一致性条件}
+
+\subsubsection{估计误差的分解}
+
+记 $\tilde z_i=z_i-\bar z$，$\hat Q_{zz}=\frac1N\sum_i\tilde z_i\tilde z_i\T$（$L\times L$），$\hat Q_{zx}=\frac1N\sum_i\tilde z_i\bar x_{i\cdot}\T$（$L\times K$）。先把分子展开：
+\begin{align*}
+\sum_i\tilde z_i\bar r_i &= \sum_i\tilde z_i\bigl[\mu+z_i\T\gamma+(\alpha_i+\bar u_{i\cdot})-\bar x_{i\cdot}\T(\hat\beta-\beta)\bigr] \why{代入 $\bar r_i$}\\
+&= \sum_i\tilde z_iz_i\T\gamma+\sum_i\tilde z_i(\alpha_i+\bar u_{i\cdot})-\sum_i\tilde z_i\bar x_{i\cdot}\T(\hat\beta-\beta) \why{$\sum_i\tilde z_i\mu=0$}\\
+&= \sum_i\tilde z_i\tilde z_i\T\gamma+\sum_i\tilde z_i(\alpha_i+\bar u_{i\cdot})-\sum_i\tilde z_i\bar x_{i\cdot}\T(\hat\beta-\beta) \why{$\sum_i\tilde z_i\bar z\T=0$}
+\end{align*}
+两边左乘 $\bigl(\sum_i\tilde z_i\tilde z_i\T\bigr)\inv$，分子分母同除以 $N$：
+\begin{equation}\label{eq:U11b-gerr}
+\hat\gamma_{FEF}-\gamma=\hat Q_{zz}\inv\Bigl[\frac1N\sum_{i=1}^N\tilde z_i(\alpha_i+\bar u_{i\cdot})-\hat Q_{zx}(\hat\beta-\beta)\Bigr].
+\end{equation}
+误差来自两处：复合误差 $\alpha_i+\bar u_{i\cdot}$ 与 $z_i$ 的样本协方差，以及第一步的估计误差 $\hat\beta-\beta$。
+
+\subsubsection{定理：\texorpdfstring{$\hat\gamma_{FEF}$}{gamma\_FEF} 一致的三个条件}
+
+\begin{thm}[FEF 的一致性]\label{thm:U11b-fefcons}
+设 $\{(y_{i1},\dots,y_{iT},X_i,z_i,\alpha_i)\}$ 跨 $i$ 独立同分布，$N\to\infty$、$T$ 固定。若
+\begin{enumerate}
+  \item[(i)] 第一步 $\hat\beta_{WG}$ 一致：严格外生 $\E(u_{it}\mid X_i,z_i,\alpha_i)=0$ 且秩条件 $\rank\E(X_i\T M_TX_i)=K$；
+  \item[(ii)] $z_i$ 与复合误差无关：$\Cov(z_i,\alpha_i)=0$ 且 $\Cov(z_i,\bar u_{i\cdot})=0$；
+  \item[(iii)] $\Var(z_i)$ 正定，
+\end{enumerate}
+则 $\hat\gamma_{FEF}\pto\gamma$。对 $\alpha_i$ 与 $x_{it}$ 的相关性没有任何限制。
+\end{thm}
+
+证明思路：逐项求 \eqref{eq:U11b-gerr} 的概率极限。
+\begin{align*}
+\frac1N\sum_i\tilde z_i(\alpha_i+\bar u_{i\cdot}) &\pto \Cov(z_i,\alpha_i+\bar u_{i\cdot}) \why{WLLN，$\E(\alpha_i+\bar u_{i\cdot})=0$}\\
+&= \Cov(z_i,\alpha_i)+\Cov(z_i,\bar u_{i\cdot})=0 \why{条件 (ii)}\\
+\hat Q_{zx}(\hat\beta-\beta) &\pto \Cov(z_i,\bar x_{i\cdot})\cdot0=0 \why{条件 (i) 与 CMT}\\
+\hat Q_{zz} &\pto \Var(z_i)>0 \why{WLLN 与条件 (iii)}
+\end{align*}
+代回 \eqref{eq:U11b-gerr}，由 CMT 得 $\hat\gamma_{FEF}-\gamma\pto\Var(z_i)\inv[0-0]=0$。条件 (ii) 的后一半由 (i) 的严格外生自动满足，所以真正的新假设只有 $\Cov(z_i,\alpha_i)=0$。\qed
+
+\subsubsection{分两种情形：\texorpdfstring{$z_i$}{z\_i} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 无关用 OLS，相关用 FEF-IV}
+
+\begin{itemize}
+  \item $\alpha_i$ 与 $z_i$ 不相关：第二步用 OLS 即可，$\hat\gamma_{FEF}\pto\gamma$（只要 $N$ 大）。
+  \item $\alpha_i$ 与 $z_i$ 相关：第二步出现内生性，OLS 不一致，改用工具变量，即下一节的 FEF-IV。
+\end{itemize}
+
+\subsubsection{与 RE 的比较：FEF 允许 \texorpdfstring{$\alpha_i$}{alpha\_i} 与 \texorpdfstring{$x_{it}$}{x\_it} 任意相关}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}LL@{}}
+\toprule
+方法 & 对 $\alpha_i$ 的假设 & 能否估计 $\beta$ / $\gamma$\\
+\midrule
+WG（FE） & 无 & $\beta$ 一致；$\gamma$ 不可识别\\
+RE / GLS & $\E(\alpha_i\mid X_i,z_i)=0$：与 $z_i$、$x_{it}$ 都无关 & 两者都一致；但假设通常不可信\\
+FEF & 只要 $\Cov(z_i,\alpha_i)=0$；允许 $\alpha_i$ 与 $x_{it}$ 任意相关 & $\beta$ 用 WG；$\gamma$ 一致\\
+FEF-IV & $z_i$ 可与 $\alpha_i$ 相关，但需个体层面的工具 $w_i$ & $\beta$ 用 WG；$\gamma$ 用 2SLS\\
+\bottomrule
+\end{tabularx}
+\end{center}
+这正是“用 FE 估计 $\beta$、另想办法识别 $\gamma$”的落实。
+
+\subsection{\texorpdfstring{$\hat\gamma_{FEF}$}{gamma\_FEF} 的渐近方差：三个来源}
+
+$\Var(\hat\gamma_{FEF})$ 取决于三样东西：(a) $\Var(\hat\beta)$；(b) $\Var(\alpha_i)$；(c) $\Var(\bar u_{i\cdot})$。(b)(c) 来自第二步 OLS 的复合误差，(a) 来自第一步。下面推导。
+
+\subsubsection{\texorpdfstring{$\sqrt N(\hat\gamma_{FEF}-\gamma)$}{sqrt N (gamma-hat - gamma)} 的分解}
+
+把 \eqref{eq:U11b-gerr} 乘以 $\sqrt N$：
+\begin{equation}\label{eq:U11b-gclt}
+\sqrt N(\hat\gamma_{FEF}-\gamma)=\hat Q_{zz}\inv\Bigl[\underbrace{\frac1{\sqrt N}\sum_i\tilde z_i(\alpha_i+\bar u_{i\cdot})}_{\text{复合误差项}}-\hat Q_{zx}\underbrace{\sqrt N(\hat\beta-\beta)}_{\text{第一步误差}}\Bigr].
+\end{equation}
+第一步误差的渐近表示（第 10 章 WG 的渐近正态性）为
+\[
+\sqrt N(\hat\beta-\beta)=\Bigl(\frac1N\sum_iX_i\T M_TX_i\Bigr)\inv\frac1{\sqrt N}\sum_iX_i\T M_TU_i\approx Q_T\inv\frac1{\sqrt N}\sum_iX_i\T M_TU_i,
+\]
+其中 $X_i$ 为 $T\times K$，$U_i=(u_{i1},\dots,u_{iT})\T$，$M_T=I_T-\frac1T\one_T\one_T\T$，$Q_T=\E(X_i\T M_TX_i)$。$\tilde z_i$ 中的 $\bar z$ 可换成 $\mu_z=\E(z_i)$，不改变渐近分布。
+
+\subsubsection{简化假设下两项渐近不相关}
+
+简化假设：(S1) $\E(U_iU_i\T\mid X_i,z_i,\alpha_i)=\sigma_u^2I_T$（$u_{it}$ 同方差、无序列相关）；(S2) $\E(\alpha_i^2\mid z_i)=\sigma_\alpha^2$（$\alpha_i$ 同方差）。要证两项的协方差为零，即 $\E\bigl[\tilde z_i(\alpha_i+\bar u_{i\cdot})U_i\T M_TX_i\bigr]=0$（$L\times K$）。
+
+$\alpha_i$ 部分：
+\begin{align*}
+\E\bigl[\tilde z_i\alpha_iU_i\T M_TX_i\bigr] &= \E\bigl[\tilde z_i\alpha_i\,\E(U_i\T\mid X_i,z_i,\alpha_i)\,M_TX_i\bigr] \why{迭代期望律}\\
+&= 0 \why{严格外生}
+\end{align*}
+$\bar u_{i\cdot}$ 部分，利用 $\bar u_{i\cdot}=\frac1T\one_T\T U_i$：
+\begin{align*}
+\E\bigl[\tilde z_i\bar u_{i\cdot}U_i\T M_TX_i\bigr] &= \frac1T\E\bigl[\tilde z_i\one_T\T U_iU_i\T M_TX_i\bigr] \why{$\bar u_{i\cdot}=\one_T\T U_i/T$}\\
+&= \frac1T\E\bigl[\tilde z_i\one_T\T\E(U_iU_i\T\mid X_i,z_i,\alpha_i)M_TX_i\bigr] \why{迭代期望律}\\
+&= \frac{\sigma_u^2}{T}\E\bigl[\tilde z_i\one_T\T M_TX_i\bigr] \why{(S1)}\\
+&= 0 \why{$\one_T\T M_T=0$}
+\end{align*}
+直观：第一步只用组内变异（$M_TU_i$），第二步只用个体均值（$\bar u_{i\cdot}$），二者在同方差下正交。
+
+\subsubsection{渐近方差公式}
+
+再分别求两项的方差。复合误差项：
+\begin{align*}
+\E\bigl[\tilde z_i\tilde z_i\T(\alpha_i+\bar u_{i\cdot})^2\bigr] &= \E\bigl[\tilde z_i\tilde z_i\T(\alpha_i^2+2\alpha_i\bar u_{i\cdot}+\bar u_{i\cdot}^2)\bigr] \why{展开平方}\\
+&= \E\bigl[\tilde z_i\tilde z_i\T\alpha_i^2\bigr]+\E\bigl[\tilde z_i\tilde z_i\T\bar u_{i\cdot}^2\bigr] \why{严格外生消去交叉项}\\
+&= \sigma_\alpha^2Q_{zz}+\frac{\sigma_u^2}{T}Q_{zz} \why{(S2)；(S1) 给出 $\E(\bar u_{i\cdot}^2\mid\cdot)=\sigma_u^2/T$}
+\end{align*}
+其中 $\E(\bar u_{i\cdot}^2\mid\cdot)=\frac1{T^2}\one_T\T(\sigma_u^2I_T)\one_T=\sigma_u^2/T$，$Q_{zz}=\Var(z_i)$。第一步误差项的方差为 $Q_{zx}V_\beta Q_{zx}\T$，$Q_{zx}=\plim\hat Q_{zx}=\Cov(z_i,\bar x_{i\cdot})$，$V_\beta$ 是 $\sqrt N(\hat\beta-\beta)$ 的渐近方差：
+\begin{align*}
+V_\beta &= Q_T\inv\E\bigl[X_i\T M_TU_iU_i\T M_TX_i\bigr]Q_T\inv \why{夹心形式}\\
+&= Q_T\inv\sigma_u^2\E\bigl[X_i\T M_TM_TX_i\bigr]Q_T\inv \why{(S1) 与迭代期望律}\\
+&= \sigma_u^2Q_T\inv \why{$M_T$ 幂等}
+\end{align*}
+
+\begin{thm}[FEF 的渐近方差（简化假设下）]\label{thm:U11b-fefavar}
+在“FEF 的一致性”中的条件 (i)--(iii) 与 (S1)(S2) 下，
+\begin{equation}\label{eq:U11b-avar}
+\avar\bigl(\sqrt N(\hat\gamma_{FEF}-\gamma)\bigr)=\underbrace{\Bigl(\sigma_\alpha^2+\frac{\sigma_u^2}{T}\Bigr)Q_{zz}\inv}_{\text{(b) }\Var(\alpha_i)\text{ + (c) }\Var(\bar u_{i\cdot})}+\underbrace{Q_{zz}\inv Q_{zx}V_\beta Q_{zx}\T Q_{zz}\inv}_{\text{(a) }\Var(\hat\beta)},\qquad V_\beta=\sigma_u^2Q_T\inv .
+\end{equation}
+\end{thm}
+三部分正好对应 (a)(b)(c)。若 $z_i$ 与 $\bar x_{i\cdot}$ 不相关（$Q_{zx}=0$），(a) 项消失。
+
+\subsubsection{一般情形：两项相关，需用稳健方差}
+
+异方差或序列相关时，复合误差项与第一步误差项之间一般存在协方差，\eqref{eq:U11b-avar} 不再成立。Pesaran \& Zhou (2018) 给出了相应的稳健方差估计；实务中更简便的做法是下文的 IV 等价表示加按个体聚类的标准误。
+
+\subsubsection{\texorpdfstring{$N$}{N} 与 \texorpdfstring{$T$}{T} 对精度的作用：\texorpdfstring{$\gamma$}{gamma} 为何不如 \texorpdfstring{$\beta$}{beta} 精确}
+
+\begin{prac}[FEF 的精度来源]\label{pr:U11b-fefprec}
+说明：(a) $N$ 固定、$T\to\infty$ 时 $\Var(\hat\gamma_{FEF})$ 是否趋于零；(b) $T$ 固定、$N\to\infty$ 时呢？由此解释为什么时不变效应 $\gamma$ 的估计往往不如 $\beta$ 精确。
+
+\answer 由 \eqref{eq:U11b-avar} 除以 $N$，有限样本中近似地
+\[
+\Var(\hat\gamma_{FEF})\approx\frac1N\Bigl(\sigma_\alpha^2+\frac{\sigma_u^2}T\Bigr)Q_{zz}\inv+\frac1NQ_{zz}\inv Q_{zx}V_\beta Q_{zx}\T Q_{zz}\inv .
+\]
+(a) $T\to\infty$ 时 $\sigma_u^2/T\to0$；$Q_T=\sum_t\E(\dot x_{it}\dot x_{it}\T)$ 随 $T$ 线性增长，$V_\beta=\sigma_u^2Q_T\inv\to0$，$\hat\beta$ 也越来越精确。但 $\frac{\sigma_\alpha^2}NQ_{zz}\inv$ 不随 $T$ 变化——$N$ 固定时方差不趋于零。
+
+(b) $N\to\infty$ 时三项都以 $1/N$ 的速度趋于零。
+
+原因：$\gamma$ 只能从 $N$ 个个体之间的差异中识别，个体效应 $\alpha_i$ 作为截面误差的一部分，无法被更多的时期“平均掉”；而 $\beta$ 利用的是 $NT$ 个组内变异。
+\end{prac}
+
+\subsection{标准误：FEF 与一个 IV 估计量数值相同（Hansen §17.32）}
+
+\subsubsection{直接用第二步 OLS 标准误会低估}
+
+\begin{note}[第二步 OLS 的标准误偏小]
+第二步 OLS 的残差方差只估计了 (b)+(c)，把 $\hat\beta$ 当成了已知的 $\beta$，忽略了第一步的估计误差 (a)，所以标准误偏小、$t$ 统计量偏大。这是一切“生成回归元/生成因变量”两步法的通病。
+\end{note}
+
+\subsubsection{等价的 IV 回归：\texorpdfstring{$\dot x$}{x-dot} 作 \texorpdfstring{$x$}{x} 的工具，\texorpdfstring{$z$}{z} 作自身的工具}
+
+\begin{thm}[FEF 的 IV 表示（Hausman \& Taylor 1981；Hansen §17.32）]\label{thm:U11b-fefiv-eq}
+把 $y_{it}$ 对 $(1,z_i,x_{it})$ 做 IV 回归：$x_{it}$ 视为内生，用组内变换后的 $\dot x_{it}=x_{it}-\bar x_{i\cdot}$ 作工具；$1$ 与 $z_i$ 视为外生（自身作工具）。所得 $(\hat\mu,\hat\gamma,\hat\beta)$ 与 FEF 两步法在数值上完全相同：$\hat\beta=\hat\beta_{WG}$，$(\hat\mu,\hat\gamma)$ 为 $\bar r_i$ 对 $(1,z_i)$ 的 OLS 系数（平衡面板）。
+\end{thm}
+
+\subsubsection{证明：IV 的样本矩条件分成两块}
+
+恰好识别（$1+L+K$ 个工具，$1+L+K$ 个参数），IV 估计量解样本矩条件
+\begin{align}
+\sum_{i=1}^N\sum_{t=1}^T\dot x_{it}\bigl(y_{it}-\mu-z_i\T\gamma-x_{it}\T\beta\bigr)&=0, \label{eq:U11b-m1}\\
+\sum_{i=1}^N\sum_{t=1}^T\begin{pmatrix}1\\ z_i\end{pmatrix}\bigl(y_{it}-\mu-z_i\T\gamma-x_{it}\T\beta\bigr)&=0. \label{eq:U11b-m2}
+\end{align}
+先看 \eqref{eq:U11b-m1}。时不变的项与 $\dot x_{it}$ 正交：
+\begin{align*}
+\sum_t\dot x_{it}(\mu+z_i\T\gamma) &= \Bigl(\sum_t\dot x_{it}\Bigr)(\mu+z_i\T\gamma) \why{$\mu+z_i\T\gamma$ 与 $t$ 无关}\\
+&= 0 \why{$\sum_t\dot x_{it}=0$}
+\end{align*}
+于是 \eqref{eq:U11b-m1} 化为 $\sum_i\sum_t\dot x_{it}(y_{it}-x_{it}\T\beta)=0$，解得
+\begin{align*}
+\hat\beta &= \Bigl(\sum_i\sum_t\dot x_{it}x_{it}\T\Bigr)\inv\sum_i\sum_t\dot x_{it}y_{it} \why{解线性方程}\\
+&= \Bigl(\sum_i\sum_t\dot x_{it}\dot x_{it}\T\Bigr)\inv\sum_i\sum_t\dot x_{it}\dot y_{it}=\hat\beta_{WG} \why{$\sum_t\dot x_{it}\bar x_{i\cdot}\T=0$，$\sum_t\dot x_{it}\bar y_{i\cdot}=0$}
+\end{align*}
+再把 $\hat\beta$ 代入 \eqref{eq:U11b-m2}：
+\begin{align*}
+0 &= \sum_i\begin{pmatrix}1\\ z_i\end{pmatrix}\sum_t\bigl(y_{it}-x_{it}\T\hat\beta-\mu-z_i\T\gamma\bigr) \why{$(1,z_i)$ 与 $t$ 无关}\\
+&= T\sum_i\begin{pmatrix}1\\ z_i\end{pmatrix}\bigl(\bar r_i-\mu-z_i\T\gamma\bigr) \why{$\sum_t(y_{it}-x_{it}\T\hat\beta)=T\bar r_i$}
+\end{align*}
+这正是 $\bar r_i$ 对 $(1,z_i)$ 做 OLS 的正规方程，故 $(\hat\mu,\hat\gamma)$ 等于 FEF 第二步的 OLS 系数。\qed
+
+意义：点估计相同，但 IV 回归是对 $(\mu,\gamma,\beta)$ 的\key{联合}估计，它的夹心方差自动计入第一步误差 (a)。由于个体效应使同一个体各期误差相关，经典方差与 White 异方差稳健方差都设定错误，应使用\key{按个体聚类}的协方差矩阵。非平衡面板中 \eqref{eq:U11b-m2} 给出以 $T_i$ 为权重的第二步加权 OLS。
+
+\subsubsection{Stata 实现}
+
+\begin{lstlisting}
+* FEF point estimate (two steps)
+xtreg y x, fe
+gen r = y - _b[x]*x
+bysort id: egen rbar = mean(r)
+bysort id: gen first = (_n==1)
+reg rbar z if first                  // gamma-hat; this SE ignores step-1 error
+* same point estimates via IV (Hansen sec. 17.32), with correct clustered SE
+bysort id: egen xbar = mean(x)
+gen xdot = x - xbar
+ivregress 2sls y z (x = xdot), vce(cluster id)
+\end{lstlisting}
+
+\subsection{FEF 数值例（\texorpdfstring{$N=4$, $T=2$}{N=4, T=2}）}
+
+\begin{exmp}[FEF 数值例]\label{ex:U11b-fef}
+$N=4$，$T=2$，$z_i$ 为“女性”虚拟变量，$z=(1,1,0,0)$。数据：个体 1：$x=(1,3)$，$y=(5,9)$；个体 2：$x=(2,4)$，$y=(8,12)$；个体 3：$x=(0,2)$，$y=(1,5)$；个体 4：$x=(3,5)$，$y=(8,12)$。求 $\hat\beta_{WG}$ 与 $\hat\gamma_{FEF}$。
+
+\solution \textbf{第一步：WG。}各个体的均值与去均值：
+\begin{center}
+\begin{tabular}{cccccccc}
+\toprule
+个体 & $z_i$ & $\bar x_{i\cdot}$ & $\bar y_{i\cdot}$ & $\dot x_{it}$ & $\dot y_{it}$ & $\sum_t\dot x_{it}^2$ & $\sum_t\dot x_{it}\dot y_{it}$\\
+\midrule
+1 & 1 & 2 & 7 & $(-1,1)$ & $(-2,2)$ & 2 & 4\\
+2 & 1 & 3 & 10 & $(-1,1)$ & $(-2,2)$ & 2 & 4\\
+3 & 0 & 1 & 3 & $(-1,1)$ & $(-2,2)$ & 2 & 4\\
+4 & 0 & 4 & 10 & $(-1,1)$ & $(-2,2)$ & 2 & 4\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{align*}
+\hat\beta_{WG} &= \frac{\sum_{i,t}\dot x_{it}\dot y_{it}}{\sum_{i,t}\dot x_{it}^2}=\frac{16}{8}=2 \why{WG 公式}
+\end{align*}
+$z_i$ 在组内变换中消失，不影响这一步。
+
+\textbf{构造 $\bar r_i=\bar y_{i\cdot}-2\bar x_{i\cdot}$：}
+\begin{align*}
+\bar r_1 &= 7-2\times2=3,\quad \bar r_2=10-2\times3=4 \why{$\hat\beta=2$}\\
+\bar r_3 &= 3-2\times1=1,\quad \bar r_4=10-2\times4=2 \why{$\hat\beta=2$}
+\end{align*}
+
+\textbf{第二步：$\bar r_i$ 对 $(1,z_i)$ 回归。}$\bar z=0.5$，$\tilde z=(0.5,0.5,-0.5,-0.5)$：
+\begin{align*}
+\textstyle\sum_i\tilde z_i^2 &= 4\times0.25=1 \why{逐项相加}\\
+\textstyle\sum_i\tilde z_i\bar r_i &= 0.5(3+4)-0.5(1+2)=2 \why{逐项相加}\\
+\hat\gamma_{FEF} &= 2/1=2 \why{式 \eqref{eq:U11b-gfef}}
+\end{align*}
+等价地，$z$ 为二值变量时斜率等于两组均值之差：$\frac{3+4}2-\frac{1+2}2=3.5-1.5=2$；截距 $\hat\mu=1.5$（男性组的均值）。
+
+\textbf{核对 IV 表示。}按“FEF 的 IV 表示”，$y$ 对 $(1,z,x)$ 以 $(1,z,\dot x)$ 为工具做 IV，得到 $(\hat\mu,\hat\gamma,\hat\beta)=(1.5,2,2)$，与两步法相同。
+\end{exmp}
+
+\begin{keypt}[英文试卷常见问法]
+“How can $\gamma$ be identified when the FE estimator eliminates $z_i$?” 标准作答：(1) WG 一致估计 $\beta$；(2) 构造 $\bar r_i=\bar y_i-\bar x_i'\hat\beta$，它满足 \eqref{eq:U11b-rbar}；(3) $\bar r_i$ 对 $(1,z_i)$ 做 OLS；(4) 一致性只需 $\Cov(z_i,\alpha_i)=0$；(5) 方差含 $\Var(\hat\beta)$、$\sigma_\alpha^2$、$\sigma_u^2/T$ 三部分，用 IV 表示加聚类标准误做推断；(6) 若 $z_i$ 与 $\alpha_i$ 相关，改用 FEF-IV。
+\end{keypt}
+
+\begin{english}
+The FEF estimator of Pesaran and Zhou (2018) proceeds in two steps. First, estimate $\beta$ consistently by the within estimator and compute $\bar r_i=\bar y_i-\bar x_i'\hat\beta_{FE}$, which is the LSDV estimate of the individual effect. Second, regress $\bar r_i$ on $z_i$ (with an intercept) by OLS across the $N$ individuals. Since $\bar r_i=z_i'\gamma+\alpha_i+\bar u_i-\bar x_i'(\hat\beta-\beta)$, $\hat\gamma_{FEF}$ is consistent as $N\to\infty$ provided $z_i$ is uncorrelated with $\alpha_i$; no restriction is placed on the correlation between $\alpha_i$ and $x_{it}$. Its variance depends on $\Var(\hat\beta)$, $\Var(\alpha_i)$ and $\Var(\bar u_i)$, so second-step OLS standard errors are too small. The FEF estimator equals the IV estimator that instruments $x_{it}$ by $\dot x_{it}$, and cluster-robust standard errors from that IV regression are valid.
+\end{english}
+
+\section{FEF-IV：\texorpdfstring{$z_i$}{z\_i} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 相关时}\label{sec:U11b-fefiv}
+
+上一节的 FEF 要求 $\Cov(z_i,\alpha_i)=0$。本节处理这一条件不成立的情形：第一步不变，第二步把 OLS 换成 IV/2SLS。
+
+\subsection{问题：第二步的截面回归出现内生性}
+
+\subsubsection{\texorpdfstring{$\Cov(z_i,\alpha_i)\neq0$}{Cov(z, alpha) != 0} 时 \texorpdfstring{$\hat\gamma_{FEF}$}{gamma\_FEF} 不一致}
+
+第二步的截面方程为 $\bar r_i=\mu+z_i\T\gamma+(\alpha_i+\bar u_{i\cdot})-\bar x_{i\cdot}\T(\hat\beta-\beta)$。若 $\alpha_i$ 与 $z_i$ 相关，回归元与误差相关。沿用一致性证明中的各项极限：
+\begin{align*}
+\hat\gamma_{FEF}-\gamma &= \hat Q_{zz}\inv\Bigl[\frac1N\sum_i\tilde z_i(\alpha_i+\bar u_{i\cdot})-\hat Q_{zx}(\hat\beta-\beta)\Bigr] \why{式 \eqref{eq:U11b-gerr}}\\
+&\pto \Var(z_i)\inv\bigl[\Cov(z_i,\alpha_i)+\Cov(z_i,\bar u_{i\cdot})-0\bigr] \why{WLLN、CMT}\\
+&= \Var(z_i)\inv\Cov(z_i,\alpha_i)\neq0 \why{严格外生}
+\end{align*}
+这是第 7 章的遗漏变量偏误换了一个场景：$\alpha_i$ 是第二步回归中被遗漏、且与 $z_i$ 相关的变量。
+
+\subsubsection{例：教育年限与不可观测能力}
+
+工资方程中 $z_i$ 为受教育年限，$\alpha_i$ 为不可观测能力。能力强的人往往受教育更多，$\Cov(z_i,\alpha_i)>0$，FEF 的第二步 OLS 会高估教育回报。此时需要工具变量：在第二步中用 IV/2SLS 估计 $\gamma$，得到 $\hat\gamma_{FEF\text{-}IV}$。
+
+\subsection{第二步改用 IV/2SLS}
+
+\subsubsection{个体层面工具变量的两个条件}
+
+需要 $m\ge L$ 个个体层面的（时不变的）工具变量 $w_i$（$m\times1$），满足（$\alpha_i$ 已中心化）：
+\begin{itemize}
+  \item \key{外生性}：$\E\bigl[w_i(\alpha_i+\bar u_{i\cdot})\bigr]=0$，即 $w_i$ 与复合误差不相关；
+  \item \key{相关性}：$\rank\E(w_i\tilde z_i\T)=L$，即 $\rank\Cov(w_i,z_i)=L$。
+\end{itemize}
+外生性的后一半（$w_i$ 与 $\bar u_{i\cdot}$ 无关）通常由严格外生保证，关键是 $w_i$ 与 $\alpha_i$ 无关。
+
+\subsubsection{FEF-IV 估计量}
+
+把第二步写成矩阵形式。记 $Z$ 为 $N\times(1+L)$、第 $i$ 行为 $(1,z_i\T)$；$W$ 为 $N\times(1+m)$、第 $i$ 行为 $(1,w_i\T)$；$\bar r=(\bar r_1,\dots,\bar r_N)\T$；$\bar X$ 为 $N\times K$、第 $i$ 行为 $\bar x_{i\cdot}\T$；$e$ 的第 $i$ 个元素为 $e_i=\alpha_i+\bar u_{i\cdot}$；$\delta=(\mu,\gamma\T)\T$。则
+\[
+\bar r=Z\delta+e-\bar X(\hat\beta-\beta).
+\]
+以 $W$ 为工具做 2SLS（第 8 章），$P_W=W(W\T W)\inv W\T$：
+\begin{equation}\label{eq:U11b-fefiv}
+\boxed{\ \hat\delta_{FEF\text{-}IV}=\bigl(Z\T P_WZ\bigr)\inv Z\T P_W\,\bar r,\ }
+\end{equation}
+$\hat\gamma_{FEF\text{-}IV}$ 是 $\hat\delta$ 的后 $L$ 个元素。恰好识别（$m=L$）时简化为 $\hat\delta=(W\T Z)\inv W\T\bar r$。也可以把 $Z$、$W$、$\bar r$ 都对个体去均值、去掉常数列，直接得到 $\hat\gamma$。
+
+\subsubsection{FEF-IV 的一致性}
+
+\begin{align*}
+\hat\delta-\delta &= (Z\T P_WZ)\inv Z\T P_W\bigl[e-\bar X(\hat\beta-\beta)\bigr] \why{代入 $\bar r$}\\
+&= \Bigl[\tfrac{Z\T W}{N}\bigl(\tfrac{W\T W}{N}\bigr)\inv\tfrac{W\T Z}{N}\Bigr]\inv\tfrac{Z\T W}{N}\bigl(\tfrac{W\T W}{N}\bigr)\inv\Bigl[\tfrac{W\T e}{N}-\tfrac{W\T\bar X}{N}(\hat\beta-\beta)\Bigr] \why{展开 $P_W$，各项除以 $N$}\\
+&\pto \bigl[Q_{ZW}Q_{WW}\inv Q_{WZ}\bigr]\inv Q_{ZW}Q_{WW}\inv\bigl[0-Q_{W\bar X}\cdot0\bigr]=0 \why{外生性、$\hat\beta\pto\beta$、CMT}
+\end{align*}
+其中 $Q_{WZ}=\E(W_iZ_i\T)$ 等为相应的总体矩（$W_i=(1,w_i\T)\T$，$Z_i=(1,z_i\T)\T$）。可逆性要求 $Q_{WZ}$ 列满秩，等价于相关性条件。
+
+\subsubsection{推断：计入第一步误差；过度识别与弱工具检验}
+
+与 FEF 一样，FEF-IV 的渐近方差也要计入第一步 $\hat\beta$ 的估计误差（类似 FEF 的 (a) 项）。实务做法与上一节相同：
+\begin{itemize}
+  \item 恰好识别时，把 $y_{it}$ 对 $(1,z_i,x_{it})$ 做 IV 回归，工具为 $(1,w_i,\dot x_{it})$，点估计与两步 FEF-IV 完全相同。证明照搬“FEF 的 IV 表示”：$\dot x_{it}$ 与任何时不变变量正交，矩条件 \eqref{eq:U11b-m1} 仍给出 $\hat\beta_{WG}$；把 \eqref{eq:U11b-m2} 中的 $(1,z_i)$ 换成 $(1,w_i)$，得到 $W\T(\bar r-Z\delta)=0$，即 $\hat\delta=(W\T Z)\inv W\T\bar r$。再用按个体聚类的标准误。
+  \item 过度识别时，直接对全部参数做这一联合 2SLS 或 GMM（Hausman--Taylor 型估计，Hansen §17.33），用聚类标准误。
+  \item 过度识别检验（Sargan--Hansen $J$）、弱工具检验（第一阶段 $F$）同第 9 章。
+\end{itemize}
+
+\subsection{工具变量从哪里来（拓展）}
+
+\subsubsection{外部的时不变工具}
+
+来自模型之外、与 $\alpha_i$ 无关但与 $z_i$ 相关的个体特征。例如研究教育回报时，用出生季度、到最近大学的距离作为受教育年限的工具（第 8 章）。
+
+\subsubsection{模型内部的工具：Hausman--Taylor 思想}
+
+Hausman \& Taylor (1981) 从模型内部找工具（Hansen §17.33）。把回归元分为四类：
+\[
+y_{it}=x_{1it}\T\beta_1+x_{2it}\T\beta_2+z_{1i}\T\gamma_1+z_{2i}\T\gamma_2+\alpha_i+u_{it},
+\]
+维数依次为 $k_1,k_2,\ell_1,\ell_2$。假设所有回归元都严格外生（与 $u_{it}$ 无关），并且 $x_{1it}$、$z_{1i}$ 与 $\alpha_i$ 无关，$x_{2it}$、$z_{2i}$ 可与 $\alpha_i$ 相关。
+\begin{itemize}
+  \item $\beta_1,\beta_2$：用组内变异识别（$\dot x_{1it}$、$\dot x_{2it}$ 作工具），等于 WG。
+  \item $\gamma_1$：$z_{1i}$ 外生，自身作工具。
+  \item $\gamma_2$：$x_{1it}$ 与 $\alpha_i$ 无关，所以它的个体均值 $\bar x_{1i\cdot}$ 也与 $\alpha_i+\bar u_{i\cdot}$ 无关，可作为内生 $z_{2i}$ 的工具：
+\end{itemize}
+\begin{align*}
+\E\bigl[\bar x_{1i\cdot}(\alpha_i+\bar u_{i\cdot})\bigr] &= \frac1T\sum_t\E(x_{1it}\alpha_i)+\frac1T\sum_t\E(x_{1it}\bar u_{i\cdot}) \why{期望的线性性}\\
+&= 0+0=0 \why{$x_1$ 与 $\alpha_i$ 无关；严格外生}
+\end{align*}
+阶条件：$\bar x_{1i\cdot}$ 提供 $k_1$ 个工具，需要 $k_1\ge\ell_2$（外生的时变回归元不少于内生的时不变回归元）。恰好识别时，$\hat\beta$ 等于 WG，$(\hat\gamma_1,\hat\gamma_2)$ 等于 $\bar r_i$ 对 $(1,z_{1i},z_{2i})$ 的 2SLS（工具 $(1,z_{1i},\bar x_{1i\cdot})$）——这正是 $w_i=(z_{1i},\bar x_{1i\cdot})$ 的 FEF-IV。$x_{1it}$ 的组内变异用于估计 $\beta_1$，组间变异 $\bar x_{1i\cdot}$ 则“让出来”作工具。
+
+\begin{lstlisting}
+* Hausman-Taylor type 2SLS with cluster-robust SE (Hansen sec. 17.33)
+bysort id: egen x1bar = mean(x1)
+bysort id: egen x2bar = mean(x2)
+gen x2dot = x2 - x2bar
+ivregress 2sls y x1 z1 (x2 z2 = x2dot x1bar), vce(cluster id)
+* original GLS-type Hausman-Taylor estimator
+xthtaylor y x1 x2 z1 z2, endog(x2 z2)
+\end{lstlisting}
+
+\subsubsection{可信度：“哪些变量与 \texorpdfstring{$\alpha_i$}{alpha\_i} 无关”要有经济学依据}
+
+内部工具的有效性完全取决于“$x_{1it}$ 与 $\alpha_i$ 无关”这一假设，它不能由数据检验（恰好识别时），必须有经济学论证。
+
+\subsubsection{练习：工资方程中两个候选工具的条件与可信度}
+
+\begin{prac}[工具变量的条件]\label{pr:U11b-iv}
+工资方程中 $z_i$ 为受教育年限，可能与能力 $\alpha_i$ 相关。研究者提出两个候选工具：(1) 父母受教育年限；(2) 个体样本期内的平均工作经验 $\bar x_{1i}$。分别写出它们作为 FEF-IV 工具所需满足的条件，并评论其可信度。
+
+\answer 两者都需满足 (i) 外生：与 $\alpha_i+\bar u_{i\cdot}$ 不相关；(ii) 相关：与 $z_i$ 相关（第一阶段 $F$ 足够大，第 9 章）。
+
+(1) 父母教育与子女教育高度相关，相关性好；但父母教育可能通过家庭背景、遗传能力直接影响 $\alpha_i$，外生性可疑。
+
+(2) 这是 Hausman--Taylor 式的内部工具，需要假设经验的个体均值与不可观测能力无关。若能力强的人更早进入劳动市场或更少中断工作，该假设不成立。同时 $\bar x_{1i}$ 与教育的相关方向也需检验：受教育多的人在样本期内经验可能较少。
+\end{prac}
+
+\begin{english}
+If the time-invariant regressors $z_i$ are correlated with $\alpha_i$, the second-step regression of $\bar r_i$ on $z_i$ suffers from endogeneity: $\hat\gamma_{FEF}$ converges to $\gamma+\Var(z_i)^{-1}\Cov(z_i,\alpha_i)$. The FEF-IV estimator replaces OLS in the second step by IV/2SLS using individual-level instruments $w_i$ that are uncorrelated with $\alpha_i+\bar u_i$ and correlated with $z_i$, with at least as many instruments as endogenous time-invariant regressors. Instruments may be external, or internal as in Hausman and Taylor (1981), where the individual means of time-varying regressors that are uncorrelated with $\alpha_i$ serve as instruments. Standard errors should account for the first-step estimation of $\beta$, for example by estimating all parameters jointly by IV with cluster-robust standard errors.
+\end{english}
+
+\section{非平衡面板}\label{sec:U11b-unbal}
+
+前面各章节默认平衡面板：每个个体都有 $T$ 期观测。现实数据大多不平衡。本节回答三个问题：非平衡时 WG 怎么算、什么条件下仍一致、缺失由选择引起时会出什么问题。
+
+\subsection{记号：个体 \texorpdfstring{$i$}{i} 被观测 \texorpdfstring{$T_i$}{T\_i} 期}
+
+\subsubsection{观测时期集合 \texorpdfstring{$S_i$}{S\_i}、\texorpdfstring{$T_i$}{T\_i} 与总观测数 \texorpdfstring{$n$}{n}}
+
+\begin{defn}[非平衡面板]\label{def:U11b-unbal}
+设全部时期为 $t=1,\dots,T$，个体 $i$ 被观测的时期集合为 $S_i$，$T_i=|S_i|$。若各 $T_i$ 不全相等，称为\term{非平衡面板}{unbalanced panel}。模型写为
+\[
+y_{it}=\alpha_i+x_{it}\T\beta+u_{it},\qquad i=1,\dots,N,\ t\in S_i ,
+\]
+总观测数 $n=\sum_{i=1}^NT_i$（Hansen §17.2）。个体层面的堆叠 $Y_i$（$T_i\times1$）、$X_i$（$T_i\times K$）只包含被观测的时期。
+\end{defn}
+例如 $T_1=5$，$T_2=4$，$T_3=3$，$T_4=5$，则 $n=17$。
+
+\subsubsection{例：三个个体的缺失模式}
+
+\begin{center}
+\small
+\begin{tabular}{cc|c}
+\toprule
+$i$ & $t$ & 状态\\
+\midrule
+1 & 1 & 观测\\
+1 & 2 & 观测\\
+1 & 3 & \textbf{缺失}\\
+2 & 1 & 观测\\
+2 & 2 & 观测\\
+2 & 3 & 观测\\
+3 & 1 & \textbf{缺失}\\
+3 & 2 & 观测\\
+3 & 3 & 观测\\
+\bottomrule
+\end{tabular}
+\end{center}
+此例 $T=3$，$S_1=\{1,2\}$，$S_2=\{1,2,3\}$，$S_3=\{2,3\}$，故 $T_1=2$，$T_2=3$，$T_3=2$，$n=7$。
+
+\subsubsection{非平衡是常态}
+
+企业上市或退市、调查对象失访、数据缺漏，都会造成非平衡面板。非平衡本身不是问题；问题在于\key{为什么}缺失。
+
+\subsection{非平衡面板中的 WG 估计}
+
+\subsubsection{个体均值与去均值矩阵按各自的 \texorpdfstring{$T_i$}{T\_i} 计算}
+
+\[
+\bar y_{i\cdot}=\frac1{T_i}\sum_{t\in S_i}y_{it},\qquad \dot y_{it}=y_{it}-\bar y_{i\cdot},\qquad
+M_i=I_{T_i}-\frac1{T_i}\one_{T_i}\one_{T_i}\T\quad(T_i\times T_i).
+\]
+$M_iY_i$ 的第 $t$ 个元素就是 $\dot y_{it}$。
+
+\subsubsection{\texorpdfstring{$M_i\one_{T_i}=0$}{M\_i 1 = 0}：\texorpdfstring{$\alpha_i$}{alpha\_i} 仍被精确消去}
+
+\begin{align*}
+M_i\one_{T_i} &= \one_{T_i}-\frac1{T_i}\one_{T_i}(\one_{T_i}\T\one_{T_i}) \why{$M_i$ 的定义}\\
+&= \one_{T_i}-\frac{T_i}{T_i}\one_{T_i}=0 \why{$\one_{T_i}\T\one_{T_i}=T_i$}
+\end{align*}
+于是对 $Y_i=\alpha_i\one_{T_i}+X_i\beta+U_i$ 左乘 $M_i$：
+\begin{align*}
+M_iY_i &= \alpha_iM_i\one_{T_i}+M_iX_i\beta+M_iU_i \why{左乘 $M_i$}\\
+&= M_iX_i\beta+M_iU_i \why{$M_i\one_{T_i}=0$}
+\end{align*}
+平衡性没有被用到：每个个体用自己的均值去均值即可。
+
+\subsubsection{WG 估计量公式；LSDV = WG 仍成立}
+
+\begin{equation}\label{eq:U11b-wgunbal}
+\hat\beta_{FE}=\Bigl(\sum_{i=1}^NX_i\T M_iX_i\Bigr)\inv\Bigl(\sum_{i=1}^NX_i\T M_iY_i\Bigr)=\Bigl(\sum_i\sum_{t\in S_i}\dot x_{it}\dot x_{it}\T\Bigr)\inv\sum_i\sum_{t\in S_i}\dot x_{it}\dot y_{it}.
+\end{equation}
+LSDV = WG 的 FWL 证明也不依赖平衡性：个体虚拟变量矩阵为分块对角的 $D=\diag(\one_{T_1},\dots,\one_{T_N})$（$n\times N$），
+\begin{align*}
+P_D &= D(D\T D)\inv D\T=\diag\Bigl(\tfrac1{T_1}\one_{T_1}\one_{T_1}\T,\dots,\tfrac1{T_N}\one_{T_N}\one_{T_N}\T\Bigr) \why{$D\T D=\diag(T_1,\dots,T_N)$}\\
+M_D &= I_n-P_D=\diag(M_1,\dots,M_N) \why{逐块相减}
+\end{align*}
+由 FWL，LSDV 中 $\beta$ 的估计为 $(X\T M_DX)\inv X\T M_DY$，即 \eqref{eq:U11b-wgunbal}。
+
+\subsubsection{只观测一期或 \texorpdfstring{$x$}{x} 在个体内不变的个体对 \texorpdfstring{$\hat\beta$}{beta-hat} 没有贡献}
+
+若 $T_i=1$，则 $\bar x_{i\cdot}=x_{it}$，$\dot x_{it}=0$；若 $x_{it}$ 在个体 $i$ 的各期都相同，同样 $\dot x_{it}\equiv0$。这两类个体在 \eqref{eq:U11b-wgunbal} 的分子、分母中都贡献 $0$。WG 只利用个体内的时间变异。
+
+\subsubsection{例：手算非平衡面板的 WG}
+
+\begin{exmp}[非平衡面板的 WG]\label{ex:U11b-unbal}
+个体 1（$t=1,2$）：$x=(1,3)$，$y=(2,6)$；个体 2（$t=1,2,3$）：$x=(2,4,6)$，$y=(3,5,10)$；个体 3（$t=2,3$）：$x=(5,5)$，$y=(7,9)$。求 $\hat\beta_{FE}$。
+
+\solution 按各自的 $T_i$ 去均值：
+\begin{center}
+\begin{tabular}{cccccccc}
+\toprule
+个体 & $T_i$ & $\bar x_{i\cdot}$ & $\bar y_{i\cdot}$ & $\dot x_{it}$ & $\dot y_{it}$ & $\sum_t\dot x_{it}^2$ & $\sum_t\dot x_{it}\dot y_{it}$\\
+\midrule
+1 & 2 & 2 & 4 & $(-1,1)$ & $(-2,2)$ & 2 & 4\\
+2 & 3 & 4 & 6 & $(-2,0,2)$ & $(-3,-1,4)$ & 8 & 14\\
+3 & 2 & 5 & 8 & $(0,0)$ & $(-1,1)$ & 0 & 0\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{align*}
+\textstyle\sum\dot x^2 &= 2+8+0=10 \why{三个体相加}\\
+\textstyle\sum\dot x\dot y &= 4+14+0=18 \why{三个体相加}\\
+\hat\beta_{FE} &= 18/10=1.8 \why{式 \eqref{eq:U11b-wgunbal}}
+\end{align*}
+个体 3 的 $x$ 不变，对估计毫无贡献。
+\end{exmp}
+
+\subsection{缺失随机时 WG 仍一致}
+
+\subsubsection{选择指示变量 \texorpdfstring{$s_{it}$}{s\_it}：把非平衡面板看成“缺了数”的平衡面板}
+
+Hansen §17.21 的做法：设想一个潜在的平衡面板 $Y_i=(y_{i1},\dots,y_{iT})\T$、$X_i$（$T\times K$），再用\term{选择指示变量}{selection indicator} $s_{it}=1$（第 $t$ 期被观测）或 $0$（缺失）描述缺失机制，$s_i=(s_{i1},\dots,s_{iT})\T$。记 $S_i=\diag(s_i)$，组内算子可写成 $T\times T$ 的
+\[
+M_i=S_i-s_i(s_i\T s_i)\inv s_i\T ,
+\]
+它把缺失时期对应的行全部置零，其余部分就是上面的 $I_{T_i}-\frac1{T_i}\one\one\T$。关键在于：$M_i$ 是 $s_i$ 的函数，$\dot X_i=M_iX_i$ 依赖于 $(X_i,s_i)$。
+
+\subsubsection{随机缺失（MAR）：\texorpdfstring{$s_i$}{s\_i} 与 \texorpdfstring{$(Y_i,X_i)$}{(Y\_i, X\_i)} 独立}
+
+\begin{defn}[随机缺失]\label{def:U11b-mar}
+若选择向量 $s_i$ 与 $(Y_i,X_i)$ 独立，称为\term{随机缺失}{missing at random, MAR}。例如调查按批次轮换样本，个体分“波次”进入与退出。
+\end{defn}
+用语提示：这是 Hansen 的用法。统计学文献中“缺失与数据完全无关”更严格地称为\term{完全随机缺失}{missing completely at random, MCAR}，而统计学中的 MAR 指缺失只依赖于已观测到的数据。考试中按本书（Hansen）的用法作答即可。MAR 下 FE / WG 仍然一致地估计 $\beta$。
+
+\subsubsection{一般条件：\texorpdfstring{$\E(u_{it}\mid X_i,s_i)=0$}{E(u | X, s) = 0}}
+
+MAR 其实比需要的强。Hansen 的定理 17.3 只要求选择不影响特异误差的条件均值。
+
+\begin{thm}[非平衡面板中 WG 的一致性与渐近正态（Hansen 定理 17.3）]\label{thm:U11b-unbal}
+设 $(U_i,X_i,s_i)$ 跨 $i$ 独立同分布，$T_i\ge2$，
+\[
+\E(u_{it}\mid X_i,s_i)=0,\qquad t=1,\dots,T,
+\]
+且 $Q=\E(\dot X_i\T\dot X_i)>0$，四阶矩有限。则 $N\to\infty$ 时 $\hat\beta_{FE}\pto\beta$，且
+\[
+\sqrt N(\hat\beta_{FE}-\beta)\dto N\bigl(0,\;Q\inv\Omega Q\inv\bigr),\qquad \Omega=\E\bigl(\dot X_i\T U_iU_i\T\dot X_i\bigr).
+\]
+按个体聚类的方差估计照常适用。
+\end{thm}
+
+一致性的关键一步：估计误差为 $\hat\beta_{FE}-\beta=\bigl(\frac1N\sum_i\dot X_i\T\dot X_i\bigr)\inv\frac1N\sum_i\dot X_i\T U_i$，而
+\begin{align*}
+\E\bigl(\dot X_i\T U_i\bigr) &= \E\bigl(X_i\T M_iU_i\bigr) \why{$\dot X_i=M_iX_i$，$M_i$ 对称}\\
+&= \E\bigl[X_i\T M_i\,\E(U_i\mid X_i,s_i)\bigr] \why{迭代期望；$M_i$ 是 $s_i$ 的函数}\\
+&= 0 \why{$\E(u_{it}\mid X_i,s_i)=0$}
+\end{align*}
+再由 WLLN 与 CMT 即得 $\hat\beta_{FE}\pto\beta$。这里的 $U_i$ 是潜在的 $T$ 维误差向量，缺失时期对应的行已被 $M_i$ 置零。
+
+\subsubsection{允许缺失与 \texorpdfstring{$\alpha_i$}{alpha\_i} 相关：FE 相对 RE 的又一优势}
+
+条件 $\E(u_{it}\mid X_i,s_i)=0$ 只涉及特异误差 $u_{it}$，\key{允许缺失与 $\alpha_i$ 相关}（例如能力低的人更容易失访），也不限制 $s_i$ 与 $X_i$ 的关系。原因是 $\alpha_i$ 本来就会被组内变换消去。RE 则要求留存样本中 $\alpha_i$ 仍与 $X_i$ 无关，对这类样本流失不稳健（见本节末的练习）。
+
+\subsection{带选择的缺失：截断与样本选择偏误}
+
+\subsubsection{图示：由选择产生的非平衡面板就是截断}
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth,font=\small]
+\fill[gray!25] (-4,0.05) rectangle (0,0.35);
+\draw[->] (-4.3,0) -- (4.5,0) node[right] {$y_{it}^*$（或 $u_{it}$）};
+\draw[thick] (0,-0.4) -- (0,1.6) node[above] {截断点 $c$};
+\draw[->] (-0.3,0.75) -- (-3.6,0.75);
+\node[above] at (-1.95,0.8) {missing（$s_{it}=0$）};
+\draw[decorate,decoration={brace,amplitude=6pt}] (0.3,0.6) -- (4.1,0.6);
+\node[above] at (2.2,0.85) {observed（$s_{it}=1$）};
+\end{tikzpicture}
+\end{center}
+是否被观测由一条“截断线”决定：潜变量（或误差）低于 $c$ 的观测缺失，高于 $c$ 的被观测。由选择产生的非平衡面板，本质上就是对分布的\term{截断}{truncation}。
+
+\subsubsection{选择依赖特异误差时 \texorpdfstring{$\E(u_{it}\mid X_i,s_{it}=1)\neq0$}{E(u | X, s=1) != 0}}
+
+以企业退出为例：企业只在利润潜变量 $y_{it}^*=\alpha_i+x_{it}\T\beta+u_{it}\ge c$ 时留在样本中，$s_{it}=\mathbf{1}\{y_{it}^*\ge c\}$。设 $u_{it}$ 与 $(X_i,\alpha_i)$ 独立，则留存样本中
+\begin{align*}
+\E(u_{it}\mid X_i,\alpha_i,s_{it}=1) &= \E\bigl(u_{it}\mid X_i,\alpha_i,\,u_{it}\ge c-\alpha_i-x_{it}\T\beta\bigr) \why{$s_{it}$ 的定义}\\
+&= \lambda\bigl(c-\alpha_i-x_{it}\T\beta\bigr) \why{$u$ 与 $(X,\alpha)$ 独立}
+\end{align*}
+其中 $\lambda(a)=\E(u\mid u\ge a)$ 是 $a$ 的增函数。这一项随 $x_{it}$ 变化（$x_{it}\T\beta$ 越大，门槛越低，留存者的 $u_{it}$ 越不需要偏高），因而随 $t$ 变化，组内变换消不掉它，并且与 $\dot x_{it}$ 相关。于是 $\E(u_{it}\mid X_i,s_i)\neq0$，WG 与 RE 都产生\term{样本选择偏误}{sample selection bias}。
+
+\subsubsection{典型情形}
+
+\begin{itemize}
+  \item 工资只对就业者观测：工资高于保留工资的人才工作。
+  \item 企业在负向生产率冲击后退出样本。
+  \item 收入高于某阈值的人拒答收入问题。
+\end{itemize}
+
+\subsubsection{处理：样本选择模型（拓展）}
+
+需要对选择机制建模，例如 Heckman 型两步法等样本选择模型。这超出本书范围，考试中能说清问题的性质即可。
+
+\subsubsection{考试中的标准表述}
+
+\begin{keypt}[缺失机制与 FE 的一致性]
+“If the missingness is random (MAR), FE remains consistent; if it is driven by selection related to the idiosyncratic errors, the unbalanced panel becomes a truncation/sample-selection problem and FE is inconsistent.”
+\end{keypt}
+
+\subsection{非平衡对 RE 与 TWFE 的影响}
+
+\subsubsection{RE：\texorpdfstring{$\Omega_i$}{Omega\_i} 与准去均值参数 \texorpdfstring{$\theta_i$}{theta\_i} 随 \texorpdfstring{$T_i$}{T\_i} 变}
+
+非平衡时复合误差的协方差矩阵 $\Omega_i=\sigma_\alpha^2\one_{T_i}\one_{T_i}\T+\sigma_u^2I_{T_i}$ 的维数随 $i$ 变。记 $P_i=\frac1{T_i}\one_{T_i}\one_{T_i}\T$，$M_i=I_{T_i}-P_i$：
+\begin{align*}
+\Omega_i &= \sigma_\alpha^2T_iP_i+\sigma_u^2(M_i+P_i) \why{$\one\one\T=T_iP_i$，$I=M_i+P_i$}\\
+&= \sigma_u^2M_i+(\sigma_u^2+T_i\sigma_\alpha^2)P_i \why{合并 $P_i$ 项}\\
+\Omega_i^{-1/2} &= \sigma_u\inv M_i+(\sigma_u^2+T_i\sigma_\alpha^2)^{-1/2}P_i \why{$M_i,P_i$ 正交幂等}\\
+&= \sigma_u\inv\bigl(I_{T_i}-\theta_iP_i\bigr) \why{$M_i=I-P_i$，提出 $\sigma_u\inv$}
+\end{align*}
+其中
+\[
+\theta_i=1-\sqrt{\frac{\sigma_u^2}{\sigma_u^2+T_i\sigma_\alpha^2}}
+\]
+（Hansen §17.15）。准去均值 $y_{it}-\theta_i\bar y_{i\cdot}$ 的力度因人而异：观测期越多的个体，$\theta_i$ 越接近 1，越接近完全去均值。
+
+\subsubsection{TWFE：简单双向去均值失效，改用个体效应 + 时间虚拟变量}
+
+非平衡时 $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$ 不再精确消去 $\alpha_i$ 与 $\lambda_t$，必须用“个体效应 + 时间虚拟变量”（第 10 章非平衡面板一节）。
+
+\subsection{练习：缺失机制的分类}
+
+\begin{prac}[缺失机制的分类]\label{pr:U11b-miss}
+判断以下情形下 FE（WG）是否一致，并说明理由：(1) 调查按随机批次轮换样本；(2) 企业在遭受负向生产率冲击 $u_{it}$ 后退出样本；(3) 能力 $\alpha_i$ 低的个体更容易失访，失访与 $u_{it}$ 无关。情形 (3) 中 RE 是否一致？
+
+\answer (1) MAR：缺失与 $(Y_i,X_i)$ 无关，FE 一致。
+
+(2) 选择依赖特异误差：留在样本中的企业 $u_{it}$ 偏大，$\E(u_{it}\mid X_i,s_i)\neq0$，属于截断/样本选择问题，FE 不一致。
+
+(3) 选择只依赖 $\alpha_i$：$\E(u_{it}\mid X_i,s_i)=0$ 仍成立，$\alpha_i$ 被组内变换消去，FE 一致。
+
+RE 需要留存样本中 $\E(\alpha_i\mid X_i,s_i)$ 为常数。若总体中 $\alpha_i$ 与 $X_i$ 独立、且失访只取决于 $\alpha_i$（与 $X_i$ 无关），则留存样本中 $\alpha_i$ 的均值虽然改变（可被截距吸收），但仍与 $X_i$ 无关，RE 的斜率一般仍一致。但只要 $x_{it}$ 也影响失访（例如低能力且低投资的企业更易退出），留存样本中 $\alpha_i$ 就会与 $x_{it}$ 相关，RE 不一致，而 FE 依然一致。这是 FE 对“与 $\alpha_i$ 有关的样本流失”更稳健的原因。
+\end{prac}
+
+\begin{english}
+In an unbalanced panel each individual is observed for $T_i$ periods. The within estimator is computed with individual-specific means over the observed periods and still eliminates $\alpha_i$; the LSDV and within estimators remain identical. It remains consistent if observations are missing at random, or more generally if $E(u_{it}\mid X_i,s_i)=0$, which allows selection to depend on $\alpha_i$. If missingness depends on the idiosyncratic errors (selection on unobservables), the observed sample is truncated and FE is inconsistent; a sample-selection model is required. For RE, the quasi-demeaning parameter $\theta_i=1-\sqrt{\sigma_u^2/(\sigma_u^2+T_i\sigma_\alpha^2)}$ varies across individuals, and two-way effects should be handled with unit effects plus time dummies.
+\end{english}
+
+\section{面板二元选择模型}\label{sec:U11b-binary}
+
+截面二元选择模型（logit、probit）用 MLE 估计（MLE 的一般理论见第 4 章）。把它搬到面板上并加入固定效应后，线性模型中“组内变换消去 $\alpha_i$”的办法失灵，这个问题至今没有一般的好解法。本节说明原因，并介绍 logit 情形下的特殊解法。
+
+\subsection{模型：含个体效应的潜变量设定}
+
+\subsubsection{从截面二元选择到面板二元选择}
+
+截面模型 $y_i=\mathbf{1}\{x_i\T\beta+u_i>0\}$；面板模型在潜变量中加入个体效应：
+\[
+y_{it}=\mathbf{1}\{\alpha_i+x_{it}\T\beta+u_{it}>0\}.
+\]
+若 $\alpha_i$ 可与 $x_{it}$ 相关（FE 模型），就面临本节的困难。这一问题由 Chamberlain 等人研究了几十年。
+
+\subsubsection{定义：含固定效应的面板 logit 与 probit}
+
+\begin{defn}[含固定效应的面板二元选择模型]\label{def:U11b-binary}
+\[
+y_{it}=\mathbf{1}\{y_{it}^*>0\},\qquad y_{it}^*=\alpha_i+x_{it}\T\beta+u_{it},\qquad P(y_{it}=1\mid x_{it},\alpha_i)=F(\alpha_i+x_{it}\T\beta),
+\]
+$F$ 为 $u_{it}$ 的分布函数（关于 0 对称）：$F=\Lambda$，$\Lambda(v)=e^v/(1+e^v)$ 时为\term{面板 logit}{panel logit}；$F=\Phi$（标准正态）时为\term{面板 probit}{panel probit}。通常还假设给定 $(x_{i1},\dots,x_{iT},\alpha_i)$ 时各期 $u_{it}$ 独立。
+\end{defn}
+概率表达式的来源：
+\begin{align*}
+P(y_{it}=1\mid x_{it},\alpha_i) &= P\bigl(u_{it}>-(\alpha_i+x_{it}\T\beta)\bigr) \why{$y_{it}^*>0$}\\
+&= 1-F\bigl(-(\alpha_i+x_{it}\T\beta)\bigr)=F(\alpha_i+x_{it}\T\beta) \why{$F$ 关于 0 对称}
+\end{align*}
+
+\subsection{为什么固定效应面板二元选择“没有好的解法”}
+
+\subsubsection{原因一：非线性使 \texorpdfstring{$\alpha_i$}{alpha\_i} 无法被差分掉}
+
+线性模型中条件均值对 $\alpha_i$ 是可加的，组内变换把它精确消去：
+\begin{align*}
+\E(y_{it}-\bar y_{i\cdot}\mid X_i,\alpha_i) &= (\alpha_i+x_{it}\T\beta)-(\alpha_i+\bar x_{i\cdot}\T\beta) \why{线性模型}\\
+&= \dot x_{it}\T\beta \why{$\alpha_i$ 相减为零}
+\end{align*}
+二元选择模型中条件均值是非线性的：
+\begin{align*}
+\E(y_{it}-\bar y_{i\cdot}\mid X_i,\alpha_i) &= F(\alpha_i+x_{it}\T\beta)-\frac1T\sum_{s=1}^TF(\alpha_i+x_{is}\T\beta) \why{$\E(y_{it}\mid\cdot)=F(\cdot)$}
+\end{align*}
+除非 $F$ 是线性函数，右边仍含 $\alpha_i$。差分 $y_{it}-y_{i,t-1}=\mathbf{1}\{y_{it}^*>0\}-\mathbf{1}\{y_{i,t-1}^*>0\}$ 同样消不掉 $\alpha_i$（Hansen §25.13）。不存在一般的变换能消去它。
+
+\subsubsection{原因二：把 \texorpdfstring{$\alpha_i$}{alpha\_i} 当参数做 MLE 遭遇伴随参数问题}
+
+把 $\alpha_1,\dots,\alpha_N$ 当作参数与 $\beta$ 一起做 MLE（logit 的“虚拟变量”做法），一阶条件为
+\begin{align*}
+\frac{\partial\ell}{\partial\alpha_i} &= \sum_{t=1}^T\bigl[y_{it}-\Lambda(\alpha_i+x_{it}\T\beta)\bigr]=0,\qquad i=1,\dots,N,\\
+\frac{\partial\ell}{\partial\beta} &= \sum_{i=1}^N\sum_{t=1}^Tx_{it}\bigl[y_{it}-\Lambda(\alpha_i+x_{it}\T\beta)\bigr]=0 .
+\end{align*}
+$T$ 固定时每个 $\alpha_i$ 只有 $T$ 个观测，$\hat\alpha_i$ 不一致（第 10 章伴随参数问题）。线性模型中这不要紧：$\hat\beta-\beta=(X\T M_DX)\inv X\T M_DU$ 与 $\alpha$ 无关。非线性模型中 $\hat\alpha_i$ 以非线性方式进入 $\beta$ 的一阶条件，两组方程纠缠在一起，$\hat\alpha_i$ 的误差“传染”给 $\hat\beta$，其影响不会随 $N\to\infty$ 平均掉，\key{$\hat\beta_{MLE}$ 也不一致}。经典结果：$T=2$ 的固定效应 logit 中，联合 MLE 的概率极限为 $2\beta$（证明见下文条件 logit 一小节）。
+
+\subsubsection{原因三：RE 方法需要 \texorpdfstring{$\alpha_i$}{alpha\_i} 与 \texorpdfstring{$x_{it}$}{x\_it} 独立}
+
+RE probit/logit 把 $\alpha_i$ 当作误差并对它积分，需要 $\alpha_i$ 与 $x_{it}$ 独立，并设定 $\alpha_i$ 的分布。FE 模型下这些假设不成立，RE 估计不一致。
+
+\subsubsection{结论与文献：只在 logit 下有满意的答案}
+
+三条路都走不通，所以说固定效应面板二元选择“没有好的解法”。只有特殊情形（logit）有令人满意的答案：Chamberlain (1980, \emph{Review of Economic Studies}) 提出条件 logit；Chamberlain (2010, \emph{Econometrica}) 研究二元面板模型的识别与信息，结论大意是：$T=2$ 时除 logit 外，一般无法以 $\sqrt N$ 速度一致估计 $\beta$。
+
+\subsection{Chamberlain 条件 logit（拓展）}
+
+\subsubsection{思路：\texorpdfstring{$\sum_ty_{it}$}{sum\_t y\_it} 是 \texorpdfstring{$\alpha_i$}{alpha\_i} 的充分统计量}
+
+logit 中 $n_i=\sum_ty_{it}$ 是 $\alpha_i$ 的\term{充分统计量}{sufficient statistic}：以它为条件，似然中 $\alpha_i$ 消失。记 $y=(y_1,\dots,y_T)$ 为一个 0/1 序列，各期条件独立：
+\begin{align*}
+P(Y_i=y\mid X_i,\alpha_i) &= \prod_{t=1}^T\Lambda_t^{y_t}(1-\Lambda_t)^{1-y_t} \why{各期条件独立}\\
+&= \prod_{t=1}^T\frac{e^{y_t(\alpha_i+x_{it}\T\beta)}}{1+e^{\alpha_i+x_{it}\T\beta}} \why{$\Lambda=\frac{e^v}{1+e^v}$，$1-\Lambda=\frac1{1+e^v}$}\\
+&= \frac{e^{\alpha_i\sum_ty_t}\,e^{\sum_ty_tx_{it}\T\beta}}{\prod_t\bigl(1+e^{\alpha_i+x_{it}\T\beta}\bigr)} \why{指数相加}
+\end{align*}
+其中 $\Lambda_t=\Lambda(\alpha_i+x_{it}\T\beta)$。记 $B_i$ 为所有满足 $\sum_td_t=n_i$ 的 0/1 序列 $d$ 的集合。对 $y\in B_i$：
+\begin{align*}
+P(Y_i=y\mid n_i,X_i,\alpha_i) &= \frac{P(Y_i=y\mid X_i,\alpha_i)}{\sum_{d\in B_i}P(Y_i=d\mid X_i,\alpha_i)} \why{条件概率定义}\\
+&= \frac{e^{\sum_ty_tx_{it}\T\beta}}{\sum_{d\in B_i}e^{\sum_td_tx_{it}\T\beta}} \why{$e^{\alpha_in_i}$ 与分母乘积约掉}
+\end{align*}
+条件似然不含 $\alpha_i$。
+
+\subsubsection{\texorpdfstring{$T=2$}{T=2} 的推导：\texorpdfstring{$\alpha_i$}{alpha\_i} 在概率之比中约掉}
+
+以 $T=2$ 为例，利用 $\Lambda/(1-\Lambda)=e^v$：
+\begin{align*}
+\frac{P(y_{i1}=1,y_{i2}=0)}{P(y_{i1}=0,y_{i2}=1)} &= \frac{\Lambda_1(1-\Lambda_2)}{(1-\Lambda_1)\Lambda_2} \why{两期条件独立}\\
+&= \frac{\Lambda_1/(1-\Lambda_1)}{\Lambda_2/(1-\Lambda_2)}=\frac{e^{\alpha_i+x_{i1}\T\beta}}{e^{\alpha_i+x_{i2}\T\beta}} \why{$\Lambda/(1-\Lambda)=e^v$}\\
+&= e^{-(x_{i2}-x_{i1})\T\beta} \why{$\alpha_i$ 约掉}
+\end{align*}
+条件于 $y_{i1}+y_{i2}=1$，只有 $(1,0)$、$(0,1)$ 两种结果。记 $\Delta x_i=x_{i2}-x_{i1}$：
+\begin{align*}
+P(y_{i2}=1\mid y_{i1}+y_{i2}=1) &= \frac{P(0,1)}{P(0,1)+P(1,0)} \why{条件概率定义}\\
+&= \frac1{1+P(1,0)/P(0,1)} \why{分子分母同除 $P(0,1)$}\\
+&= \frac1{1+e^{-\Delta x_i\T\beta}}=\Lambda(\Delta x_i\T\beta) \why{代入上式}
+\end{align*}
+
+\subsubsection{只有“切换者”提供信息：条件对数似然}
+
+$y_{i1}=y_{i2}$ 的个体（全 0 或全 1）条件概率恒为 1，对 $\beta$ 不提供信息。只用 $y_{i1}+y_{i2}=1$（“状态发生了切换”）的个体，条件对数似然为
+\begin{equation}\label{eq:U11b-clogit}
+\ell^C(\beta)=\sum_{i=1}^N\mathbf{1}\{y_{i1}+y_{i2}=1\}\Bigl[y_{i2}\log\Lambda(\Delta x_i\T\beta)+y_{i1}\log\bigl(1-\Lambda(\Delta x_i\T\beta)\bigr)\Bigr].
+\end{equation}
+即在切换者中把 $y_{i2}$ 对 $\Delta x_i$ 做普通 logit（不含截距），就能一致估计 $\beta$。要求切换者的 $x$ 随时间变化；时不变回归元的系数不可识别。
+
+\subsubsection{代价：不能估计 \texorpdfstring{$\alpha_i$}{alpha\_i} 与边际效应；probit 不适用}
+
+\begin{enumerate}
+  \item[(i)] 无法估计 $\alpha_i$，因而无法计算边际效应 $\partial P/\partial x=\beta\Lambda(1-\Lambda)$，它依赖 $\alpha_i$。$\beta$ 的符号、各系数之比以及对数几率 $\log[P/(1-P)]=\alpha_i+x_{it}\T\beta$ 对 $x$ 的导数 $\beta$ 不依赖 $\alpha_i$，仍可解释。
+  \item[(ii)] probit 没有这样的充分统计量，此技巧不适用。
+\end{enumerate}
+
+\subsubsection{Stata 实现}
+
+\begin{lstlisting}
+xtset id year
+xtlogit y x, fe              // Chamberlain conditional (fixed effects) logit
+clogit  y x, group(id)       // same estimator
+\end{lstlisting}
+
+\subsubsection{\texorpdfstring{$T=2$}{T=2} 时联合 MLE 恰为条件 MLE 的 2 倍}
+
+要证：把 $\alpha_i$ 当参数的联合 MLE 满足 $\hat\beta_{MLE}=2\hat\beta_C$（$\hat\beta_C$ 为 \eqref{eq:U11b-clogit} 的最大化者），从而 $\hat\beta_{MLE}\pto2\beta$。思路：先对每个 $\alpha_i$ 求最大化，得到 $\beta$ 的轮廓似然，再与条件似然比较。
+
+非切换者（$y_{i1}=y_{i2}$）：$\hat\alpha_i=\mp\infty$，似然贡献趋于 1，与 $\beta$ 无关。切换者（$y_{i1}+y_{i2}=1$）的 $\alpha_i$ 一阶条件：
+\begin{align*}
+0 &= [y_{i1}-\Lambda(\alpha_i+x_{i1}\T\beta)]+[y_{i2}-\Lambda(\alpha_i+x_{i2}\T\beta)] \why{$\partial\ell/\partial\alpha_i=0$}\\
+\Rightarrow\ 1 &= \Lambda(\alpha_i+x_{i1}\T\beta)+\Lambda(\alpha_i+x_{i2}\T\beta) \why{$y_{i1}+y_{i2}=1$}\\
+\Rightarrow\ \alpha_i+x_{i1}\T\beta &= -(\alpha_i+x_{i2}\T\beta) \why{$1-\Lambda(v)=\Lambda(-v)$，$\Lambda$ 严格增}\\
+\Rightarrow\ \hat\alpha_i(\beta) &= -\tfrac12(x_{i1}+x_{i2})\T\beta \why{解出 $\alpha_i$}
+\end{align*}
+代回：$\hat\alpha_i(\beta)+x_{i2}\T\beta=\frac12\Delta x_i\T\beta$，$\hat\alpha_i(\beta)+x_{i1}\T\beta=-\frac12\Delta x_i\T\beta$。切换者 $(0,1)$ 的轮廓对数似然：
+\begin{align*}
+\log\bigl[1-\Lambda(-\tfrac12\Delta x_i\T\beta)\bigr]+\log\Lambda(\tfrac12\Delta x_i\T\beta) &= 2\log\Lambda(\tfrac12\Delta x_i\T\beta) \why{$1-\Lambda(-v)=\Lambda(v)$}
+\end{align*}
+同理 $(1,0)$ 的为 $2\log\bigl[1-\Lambda(\frac12\Delta x_i\T\beta)\bigr]$。与 \eqref{eq:U11b-clogit} 比较：
+\begin{align*}
+\ell^P(\beta) &= 2\sum_i\mathbf{1}\{y_{i1}+y_{i2}=1\}\Bigl[y_{i2}\log\Lambda(\tfrac12\Delta x_i\T\beta)+y_{i1}\log\bigl(1-\Lambda(\tfrac12\Delta x_i\T\beta)\bigr)\Bigr] \why{两类切换者相加}\\
+&= 2\,\ell^C(\beta/2) \why{对照 \eqref{eq:U11b-clogit}}
+\end{align*}
+所以 $\ell^P$ 在 $\beta/2=\hat\beta_C$ 处取最大，$\hat\beta_{MLE}=2\hat\beta_C\pto2\beta$。这说明伴随参数问题造成的偏误可以非常大（100\%）。
+
+\subsubsection{练习：非切换者的贡献与时不变变量}
+
+\begin{prac}[条件 logit 的两个性质]\label{pr:U11b-clogit}
+在 $T=2$ 的条件 logit 中，(a) 证明 $y_{i1}=y_{i2}=0$ 与 $y_{i1}=y_{i2}=1$ 的个体对条件似然的贡献为 1（不含 $\beta$）；(b) 若某变量 $x$ 不随时间变化，其系数能否由条件 logit 估计？
+
+\answer (a) 条件于 $y_{i1}+y_{i2}=0$，唯一可能的结果是 $(0,0)$，条件概率 $=1$；条件于和为 2 同理只有 $(1,1)$。贡献恒为 1（对数似然贡献为 0），与 $\beta$ 无关，这些个体被自动剔除。
+
+(b) 不能。条件概率只依赖 $x_{i2}-x_{i1}$，时不变变量差分后为 0，其系数与 $\alpha_i$ 一样被“条件掉”，与线性 FE 中时不变变量不可识别同理。
+\end{prac}
+
+\subsection{其他做法（拓展）}
+
+\subsubsection{随机效应 probit/logit：对 \texorpdfstring{$\alpha_i$}{alpha\_i} 积分}
+
+假设 $\alpha_i\sim N(0,\sigma_\alpha^2)$ 且与 $x_{it}$ 独立，对 $\alpha_i$ 积分得个体 $i$ 的似然（probit 情形）：
+\[
+L_i(\beta,\sigma_\alpha)=\int\prod_{t=1}^T\Phi(a+x_{it}\T\beta)^{y_{it}}\bigl[1-\Phi(a+x_{it}\T\beta)\bigr]^{1-y_{it}}\,\frac1{\sigma_\alpha}\phi\Bigl(\frac a{\sigma_\alpha}\Bigr)\,\dd a .
+\]
+Stata：\texttt{xtprobit y x, re}；\texttt{xtlogit y x, re}。
+
+\subsubsection{相关随机效应（CRE）probit：Mundlak--Chamberlain 设定}
+
+用 Mundlak--Chamberlain 设定 $\alpha_i=\bar x_{i\cdot}\T\pi+a_i$，$a_i$ 与 $x$ 独立（如 $a_i\mid X_i\sim N(0,\sigma_a^2)$），把 $\bar x_{i\cdot}$ 作为额外回归元再做 RE probit（见下一节）：\texttt{xtprobit y x xbar, re}。它允许 $\alpha_i$ 通过 $\bar x_{i\cdot}$ 与 $x_{it}$ 相关。
+
+\subsubsection{线性概率模型 + FE}
+
+直接对 $y_{it}\in\{0,1\}$ 用 WG（\texttt{xtreg y x, fe vce(cluster id)}），估计平均边际效应的线性近似。应用研究中常用，但拟合概率可能越出 $[0,1]$。
+
+参见 Hansen §25.13。
+
+\begin{english}
+In the fixed effects panel binary choice model $y_{it}=\mathbf{1}(\alpha_i+x_{it}'\beta+u_{it}>0)$, the individual effects cannot be removed by differencing because the model is nonlinear. Treating $\alpha_i$ as parameters in maximum likelihood leads to the incidental parameter problem: with $T$ fixed, the estimates of $\alpha_i$ are inconsistent and, unlike in the linear model, this contaminates the estimate of $\beta$; with $T=2$ the logit MLE converges to $2\beta$. Random effects methods require $\alpha_i$ to be independent of the regressors. Hence there is no general satisfactory solution. An exception is the conditional logit estimator of Chamberlain (1980), which conditions on the sufficient statistic $\sum_t y_{it}$ to eliminate $\alpha_i$; only individuals who switch status contribute, and marginal effects cannot be computed because they depend on $\alpha_i$.
+\end{english}
+
+\section{Mundlak 设定与相关随机效应（拓展）}\label{sec:U11b-mundlak}
+
+RE 假设 $\E(\alpha_i\mid X_i)=0$ 太强，FE 又完全不对 $\alpha_i$ 建模。Mundlak (1978, \emph{Econometrica}) 取中间路线：用个体均值刻画 $\alpha_i$ 与回归元的相关。本节证明这条路线给出与 WG 完全相同的 $\hat\beta$，并由此得到一个稳健的回归形式 Hausman 检验。
+
+\subsection{Mundlak (1978) 设定}
+
+\subsubsection{用个体均值刻画 \texorpdfstring{$\alpha_i$}{alpha\_i} 与回归元的相关}
+
+设
+\[
+\alpha_i=\bar x_{i\cdot}\T\pi+a_i,\qquad \E(a_i\mid X_i)=0,
+\]
+其中 $\bar x_{i\cdot}=\frac1T\sum_tx_{it}$（$K\times1$），$\pi$ 为 $K\times1$ 参数。$\alpha_i$ 与 $X_i$ 的相关全部通过 $\bar x_{i\cdot}$ 传递，剩余部分 $a_i$ 满足 RE 式的外生性。
+
+\subsubsection{定义：相关随机效应（CRE）模型}
+
+\begin{defn}[相关随机效应模型]\label{def:U11b-cre}
+把 Mundlak 设定代入 $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$，得\term{相关随机效应模型}{correlated random effects (CRE) model}：
+\[
+y_{it}=\mu+x_{it}\T\beta+\bar x_{i\cdot}\T\pi+a_i+u_{it},
+\]
+复合误差 $a_i+u_{it}$ 具有 RE 结构（$\mu$ 吸收 $a_i$ 的均值）。对它做混合 OLS 或 RE-GLS 的回归称为\term{Mundlak 回归}{Mundlak regression}。
+\end{defn}
+
+\subsubsection{\texorpdfstring{$\pi=0$}{pi = 0} 时回到 RE；\texorpdfstring{$\pi\neq0$}{pi != 0} 是 FE 模型的一种参数化}
+
+$\pi=0$ 时 $\alpha_i=a_i$ 与 $X_i$ 无关，回到 RE 模型；$\pi\neq0$ 时 $\alpha_i$ 与 $x_{it}$ 相关，是 FE 模型的一种参数化。所以“检验 RE 还是 FE”变成了“检验 $\pi=0$”。
+
+\subsection{定理：Mundlak 回归给出 WG 估计}
+
+\subsubsection{结论陈述}
+
+\begin{thm}[Mundlak (1978)]\label{thm:U11b-mundlak}
+平衡面板中，$y_{it}$ 对 $(1,x_{it},\bar x_{i\cdot})$ 做混合 OLS，或做 RE-GLS（任意准去均值参数 $\theta<1$），得到的系数完全相同：
+\[
+\hat\beta=\hat\beta_{WG},\qquad \hat\pi=\hat\beta_B-\hat\beta_{WG},\qquad \hat\mu=\text{组间回归的截距},
+\]
+其中 $\hat\beta_B$ 为\key{组间估计量}：$\bar y_{i\cdot}$ 对 $(1,\bar x_{i\cdot})$ 做 OLS（$N$ 个观测）的斜率。
+\end{thm}
+混合 OLS 的情形第 10 章已用 FWL 证明（$x_{it}=\dot x_{it}+\bar x_{i\cdot}$，$\dot x\perp(1,\bar x_{i\cdot})$）。下面给出同时覆盖两种情形的证明，分三步。
+
+\subsubsection{第一步：把回归元改写为 \texorpdfstring{$(1,\dot x_{it},\bar x_{i\cdot})$}{(1, x-dot, x-bar)}}
+
+\begin{align*}
+\mu+x_{it}\T\beta+\bar x_{i\cdot}\T\pi &= \mu+(\dot x_{it}+\bar x_{i\cdot})\T\beta+\bar x_{i\cdot}\T\pi \why{$x_{it}=\dot x_{it}+\bar x_{i\cdot}$}\\
+&= \mu+\dot x_{it}\T b_1+\bar x_{i\cdot}\T b_2,\qquad b_1=\beta,\ b_2=\beta+\pi \why{合并 $\bar x_{i\cdot}$ 项}
+\end{align*}
+两组回归元 $(1,x_{it},\bar x_{i\cdot})$ 与 $(1,\dot x_{it},\bar x_{i\cdot})$ 张成同一空间（可逆线性变换），所以任何（广义）最小二乘的估计都满足 $\hat\beta=\hat b_1$，$\hat\pi=\hat b_2-\hat b_1$。只需对 $(1,\dot x,\bar x)$ 的回归求 $(\hat\mu,\hat b_1,\hat b_2)$。
+
+\subsubsection{第二步：混合 OLS——\texorpdfstring{$\dot x$}{x-dot} 与 \texorpdfstring{$(1,\bar x_{i\cdot})$}{(1, x-bar)} 正交，回归分块}
+
+\begin{align*}
+\sum_i\sum_t\dot x_{it}\cdot1 &= \sum_i\Bigl(\sum_t\dot x_{it}\Bigr)=0 \why{$\sum_t\dot x_{it}=0$}\\
+\sum_i\sum_t\dot x_{it}\bar x_{i\cdot}\T &= \sum_i\Bigl(\sum_t\dot x_{it}\Bigr)\bar x_{i\cdot}\T=0 \why{$\bar x_{i\cdot}$ 与 $t$ 无关}
+\end{align*}
+回归元的交叉积矩阵分块对角，OLS 分成两个独立的回归：
+\begin{align*}
+\hat b_1 &= \Bigl(\sum_{i,t}\dot x_{it}\dot x_{it}\T\Bigr)\inv\sum_{i,t}\dot x_{it}y_{it}=\hat\beta_{WG} \why{分块；分子中 $y$ 可换成 $\dot y$}\\
+0 &= \sum_i\sum_t\begin{pmatrix}1\\ \bar x_{i\cdot}\end{pmatrix}\bigl(y_{it}-\mu-\bar x_{i\cdot}\T b_2\bigr)=T\sum_i\begin{pmatrix}1\\ \bar x_{i\cdot}\end{pmatrix}\bigl(\bar y_{i\cdot}-\mu-\bar x_{i\cdot}\T b_2\bigr) \why{$(\mu,b_2)$ 的正规方程}
+\end{align*}
+后者正是 $\bar y_{i\cdot}$ 对 $(1,\bar x_{i\cdot})$ 的 OLS 正规方程，故 $\hat b_2=\hat\beta_B$，$\hat\mu$ 为组间截距。于是 $\hat\beta=\hat\beta_{WG}$，$\hat\pi=\hat\beta_B-\hat\beta_{WG}$。
+
+\subsubsection{第三步：RE-GLS——准去均值不改变分块结构}
+
+GLS 等于对准去均值数据（左乘 $I_T-\theta P_T$）做 OLS（本章 GLS 一节）。逐列计算变换结果：
+\begin{align*}
+(I_T-\theta P_T)\one_T &= (1-\theta)\one_T \why{$P_T\one_T=\one_T$}\\
+(I_T-\theta P_T)\dot X_i &= \dot X_i \why{$P_T\dot X_i=0$}\\
+(I_T-\theta P_T)\one_T\bar x_{i\cdot}\T &= (1-\theta)\one_T\bar x_{i\cdot}\T \why{$P_T\one_T=\one_T$}\\
+(I_T-\theta P_T)Y_i &= \dot Y_i+(1-\theta)\one_T\bar y_{i\cdot} \why{$Y_i=\dot Y_i+\one_T\bar y_{i\cdot}$}
+\end{align*}
+变换后的回归元为 $(1-\theta)\cdot1$、$\dot x_{it}$、$(1-\theta)\bar x_{i\cdot}$，$\dot x$ 仍与另外两列正交，回归照样分块：
+\begin{itemize}
+  \item $\dot x$ 的系数：$\bigl(\sum\dot x\dot x\T\bigr)\inv\sum\dot x\,[\dot y+(1-\theta)\bar y_{i\cdot}]=\bigl(\sum\dot x\dot x\T\bigr)\inv\sum\dot x\dot y=\hat\beta_{WG}$，因为 $\sum_t\dot x_{it}\bar y_{i\cdot}=0$。
+  \item 另两列的系数：被解释变量中的 $\dot y$ 与 $(1,\bar x_{i\cdot})$ 正交，不起作用；剩下 $(1-\theta)\bar y_{i\cdot}$ 对 $(1-\theta)(1,\bar x_{i\cdot})$ 回归，两边同乘的常数 $1-\theta\neq0$ 约掉，结果就是组间回归 $(\hat\mu,\hat\beta_B)$。
+\end{itemize}
+所以对任何 $\theta<1$，RE-GLS 给出的 $(\hat\mu,\hat b_1,\hat b_2)$ 与混合 OLS 相同，由第一步即得结论。\qed
+
+\subsubsection{\texorpdfstring{$\hat\pi=\hat\beta_B-\hat\beta_{WG}$}{pi-hat = beta\_B - beta\_WG} 的含义}
+
+检验 $\pi=0$ 就是在比较组间估计量与组内估计量。RE-GLS 是组内与组间估计量的（矩阵）加权平均（本章 GLS 一节），单个回归元时 $\hat\beta_{GLS}-\hat\beta_{WG}=w(\hat\beta_B-\hat\beta_{WG})$，$w\in(0,1)$ 为组间部分的权重。所以检验 $\pi=0$ 与 Hausman 检验比较 RE 与 FE 的思想一致。
+
+\subsection{回归形式的稳健 Hausman 检验}
+
+\subsubsection{检验步骤}
+
+\begin{method}[Mundlak 回归检验 RE 假设]
+\begin{enumerate}
+  \item 计算各时变回归元的个体均值 $\bar x_{i\cdot}$。
+  \item 估计 CRE 回归 $y_{it}=\mu+x_{it}\T\beta+\bar x_{i\cdot}\T\pi+e_{it}$（RE-GLS 或混合 OLS），使用\key{按个体聚类}的标准误。
+  \item 检验 $H_0:\pi=0$（RE）对 $H_1:\pi\neq0$（$\alpha_i$ 与 $x$ 相关）：Wald 统计量 $W=\hat\pi\T\hat V_{\pi}\inv\hat\pi\dto\chi^2_K$，$K$ 为时变回归元个数，$\hat V_\pi$ 为 $\hat\pi$ 的聚类稳健方差。
+  \item 拒绝 $H_0$：RE 假设不成立，用 FE（此回归中 $x$ 的系数本身就是 $\hat\beta_{WG}$）。
+\end{enumerate}
+\end{method}
+
+\subsubsection{与传统 Hausman 检验相比的优点}
+
+\begin{itemize}
+  \item 在经典假设下与 Hausman 检验渐近等价。
+  \item 对异方差与序列相关稳健（聚类方差），而传统检验要求 RE 在 $H_0$ 下有效。
+  \item 不需要计算方差矩阵之差，不会出现 $\hat V_{FE}-\hat V_{RE}$ 非正定、统计量为负或无法计算的情形（本章 Hausman 检验一节）。
+\end{itemize}
+
+\subsubsection{在同一回归中加入时不变变量 \texorpdfstring{$z_i$}{z\_i}}
+
+CRE 回归还可以加入 $z_i$：$y_{it}=\mu+x_{it}\T\beta+\bar x_{i\cdot}\T\pi+z_i\T\gamma+a_i+u_{it}$。$x$ 的系数仍是 $\hat\beta_{WG}$；$\gamma$ 在 $\E(a_i\mid X_i,z_i)=0$ 下可识别，即 $\alpha_i$ 与 $z_i$ 的相关只能通过 $\bar x_{i\cdot}$ 传递。
+
+\subsubsection{Stata 实现}
+
+\begin{lstlisting}
+bysort id: egen xbar = mean(x)
+xtreg y x xbar z, re vce(cluster id)    // CRE / Mundlak regression
+test xbar                                // robust Hausman-type test of RE
+\end{lstlisting}
+
+\subsubsection{非线性模型中的 Mundlak--Chamberlain 设定}
+
+在非线性模型中（如上一节的 probit），没有组内变换可用，同样的 Mundlak--Chamberlain 设定 $\alpha_i=\bar x_{i\cdot}\T\pi+a_i$ 是处理 $\alpha_i$ 与 $x$ 相关的常用折中。
+
+\subsection{数值例：Mundlak 回归（\texorpdfstring{$N=2$, $T=3$}{N=2, T=3}）}
+
+\begin{prac}[Mundlak 回归的数值例]\label{pr:U11b-mundlak}
+用第 10 章手算 WG 的数据（$N=2$，$T=3$；个体 1：$x=(1,2,6)$，$y=(3,5,10)$；个体 2：$x=(3,6,6)$，$y=(6,13,14)$），对 $y_{it}$ 关于 $(1,x_{it},\bar x_{i\cdot})$ 做混合 OLS，得到截距 $-1.5$、$x$ 的系数 $1.7$、$\bar x_{i\cdot}$ 的系数 $0.8$。(a) 验证 $x$ 的系数等于 $\hat\beta_{WG}$；(b) 计算组间估计量并验证 $\hat\pi=\hat\beta_B-\hat\beta_{WG}$；(c) 解释 $\hat\pi>0$。
+
+\answer (a) 第 10 章已算得 $\sum\dot x\dot y=34$，$\sum\dot x^2=20$，$\hat\beta_{WG}=34/20=1.7$，与 $x$ 的系数相同。
+
+(b) 组间回归：$\bar y_{i\cdot}=(6,11)$ 对 $(1,\bar x_{i\cdot})$，$\bar x_{i\cdot}=(3,5)$。两个点恰好确定一条直线：
+\begin{align*}
+\hat\beta_B &= \frac{11-6}{5-3}=2.5 \why{两点连线的斜率}\\
+\hat\mu &= 6-2.5\times3=-1.5 \why{过点 $(3,6)$}\\
+\hat\pi &= \hat\beta_B-\hat\beta_{WG}=2.5-1.7=0.8 \why{Mundlak 定理}
+\end{align*}
+与混合 OLS 的截距 $-1.5$、$\bar x$ 的系数 $0.8$ 一致。按定理，用任意 $\theta<1$ 的准去均值数据做 RE-GLS，三个系数也都不变（例如 $\theta=0.5$ 时仍为 $-1.5$、$1.7$、$0.8$）。
+
+(c) $\hat\pi>0$ 表示 $x$ 平均水平高的个体，其个体效应也大：生成这组数据的真实 $\alpha=(1,4)$ 恰与 $\bar x_{i\cdot}=(3,5)$ 同向。若这是大样本结果，就是拒绝 RE、支持 FE 的证据（$N=2$ 只能作演示）。
+\end{prac}
+
+\begin{english}
+Mundlak (1978) models the correlation between $\alpha_i$ and the regressors as $\alpha_i=\bar x_i'\pi+a_i$ with $E(a_i\mid X_i)=0$, which yields the correlated random effects model $y_{it}=x_{it}'\beta+\bar x_i'\pi+a_i+u_{it}$. In a balanced panel, estimating this equation by pooled OLS or RE-GLS yields exactly the within estimator of $\beta$, and $\hat\pi$ equals the difference between the between and within estimators. A Wald test of $H_0:\pi=0$ with cluster-robust standard errors is a regression-based version of the Hausman test that is robust to heteroskedasticity and serial correlation and never produces a negative statistic. Time-invariant regressors can be added to the same regression, and the same device is widely used in nonlinear panel models.
+\end{english}
+

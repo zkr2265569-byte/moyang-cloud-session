@@ -1,0 +1,1166 @@
+\chapter{IV/GMM 的三大检验}\label{ch:U09-tests}
+
+第 8 章的 IV/GMM 估计依赖三个前提：回归元确实内生（否则 OLS 更好）、工具与内生回归元足够相关、工具外生。本章给出与之一一对应的三个检验：\key{相关性检验}（第一阶段 $F$，经验法则 $F>10$）、\key{内生性检验}（控制函数 $t$ 检验与 Hausman 检验）、\key{过度识别检验}（Sargan / Hansen $J$ 检验，$J\dto\chi^2_{L-K}$）。每个检验都按“原假设—统计量—分布推导—决策规则—局限—Stata 命令”展开，最后汇总决策规则并给出完整的实证流程。Hausman 检验的思想在第 11 章（固定效应与随机效应的选择）还会用到，Hansen $J$ 检验是第 12 章动态面板 GMM 的标准诊断。对应教材：Hansen 第 12.28--12.32、12.38 节与第 13.21--13.23 节。
+
+%======================================================================
+\section{三个条件与三个检验：总览}\label{sec:U09-overview}
+
+\subsection{本章记号}
+
+本章始终围绕下面的线性结构方程：
+\begin{equation}\label{eq:U09-struct}
+y_i=x_{1i}\T\beta_1+x_{2i}\T\beta_2+u_i ,\qquad i=1,\dots,n .
+\end{equation}
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+记号 & 含义\\
+\midrule
+$x_{1i}$（$k_1\times1$） & 被怀疑内生的回归元（\term{内生回归元}{endogenous regressor}）；最常见的是 $k_1=1$\\
+$x_{2i}$（$k_2\times1$） & 外生回归元（外生控制变量），\key{第一个分量是常数 1}\\
+$x_i=(x_{1i}\T,x_{2i}\T)\T$ & 全部回归元，$K=k_1+k_2$ 维；$\beta=(\beta_1\T,\beta_2\T)\T$\\
+$\tilde z_i$（$L_2\times1$） & \term{排除工具}{excluded instruments}：不出现在 \eqref{eq:U09-struct} 中、为 $x_{1i}$ 提供外生变动的变量\\
+$z_i=(x_{2i}\T,\tilde z_i\T)\T$ & 全部工具，$L=k_2+L_2$ 维；外生回归元充当自己的工具\\
+$L-K=L_2-k_1$ & 过度识别约束个数 $=$ 排除工具个数 $-$ 内生回归元个数；识别要求 $L\ge K$\\
+$Y,\ X,\ Z$ & $n\times1$、$n\times K$、$n\times L$ 的数据矩阵；$X_1,X_2$ 为 $X$ 的两块\\
+$P_Z,\ M_Z$ & $P_Z=Z(Z\T Z)\inv Z\T$，$M_Z=I_n-P_Z$；$P_2,M_2$ 为对 $X_2$ 的同类矩阵\\
+$\bar g_n(\beta)$ & 样本矩 $\frac1n\sum_i z_i(y_i-x_i\T\beta)=\frac1n Z\T(Y-X\beta)$，$L\times1$\\
+$Q,\ \Omega$ & $Q=\E(z_ix_i\T)$（$L\times K$，列满秩），$\Omega=\E(z_iz_i\T u_i^2)$（$L\times L$，正定）\\
+$W$ & GMM 权重矩阵（$L\times L$，对称正定）；有效权重 $W=\Omega\inv$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{本章记号}
+\end{center}
+
+\subsection{横截面模型的两种情形}
+
+\subsubsection{情形一：外生模型——OLS 一致且渐近正态}
+
+把 \eqref{eq:U09-struct} 简写为 $y_i=x_i\T\beta+u_i$。若
+\[
+\E(u_i\mid x_i)=0\qquad\text{（\term{外生模型}{exogenous model}）},
+\]
+则 OLS 一致、渐近正态（第 5 章），基于 OLS 的 $t$、$F$、Wald 检验有效（第 6 章）。
+
+\subsubsection{情形二：内生模型——改用工具变量与 GMM}
+
+若
+\[
+\E(u_i\mid x_i)\neq0\qquad\text{（\term{内生模型}{endogenous model}）},
+\]
+则 OLS 有偏且不一致（第 7 章），以 OLS 为基础的检验也失去意义。此时借助工具 $z_i$ 做 GMM 估计（第 8 章），要求工具满足两条：
+\[
+\E(u_i\mid z_i)=0\quad\text{（工具外生）},\qquad \E(x_i\mid z_i)\neq 0\quad\text{（工具相关）}.
+\]
+在这两条之下，GMM 一致、渐近正态，可以据此做检验。
+
+\subsubsection{需要检验的三个条件}
+
+把上面出现的条件按在模型中出现的先后编号：
+\begin{enumerate}[label=(C\arabic*)]
+  \item \key{内生性}：$\E(u_i\mid x_{1i})\neq0$。它决定用 OLS 还是 IV/GMM。
+  \item \key{工具外生性（有效性）}：$\E(u_i\mid z_i)=0$，矩条件形式 $\E(z_iu_i)=0$。
+  \item \key{工具相关性}：$\E(x_i\mid z_i)\neq0$。准确地说，控制 $x_{2i}$ 之后，排除工具 $\tilde z_i$ 对 $x_{1i}$ 仍有解释力（秩条件，第 8 章）。
+\end{enumerate}
+三个条件都需要、而且大多可以用数据检验；唯一的例外是恰好识别（$L=K$）时的 (C2)，只能靠经济论证。
+
+\subsection{三个检验一览}
+
+\subsubsection{对照表：原假设、统计量与 Stata 命令}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{3.3cm}L>{\raggedright\arraybackslash}p{2.6cm}}
+\toprule
+检验 & 原假设 $H_0$ & 统计量与（渐近）分布 & Stata\\
+\midrule
+相关性（工具是否强），条件 (C3) & 排除工具系数全为 0（工具与 $x_1$ 无关） & 第一阶段 $F$；要求 $F>10$（保守标准 30），或超过 Stock--Yogo 临界值 & \texttt{first}，\texttt{estat firststage}\\
+内生性（$x_1$ 是否内生），条件 (C1) & $\E(u\mid x_1)=0$（外生） & 控制函数 $t$ 检验（$\rho=0$），$N(0,1)$；Hausman 统计量，$\chi^2_{k_1}$ & \texttt{estat endog}\\
+工具有效性（过度识别），条件 (C2) & $\E(u\mid z)=0$（工具有效） & Sargan / Hansen：$J\dto\chi^2_{L-K}$ & \texttt{estat overid}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{三个检验一览}
+\end{center}
+
+\subsubsection{两种排列顺序：按模型条件与按实证步骤}
+
+\begin{itemize}
+  \item \key{按条件在模型中出现的顺序}：(C1) $x$ 内生 → (C2) $z$ 外生 → (C3) $z$ 相关。这是从“为什么需要 IV”出发的逻辑顺序。
+  \item \key{按实证中通常的讲解顺序}：先相关性，再内生性，再有效性。本章接下来的三节按这一顺序展开。
+\end{itemize}
+真正\key{执行}检验时的推荐顺序与讲解顺序略有不同，见本节最后一小节。
+
+\subsection{三个检验的“好结果”方向不同}
+
+\begin{note}[三个检验“希望”的结果不一样]
+\begin{itemize}
+  \item 相关性检验：\key{拒绝} $H_0$ 是好事（工具相关），而且要“强烈地”拒绝（$F>10$），仅仅显著不够。
+  \item 内生性检验：拒绝 $H_0$ $\Rightarrow$ $x_1$ 内生，需要用 IV；不拒绝 $\Rightarrow$ 可以用 OLS（更有效）。
+  \item 过度识别检验：\key{不拒绝} $H_0$ 是好事（没有证据表明工具无效）——但这\key{不等于}“证明了工具有效”。
+\end{itemize}
+\end{note}
+
+\subsection{维持假设与推荐的检验顺序}
+
+\subsubsection{每个检验各自的维持假设}
+
+每个检验都在一些\term{维持假设}{maintained hypothesis}下进行——它们不被检验，而是被当作成立：
+\begin{itemize}
+  \item \key{相关性检验}只用第一阶段 OLS，不需要工具外生，可以最先做。
+  \item \key{过度识别检验}假设“至少有足以识别 $\beta$ 的 $K$ 个工具有效”，检验其余工具是否与之一致——只能检验“相对”有效性（见本章过度识别检验一节的“局限”）。
+  \item \key{内生性检验}假设工具有效且相关：它比较的是“用工具得到的估计”与 OLS。工具本身无效或很弱时，内生性检验的结论也不可靠。
+\end{itemize}
+
+\subsubsection{推荐顺序：相关性 → 过度识别 → 内生性}
+
+由维持假设的依赖关系，推荐的执行顺序是
+\[
+\text{相关性}\ \longrightarrow\ \text{过度识别（若 }L>K\text{）}\ \longrightarrow\ \text{内生性},
+\]
+完整流程图见本章“决策规则与完整实证流程”一节。
+
+\begin{english}
+\textbf{Three diagnostic tests.} IV/GMM estimation rests on three conditions, each of which is examined by a test: (i) instrument relevance, checked by the first-stage $F$-statistic; (ii) endogeneity of the regressor, checked by the Durbin--Wu--Hausman (control-function) or Hausman test; and (iii) instrument validity, checked by the Sargan/Hansen over-identification test when $L>K$. For each test we state $H_0$ and $H_1$, give the statistic and its asymptotic null distribution, and reject $H_0$ when the statistic exceeds the critical value (equivalently, when the $p$-value is below the significance level).
+\end{english}
+
+%======================================================================
+\section{相关性检验：第一阶段 \texorpdfstring{$F$}{F} 检验}\label{sec:U09-relevance}
+
+\subsection{第一阶段（简约式）回归}
+
+相关性条件 (C3) 是关于\term{简约式}{reduced form}（即 2SLS 的\term{第一阶段}{first stage}）的条件。把每个回归元对全部工具做投影：
+\[
+X=Z\gamma+V\quad\Longrightarrow\quad \hat X=Z\hat\gamma=P_ZX ,
+\]
+$\hat X$ 就是 2SLS 第二阶段使用的拟合值。若排除工具对应的系数为 0，$X_1$ 中就只剩下误差 $V$ 和外生控制变量的部分——与排除工具毫无关系，$\hat X_1$ 不提供任何新的外生变动，2SLS 无法识别。因此，相关性检验就是对第一阶段的系数做 $F$ 检验：做法是用 OLS 把内生回归元对工具回归（Stata 的 \texttt{first} 选项即打印这一回归）。以下先讨论一个内生回归元（$k_1=1$）。
+
+\subsubsection{无控制变量：第一阶段回归的整体显著性检验}
+
+先看最简单的情形：只有一个内生回归元 $x_i$，工具为 $z_i$（$L$ 维，不含常数），没有其他外生控制变量。两种设定为
+\[
+H_1:\ x_i=\delta_0+\delta\T z_i+\eta_i
+\qquad\text{vs}\qquad
+H_0:\ x_i=\delta_0+\eta_i ,
+\]
+即 $H_0:\ \delta=0$（$\delta_1=\delta_2=\cdots=\delta_L=0$）。$H_0$ 的含义是 $x_i$ 与 $z_i$ 不相关（线性投影系数为 0）；写成条件期望，就是 $\E(x_i\mid z_i)=\delta_0$ 为常数、不随 $z_i$ 变化——注意不是 $\E(x_i\mid z_i)=0$。拒绝 $H_0$ 才说明工具相关，即 $\E(x_i\mid z_i)\neq$ 常数。此时检验就是第一阶段回归的\term{整体显著性检验}{whole significance test}（除常数外全部系数为 0 的 $F$ 检验）。
+
+\subsubsection{有外生控制变量：只检验排除工具的系数}
+
+有外生控制变量 $x_{2i}$ 时，第一阶段是内生变量对\key{全部工具}（排除工具 $+$ 外生控制变量 $+$ 常数）的回归：
+\begin{equation}\label{eq:U09-firststage}
+x_{1i}=x_{2i}\T\pi_2+\tilde z_i\T\delta+v_i ,\qquad \E(z_iv_i)=0 ,
+\end{equation}
+（$x_{2i}$ 含常数项；单独写出常数时即 $\pi_0+x_{2i}\T\pi_2+\tilde z_i\T\delta+v_i$）。要检验的是\key{排除工具的系数}
+\[
+H_0:\ \delta=0\qquad(L_2\ \text{个约束}),
+\]
+而不是全部系数——控制变量当然能“解释”$x_{1i}$，但它们不是识别的来源。所用统计量称为\term{第一阶段 $F$ 统计量}{first-stage F-statistic}。
+
+\subsection{联合显著性 \texorpdfstring{$F$}{F} 统计量}
+
+\subsubsection{约束与无约束残差平方和形式}
+
+由第 6 章的两步 $F$ 检验：
+\begin{equation}\label{eq:U09-Fstat}
+F=\frac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-k_{ur})}\ \sim\ F(q,\ n-k_{ur})\qquad(H_0\ \text{下，正态同方差误差时精确}),
+\end{equation}
+其中 $q=L_2$ 为排除工具个数；无约束回归含全部工具（$k_{ur}=L$ 个系数），约束回归去掉 $q$ 个排除工具。大样本下 $qF\dto\chi^2_q$，不需要正态性。
+
+\subsubsection{异方差下的稳健 \texorpdfstring{$F$}{F}：稳健 Wald 统计量除以 \texorpdfstring{$q$}{q}}
+
+异方差时 \eqref{eq:U09-Fstat} 不再适用，改用稳健 Wald 统计量除以 $q$：
+\[
+F_{\text{rob}}=\frac{1}{q}\,\hat\delta\T\big[\widehat{\Var}_{\text{HC}}(\hat\delta)\big]\inv\hat\delta ,
+\]
+$\widehat{\Var}_{\text{HC}}$ 为异方差稳健（夹心）方差估计（第 5 章）。Stata 在 \texttt{vce(robust)} 下报告的就是稳健 $F$。
+
+\begin{exmp}[计算第一阶段 $F$]\label{ex:U09-F}
+$n=500$，第一阶段 $x_1$ 对 $(1,x_2,z_1,z_2)$ 回归得 $SSR_{ur}=900$；去掉 $z_1,z_2$ 后 $SSR_r=960$。计算第一阶段 $F$ 并判断工具强弱。
+\solution
+$q=2$，$k_{ur}=4$：
+\begin{align*}
+F&=\frac{(960-900)/2}{900/(500-4)} \why{代入 \eqref{eq:U09-Fstat}}\\
+&=\frac{30}{1.8145}\approx16.5 . \why{$900/496=1.8145$}
+\end{align*}
+常规 5\% 临界值 $F_{0.95}(2,496)\approx3.01$，$p<0.001$：工具显然相关。按经验法则 $16.5>10$，不是弱工具；对照 Stock--Yogo 临界值（本节后文，$L_2=2$、2SLS）：$16.5>11.6$（最大实际水平 15\%），但 $<19.9$（10\%）。
+\end{exmp}
+
+\subsection{为什么“显著”还不够：弱工具}
+
+\subsubsection{常规 \texorpdfstring{$F$}{F} 检验只排除“工具完全无关”}
+
+常规 $F$ 检验的 5\% 临界值只有 3 左右，它检验的是“工具完全无关”（$\delta=0$，识别失败）。但第 8 章说明，\term{弱工具}{weak instruments}（$\delta$ 小但不为 0）就足以让 2SLS 偏向 OLS、$t$ 检验的实际水平远超名义水平。所以要求远比“显著”更强的证据。
+
+\subsubsection{经验法则 \texorpdfstring{$F>10$}{F>10}（Staiger--Stock）与 \texorpdfstring{$|t|>3.16$}{|t|>3.16}}
+
+$F>10$ 是 Staiger \& Stock (1997) 提出的\term{经验法则}{rule of thumb}（一个内生回归元）。单个工具时 $F=t^2$，于是
+\[
+F>10\iff |t|>\sqrt{10}\approx3.16 ,
+\]
+比常规的 $|t|>1.96$ 严格得多。等价的说法是：单工具时第一阶段工具系数的 $t$ 统计量绝对值应超过 3（Stock--Yogo 在单工具、$r=15\%$ 时的临界值约为 9，对应 $|t|>3$）。
+
+\subsubsection{更保守的门槛：\texorpdfstring{$F>30$}{F>30} 与 \texorpdfstring{$F>104.7$}{F>104.7}}
+
+实践中也常用更保守的门槛 $F>30$。理由：
+\begin{itemize}
+  \item Stock--Yogo 临界值随工具个数上升：2SLS、$r=15\%$、$L_2=30$ 时约为 45；
+  \item 近年的研究表明 10 可能不够——Lee, McCrary, Moreira \& Porter (2022, AER) 指出，单工具时要使名义 5\% 的 $t$ 检验真正保持 5\% 的水平，需要 $F>104.7$。
+\end{itemize}
+$F>30$ 可看作两者之间的折中。报告时应给出 $F$ 的数值，让读者对照 10、30 与 Stock--Yogo 临界值自行判断。
+
+\subsection{Stock--Yogo 临界值}
+
+\subsubsection{“弱”的正式定义：名义 5\% 检验的实际水平超过 \texorpdfstring{$r$}{r}}
+
+\term{Stock--Yogo 临界值}{Stock-Yogo critical values}来自 Stock \& Yogo (2005)。他们把“弱”定义为：名义 5\% 的 Wald/$t$ 检验，其实际水平超过某个可容忍的上限 $r$（如 10\%、15\%）。检验
+\[
+H_0:\ \text{工具弱（实际水平}>r\text{）}\qquad\text{vs}\qquad H_1:\ \text{工具不弱},
+\]
+第一阶段 $F$ 超过下表临界值，就拒绝“工具弱到使实际水平超过 $r$”。两步合起来（先过 Stock--Yogo 检验、再做名义 5\% 的检验），由 Bonferroni 不等式，整个程序的渐近水平不超过 $r+5\%$（Hansen 第 12.38 节）。该理论以条件同方差为前提；异方差时实践中仍沿用这张表作参考。
+
+\subsubsection{临界值表（一个内生回归元，5\% 显著性）}
+
+\begin{center}
+\small
+\begin{tabular}{c|cccc|cccc}
+\toprule
+ & \multicolumn{4}{c|}{2SLS：最大实际水平 $r$} & \multicolumn{4}{c}{LIML：最大实际水平 $r$}\\
+排除工具数 $L_2$ & 0.10 & 0.15 & 0.20 & 0.25 & 0.10 & 0.15 & 0.20 & 0.25\\
+\midrule
+1  & 16.4 & 9.0  & 6.7  & 5.5  & 16.4 & 9.0 & 6.7 & 5.5\\
+2  & 19.9 & 11.6 & 8.7  & 7.2  & 8.7  & 5.3 & 4.4 & 3.9\\
+3  & 22.3 & 12.8 & 9.5  & 7.8  & 6.5  & 4.4 & 3.7 & 3.3\\
+4  & 24.6 & 14.0 & 10.3 & 8.3  & 5.4  & 3.9 & 3.3 & 3.0\\
+5  & 26.9 & 15.1 & 11.0 & 8.8  & 4.8  & 3.6 & 3.0 & 2.8\\
+10 & 38.5 & 20.9 & 14.8 & 11.6 & 3.7  & 2.8 & 2.5 & 2.2\\
+30 & 86.2 & 44.8 & 30.7 & 23.6 & 3.9  & 2.2 & 1.9 & 1.7\\
+\bottomrule
+\end{tabular}
+\captionof{table}{Stock--Yogo 弱工具临界值（摘自 Hansen 表 12.4；全表见附录 A）}\label{tab:U09-sy}
+\end{center}
+
+\subsubsection{两条规律：单工具约为 9；2SLS 随工具数上升而 LIML 下降}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item 单工具、$r=15\%$ 时临界值约为 9，这就是“$F>10$”的来源。
+  \item 2SLS 的临界值随工具数迅速上升，LIML 的则下降——工具多时 LIML 对弱工具稳健得多（第 8 章）。
+\end{enumerate}
+
+\begin{exmp}[两个经典案例：Card (1995) 与 Angrist \& Krueger (1991)]\label{ex:U09-sycases}
+用表 \ref{tab:U09-sy} 判断下列第一阶段是否存在弱工具问题（Hansen 表 12.2，第 12.38、12.41 节）。
+\begin{enumerate}[label=(\alph*)]
+  \item Card (1995)：用“是否在四年制大学附近长大”（college）作教育的工具，第一阶段系数 0.337（$se=0.081$），$F=17.51$。改用 public、private 两个工具时 $F=13.87$。
+  \item Angrist \& Krueger (1991)：30 个“出生季度 $\times$ 出生年份”交互项作工具，$F=4.8$；扩展到 180 个工具时 $F=2.43$；只用 3 个出生季度虚拟变量时 $F=31$。
+\end{enumerate}
+\solution
+(a) 单工具：$17.51>16.4$（$r=10\%$ 的临界值），不是弱工具（Hansen 正文按 $t\approx4.2$ 近似记作 $F\approx17.8$，结论相同）。两个工具：$13.87>11.6$（$r=15\%$），但未超过 $19.9$（$r=10\%$）；对 LIML 则超过全部临界值（$13.87>8.7$）。
+
+(b) 30 个工具：$4.8$ 远低于 $44.8$（$r=15\%$），尽管 $p$ 值近乎 0（工具并非完全无关），仍是弱工具，2SLS 估计与检验不可靠。180 个工具：$F=2.43$，而 2SLS 临界值随工具数上升，以 $L_2=30$ 的值为下界也远远不够——此时标准误变小不是精度提高，而是不可靠的信号。3 个工具：$31>22.3$（$r=10\%$），可以拒绝弱工具。教训：工具“少而强”优于“多而弱”。
+\end{exmp}
+
+\subsection{多个内生变量与异方差下的弱工具检验}
+
+\begin{extend}[多个内生变量、异方差下的弱工具诊断]
+多个内生变量（$k_1>1$）时，逐个看每个第一阶段的 $F$ 不够：工具可能只能区分其中一个内生变量。常用统计量：
+\begin{itemize}
+  \item \term{Cragg--Donald 最小特征值统计量}{Cragg-Donald minimum eigenvalue statistic}：同方差下使用，配 Stock--Yogo 临界值；Stata 的 \texttt{estat firststage} 报告。
+  \item \term{Kleibergen--Paap rk Wald $F$}{Kleibergen-Paap rk Wald F}：异方差/聚类稳健版本，用户命令 \texttt{ivreg2} 报告。
+  \item 单个内生变量、异方差时，可用 Montiel Olea \& Pflueger (2013) 的\term{有效 $F$}{effective F statistic}。
+\end{itemize}
+\end{extend}
+
+\subsection{Stata 实现：\texttt{first} 选项与 \texttt{estat firststage}}
+
+\begin{lstlisting}
+* first stage reported together with 2SLS (r = robust SE)
+ivregress 2sls y (x1 = z1 z2) x2, r first
+* first-stage diagnostics: R2, partial R2, F statistic
+* (and, under homoskedasticity, minimum eigenvalue statistic + Stock-Yogo critical values)
+estat firststage
+\end{lstlisting}
+\texttt{first} 选项打印第一阶段回归。读输出时看两点：排除工具 \texttt{z1}、\texttt{z2} 的系数符号是否符合经济机制；联合 $F$ 是否足够大——$F$ 大则判定工具相关。
+
+\begin{note}[相关性检验的易错点]
+\begin{itemize}
+  \item 第一阶段必须包含全部外生回归元 $x_2$，且只检验排除工具的系数，不检验全部系数。
+  \item “显著”（$p<0.05$）只排除“工具完全无关”，不等于“工具不弱”；不弱要求 $F>10$ 或超过 Stock--Yogo 临界值。
+  \item 查 Stock--Yogo 表：行按排除工具个数 $L_2$，列按估计方法（2SLS / LIML）与可容忍的实际水平 $r$；该表基于同方差。
+\end{itemize}
+\end{note}
+
+\begin{prac}[第一阶段判断]\label{pr:U09-weak}
+一个内生变量、3 个排除工具，第一阶段对排除工具的联合 $F=9.2$，$p<0.001$。研究者据此宣称“工具高度显著，不存在弱工具问题”。请评论。
+\answer
+$p<0.001$ 只说明可以拒绝“工具完全无关”，与“工具不弱”是两回事。$F=9.2<10$，按 Staiger--Stock 经验法则属于弱工具；对照 Stock--Yogo（$L_2=3$，2SLS）：$9.2<12.8$（$r=15\%$），也略低于 $9.5$（$r=20\%$）——名义 5\% 的 $t$ 检验实际水平可能超过 20\%。应：寻找更强的工具或减少工具；改用 LIML（$L_2=3$ 时 LIML 的 15\% 临界值仅 4.4）；或报告对弱工具稳健的 \term{Anderson--Rubin 置信集}{Anderson-Rubin confidence set}。
+\end{prac}
+
+\begin{english}
+\textbf{Testing relevance.} We estimate the first-stage regression of the endogenous regressor on all exogenous variables, $x_{1i}=\pi_0+x_{2i}'\pi_2+\tilde z_i'\delta+v_i$, and test $H_0:\delta=0$ with an $F$-statistic. Rejection only shows that the instruments are not irrelevant; to rule out weak instruments the statistic must be large. Following Staiger and Stock (1997), a first-stage $F$ above 10 is usually taken as evidence against weak instruments; more formally, the statistic can be compared with the Stock--Yogo critical values. Here $F=16.5$ exceeds 10, so we conclude that the instruments are relevant and not weak.
+\end{english}
+
+%======================================================================
+\section{内生性检验}\label{sec:U09-endog}
+
+\subsection{原假设、维持假设与检验动机}
+
+\subsubsection{原假设与备择假设}
+
+对结构方程 \eqref{eq:U09-struct}，\term{内生性检验}{endogeneity test}检验
+\[
+H_0:\ \E(u_i\mid x_{1i})=0\ \ \text{（外生模型 → OLS）}
+\qquad\text{vs}\qquad
+H_1:\ \E(u_i\mid x_{1i})\neq0\ \ \text{（内生模型 → IV/GMM）}.
+\]
+推导中使用它的矩条件形式 $H_0:\ \E(x_{1i}u_i)=0$。
+
+\subsubsection{维持假设：工具有效且相关}
+
+维持假设是工具有效且相关：$\E(z_iu_i)=0$，且排除工具满足秩条件。由于 $z_i$ 包含 $x_{2i}$，这也意味着 $\E(x_{2i}u_i)=0$，所以 $H_0$ 也可等价地写成 $\E(x_iu_i)=0$。
+
+\subsubsection{为什么要检验：一致性与有效性的权衡}
+
+\begin{itemize}
+  \item 若 $x_1$ 其实外生，OLS 一致且比 IV 更有效：IV 只用了 $x_1$ 中能被工具解释的那一部分变动，方差更大。
+  \item 若 $x_1$ 内生，OLS 不一致，必须用 IV。
+\end{itemize}
+内生性检验就是用数据在这两者之间做选择。
+
+\subsection{控制函数法：\texorpdfstring{$u=\rho v+\eta$}{u = rho v + eta} 的 \texorpdfstring{$t$}{t} 检验}
+
+\subsubsection{思路：内生性只可能来自第一阶段误差 \texorpdfstring{$v$}{v}}
+
+先设 $k_1=1$。把第一阶段 \eqref{eq:U09-firststage} 写成对全部工具的线性投影
+\[
+x_{1i}=z_i\T\gamma+v_i,\qquad \gamma=(\pi_2\T,\delta\T)\T,\qquad \E(z_iv_i)=0 ,
+\]
+这里 $z_i$ 是全部工具（常数、$x_{2i}$、排除工具）。工具部分 $z_i\T\gamma$ 与 $u_i$ 不相关（维持假设），只有 $v_i$ 可能与 $u_i$ 相关。于是：$x_1$ 内生 $\iff$ $v$ 与 $u$ 相关。把 $u$ 写成 $u=\rho v+\eta$，内生性检验就变成 $H_0:\rho=0$ vs $H_1:\rho\neq0$ 的 $t$ 检验；多个内生变量时推广为 $\chi^2$ 检验，它的另一种形式就是下一小节的 Hausman 检验。
+
+要证两件事：(i) $x_1$ 内生 $\iff$ $\rho\neq0$；(ii) 把第一阶段残差加进结构方程后，OLS 一致，从而可以对 $\rho$ 做 $t$ 检验。
+
+\subsubsection{第一步：\texorpdfstring{$\E(x_{1i}u_i)=\E(v_iu_i)$}{E(x1 u) = E(v u)}}
+
+\begin{align*}
+\E(x_{1i}u_i)&=\E\big[(z_i\T\gamma+v_i)u_i\big] \why{代入第一阶段}\\
+&=\gamma\T\E(z_iu_i)+\E(v_iu_i) \why{期望的线性性}\\
+&=\E(v_iu_i). \why{维持假设 $\E(z_iu_i)=0$}
+\end{align*}
+所以 $x_1$ 内生 $\iff$ $\E(v_iu_i)\neq0$：$x_1$ 内生当且仅当 $v$ 与 $u$ 相关。
+
+\subsubsection{第二步：把 \texorpdfstring{$u$}{u} 投影到 \texorpdfstring{$v$}{v} 上，\texorpdfstring{$x_1$}{x1} 内生 \texorpdfstring{$\iff\rho\neq0$}{iff rho != 0}}
+
+令
+\[
+\rho=\frac{\E(v_iu_i)}{\E(v_i^2)},\qquad \eta_i=u_i-\rho v_i ,
+\]
+即 $u_i=\rho v_i+\eta_i$ 是 $u$ 对 $v$ 的线性投影。由投影性质与第一步：
+\begin{align*}
+\E(v_i\eta_i)&=\E(v_iu_i)-\rho\E(v_i^2)=0, \why{$\rho$ 的定义}\\
+\rho\neq0&\iff\E(v_iu_i)\neq0\iff x_1\ \text{内生}. \why{$\E(v_i^2)>0$，第一步}
+\end{align*}
+另外，$\eta_i$ 与工具和 $x_{1i}$ 都不相关：
+\begin{align*}
+\E(z_i\eta_i)&=\E(z_iu_i)-\rho\E(z_iv_i) \why{$\eta_i=u_i-\rho v_i$}\\
+&=0-0=0, \why{工具外生；投影误差性质}\\
+\E(x_{1i}\eta_i)&=\gamma\T\E(z_i\eta_i)+\E(v_i\eta_i)=0 . \why{$x_{1i}=z_i\T\gamma+v_i$}
+\end{align*}
+
+\subsubsection{第三步：控制函数回归——新误差与全部回归元不相关}
+
+把 $u_i=\rho v_i+\eta_i$ 代入结构方程：
+\begin{equation}\label{eq:U09-cf}
+y_i=x_{1i}\beta_1+x_{2i}\T\beta_2+\rho v_i+\eta_i .
+\end{equation}
+由第二步，新误差 $\eta_i$ 与全部回归元 $(x_{1i},x_{2i},v_i)$ 都不相关（$x_{2i}$ 是 $z_i$ 的分量）。$v_i$ 作为\term{控制函数}{control function}“吸收”了 $u$ 中与 $x_1$ 相关的部分。若 $v_i$ 可观测，对 \eqref{eq:U09-cf} 做 OLS 就一致。
+
+\subsubsection{第四步：用残差 \texorpdfstring{$\hat v$}{v-hat} 代替 \texorpdfstring{$v$}{v}——生成回归元在 \texorpdfstring{$H_0$}{H0} 下无影响}
+
+$v_i$ 不可观测，用第一阶段 OLS 残差 $\hat v_i=x_{1i}-z_i\T\hat\gamma$ 代替：
+\[
+y_i=x_{1i}\beta_1+x_{2i}\T\beta_2+\rho\hat v_i+\big[\eta_i+\rho(v_i-\hat v_i)\big] .
+\]
+对 $\hat\rho$ 做（稳健）$t$ 检验 $H_0:\rho=0$，$|t|>1.96$ 则在 5\% 水平拒绝外生性。$\hat v_i$ 是估计出来的（\term{生成回归元}{generated regressor}），但这一事实不影响 $t$ 统计量在 $H_0$ 下的渐近分布：估计误差 $v_i-\hat v_i$ 乘的是 $\rho$，$H_0$ 下 $\rho=0$，方括号中的生成回归元项消失，误差就是 $\eta_i=u_i$。（$H_1$ 下这一项不为 0，此时 $\hat\beta$ 的标准误需要修正；但检验只需要 $H_0$ 下的分布。）在正态同方差误差下，相应 $F$ 统计量在 $H_0$ 下精确服从 $F(k_1,\,n-K-k_1)$（Hansen 第 12.29 节）。
+
+\subsubsection{多个内生变量：联合 Wald 检验 \texorpdfstring{$\chi^2_{k_1}$}{chi2(k1)}}
+
+$k_1>1$ 时，对每个内生变量各做一个第一阶段回归，把 $k_1$ 个残差 $\hat v_{1i},\dots,\hat v_{k_1i}$ 都加入结构方程，对它们的系数做联合 Wald 检验：
+\[
+H_0:\ \rho=0\ (k_1\ \text{个约束}),\qquad W\dto\chi^2_{k_1}\quad(H_0\ \text{下}),
+\]
+或用 $F=W/k_1$。这就是“一般情形下内生性检验是 $\chi^2$ 检验”的含义。
+
+\subsubsection{控制函数回归的系数等于 2SLS}
+
+\begin{thm}[控制函数回归 $=$ 2SLS（Hansen 第 12.28 节）]\label{thm:U09-cf2sls}
+控制函数回归（$Y$ 对 $(X,\hat V)$ 做 OLS，$\hat V=M_ZX_1$ 为 $n\times k_1$ 的第一阶段残差矩阵）中 $\beta$ 的 OLS 估计，在数值上等于 2SLS 估计 $\hat\beta_{2SLS}=(\hat X\T\hat X)\inv\hat X\T Y$，$\hat X=P_ZX$。因此控制函数法同时给出 2SLS 估计与内生性检验。
+\end{thm}
+
+证明思路：用 FWL 定理（第 3 章）把 $\hat V$ “剔除”，证明剔除后的回归元恰好是 $\hat X$。记 $M_{\hat V}=I_n-\hat V(\hat V\T\hat V)\inv\hat V\T$。由 FWL，$\beta$ 的系数为 $(X\T M_{\hat V}X)\inv X\T M_{\hat V}Y$。先算 $M_{\hat V}X$ 的两块：
+\begin{align*}
+\hat V\T X_2&=X_1\T M_ZX_2=0 \why{$X_2\subset Z$，$M_ZX_2=0$}\\
+\Rightarrow\ M_{\hat V}X_2&=X_2 , \why{$\hat V\T X_2=0$}\\
+\hat V\T X_1&=X_1\T M_ZX_1=\hat V\T\hat V \why{$M_Z$ 对称幂等}\\
+\Rightarrow\ M_{\hat V}X_1&=X_1-\hat V(\hat V\T\hat V)\inv\hat V\T\hat V=X_1-\hat V \why{代入}\\
+&=P_ZX_1=\hat X_1 . \why{$X_1=P_ZX_1+M_ZX_1$}
+\end{align*}
+所以 $M_{\hat V}X=(\hat X_1,X_2)=P_ZX=\hat X$（$P_ZX_2=X_2$）。于是
+\begin{align*}
+X\T M_{\hat V}X&=(M_{\hat V}X)\T(M_{\hat V}X)=\hat X\T\hat X , \why{$M_{\hat V}$ 对称幂等}\\
+X\T M_{\hat V}Y&=(M_{\hat V}X)\T Y=\hat X\T Y , \why{$M_{\hat V}$ 对称}\\
+\Rightarrow\ \text{系数}&=(\hat X\T\hat X)\inv\hat X\T Y=\hat\beta_{2SLS}. \why{2SLS 的定义}
+\end{align*}
+注意：控制函数回归中 $x_1$ 的\key{系数}就是 2SLS 估计，但 OLS 报告的\key{标准误}不对（没有考虑 $\hat V$ 是生成回归元），报告 2SLS 结果时应直接用 \texttt{ivregress}。
+
+\begin{exmp}[Card (1995) 的控制函数检验（Hansen 第 12.29 节）]\label{ex:U09-cardcf}
+以 public、private 为教育的工具，第一阶段残差在控制函数回归中的系数 $\hat\rho=-0.088$，$se=0.037$。检验教育是否内生，并解释 $\hat\rho$ 的符号。
+\solution
+\begin{align*}
+t&=\frac{-0.088}{0.037}\approx-2.4 , \why{$t=\hat\rho/se$}\\
+p&=2\big[1-\Phi(2.38)\big]\approx0.017<0.05 . \why{$H_0$ 下 $t\dto N(0,1)$}
+\end{align*}
+5\% 水平拒绝“教育外生”，支持用 IV（等价地 $F=t^2\approx5.7$，$p$ 值相同）。$\hat\rho<0$ 的含义：
+\[
+\Cov(\text{educ},u)=\Cov(v,u)=\rho\Var(v)<0 ,
+\]
+由第 7 章的内生性偏误公式，OLS 应\key{低估}教育回报——与该数据中 IV（0.16）大于 OLS（0.074）一致，也与第 7 章关于测量误差等导致向下偏误的讨论相符。
+\end{exmp}
+
+\subsection{Hausman 检验：比较 OLS 与 IV/GMM}
+
+\subsubsection{检验逻辑：一个在 \texorpdfstring{$H_0$}{H0} 下有效，一个在两种情形下都一致}
+
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\toprule
+ & $H_0$：$x_1$ 外生 & $H_1$：$x_1$ 内生\\
+\midrule
+$\hat\beta_{OLS}$ & 一致且\key{有效} & \key{不一致}\\
+$\hat\beta_{GMM}$（IV/2SLS） & 一致但不有效 & 一致\\
+$\hat\beta_{OLS}-\hat\beta_{GMM}$ & $\pto0$ & $\pto$ 非零常数\\
+\bottomrule
+\end{tabular}
+\captionof{table}{Hausman 检验的逻辑}
+\end{center}
+分解差异即可看清：
+\[
+\hat\beta_{OLS}-\hat\beta_{GMM}=\underbrace{(\hat\beta_{OLS}-\beta)}_{H_0\text{ 下}\to0;\ H_1\text{ 下}\not\to0}-\underbrace{(\hat\beta_{GMM}-\beta)}_{\text{两种情形下都}\to0} .
+\]
+所以“两个估计量差得太多”就是拒绝 $H_0$ 的证据——这就是 \term{Hausman 检验}{Hausman test}的思想（Hausman, 1978）。它是一般的\term{设定检验}{specification test}框架：只要有一个“$H_0$ 下有效、$H_1$ 下不一致”的估计量和一个“两种情形下都一致”的估计量，就可以比较二者。第 11 章固定效应与随机效应之间的 Hausman 检验用的是同一原理。
+
+\subsubsection{把差异标准化：二次型统计量}
+
+记 $d=\hat\beta_{GMM}-\hat\beta_{OLS}$。若 $\sqrt n\,d\dto N(0,V_d)$ 且 $V_d$ 非奇异，则
+\begin{align*}
+V_d^{-1/2}\sqrt n\,d&\dto N(0,I) , \why{线性变换保持正态}\\
+H=n\,d\T V_d\inv d=\big(V_d^{-1/2}\sqrt n\,d\big)\T\big(V_d^{-1/2}\sqrt n\,d\big)&\dto\chi^2 . \why{独立 $N(0,1)^2$ 之和}
+\end{align*}
+在有限样本写法下即
+\[
+H=d\T\big[\Var(d)\big]\inv d=\Big(\tfrac{d}{\sqrt{\Var(d)}}\Big)\T\Big(\tfrac{d}{\sqrt{\Var(d)}}\Big),
+\]
+“除以 $\sqrt{\Var(d)}$”是 $\Var(d)^{-1/2}$ 的直观写法：每个标准化后的分量渐近为 $N(0,1)$，平方和为 $\chi^2$。决策规则：$H>$ 临界值 $\Rightarrow$ 拒绝 $H_0$；$H<$ 临界值 $\Rightarrow$ 不拒绝 $H_0$。
+
+剩下的困难是 $\Var(d)$：它似乎需要两个估计量之间的协方差。Hausman 的关键引理绕开了这个困难。
+
+\subsection{Hausman 引理：差的方差等于方差之差}
+
+\subsubsection{引理的陈述}
+
+\begin{thm}[Hausman 引理]\label{thm:U09-hlemma}
+设 $\hat\beta_E$ 在某一类一致、渐近正态的估计量中渐近有效，$\tilde\beta$ 是该类中的另一估计量，$d=\tilde\beta-\hat\beta_E$。则（渐近意义下）
+\[
+\Cov(\hat\beta_E,\ d)=0,\qquad\text{因而}\qquad \Var(\tilde\beta-\hat\beta_E)=\Var(\tilde\beta)-\Var(\hat\beta_E).
+\]
+\end{thm}
+
+\subsubsection{证明（标量情形）：有效估计量与差不相关}
+
+思路：构造一族“把 $\hat\beta_E$ 往 $\tilde\beta$ 方向挪动”的估计量，有效性要求挪动的一阶效应为 0。对任意常数 $\lambda$，
+\[
+\bar\beta(\lambda)=\hat\beta_E+\lambda d=(1-\lambda)\hat\beta_E+\lambda\tilde\beta
+\]
+也是该类中的一致估计量。它的方差为
+\begin{align*}
+\Var\big(\bar\beta(\lambda)\big)&=\Var(\hat\beta_E)+\lambda^2\Var(d)+2\lambda\Cov(\hat\beta_E,d), \why{方差展开}\\
+\frac{\partial\Var\big(\bar\beta(\lambda)\big)}{\partial\lambda}\Big|_{\lambda=0}&=2\Cov(\hat\beta_E,d). \why{对 $\lambda$ 求导}
+\end{align*}
+$\hat\beta_E$ 有效 $\Rightarrow$ $\lambda=0$ 是 $\Var(\bar\beta(\lambda))$ 的最小点 $\Rightarrow$ 导数为 0 $\Rightarrow$ $\Cov(\hat\beta_E,d)=0$。（否则取一个很小的、符号与协方差相反的 $\lambda$，就能得到方差更小的估计量，与有效性矛盾。）于是
+\begin{align*}
+\Var(\tilde\beta)&=\Var(\hat\beta_E+d) \why{$\tilde\beta=\hat\beta_E+d$}\\
+&=\Var(\hat\beta_E)+\Var(d)+2\underbrace{\Cov(\hat\beta_E,d)}_{=0}, \why{方差展开}\\
+\Var(d)&=\Var(\tilde\beta)-\Var(\hat\beta_E). \why{移项}
+\end{align*}
+
+\subsubsection{推广到向量情形}
+
+记 $C=\Cov(\hat\beta_E,d)$（$K\times K$）。对任意非零向量 $a,b\in\R^K$，令 $N=a\,b\T/(a\T a)$（$K\times K$，满足 $a\T N=b\T$），$\bar\beta(\lambda)=\hat\beta_E+\lambda N d$，则
+\[
+a\T\bar\beta(\lambda)=a\T\hat\beta_E+\lambda\, b\T d
+\]
+是 $a\T\beta$ 的一致估计量，而 $a\T\hat\beta_E$ 是 $a\T\beta$ 的有效估计量。对标量估计量重复上面的论证，得 $\Cov(a\T\hat\beta_E,\,b\T d)=a\T Cb=0$。由于 $a,b$ 任意，$C=0$，从而 $\Var(d)=\Var(\tilde\beta)-\Var(\hat\beta_E)$。
+
+\subsubsection{直接验证：同方差下的 OLS 与 2SLS}
+
+在 $H_0$ 下设 $\E(u\mid X,Z)=0$、$\Var(u\mid X,Z)=\sigma^2I_n$（以下都是给定 $X,Z$ 的条件方差）。此时
+\[
+\hat\beta_{OLS}-\beta=(X\T X)\inv X\T u,\qquad \hat\beta_{2SLS}-\beta=(X\T P_ZX)\inv X\T P_Zu .
+\]
+直接计算协方差与差的方差：
+\begin{align*}
+\Cov(\hat\beta_{OLS},\hat\beta_{2SLS})&=(X\T X)\inv X\T\,\E(uu\T)\,P_ZX(X\T P_ZX)\inv \why{$\Cov(Au,Bu)=A\Var(u)B'$}\\
+&=\sigma^2(X\T X)\inv X\T P_ZX(X\T P_ZX)\inv \why{$\Var(u)=\sigma^2I_n$}\\
+&=\sigma^2(X\T X)\inv=\Var(\hat\beta_{OLS}), \why{$X'P_ZX(X'P_ZX)^{-1}=I_K$}\\
+\Var(\hat\beta_{2SLS}-\hat\beta_{OLS})&=\Var(\hat\beta_{2SLS})+\Var(\hat\beta_{OLS})-2\Cov(\hat\beta_{OLS},\hat\beta_{2SLS}) \why{展开}\\
+&=\sigma^2\big[(X\T P_ZX)\inv-(X\T X)\inv\big]. \why{代入，正是“方差之差”}
+\end{align*}
+（第二行用到 $P_Z$ 对称，所以 $B\T=P_ZX(X\T P_ZX)\inv$。）该矩阵半正定：
+\[
+X\T X-X\T P_ZX=X\T M_ZX\ge0\ \Rightarrow\ (X\T P_ZX)\inv\ge(X\T X)\inv ,
+\]
+即 $H_0$ 下 OLS 确实更有效——这是 Gauss--Markov 定理的体现。
+
+\subsubsection{Hausman 内生性检验统计量}
+
+\begin{thm}[Hausman 内生性检验]\label{thm:U09-hausman}
+在 $H_0$ 与条件同方差下，
+\[
+H=(\hat\beta_{GMM}-\hat\beta_{OLS})\T\big[\widehat{\Var}(\hat\beta_{GMM})-\widehat{\Var}(\hat\beta_{OLS})\big]^{-}(\hat\beta_{GMM}-\hat\beta_{OLS})\ \dto\ \chi^2_{k_1},
+\]
+$[\cdot]^{-}$ 为广义逆，$k_1$ 为被检验的内生回归元个数。$H$ 大于 $\chi^2_{k_1}$ 临界值时拒绝外生性。只比较内生系数时，可写成非奇异形式
+\[
+H=\frac{(\tilde\beta_1-\hat\beta_1)\T\Big[\big(X_1\T(P_Z-P_2)X_1\big)\inv-\big(X_1\T M_2X_1\big)\inv\Big]\inv(\tilde\beta_1-\hat\beta_1)}{\hat\sigma^2},
+\]
+其中 $\hat\beta_1,\tilde\beta_1$ 分别为 OLS 与 2SLS 中 $x_1$ 的系数。要求：两个方差用\key{同一个} $\hat\sigma^2$ 估计（保证差为半正定），并且 $H_0$ 下 OLS 有效（同方差）。
+\end{thm}
+第二个式子中方括号内的两项正是 $\Var(\tilde\beta_1)/\sigma^2$ 与 $\Var(\hat\beta_1)/\sigma^2$：由 FWL，$\Var(\hat\beta_1)=\sigma^2(X_1\T M_2X_1)\inv$；2SLS 中 $\Var(\tilde\beta_1)=\sigma^2(\hat X_1\T M_2\hat X_1)\inv$，而 $\hat X_1\T M_2\hat X_1=X_1\T P_ZM_2P_ZX_1=X_1\T(P_Z-P_2)X_1$（因 $X_2\subset Z$，$P_ZP_2=P_2$）。
+
+\subsection{自由度：为什么是内生回归元个数 \texorpdfstring{$k_1$}{k1}}
+
+\subsubsection{外生回归元系数之差是内生系数之差的线性函数}
+
+直觉上 $d$ 有 $K$ 个分量，自由度似乎是 $K$。准确地说，自由度等于方差差矩阵 $\Var(\hat\beta_{GMM})-\Var(\hat\beta_{OLS})$ 的秩。外生回归元 $x_2$ 既在 $X$ 中又在 $Z$ 中时，这个矩阵是奇异的，秩为 $k_1$：外生回归元系数的差只是内生系数差的线性函数，不带新信息（Hansen 第 12.29 节）。证明如下。由 OLS 与 2SLS 正规方程中对应 $X_2$ 的那一块：
+\begin{align*}
+X_2\T(Y-X_1\hat\beta_1-X_2\hat\beta_2)=0\ &\Rightarrow\ \hat\beta_2=(X_2\T X_2)\inv X_2\T(Y-X_1\hat\beta_1), \why{OLS 正规方程}\\
+\hat X_2\T(Y-X_1\tilde\beta_1-X_2\tilde\beta_2)=0\ &\Rightarrow\ \tilde\beta_2=(X_2\T X_2)\inv X_2\T(Y-X_1\tilde\beta_1), \why{2SLS 正规方程，$\hat X_2=X_2$}\\
+\hat\beta_2-\tilde\beta_2&=(X_2\T X_2)\inv X_2\T X_1\,(\tilde\beta_1-\hat\beta_1). \why{两式相减}
+\end{align*}
+记 $A=(X_2\T X_2)\inv X_2\T X_1$（$k_2\times k_1$），$d_1=\tilde\beta_1-\hat\beta_1$，则
+\[
+d=\begin{pmatrix}d_1\\ -A d_1\end{pmatrix}=\begin{pmatrix}I_{k_1}\\ -A\end{pmatrix}d_1 ,\qquad \Var(d)=\begin{pmatrix}I_{k_1}\\ -A\end{pmatrix}\Var(d_1)\begin{pmatrix}I_{k_1}\\ -A\end{pmatrix}\T ,
+\]
+秩为 $k_1$。用全部系数的差（配广义逆）与只用内生系数的差，得到的是同一个统计量。
+
+\subsubsection{实践中的自由度：\texorpdfstring{$k_1$}{k1}；何时才是 \texorpdfstring{$K$}{K}}
+
+\begin{itemize}
+  \item 实践中自由度为 $k_1$。单个内生变量时为 1，此时 Hausman 检验与控制函数 $t$ 检验等价。
+  \item 只有当所有回归元都被当作内生（没有任何外生回归元充当自己的工具）时，方差差矩阵才可能满秩，自由度才是全部回归元个数 $K$。把自由度写成 $\chi^2_K$ 只适用于这种情形。
+\end{itemize}
+
+\subsection{两种形式的关系与稳健版本}
+
+\subsubsection{同方差下数值等价：Durbin--Wu--Hausman 检验}
+
+同方差下，若 $\sigma^2$ 用同一个估计（控制函数回归的 $\hat\sigma^2$），Hausman 统计量（只比较内生系数）与控制函数回归中 $\rho=0$ 的（非稳健）Wald 统计量\key{数值相等}（Hansen 第 12.29 节）。Durbin (1954)、Wu (1973)、Hausman (1978) 先后从不同角度提出了这一统计量，因此这类检验统称 \term{Durbin--Wu--Hausman 检验}{Durbin-Wu-Hausman test}。
+
+\subsubsection{异方差时：稳健控制函数检验或 GMM 的 \texorpdfstring{$C$}{C} 统计量}
+
+经典 Hausman 统计量依赖“$H_0$ 下 OLS 有效”，因而需要同方差；异方差时 OLS 不再有效，差的方差不再等于方差之差，统计量可能为负或分布不对。此时用：
+\begin{itemize}
+  \item 控制函数回归的\key{稳健 $t$/Wald 检验}；或
+  \item GMM 框架下的 $C$ 统计量：把 $x_1$ 也加入工具集（$H_0$ 下它是有效工具），比较两次有效 GMM 的 $J$ 之差，$C\dto\chi^2_{k_1}$（Hansen 第 13.23 节；构造见本章过度识别检验一节的子集检验）。
+\end{itemize}
+
+\begin{exmp}[Hausman 统计量的粗略计算]\label{ex:U09-hausmancalc}
+Hansen 表 12.1（Card 数据）：OLS 教育系数 0.074（$se$ 0.004），2SLS（public、private 作工具）0.161（$se$ 0.040）。只看教育系数，计算 Hausman 统计量并作出判断。
+\solution
+单个内生变量，$k_1=1$：
+\begin{align*}
+H&\approx\frac{(0.161-0.074)^2}{0.040^2-0.004^2} \why{Hausman 统计量，标量情形}\\
+&=\frac{0.007569}{0.001584}\approx4.78>3.84=\chi^2_{1,0.95}. \why{计算}
+\end{align*}
+$p\approx0.029$，5\% 水平拒绝外生性，与控制函数检验（$t^2\approx5.7$）结论一致。两者数值不同，是因为表中标准误并非用同一个 $\hat\sigma^2$ 的同方差公式算出——这里只作示意。
+\end{exmp}
+
+\subsection{Stata 实现：\texttt{estat endogenous} 与 \texttt{hausman}}
+
+\begin{lstlisting}
+ivregress 2sls y (x1 = z1 z2) x2, r first
+estat endogenous      // short form: estat endog -- is x1 endogenous?
+* without r: reports Durbin chi2 and Wu-Hausman F
+* with r:    reports robust score chi2 and robust regression F
+* classical Hausman (homoskedastic; consistent estimator first, efficient second)
+regress y x1 x2
+estimates store ols
+ivregress 2sls y (x1 = z1 z2) x2
+estimates store iv
+hausman iv ols, sigmamore   // sigmamore: both variances use the same sigma^2
+\end{lstlisting}
+\texttt{ivregress gmm} 之后的 \texttt{estat endogenous} 报告的是 GMM 的 $C$ 统计量。
+
+\begin{note}[内生性检验的易错点]
+\begin{itemize}
+  \item 自由度是被检验的内生回归元个数 $k_1$，不是全部回归元个数 $K$。
+  \item 经典 Hausman 需要同方差、两个方差用同一个 $\hat\sigma^2$；否则差的方差不等于方差之差，统计量可能为负。异方差时用稳健控制函数检验或 $C$ 统计量。
+  \item 控制函数回归中 $x_1$ 的系数等于 2SLS，但其 OLS 标准误不能用于 2SLS 推断。
+  \item 维持假设是工具有效且不弱；工具弱时检验功效低，“不拒绝”不是外生的有力证据。
+\end{itemize}
+\end{note}
+
+\begin{keypt}[英文试卷可能的问法]
+“State $H_0$ and $H_1$ of the endogeneity test.”“Why is $\hat\beta_{OLS}-\hat\beta_{IV}$ informative?”“Show that $\Var(\tilde\beta-\hat\beta_E)=\Var(\tilde\beta)-\Var(\hat\beta_E)$.”“How many degrees of freedom does the Hausman statistic have?”答题要点依次为：本节原假设与维持假设；Hausman 检验逻辑表；Hausman 引理的证明；自由度 $k_1$ 及其理由。
+\end{keypt}
+
+\begin{prac}[控制函数检验的步骤]\label{pr:U09-cfsteps}
+写出用控制函数法检验 $x_1$ 是否内生的完整步骤（模型 $y=\beta_0+\beta_1x_1+\beta_2x_2+u$，排除工具 $z_1,z_2$），并说明：若检验不拒绝 $H_0$，应报告哪个估计量？
+\answer
+(1) 第一阶段：$x_1$ 对 $(1,x_2,z_1,z_2)$ 做 OLS，保存残差 $\hat v$；同时检查排除工具的联合 $F$。
+(2) 控制函数回归：$y$ 对 $(1,x_1,x_2,\hat v)$ 做 OLS，用稳健标准误。
+(3) 对 $\hat v$ 的系数做 $t$ 检验 $H_0:\rho=0$；$|t|>1.96$ 则在 5\% 水平拒绝外生性。
+(4) 若不拒绝：没有证据表明 $x_1$ 内生，OLS 一致且更有效，可报告 OLS（通常同时报告 IV 作稳健性检验）；但要注意，若工具较弱，检验功效低，“不拒绝”不能当作外生的有力证据。若拒绝：报告 IV/2SLS（控制函数回归中 $x_1$ 的系数就是 2SLS 估计，但其标准误需要修正，应直接用 \texttt{ivregress}）。
+\end{prac}
+
+\begin{english}
+\textbf{Testing endogeneity.} Under the maintained assumption that the instruments are valid, $x_1$ is exogenous if and only if the first-stage error $v$ is uncorrelated with $u$. Writing $u=\rho v+\eta$, we add the first-stage residual $\hat v$ to the structural equation and test $H_0:\rho=0$ with a (robust) $t$-test; this is the Durbin--Wu--Hausman regression test. Equivalently, the Hausman statistic $H=(\hat\beta_{IV}-\hat\beta_{OLS})'[\widehat{\Var}(\hat\beta_{IV})-\widehat{\Var}(\hat\beta_{OLS})]^{-}(\hat\beta_{IV}-\hat\beta_{OLS})$ is asymptotically $\chi^2$ with degrees of freedom equal to the number of endogenous regressors: under $H_0$ both estimators are consistent and OLS is efficient, so the variance of the difference equals the difference of the variances, whereas under $H_1$ only IV is consistent. Since the statistic exceeds the critical value, we reject exogeneity and rely on the IV estimates.
+\end{english}
+
+%======================================================================
+\section{过度识别检验：工具有效性}\label{sec:U09-overid}
+
+\subsection{原假设与可检验的前提 \texorpdfstring{$L>K$}{L>K}}
+
+\subsubsection{原假设：\texorpdfstring{$H_0:\E(u\mid z)=0$}{H0: E(u|z)=0}（工具有效）}
+
+检验工具有效性（条件 (C2)）：
+\[
+H_0:\ \underbrace{\E(u_i\mid z_i)=0}_{\text{工具有效（外生）}}
+\qquad\text{vs}\qquad
+H_1:\ \underbrace{\E(u_i\mid z_i)\neq0}_{\text{工具无效（内生）}} ,
+\]
+推导中使用矩条件形式 $H_0:\E(z_iu_i)=0$。这一检验称为\term{过度识别检验}{over-identification test}，只在过度识别（$L>K$）时可做。
+
+\subsubsection{直观：不同工具应估计出同一个 \texorpdfstring{$\beta$}{beta}}
+
+设只有一个内生回归元 $x$、没有外生回归元、两个工具 $z_1,z_2$。模型要求
+\[
+\E(z_1y)=\E(z_1x)\beta,\qquad \E(z_2y)=\E(z_2x)\beta ,
+\]
+同一个 $\beta$ 要同时解两个方程——这本身就是一个约束。估计上，等价于分别只用 $z_1$、只用 $z_2$ 做恰好识别的 IV：$H_0$ 成立时两个估计量都一致于同一个 $\beta$，差异只来自抽样误差；$H_0$ 不成立时，二者一般收敛到不同的值。例如 Card 数据中只用 public 的 IV 估计为 0.16，只用 private 为 0.27（$se=0.16$）——差异是否大到不能用抽样误差解释，正是过度识别检验要回答的问题。
+
+\subsubsection{恰好识别时 \texorpdfstring{$J\equiv0$}{J=0}：没有可检验的约束}
+
+恰好识别（$L=K$）时，样本矩条件可以被精确满足，$\bar g_n(\hat\beta)=0$，GMM 目标函数的最小值恒为 0（第 8 章），数据中没有任何“矛盾”可供检验。只有 $L>K$ 时，才有 $L-K$ 个\term{过度识别约束}{over-identifying restrictions}可以检验。
+
+\subsection{思路：最小化后的 GMM 目标函数应接近 0}
+
+\subsubsection{GMM 目标函数及其最小值}
+
+GMM 目标函数为
+\[
+J_n(\beta)=\Big(\frac1n\sum_{i=1}^nz_i(y_i-x_i\T\beta)\Big)\T W\Big(\frac1n\sum_{i=1}^nz_i(y_i-x_i\T\beta)\Big)=\bar g_n(\beta)\T W\bar g_n(\beta).
+\]
+$H_0$ 下 $\hat\beta_{GMM}$ 是一致估计量。在有效权重 $W=\hat\Omega\inv$ 下取最小值：
+\[
+J_n(\hat\beta_{GMM})=\Big(\frac1n\sum_iz_i(y_i-x_i\T\hat\beta_{GMM})\Big)\T\hat\Omega\inv\Big(\frac1n\sum_iz_i(y_i-x_i\T\hat\beta_{GMM})\Big),
+\]
+由于 $\hat\beta_{GMM}\to\beta$，每个样本矩都应 $\approx0$。
+
+\subsubsection{\texorpdfstring{$H_0$}{H0} 下 \texorpdfstring{$J_n\to0$}{Jn->0}（速度 \texorpdfstring{$1/n$}{1/n}），\texorpdfstring{$H_1$}{H1} 下 \texorpdfstring{$nJ_n\to\infty$}{nJn->infinity}}
+
+\begin{itemize}
+  \item $H_0$ 下：$\hat\beta_{GMM}\pto\beta$，$\bar g_n(\hat\beta)\pto\E(z_iu_i)=0$，所以 $J_n(\hat\beta)\pto0$；而且以 $1/n$ 的速度趋于 0：$J_n(\hat\beta)\approx\chi^2_{L-K}/n$。
+  \item $H_1$ 下：不存在使全部矩条件同时成立的 $\beta$，$\bar g_n(\hat\beta)$ 收敛到非零向量，$J_n(\hat\beta)$ 收敛到正数，$nJ_n(\hat\beta)\to\infty$。
+\end{itemize}
+所以用
+\[
+J=n\,J_n(\hat\beta_{GMM})=n\,\bar g_n(\hat\beta)\T\hat\Omega\inv\bar g_n(\hat\beta)
+\]
+作检验统计量：太大则拒绝 $H_0$。乘以 $n$ 正是为了抵消 $J_n$ 以 $1/n$ 速度趋于 0，得到非退化的极限分布。决策规则：$J>$ 临界值 $\Rightarrow$ 拒绝 $H_0$；$J<$ 临界值 $\Rightarrow$ 不拒绝 $H_0$。
+
+\subsection{先用真值 \texorpdfstring{$\beta$}{beta}：CLT 与二次型给出 \texorpdfstring{$\chi^2_L$}{chi2(L)}}
+
+先把 $J_n$ 改写成便于用 CLT 的形式（$u_i=y_i-x_i\T\beta$）：
+\[
+J_n(\beta)=\Big(\frac1n\sum_iz_iu_i\Big)\T W\Big(\frac1n\sum_iz_iu_i\Big)
+=\frac1n\Big(\frac{1}{\sqrt n}\sum_iz_iu_i\Big)\T W\Big(\frac{1}{\sqrt n}\sum_iz_iu_i\Big).
+\]
+$H_0$ 下 $\E(z_iu_i)=0$，由 CLT，$n\to\infty$ 时
+\[
+\frac{1}{\sqrt n}\sum_iz_iu_i\dto N(0,\Omega),\qquad\Omega=\E(z_iz_i\T u_i^2).
+\]
+取有效权重 $W=\Omega\inv$，在真值 $\beta$ 处：
+\begin{align*}
+nJ_n(\beta)&=n\,\bar g_n(\beta)\T\Omega\inv\bar g_n(\beta)
+=\Big(\frac{1}{\sqrt n}\sum_iz_iu_i\Big)\T\Omega\inv\Big(\frac{1}{\sqrt n}\sum_iz_iu_i\Big) \why{$n=\sqrt n\cdot\sqrt n$ 分给两个因子}\\
+&\dto\xi\T\Omega\inv\xi,\qquad\xi\sim N(0,\Omega) \why{CLT 与 CMT}\\
+&=(\Omega^{-1/2}\xi)\T(\Omega^{-1/2}\xi)\sim\chi^2_L . \why{$\Omega^{-1/2}\xi\sim N(0,I_L)$}
+\end{align*}
+最后一步的积木是“$(N(0,1))^2\sim\chi^2_1$”：$L$ 个独立标准正态的平方和服从 $\chi^2_L$。但实际统计量用的是 $\hat\beta_{GMM}$ 而非真值，自由度变为 $L-K$，即
+\[
+nJ_n(\hat\beta_{GMM})\approx\Big(\underbrace{\tfrac{1}{\sqrt n}\textstyle\sum_iz_i\hat u_i}_{\approx N(0,\cdot)}\Big)\T\hat\Omega\inv\Big(\underbrace{\tfrac{1}{\sqrt n}\textstyle\sum_iz_i\hat u_i}_{\approx N(0,\cdot)}\Big)\dto\chi^2_{L-K}
+\ \Longrightarrow\ J_n(\hat\beta_{GMM})\approx\frac{\chi^2_{L-K}}{n}\to0 ,
+\]
+其中 $L=\#(z)$ 为工具个数，$K=\#(x)$ 为回归元个数。三点要记住：(1) CLT 中正态分布的方差是 $\Omega$；(2) $\chi^2$ 极限要求用有效权重 $W=\Omega\inv$（实践中 $\hat\Omega\inv$）并在有效 GMM 估计量处取值，一般的 $W$ 不行；(3) 用真值 $\beta$ 时是 $\chi^2_L$，用估计值 $\hat\beta$ 时“用掉”$K$ 个自由度，变成 $\chi^2_{L-K}$。下面严格证明 (3)。
+
+\subsection{严格推导：用估计值时自由度变为 \texorpdfstring{$L-K$}{L-K}}
+
+要证：设 $\hat\beta$ 是以 $\hat\Omega\inv$（$\hat\Omega\pto\Omega>0$）为权重的有效 GMM 估计量，则
+\[
+J=n\,\bar g_n(\hat\beta)\T\hat\Omega\inv\bar g_n(\hat\beta)\dto\chi^2_{L-K}.
+\]
+思路：把 $\sqrt n\,\bar g_n(\hat\beta)$ 写成“投影矩阵 $\times$ 渐近标准正态向量”，再用“标准正态向量在对称幂等矩阵下的二次型服从 $\chi^2$，自由度等于秩”（第 1 章）。
+
+\subsubsection{第一步：把 \texorpdfstring{$\hat\beta$}{beta-hat} 的估计误差代入样本矩}
+
+记 $\hat Q=\frac1nZ\T X$（$L\times K$），$\hat Q\pto Q$。有效 GMM 估计量为 $\hat\beta=(\hat Q\T\hat\Omega\inv\hat Q)\inv\hat Q\T\hat\Omega\inv\frac1nZ\T Y$（第 8 章）。
+\begin{align*}
+\sqrt n\,\bar g_n(\hat\beta)&=\tfrac{1}{\sqrt n}Z\T(Y-X\hat\beta) \why{$\bar g_n$ 的定义}\\
+&=\tfrac{1}{\sqrt n}Z\T u-\hat Q\,\sqrt n(\hat\beta-\beta), \why{$Y=X\beta+u$}\\
+\sqrt n(\hat\beta-\beta)&=(\hat Q\T\hat\Omega\inv\hat Q)\inv\hat Q\T\hat\Omega\inv\tfrac{1}{\sqrt n}Z\T u, \why{代入 $Y=X\beta+u$}\\
+\Rightarrow\ \sqrt n\,\bar g_n(\hat\beta)&=\big[I_L-\hat Q(\hat Q\T\hat\Omega\inv\hat Q)\inv\hat Q\T\hat\Omega\inv\big]\tfrac{1}{\sqrt n}Z\T u . \why{合并}
+\end{align*}
+
+\subsubsection{第二步：标准化——投影矩阵乘标准正态向量}
+
+因 $\Omega>0$，可写 $\Omega\inv=CC\T$（如 $C=\Omega^{-1/2}$），于是 $C\T\Omega C=I_L$。令
+\[
+R=C\T Q\qquad(L\times K,\ \text{列满秩}),\qquad P_R=R(R\T R)\inv R\T .
+\]
+第一步方括号中的矩阵依概率收敛到 $I_L-Q(Q\T CC\T Q)\inv Q\T CC\T$。左乘 $C\T$：
+\begin{align*}
+C\T\big[I_L-Q(Q\T CC\T Q)\inv Q\T CC\T\big]&=C\T-R(R\T R)\inv R\T C\T \why{$Q'CC'Q=R'R$，$C'Q=R$}\\
+&=\big[I_L-R(R\T R)\inv R\T\big]C\T=(I_L-P_R)C\T , \why{提出右因子 $C'$}\\
+C\T\tfrac{1}{\sqrt n}Z\T u&\dto N(0,\,C\T\Omega C)=N(0,I_L)\equiv\xi . \why{CLT}
+\end{align*}
+由 Slutsky 定理，
+\[
+C\T\sqrt n\,\bar g_n(\hat\beta)\dto(I_L-P_R)\,\xi,\qquad\xi\sim N(0,I_L).
+\]
+
+\subsubsection{第三步：幂等矩阵的二次型服从 \texorpdfstring{$\chi^2_{L-K}$}{chi2(L-K)}}
+
+\begin{align*}
+J&=\big(C\T\sqrt n\,\bar g_n(\hat\beta)\big)\T\big(C\T\sqrt n\,\bar g_n(\hat\beta)\big)+o_p(1) \why{$\hat\Omega^{-1}\pto\Omega^{-1}=CC'$}\\
+&\dto\xi\T(I_L-P_R)\T(I_L-P_R)\xi=\xi\T(I_L-P_R)\xi \why{$I-P_R$ 对称幂等}\\
+&\sim\chi^2_{\rank(I_L-P_R)}=\chi^2_{L-K}. \why{幂等阵的二次型}
+\end{align*}
+其中秩等于迹：
+\begin{align*}
+\rank(I_L-P_R)=\tr(I_L-P_R)&=L-\tr\big(R(R\T R)\inv R\T\big) \why{迹的线性性}\\
+&=L-\tr\big((R\T R)\inv R\T R\big) \why{$\tr(AB)=\tr(BA)$}\\
+&=L-\tr(I_K)=L-K . \why{计算}
+\end{align*}
+
+\begin{thm}[过度识别检验（Hansen 定理 13.14）]\label{thm:U09-J}
+在 $H_0:\E(z_iu_i)=0$ 下，若用有效权重估计，
+\[
+J=n\,\bar g_n(\hat\beta_{GMM})\T\hat\Omega\inv\bar g_n(\hat\beta_{GMM})\dto\chi^2_{L-K}.
+\]
+$J>\chi^2_{L-K,1-\alpha}$ 时拒绝 $H_0$（工具有效）。自由度 $=$ 过度识别约束个数 $=$ 排除工具个数 $-$ 内生回归元个数 $=L_2-k_1$。
+\end{thm}
+
+\subsubsection{直观：\texorpdfstring{$\hat\beta$}{beta-hat} 的一阶条件“用掉”\texorpdfstring{$K$}{K} 个方向}
+
+$L$ 维的样本矩向量中，有 $K$ 个方向被 $\hat\beta$ 的一阶条件
+\[
+\hat Q\T\hat\Omega\inv\bar g_n(\hat\beta)=0
+\]
+强行设为 0。这就像 OLS 残差与 $X$ 的 $K$ 个方向正交，所以正态同方差下 $\sum_i\hat u_i^2/\sigma^2\sim\chi^2_{n-K}$。真正自由变动、能反映矩条件“矛盾”的只剩 $L-K$ 个方向。
+
+\subsection{必须使用有效权重矩阵}
+
+若 $J$ 用任意 $W$ 而非 $\Omega\inv$，第二、三步中的矩阵不再是对称幂等的：此时 $\sqrt n\,\bar g_n(\hat\beta)\dto A\zeta$，$A=I_L-Q(Q\T WQ)\inv Q\T W$，$\zeta\sim N(0,\Omega)$，于是 $n\,\bar g_n\T W\bar g_n$ 的极限是若干独立 $\chi^2_1$ 的加权和（权重为 $\Omega^{1/2}A\T WA\,\Omega^{1/2}$ 的特征值），不是 $\chi^2$ 分布，查 $\chi^2$ 表就错了。所以：
+\begin{itemize}
+  \item $J$ 检验必须基于\key{有效（两步或迭代）GMM} 的目标函数，并在有效 GMM 估计量处取值；
+  \item 对 2SLS 计算的过度识别统计量则需要同方差假设——同方差下 2SLS 就是有效 GMM，这就是下面的 Sargan 统计量。
+\end{itemize}
+
+\subsection{Sargan 检验与 Hansen \texorpdfstring{$J$}{J} 检验}
+
+\subsubsection{Sargan 检验：同方差下的 2SLS 版本}
+
+\term{Sargan 检验}{Sargan test}（Sargan, 1958）是同方差下针对 2SLS 的版本。令 $\hat e=Y-X\hat\beta_{2SLS}$ 为 2SLS 残差，$\hat\sigma^2=\hat e\T\hat e/n$，
+\begin{align*}
+S&=\frac{\hat e\T Z(Z\T Z)\inv Z\T\hat e}{\hat\sigma^2} \why{定义}\\
+&=n\cdot\frac{\hat e\T P_Z\hat e}{\hat e\T\hat e} \why{$\hat\sigma^2=\hat e'\hat e/n$}\\
+&=n\cdot R_u^2 , \why{$R^2_u$：$\hat e$ 对 $Z$ 回归的非中心 $R^2$}
+\end{align*}
+其中 $\hat e$ 对 $Z$ 回归的拟合值为 $P_Z\hat e$，非中心的回归平方和为 $\hat e\T P_Z\hat e$，非中心总平方和为 $\hat e\T\hat e$。它就是同方差有效权重下的 $J$：同方差时 $\Omega=\sigma^2\E(z_iz_i\T)$，有效权重取 $\hat\Omega=\hat\sigma^2\frac1nZ\T Z$，代入 $\bar g_n(\hat\beta)=\frac1nZ\T\hat e$，
+\begin{align*}
+n\,\bar g_n(\hat\beta)\T\Big(\hat\sigma^2\tfrac1nZ\T Z\Big)\inv\bar g_n(\hat\beta)
+&=n\cdot\tfrac1n\hat e\T Z\cdot\tfrac{n}{\hat\sigma^2}(Z\T Z)\inv\cdot\tfrac1nZ\T\hat e \why{代入}\\
+&=\frac{\hat e\T Z(Z\T Z)\inv Z\T\hat e}{\hat\sigma^2}=S\ \dto\ \chi^2_{L-K}. \why{过度识别检验结论}
+\end{align*}
+\key{实用算法}：把 2SLS 残差对全部工具（含常数）回归，用 $nR^2$ 与 $\chi^2_{L-K}$ 的临界值比较。由于 $Z$ 含常数、2SLS 残差之和为 0，这里中心化与非中心化的 $R^2$ 相同。Basmann (1960) 提出的版本把 $\hat\sigma^2$ 换成辅助回归的残差方差，与 Sargan 统计量渐近等价。
+
+\subsubsection{Hansen \texorpdfstring{$J$}{J} 检验：异方差稳健的一般版本}
+
+\term{Hansen $J$ 检验}{Hansen J test}（L.\ Hansen, 1982）是异方差稳健的一般版本：用两步或迭代有效 GMM，
+\[
+\hat\Omega=\frac1n\sum_iz_iz_i\T\hat u_i^2 ,
+\]
+$\hat u_i$ 为第一步（如 2SLS）的残差。习惯上把二者合称 Sargan--Hansen 检验，或直接叫“$J$ 检验”。
+
+\subsubsection{Stata 报告的各种版本}
+
+\begin{itemize}
+  \item \texttt{ivregress 2sls}（非稳健）之后 \texttt{estat overid}：报告 Sargan 与 Basmann 统计量；
+  \item 使用 \texttt{r} 选项时：报告稳健的 score 检验（Wooldridge, 1995），它在数值上与 GMM 的 $J$ 等价；
+  \item \texttt{ivregress gmm} 之后 \texttt{estat overid}：报告 Hansen $J$。
+\end{itemize}
+
+\begin{exmp}[$J$ 统计量的计算：样本量的作用]\label{ex:U09-Jcalc}
+$K=1$，$L=2$，样本矩 $\frac1n\sum_iz_ix_i=(2,1)\T$，$\frac1n\sum_iz_iy_i=(4.2,2.2)\T$，
+$\hat\Omega=\begin{pmatrix}4&1\\1&2\end{pmatrix}$。求有效 GMM 估计与 $J$ 统计量，并比较 $n=100$ 与 $n=1000$ 的结论。
+\solution
+记 $\hat Q=(2,1)\T$，$\hat q_{zy}=(4.2,2.2)\T$，则 $\bar g_n(\beta)=\hat q_{zy}-\hat Q\beta$。
+\begin{align*}
+\hat\Omega\inv&=\frac17\begin{pmatrix}2&-1\\-1&4\end{pmatrix}, \why{$\det\hat\Omega=7$}\\
+\hat Q\T\hat\Omega\inv&=\tfrac17(2\cdot2-1,\ -2+4)=\tfrac17(3,\ 2), \why{矩阵乘法}\\
+\hat\beta&=\frac{\hat Q\T\hat\Omega\inv\hat q_{zy}}{\hat Q\T\hat\Omega\inv\hat Q}
+=\frac{(3\times4.2+2\times2.2)/7}{(3\times2+2\times1)/7}=\frac{17}{8}=2.125 , \why{有效 GMM 公式}\\
+\bar g_n(\hat\beta)&=\begin{pmatrix}4.2-4.25\\2.2-2.125\end{pmatrix}=\begin{pmatrix}-0.05\\0.075\end{pmatrix}, \why{$\hat q_{zy}-\hat Q\hat\beta$}\\
+\hat Q\T\hat\Omega\inv\bar g_n(\hat\beta)&=\tfrac17\big(3\times(-0.05)+2\times0.075\big)=0 , \why{一阶条件核对}\\
+\bar g_n\T\hat\Omega\inv\bar g_n&=\tfrac17\big[(-0.05)(-0.175)+0.075\times0.35\big] \why{$\hat\Omega^{-1}\bar g_n=\frac17(-0.175,0.35)'$}\\
+&=\tfrac17(0.00875+0.02625)=0.005 . \why{计算}
+\end{align*}
+两个单工具估计为 $4.2/2=2.1$ 与 $2.2/1=2.2$，十分接近；有效 GMM 估计 2.125 介于二者之间。
+\begin{itemize}
+  \item $n=100$：$J=100\times0.005=0.5<3.84=\chi^2_{1,0.95}$（$p=0.48$），不拒绝；
+  \item $n=1000$（同样的样本矩）：$J=5.0>3.84$（$p=0.025$），5\% 水平拒绝。
+\end{itemize}
+同样的“矛盾程度”，样本越大越能被识别为显著——这正是 $J=n\cdot J_n$ 中因子 $n$ 的作用。
+\end{exmp}
+
+\begin{exmp}[Card (1995) 的 Sargan 检验（Hansen 第 12.31 节）]\label{ex:U09-cardsargan}
+用 public、private 两个工具估计教育回报（一个内生变量），Sargan $=0.82$。作出判断并给出直觉。
+\solution
+$L-K=2-1=1$，$\chi^2_{1,0.95}=3.84>0.82$，$p=0.37$：不拒绝，没有证据表明工具无效。直觉：单用 public 的 IV 估计为 0.16，单用 private 为 0.27（$se=0.16$），差异可以由抽样误差解释。
+\end{exmp}
+
+\subsection{局限：只能检验“相对”有效性}
+
+\subsubsection{只检验工具之间是否相互一致}
+
+$J$ 检验实质上问：不同的工具（子集）是否估计出同一个 $\beta$？若所有工具都以同样的方式无效——例如两个工具都与 $u$ 相关，且
+\[
+\frac{\Cov(z_1,u)}{\Cov(z_1,x)}=\frac{\Cov(z_2,u)}{\Cov(z_2,x)} ,
+\]
+两个单工具 IV 收敛到同一个错误的值——$J$ 检验完全没有功效。因此它必须维持“至少有 $K$ 个工具有效”的假设，检验的是其余 $L-K$ 个约束。
+
+\subsubsection{拒绝时不知道哪个工具有问题；不拒绝也不等于证明有效}
+
+拒绝 $H_0$ 只说明至少有一部分工具无效（或模型设定有误），不告诉你是哪一个；不拒绝也不等于证明了工具有效——可能只是功效低。可用子集检验（下一小节）进一步排查。
+
+\subsubsection{恰好识别时无法检验}
+
+恰好识别时 $J\equiv0$，工具外生性无法用数据检验，只能靠经济论证（排他性约束的合理性）。
+
+\subsubsection{有限样本问题：过度拒绝与工具过多}
+
+小样本中 Sargan/$J$ 检验可能过度拒绝。工具个数 $L$ 相对于 $n$ 很大时，$\chi^2_{L-K}$ 近似失效：$\chi^2$ 理论要求 $L$ 固定、$n\to\infty$，矩条件个数随 $n$ 增长（极端情形是矩条件个数与 $n$ 同阶）时结论不再成立。动态面板 GMM 中工具过多会使 Hansen $J$ 的 $p$ 值虚高（接近 1），见第 12 章。
+
+\subsubsection{显著性水平的选择：关注 1\% 这样的小水平}
+
+Hansen 的建议：任何过度识别模型都只是近似，检验回答的是“模型是否严格为真”，而我们真正关心的是“模型是否是糟糕的近似”。因此应关注很小的显著性水平（如 1\%）；$p$ 值在 1\%--5\% 之间“值得担心但不致命”，应结合其他信息判断。
+
+\subsection{子集过度识别检验：\texorpdfstring{$C$}{C} 统计量}
+
+\subsubsection{构造：两次有效 GMM 的 \texorpdfstring{$J$}{J} 之差}
+
+把工具分成可信的 $Z_a$（$L_a\ge K$ 个）与可疑的 $Z_b$（$L_b$ 个）。维持假设 $\E(Z_a\T u)=0$，检验
+\[
+H_0:\ \E(Z_b\T u)=0\qquad\text{vs}\qquad H_1:\ \E(Z_b\T u)\neq0 .
+\]
+分别只用 $Z_a$ 和用全部 $Z=(Z_a,Z_b)$ 做有效 GMM，得 $\tilde J$ 与 $\hat J$：
+\[
+C=\hat J-\tilde J\ \dto\ \chi^2_{L_b}\qquad(H_0\ \text{下}),
+\]
+称为 \term{$C$ 统计量}{C statistic}，又称 difference-in-Sargan/Hansen 统计量。有限样本中 $C$ 偶尔为负，此时不拒绝 $H_0$。同方差 2SLS 下可用两个 Sargan 统计量之差。
+
+\subsubsection{特例：\texorpdfstring{$L_a=K$}{La=K} 时退化为普通 \texorpdfstring{$J$}{J} 检验}
+
+$L_a<K$ 时只用 $Z_a$ 无法识别 $\beta$，所以必须 $L_a\ge K$。若 $L_a=K$，只用 $Z_a$ 是恰好识别，$\tilde J=0$，$C=\hat J$ 退化为普通 $J$ 检验；因此子集检验只在 $L_a>K$（即过度识别约束不止一个）时才提供新信息。
+
+\subsubsection{内生性检验的 \texorpdfstring{$C$}{C} 统计量形式}
+
+内生性检验也可以写成 $C$ 检验：把被怀疑的 $x_1$ 也加入工具集（$H_0$ 下它是有效工具），比较
+\[
+C=\hat J_{(z,\,x_1)}-\tilde J_{(z)}\ \dto\ \chi^2_{k_1}
+\]
+（Hansen 第 13.22--13.23 节）。它对异方差稳健，是经典 Hausman 检验的 GMM 版本。
+
+\begin{exmp}[Card 数据：父母受教育年限能否作工具（Hansen 第 12.32 节）]\label{ex:U09-cstat}
+Card 的工资方程以 public、private、age、age$^2$ 为教育、经验、经验$^2$ 的工具（Sargan $=0.5$）。早期文献还用父亲、母亲的受教育年限作工具。加入这两个工具后共有 3 个过度识别约束，Sargan $=7.9$。检验父母教育作为工具的有效性。
+\solution
+全部工具的 Sargan：$7.9$，$\chi^2_3$ 下 $p=0.048$，轻度拒绝整体设定。子集检验只针对父母教育（$L_b=2$）：
+\begin{align*}
+C&=7.9-0.5=7.4 , \why{两个 Sargan 之差}\\
+p&=P(\chi^2_2>7.4)\approx0.025 . \why{$C\dto\chi^2_{L_b}$}
+\end{align*}
+5\% 水平拒绝“父母教育是有效工具”，但 $p$ 不小于 1\%，证据并非压倒性；它支持 Card 不用父母教育作工具的选择（父母教育可能通过家庭教育直接影响子女技能，违反排他性）。
+\end{exmp}
+
+\subsection{\texorpdfstring{$J$}{J} 检验的功效与局部误设}
+
+\subsubsection{局部误设：违背程度随 \texorpdfstring{$n$}{n} 缩小}
+
+为理解“$J$ 检验能发现什么样的违背”，考虑\term{局部误设}{local misspecification}：
+\[
+u_i=\delta n^{-1/2}+\varepsilon_i,\qquad\E(\varepsilon_i\mid z_i)=0,\qquad\mu_z=\E(z_i)\neq0 .
+\]
+则 $\E(z_iu_i)=\mu_z\delta/\sqrt n\neq0$：工具无效，但违背程度随 $n$ 缩小，使得极限分布非退化。记 $\Omega=\E(z_iz_i\T\varepsilon_i^2)$。
+
+\subsubsection{GMM 估计量出现渐近偏误}
+
+\begin{align*}
+\tfrac{1}{\sqrt n}Z\T u&=\tfrac1n\sum_iz_i\,\delta+\tfrac{1}{\sqrt n}\sum_iz_i\varepsilon_i \why{代入 $u_i$}\\
+&\dto\mu_z\delta+N(0,\Omega), \why{LLN 与 CLT}\\
+\sqrt n(\hat\beta-\beta)&=(\hat Q\T W\hat Q)\inv\hat Q\T W\tfrac{1}{\sqrt n}Z\T u \why{GMM 估计误差}\\
+&\dto N\big((Q\T WQ)\inv Q\T W\mu_z\delta,\ V_W\big), \why{Slutsky}
+\end{align*}
+$V_W$ 为权重 $W$ 下 GMM 的渐近方差（第 8 章）。GMM 估计量出现渐近偏误。
+
+\subsubsection{\texorpdfstring{$J$}{J} 收敛到非中心 \texorpdfstring{$\chi^2_{L-K}$}{chi2(L-K)}}
+
+对有效权重下的 $J$，重复上面严格推导的三步，只是 $C\T\frac{1}{\sqrt n}Z\T u\dto C\T\mu_z\delta+\xi$，$\xi\sim N(0,I_L)$，即均值为 $C\T\mu_z\delta$ 的正态向量：
+\begin{align*}
+C\T\sqrt n\,\bar g_n(\hat\beta)&\dto(I_L-P_R)(C\T\mu_z\delta+\xi), \why{第二步}\\
+J&\dto(C\T\mu_z\delta+\xi)\T(I_L-P_R)(C\T\mu_z\delta+\xi)\sim\chi^2_{L-K}(\lambda), \why{第三步}
+\end{align*}
+即\term{非中心 $\chi^2$ 分布}{noncentral chi-square distribution}，非中心参数
+\[
+\lambda=\big\|(I_L-P_R)C\T\mu_z\delta\big\|^2=\delta^2\mu_z\T C(I_L-P_R)C\T\mu_z .
+\]
+$\lambda$ 越大，$J$ 越可能超过 $\chi^2_{L-K}$ 的临界值，检验功效越高。
+
+\subsubsection{无功效的方向：误设落在 \texorpdfstring{$Q$}{Q} 的列空间内}
+
+若 $C\T\mu_z$ 落在 $R=C\T Q$ 的列空间内（等价地，$\mu_z$ 落在 $Q$ 的列空间内：误设的方向恰好能被 $\beta$ 的移动“解释”），则 $(I_L-P_R)C\T\mu_z=0$，$\lambda=0$，$J$ 检验没有功效。例如模型含常数项时，$Q$ 中对应常数的那一列就是 $\E(z_i)=\mu_z$，这种误设只是改变截距，被截距的估计完全吸收。一般地，只要 $\E(z_iu_i)=Qb$ 对某个 $b$ 成立，$\beta^*=\beta+b$ 就使全部矩条件 $\E[z_i(y_i-x_i\T\beta^*)]=\E(z_iu_i)-Qb=0$ 同时成立，GMM 一致于错误的 $\beta^*$，而 $J$ 仍渐近服从 $\chi^2_{L-K}$——这正是“只能检验相对有效性”的数学表述。
+
+\begin{note}[过度识别检验的易错点]
+\begin{itemize}
+  \item 自由度是过度识别约束个数 $L-K=L_2-k_1$，不是工具个数 $L$，也不是排除工具个数 $L_2$。
+  \item $\chi^2_{L-K}$ 极限要求有效权重：异方差时不能用 2SLS 残差算 Sargan 统计量，应改用 Hansen $J$ 或稳健 score 检验。
+  \item 不拒绝 $\neq$ 工具有效（只说明工具相互一致）；恰好识别时 $J\equiv0$，无法检验。
+\end{itemize}
+\end{note}
+
+\begin{keypt}[英文试卷可能的问法]
+“Show that $J\dto\chi^2_{L-K}$.”“Why are the degrees of freedom $L-K$ rather than $L$?”“What is $J$ when $L=K$?”“Can the $J$ test detect invalid instruments?”答题要点依次为：严格推导的三步；$\hat\beta$ 的一阶条件用掉 $K$ 个方向；$J\equiv0$；只能检验相对有效性（同方向无效时没有功效）。
+\end{keypt}
+
+\begin{prac}[用 $nR^2$ 计算 Sargan 统计量]\label{pr:U09-sargan}
+模型 $y=\beta_0+\beta_1x_1+\beta_2x_2+u$，$x_1$ 内生，排除工具 $z_1,z_2,z_3$，$n=400$。2SLS 残差对全部工具 $(1,x_2,z_1,z_2,z_3)$ 回归的非中心 $R_u^2=0.012$。(1) 计算 Sargan 统计量与自由度；(2) 在 5\% 水平下作出决策并解释；(3) 若改为异方差稳健的检验应怎么做？
+\answer
+(1) $S=nR_u^2=400\times0.012=4.8$；$K=3$（$1,x_1,x_2$），$L=5$，自由度 $L-K=2$（3 个排除工具 $-$ 1 个内生变量）。
+(2) $\chi^2_{2,0.95}=5.99>4.8$（$p=e^{-2.4}\approx0.091$），5\% 水平不拒绝 $H_0$：没有证据表明过度识别约束不成立，三个工具相互一致；但这不能证明它们都有效（可能同方向无效，或检验功效不足）。在 10\% 水平会拒绝，属于“值得留意”的情形。
+(3) 用两步有效 GMM（\texttt{ivregress gmm}）的 Hansen $J$，或在 \texttt{ivregress 2sls ..., r} 后用 \texttt{estat overid} 报告的稳健 score 检验，自由度仍为 2。
+\end{prac}
+
+\begin{english}
+\textbf{Over-identification test.} When $L>K$ the model imposes $L-K$ over-identifying restrictions that can be tested. Under $H_0:\E(z_iu_i)=0$ the efficient GMM estimator is consistent and the sample moments evaluated at $\hat\beta$ should be close to zero. Hansen's statistic $J=n\bar g_n(\hat\beta)'\hat\Omega^{-1}\bar g_n(\hat\beta)$ converges in distribution to $\chi^2_{L-K}$; the $K$ degrees of freedom are lost because $\hat\beta$ sets $K$ linear combinations of the sample moments to zero. Under homoskedasticity it reduces to Sargan's statistic $nR^2$ from regressing the 2SLS residuals on the instruments. Since $J=0.5$ is below the 5\% critical value 3.84 ($p=0.48$), we do not reject the validity of the over-identifying restrictions. However, the test has power only against violations that make different instruments disagree; it cannot detect a situation in which all instruments are invalid in the same way, and it is not available in the just-identified case.
+\end{english}
+
+%======================================================================
+\section{决策规则与完整实证流程}\label{sec:U09-workflow}
+
+\subsection{决策规则汇总表}
+
+\begin{center}
+\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{2.6cm}LLL}
+\toprule
+检验 & $H_0$ & 统计量（分布） & 拒绝条件 & 拒绝 $H_0$ 意味着 & 不拒绝意味着\\
+\midrule
+相关性 & $\delta=0$（排除工具与 $x_1$ 无关） & 第一阶段 $F$（$F(q,n-k)$） & $F>10$（保守标准 30；或 Stock--Yogo 临界值） & 工具相关且不弱，可继续 & 弱工具：换工具或减少工具、LIML、AR 推断\\
+内生性 & $\E(u\mid x_1)=0$ & 控制函数 $t$（$N(0,1)$）；Hausman（$\chi^2_{k_1}$） & $|t|>1.96$；$H>\chi^2_{k_1,0.95}$ & $x_1$ 内生，用 IV/GMM & 可用 OLS（更有效），IV 作稳健性检验\\
+过度识别 & $\E(u\mid z)=0$ & $J$ 或 Sargan（$\chi^2_{L-K}$） & $J>\chi^2_{L-K,0.95}$ & 至少部分工具无效，模型设定可疑 & 无证据表明工具无效（$\neq$ 证明有效）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{三个检验的决策规则}\label{tab:U09-rules}
+\end{center}
+常用临界值：$\chi^2_{1,0.95}=3.84$，$\chi^2_{1,0.99}=6.63$，$\chi^2_{2,0.95}=5.99$，$\chi^2_{3,0.95}=7.81$；$N(0,1)$ 双侧 5\%：1.96，1\%：2.58。
+
+\subsection{完整实证流程图}
+
+\begin{center}
+\begin{tikzpicture}[
+  main/.style={draw,rounded corners=2pt,align=flush center,font=\small,text width=6.4cm,inner sep=3pt},
+  side/.style={draw,rounded corners=2pt,align=flush center,font=\small,text width=5.0cm,inner sep=3pt},
+  lab/.style={font=\footnotesize},
+  >={Stealth[length=2mm]}]
+\node[main,fill=cdef!5] (A) at (0,0) {怀疑 $x_1$ 内生（遗漏变量 / 测量误差 / 联立性，第 7 章）};
+\node[main,fill=cdef!5] (B) at (0,-1.45) {寻找工具 $\tilde z$：论证排他性与相关性；数 $K$、$L$（$L\ge K$）};
+\node[main,fill=yellow!12] (C) at (0,-2.95) {\textbf{检验一 相关性}：第一阶段 $F>10$？\\（\texttt{first}，\texttt{estat firststage}）};
+\node[side,fill=red!6] (C2) at (7.3,-2.95) {弱工具：寻找更强工具、减少工具个数；LIML；Anderson--Rubin 置信集};
+\node[main,fill=yellow!12] (D) at (0,-4.45) {$L>K$（过度识别）？};
+\node[side,fill=red!6] (D2) at (7.3,-4.45) {恰好识别：$J\equiv0$，外生性无法检验，只能论证};
+\node[main,fill=yellow!12] (E) at (0,-5.95) {\textbf{检验二 过度识别}：$J$ 检验拒绝 $H_0$？\\（\texttt{estat overid}）};
+\node[side,fill=red!6] (E2) at (7.3,-5.95) {工具（至少部分）无效：返回重新审视工具；$C$ 检验排查可疑工具};
+\node[main,fill=yellow!12] (F) at (0,-8.0) {\textbf{检验三 内生性}：拒绝外生性？\\（\texttt{estat endog}；控制函数 $t$；Hausman）};
+\node[side,fill=green!7] (F2) at (7.3,-8.0) {无证据表明内生：OLS 一致且更有效；同时报告 IV 作稳健性检验};
+\node[main,fill=green!7] (G) at (0,-9.75) {采用 IV/GMM：2SLS（同方差）或两步 GMM（异方差）；稳健/聚类标准误；报告第一阶段 $F$、$J$ 的 $p$ 值、内生性检验};
+\draw[->] (A) -- (B);
+\draw[->] (B) -- (C);
+\draw[->] (C) -- node[lab,right]{是} (D);
+\draw[->] (C) -- node[lab,above]{否} (C2);
+\draw[->] (D) -- node[lab,right]{是} (E);
+\draw[->] (D) -- node[lab,above]{否} (D2);
+\draw[->] (E) -- node[lab,above]{是} (E2);
+\draw[->] (E) -- node[lab,right,pos=0.35]{否} (F);
+\draw[->] (F) -- node[lab,above]{否} (F2);
+\draw[->] (F) -- node[lab,right]{是} (G);
+\draw[->,dashed] (C2.north) |- node[lab,pos=0.25,right]{返回} (B.east);
+\draw[->] (D2.east) -- ++(0.35,0) |- node[lab,pos=0.75,below]{跳过检验二} (0.06,-7.05);
+\end{tikzpicture}
+\captionof{figure}{IV/GMM 实证流程：相关性 → 过度识别 → 内生性}\label{fig:U09-flow}
+\end{center}
+
+\subsection{Stata 完整代码}
+
+三条诊断命令分别回答三个问题：\texttt{ivregress 2sls y (x1 = z1 z2) x2, r first} 给出第一阶段 $F$——工具是否相关？\texttt{estat endog}——$x_1$ 是否内生？\texttt{estat overid}——$z_1,z_2$ 是否为有效工具？完整代码如下。
+\begin{lstlisting}
+* (0) baseline OLS
+regress y x1 x2, r
+* (1) 2SLS: x1 endogenous, z1 z2 excluded instruments, x2 exogenous
+*     r = robust SE; first = print the first stage
+ivregress 2sls y (x1 = z1 z2) x2, r first
+estat firststage      // test 1: relevance (F, partial R2)
+estat overid          // test 2: over-identification (L-K = 2 excluded - 1 endogenous = 1)
+estat endogenous      // test 3: endogeneity
+* (2) two-step efficient GMM (heteroskedasticity-robust weight); option igmm = iterated GMM
+ivregress gmm y (x1 = z1 z2) x2, wmatrix(robust)
+estat overid          // Hansen J
+* (3) LIML (alternative when instruments are weak)
+ivregress liml y (x1 = z1 z2) x2, r
+\end{lstlisting}
+
+\subsection{读输出的要点}
+
+\begin{itemize}
+  \item \key{第一阶段}：排除工具 \texttt{z1}、\texttt{z2} 的系数符号是否符合经济机制；联合 $F$ 是否 $>10$。
+  \item \key{2SLS 主表}：$x_1$ 的系数与 OLS 比较，差异方向是否与第 7 章的偏误方向论证一致；标准误通常比 OLS 大得多（IV 只用了部分变动）。
+  \item \key{\texttt{estat overid}}：$p$ 值大 $\Rightarrow$ 不拒绝工具有效；本例自由度 $L-K=1$。
+  \item \key{\texttt{estat endogenous}}：$p$ 值小 $\Rightarrow$ 拒绝外生性，支持使用 IV。
+\end{itemize}
+
+\subsection{论文中如何报告}
+
+典型的 IV 结果表包括：OLS、2SLS（和/或两步 GMM、LIML）各一列；每列报告系数与（稳健/聚类）标准误；表底报告第一阶段排除工具的 $F$（多个内生变量时报告 Kleibergen--Paap $F$）、过度识别检验的统计量与 $p$ 值（恰好识别时注明“恰好识别，无法检验”）、内生性检验的 $p$ 值、观测数。正文中逐一论证工具的相关性与排他性，并说明 OLS 与 IV 差异的经济含义。
+
+\begin{english}[Reporting IV results (template)]
+``Table X reports the 2SLS estimates, using $z_1$ and $z_2$ as instruments for $x_1$. The first-stage $F$-statistic for the excluded instruments is 23.4, well above the rule-of-thumb value of 10, so weak instruments are not a concern. With two instruments and one endogenous regressor the model is over-identified with one restriction; Hansen's $J$-statistic is 0.85 ($p=0.36$), so we do not reject the validity of the over-identifying restriction. The robust Durbin--Wu--Hausman test rejects the exogeneity of $x_1$ at the 5\% level ($p=0.014$), which supports the use of IV rather than OLS. The 2SLS coefficient is larger than the OLS coefficient, consistent with attenuation bias due to measurement error in $x_1$.''
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U09-summary}
+
+\subsection{核心公式与结论表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{6.4cm}L}
+\toprule
+主题 & 公式 / 统计量 & 要点\\
+\midrule
+相关性 & 第一阶段 $x_1=x_2\T\pi_2+\tilde z\T\delta+v$，$H_0:\delta=0$；
+$F=\dfrac{(SSR_r-SSR_{ur})/q}{SSR_{ur}/(n-k)}$ & 只检验排除工具的系数；$F>10$（Staiger--Stock；保守标准 30）；Stock--Yogo 临界值（2SLS 随 $L_2$ 上升，LIML 下降）\\
+\addlinespace
+内生性：控制函数 & $u=\rho v+\eta$；$y=x_1\beta_1+x_2\T\beta_2+\rho\hat v+\text{误差}$；$t$ 检验 $H_0:\rho=0$ & $x_1$ 内生 $\iff\rho\neq0$；$H_0$ 下生成回归元不影响分布；控制函数回归的系数 $=$ 2SLS；$k_1>1$ 时 Wald $\dto\chi^2_{k_1}$\\
+\addlinespace
+内生性：Hausman & $H=d\T[\widehat{\Var}(\hat\beta_{IV})-\widehat{\Var}(\hat\beta_{OLS})]^{-}d\dto\chi^2_{k_1}$，$d=\hat\beta_{IV}-\hat\beta_{OLS}$ & 引理：有效估计量与差不相关 $\Rightarrow$ 差的方差 $=$ 方差之差；自由度 $=$ 内生回归元个数；需同方差、同一个 $\hat\sigma^2$\\
+\addlinespace
+过度识别 & $J=n\bar g_n(\hat\beta)\T\hat\Omega\inv\bar g_n(\hat\beta)\dto\chi^2_{L-K}$；Sargan $S=nR_u^2$ & 必须用有效权重；只在 $L>K$ 可做；只能检验相对有效性；关注 1\% 水平\\
+\addlinespace
+$C$ 统计量 & $C=\hat J-\tilde J\dto\chi^2_{L_b}$；内生性：$C\dto\chi^2_{k_1}$ & 检验可疑工具子集；$L_a=K$ 时退化为 $J$ 检验\\
+\addlinespace
+局部误设 & $J\dto\chi^2_{L-K}(\lambda)$，$\lambda=\delta^2\mu_z\T C(I_L-P_R)C\T\mu_z$ & $\mu_z\in\mathrm{col}(Q)$ 时 $\lambda=0$，$J$ 无功效\\
+\addlinespace
+推荐顺序 & 相关性 → 过度识别 → 内生性 & Stata：\texttt{ivregress 2sls y (x1 = z1 z2) x2, r first}；\texttt{estat firststage}、\texttt{estat overid}、\texttt{estat endog}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 9 章核心公式与结论}
+\end{center}
+
+一句话：相关性要“强烈拒绝”，过度识别要“不被拒绝”，内生性检验决定用 OLS 还是 IV——三者都在工具有效的维持假设下才有意义。
+
+\subsection{三个检验的方法对照与选择要点}
+
+\begin{itemize}
+  \item \key{同方差 vs 异方差}：每个检验都有同方差版本和稳健版本——相关性：普通 $F$ / 稳健 $F$（多内生变量：Cragg--Donald / Kleibergen--Paap）；内生性：经典 Hausman、Durbin、Wu--Hausman / 稳健控制函数检验、GMM 的 $C$ 统计量；过度识别：Sargan / Hansen $J$（或稳健 score 检验）。数据可能异方差时一律用稳健版本。
+  \item \key{内生性检验选哪种}：单个内生变量时首选控制函数 $t$ 检验（简单、可稳健化，并同时给出 2SLS 系数）；经典 Hausman 只在同方差、两个方差用同一 $\hat\sigma^2$ 时可靠；GMM 框架下用 $C$ 统计量。
+  \item \key{过度识别检验选哪种}：2SLS $+$ 同方差 $\Rightarrow$ Sargan（$nR^2$）；有效 GMM $+$ 异方差 $\Rightarrow$ Hansen $J$；怀疑特定工具 $\Rightarrow$ $C$ 统计量。
+  \item \key{检验之后选估计量}：工具强、$x_1$ 内生 $\Rightarrow$ 2SLS（同方差）或两步 GMM（异方差）；工具弱 $\Rightarrow$ LIML 或 Anderson--Rubin 推断；$x_1$ 外生 $\Rightarrow$ OLS（附 IV 作稳健性检验）。
+\end{itemize}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item 把第一阶段“显著”（$p<0.05$）当作“工具不弱”。显著只排除“完全无关”，不弱要求 $F>10$ 或超过 Stock--Yogo 临界值。
+  \item 第一阶段 $F$ 检验了全部系数（含外生控制变量），或第一阶段漏掉外生控制变量 $x_2$。应把 $x_1$ 对全部工具回归，只检验排除工具的系数。
+  \item 把相关性的原假设写成 $\E(x\mid z)=0$。正确的是 $\delta=0$，即 $\E(x\mid z)$ 为常数（$x$ 与 $z$ 不相关）。
+  \item 把“$J$ 检验不拒绝”说成“证明了工具有效”。它只说明工具之间相互一致；所有工具同方向无效时 $J$ 没有功效。
+  \item 恰好识别时报告 $J$ 检验“通过”。恰好识别时 $J\equiv0$，无法检验。
+  \item $J$ 检验的自由度写成 $L$ 或排除工具个数 $L_2$。正确的是 $L-K=L_2-k_1$。
+  \item 用非有效权重（如异方差下的 2SLS）的目标函数查 $\chi^2$ 表。只有有效权重下极限才是 $\chi^2_{L-K}$。
+  \item Hausman 检验的自由度写成全部回归元个数 $K$。有外生回归元充当自己的工具时，自由度是内生回归元个数 $k_1$。
+  \item 两个方差用不同的 $\hat\sigma^2$，或异方差下仍用经典 Hausman，导致统计量为负或分布不对。
+  \item 用控制函数回归中 OLS 报告的标准误做 2SLS 的推断。系数等于 2SLS，但标准误不对。
+  \item 工具弱时把内生性检验的“不拒绝”当作外生的有力证据。工具弱时检验功效低，结论不可靠。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[Comprehensive: weak instruments]\label{pr:U09-c1}
+In a model with one endogenous regressor and two excluded instruments, the first-stage regression of $x_1$ on $(1,x_2,z_1,z_2)$ has $SSR_{ur}=1200$ with $n=300$; dropping $z_1,z_2$ gives $SSR_r=1260$. (a) Compute the first-stage $F$-statistic. (b) Are the instruments relevant? Are they weak? Use both the rule of thumb and the Stock--Yogo critical values. (c) What would you do next?
+\answer
+(a) $q=2$，$k_{ur}=4$：
+\begin{align*}
+F&=\frac{(1260-1200)/2}{1200/(300-4)} \why{两步 $F$ 公式}\\
+&=\frac{30}{4.054}\approx7.40 . \why{$1200/296=4.054$}
+\end{align*}
+(b) 常规 5\% 临界值 $F_{0.95}(2,296)\approx3.03$，$7.40>3.03$：拒绝“工具完全无关”，工具相关。但 $7.40<10$，按经验法则是弱工具；Stock--Yogo（$L_2=2$，2SLS）：$7.40<8.7$（$r=20\%$），也 $<11.6$、$19.9$——名义 5\% 的 $t$ 检验实际水平可能超过 20\%。
+(c) 寻找更强的工具；改用 LIML（$L_2=2$ 时 LIML 的 15\% 临界值仅 5.3，$7.4>5.3$）；报告 Anderson--Rubin 置信集；谨慎解读 2SLS 的显著性。
+\end{prac}
+
+\begin{prac}[Comprehensive: Hausman test]\label{pr:U09-c2}
+(a) State the null and alternative hypotheses of the Hausman endogeneity test and explain why $\hat\beta_{OLS}-\hat\beta_{IV}$ is informative. (b) Prove that if $\hat\beta_E$ is efficient under $H_0$ then $\Var(\tilde\beta-\hat\beta_E)=\Var(\tilde\beta)-\Var(\hat\beta_E)$. (c) With one endogenous regressor, $\hat\beta_{OLS}=0.50$ ($se=0.05$) and $\hat\beta_{IV}=0.80$ ($se=0.15$), both computed with the same $\hat\sigma^2$. Compute the Hausman statistic and conclude at 5\%.
+\answer
+(a) $H_0$：$x$ 外生（OLS 与 IV 都一致，OLS 有效）；$H_1$：$x$ 内生（只有 IV 一致）。$H_0$ 下差 $\pto0$，$H_1$ 下差 $\pto$ 非零常数，故差的大小可用于检验。
+(b) 记 $d=\tilde\beta-\hat\beta_E$。对任意 $\lambda$，$\hat\beta_E+\lambda d$ 一致，其方差 $\Var(\hat\beta_E)+\lambda^2\Var(d)+2\lambda\Cov(\hat\beta_E,d)$ 在 $\lambda=0$ 处最小（有效性），导数 $2\Cov(\hat\beta_E,d)=0$；于是 $\Var(\tilde\beta)=\Var(\hat\beta_E+d)=\Var(\hat\beta_E)+\Var(d)$，移项即得。向量情形对任意 $a\T\hat\beta_E+\lambda b\T d$ 重复，得 $\Cov(\hat\beta_E,d)=0$。
+(c)
+\begin{align*}
+H&=\frac{(0.80-0.50)^2}{0.15^2-0.05^2} \why{标量 Hausman 统计量}\\
+&=\frac{0.09}{0.0225-0.0025}=\frac{0.09}{0.02}=4.5>3.84 , \why{$\chi^2_{1,0.95}=3.84$}
+\end{align*}
+5\% 水平拒绝外生性（$p\approx0.034$），应使用 IV。
+\end{prac}
+
+\begin{prac}[Comprehensive: the $J$ test]\label{pr:U09-c3}
+Let $y_i=x_i'\beta+u_i$ with $\E(z_iu_i)=0$, $\dim(z_i)=L>K=\dim(x_i)$, and let $\hat\beta$ be the efficient two-step GMM estimator. (a) Show that $J=n\bar g_n(\hat\beta)'\hat\Omega^{-1}\bar g_n(\hat\beta)\dto\chi^2_{L-K}$. (b) Why is the degrees of freedom $L-K$ rather than $L$? (c) Suppose $L=K$. What is the value of $J$? What does this imply? (d) Give an example in which all instruments are invalid but the $J$ test has no power.
+\answer
+(a) 记 $\Omega\inv=CC\T$，$R=C\T Q$，$P_R=R(R\T R)\inv R\T$。按本章过度识别检验一节的严格推导：
+\begin{align*}
+\sqrt n\,\bar g_n(\hat\beta)&=\big[I_L-\hat Q(\hat Q\T\hat\Omega\inv\hat Q)\inv\hat Q\T\hat\Omega\inv\big]\tfrac{1}{\sqrt n}Z\T u, \why{代入 $\hat\beta-\beta$}\\
+C\T\sqrt n\,\bar g_n(\hat\beta)&\dto(I_L-P_R)\,\xi,\qquad\xi\sim N(0,I_L), \why{CLT 与 Slutsky}\\
+J&\dto\xi\T(I_L-P_R)\xi\sim\chi^2_{L-K}. \why{$I_L-P_R$ 对称幂等，秩 $L-K$}
+\end{align*}
+(b) $\hat\beta$ 的一阶条件使 $K$ 个线性组合 $\hat Q\T\hat\Omega\inv\bar g_n(\hat\beta)=0$，$I_L-P_R$ 的秩为 $L-K$；用真值 $\beta$ 代入时才是 $\chi^2_L$。
+(c) $J=0$（样本矩被精确满足），无法检验工具外生性，只能靠论证。
+(d) 单个内生变量、两个工具，$\Cov(z_1,u)=0.1$、$\Cov(z_1,x)=0.5$、$\Cov(z_2,u)=0.2$、$\Cov(z_2,x)=1$：两个单工具 IV 都收敛到 $\beta+0.2$（$0.1/0.5=0.2/1$），矩条件“相互一致”地错了，$J$ 不会拒绝。用本章的语言：$\E(zu)=(0.1,0.2)\T=0.2\,(0.5,1)\T=0.2\,Q$ 落在 $Q$ 的列空间内。
+\end{prac}
+
+\begin{prac}[Comprehensive: reading Stata output]\label{pr:U09-c4}
+A researcher runs \texttt{ivregress 2sls y (x1 = z1 z2) x2} and obtains (constructed numbers): first-stage $F(2,494)=23.4$; \texttt{estat endogenous}: Durbin $\chi^2(1)=6.10$ ($p=0.014$), Wu--Hausman $F(1,495)=6.12$ ($p=0.014$); \texttt{estat overid}: Sargan $\chi^2(1)=0.85$ ($p=0.357$). Write a short paragraph in English interpreting the three tests and state which estimator you would report.
+\answer
+答题要点：(1) 第一阶段 $F=23.4>10$（且 $>19.9$，即 Stock--Yogo $L_2=2$、$r=10\%$ 的临界值），工具相关且不弱；(2) 过度识别：$L-K=1$，Sargan $=0.85$，$p=0.357>0.05$，不拒绝过度识别约束，没有证据表明工具无效（但只能说明两个工具相互一致）；(3) 内生性：Durbin 与 Wu--Hausman 的 $p\approx0.014<0.05$，5\% 水平拒绝 $x_1$ 外生；(4) 结论：报告 2SLS（若担心异方差，加 \texttt{r} 选项或报告两步 GMM 与 Hansen $J$），并与 OLS 对比讨论偏误方向。注意这里的 Sargan 与 Durbin/Wu--Hausman 都是同方差版本。英文段落示例：
+
+``The first-stage $F$-statistic for the excluded instruments is 23.4, above the rule-of-thumb value of 10 and the Stock--Yogo 10\% critical value of 19.9, so the instruments are relevant and not weak. The model has one over-identifying restriction; the Sargan statistic is 0.85 ($p=0.357$), so we do not reject the validity of the over-identifying restriction, although this only shows that the two instruments are mutually consistent. The Durbin and Wu--Hausman tests reject the exogeneity of $x_1$ at the 5\% level ($p\approx0.014$). We therefore report the 2SLS estimates (with robust standard errors or two-step GMM if heteroskedasticity is a concern) and compare them with OLS.''
+\end{prac}
+
+\begin{english}[Summary of the three tests]
+IV/GMM inference should be accompanied by three diagnostics. Relevance is tested with the first-stage $F$-statistic on the excluded instruments, which should exceed 10 (or the Stock--Yogo critical value) rather than merely be significant. Validity is tested, when the model is over-identified, with the Sargan or Hansen $J$ statistic, which is asymptotically $\chi^2_{L-K}$ under the efficient weight matrix; non-rejection only means that the instruments are mutually consistent. Endogeneity is tested with the control-function $t$-test or the Hausman statistic, asymptotically $\chi^2$ with degrees of freedom equal to the number of endogenous regressors; rejection supports IV, non-rejection supports the more efficient OLS estimator.
+\end{english}

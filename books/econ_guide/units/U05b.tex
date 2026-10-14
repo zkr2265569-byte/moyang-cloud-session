@@ -1,0 +1,1109 @@
+%======================================================================
+% U05b  第 5 章（续）：异方差稳健标准误（HC）、聚类稳健标准误（CRVE）、
+%        HAC / Newey--West、三种情形下的 t 统计量、过渡、本章小结
+%======================================================================
+\section{情形 (ii)：异方差稳健标准误（HC / White）}\label{sec:U05b-hc}
+
+上一节的同方差标准误只在 $\E(u_i^2\mid x_i)=\sigma^2$ 时可靠。本节放松这一条件：误差方差可以随 $x_i$ 任意变化，但观测之间仍然独立。思路是保留夹心形式，直接估计其中的“肉”$\Omega$。
+
+\subsection{条件异方差的定义：\texorpdfstring{$\E(u_i^2\mid x_i)=\sigma_i^2$}{E(u2|x) = sigma\_i2}}
+
+\begin{defn}[条件异方差]\label{def:U05b-hetero}
+\term{异方差}{heteroskedasticity}：$\E(u_i^2\mid x_i)=\sigma_i^2=\sigma^2(x_i)$ 随 $x_i$ 变化，而观测之间仍相互独立。常简写为 $\E(u_i^2)=\sigma_i^2$。矩阵形式：误差的条件协方差矩阵（$n\times n$）为
+\[
+D=\Var(u\mid X)=\diag(\sigma_1^2,\sigma_2^2,\dots,\sigma_n^2).
+\]
+\end{defn}
+
+有的文献把这个 $n\times n$ 对角矩阵记作 $\Omega$；本书记作 $D$，$\Omega$ 专指 $K\times K$ 的“肉”$\E(x_ix_i\T u_i^2)$。
+
+\subsubsection{异方差在横截面数据中是常态}
+
+高学历者的工资离散度更大；大企业的投资波动更大；收入高的家庭消费选择更分散。这些都是“给定 $x_i$ 时 $u_i$ 的方差随 $x_i$ 变化”的例子。
+
+\subsubsection{\texorpdfstring{\iid}{i.i.d.} 抽样并不蕴含同方差}
+
+\iid 说的是\key{不同观测}$(y_i,x_i)$ 来自同一个联合分布且相互独立；异方差说的是\key{同一观测内部}给定 $x_i$ 的条件方差随 $x_i$ 变化。二者完全相容：从同一个异方差的总体中独立抽样，得到的就是 \iid 而异方差的数据。所以 A2（\iid 抽样）成立并不能推出同方差。
+
+\subsection{夹心形式 \texorpdfstring{$Q_{xx}^{-1}\Omega Q_{xx}^{-1}$}{Qxx inv Omega Qxx inv}（面包—肉—面包）}
+
+\subsubsection{异方差只改变分子的方差，分母不受影响}
+
+回到渐近正态性一节的放大分解式：
+\[
+\sqrt n(\hat\beta-\beta)=\underbrace{\Bigl(\frac1nX\T X\Bigr)\inv}_{\text{分母：LLN}}\ \underbrace{\Bigl(\frac1{\sqrt n}X\T u\Bigr)}_{\text{分子：CLT}}\ \dto\ N\bigl(0,\ Q_{xx}\inv\,\Omega\,Q_{xx}\inv\bigr).
+\]
+分母 $\frac1nX\T X=\frac1n\sum_ix_ix_i\T$ 只含回归元，由 LLN 收敛到 $Q_{xx}$，与误差的方差结构无关；异方差只改变分子 $\frac1{\sqrt n}X\T u$（CLT 项）的方差 $\Omega$。因此渐近方差保持\key{夹心形式}：两片“面包”$Q_{xx}\inv$ 夹一块“肉”$\Omega$。
+
+\subsubsection{异方差下的“肉”：\texorpdfstring{$\Omega=\E(x_ix_i'\sigma_i^2)$}{Omega = E(x x' sigma\_i2)}}
+
+要证：异方差下“肉”等于以 $\sigma_i^2$ 加权的二阶矩。思路：对 $\Omega$ 用迭代期望律。
+\begin{align*}
+\Omega=\E(x_ix_i\T u_i^2)&=\E\bigl[\E(x_ix_i\T u_i^2\mid x_i)\bigr] \why{LIE}\\
+&=\E\bigl[x_ix_i\T\,\E(u_i^2\mid x_i)\bigr] \why{给定 $x_i$ 提出 $x_ix_i\T$}\\
+&=\E\bigl(x_ix_i\T\sigma_i^2\bigr). \why{异方差定义}
+\end{align*}
+由 WLLN，它也等于样本平均的极限：$\Omega=\lim_{n\to\infty}\frac1n\sum_{i=1}^nx_ix_i\T\sigma_i^2$。于是
+\begin{equation}\label{eq:U05b-Vhc}
+V=Q_{xx}\inv\,\Omega\,Q_{xx}\inv,\qquad \Omega=\E(x_ix_i\T u_i^2)=\E(x_ix_i\T\sigma_i^2)=\lim_{n\to\infty}\frac1n\sum_{i=1}^nx_ix_i\T\sigma_i^2 ,
+\end{equation}
+而 $\hat\beta$ 本身的近似方差为 $\Var(\hat\beta)\approx\frac1nQ_{xx}\inv\Omega\,Q_{xx}\inv$。这正是渐近正态定理的一般结论，异方差下无需任何修改。
+
+\subsubsection{同方差是特例：\texorpdfstring{$\sigma_i^2\equiv\sigma^2$}{sigma\_i2 = sigma2} 时夹心坍缩}
+
+若 $\sigma_i^2\equiv\sigma^2$：
+\begin{align*}
+\Omega&=\lim_{n\to\infty}\frac1n\sum_{i=1}^nx_ix_i\T\sigma^2 \why{代入 $\sigma_i^2=\sigma^2$}\\
+&=\sigma^2\cdot\lim_{n\to\infty}\frac1n\sum_{i=1}^nx_ix_i\T=\sigma^2Q_{xx}, \why{常数提出；WLLN}\\
+V&=Q_{xx}\inv\sigma^2Q_{xx}Q_{xx}\inv=\sigma^2Q_{xx}\inv. \why{夹心坍缩}
+\end{align*}
+所以同方差是异方差情形的\key{特例}；反过来，异方差下的夹心公式在同方差时自动成立。有限样本的对应写法 $\Var(\hat\beta\mid X)=(X\T X)\inv X\T DX(X\T X)\inv$ 已在渐近正态性一节推导，它与 $\frac1nQ_{xx}\inv\Omega Q_{xx}\inv$ 是同一个量的两种标度。
+
+\subsection{White 估计量 \texorpdfstring{$\hat\Omega=\frac1n\sum x_ix_i'\hat u_i^2$}{Omega-hat = (1/n) sum x x' u-hat2} 与有限样本写法}
+
+\subsubsection{插入法：\texorpdfstring{$Q_{xx}\to\widehat Q_{xx}$}{Qxx -> Qxx-hat}，\texorpdfstring{$\sigma_i^2\to\hat u_i^2$}{sigma\_i2 -> u-hat2}}
+
+\eqref{eq:U05b-Vhc} 中有两个未知量。按插入法：
+\begin{itemize}
+\item 面包：$Q_{xx}$ 换成样本矩 $\widehat Q_{xx}=\frac1n\sum_ix_ix_i\T=\frac1nX\T X$；
+\item 肉：$\Omega=\E(x_ix_i\T u_i^2)$ 换成样本矩，并把不可观测的误差 $u_i$ 换成 OLS 残差 $\hat u_i=y_i-x_i\T\hat\beta$：
+\[
+\hat\Omega=\frac1n\sum_{i=1}^nx_ix_i\T\hat u_i^2 .
+\]
+\end{itemize}
+得到 $V$ 的估计 $\widehat V^{HC0}=\widehat Q_{xx}\inv\hat\Omega\,\widehat Q_{xx}\inv$，以及 $\hat\beta$ 的方差估计 $\widehat\Var{}^{HC0}(\hat\beta)=\widehat V^{HC0}/n$。
+
+\subsubsection{从插入估计到有限样本写法 \texorpdfstring{$(X'X)^{-1}(\sum x_ix_i'\hat u_i^2)(X'X)^{-1}$}{(X'X)inv (sum x x' u2) (X'X)inv}}
+
+要证：插入估计化简后不含 $\frac1n$。思路：代入定义，把三个 $\frac1n$ 与前面的 $\frac1n$ 合并。
+\begin{align*}
+\widehat\Var{}^{HC0}(\hat\beta)&=\frac1n\,\widehat Q_{xx}\inv\,\hat\Omega\,\widehat Q_{xx}\inv \why{插入估计}\\
+&=\frac1n\Bigl(\frac1nX\T X\Bigr)\inv\Bigl(\frac1n\sum_{i=1}^nx_ix_i\T\hat u_i^2\Bigr)\Bigl(\frac1nX\T X\Bigr)\inv \why{代入定义}\\
+&=\frac1n\cdot n(X\T X)\inv\cdot\frac1n\sum_{i=1}^nx_ix_i\T\hat u_i^2\cdot n(X\T X)\inv \why{$(\frac1nA)\inv=nA\inv$}\\
+&=(X\T X)\inv\Bigl(\sum_{i=1}^nx_ix_i\T\hat u_i^2\Bigr)(X\T X)\inv \why{$\frac1n\cdot n\cdot\frac1n\cdot n=1$}\\
+&=(X\T X)\inv X\T\widehat DX(X\T X)\inv,\qquad\widehat D=\diag(\hat u_1^2,\dots,\hat u_n^2). \why{$X\T\widehat DX=\sum_ix_ix_i\T\hat u_i^2$}
+\end{align*}
+最后一行就是常说的“稳健标准误”公式（robust standard errors）：
+\begin{equation}\label{eq:U05b-hc0}
+\widehat\Var{}^{HC0}(\hat\beta)=(X\T X)\inv X\T\widehat DX(X\T X)\inv,\qquad \operatorname{se}^{HC}(\hat\beta_j)=\sqrt{\bigl[\widehat\Var{}^{HC0}(\hat\beta)\bigr]_{jj}} .
+\end{equation}
+它与有限样本真实方差 $(X\T X)\inv X\T DX(X\T X)\inv$ 一一对应：只是把 $D$ 中未知的 $\sigma_i^2$ 换成 $\hat u_i^2$。
+
+\subsubsection{名称：White 估计量与稳健标准误}
+
+\eqref{eq:U05b-hc0} 称为 White 估计量或 Eicker--White 估计量（Eicker 1963；White 1980），正式名称为\term{异方差稳健协方差矩阵估计量}{heteroskedasticity-consistent (HC) covariance matrix estimator}，相应的标准误称\term{稳健标准误}{robust standard errors}，又称异方差稳健标准误（heteroskedasticity-consistent s.e.）。Stata 命令为 \texttt{reg y x, robust}。
+
+\subsection{为什么可行：逐个 \texorpdfstring{$\hat u_i^2$}{u-hat2} 很差，平均之后很好}
+
+\subsubsection{不需要估计 \texorpdfstring{$n$}{n} 个 \texorpdfstring{$\sigma_i^2$}{sigma\_i2}，只需要 \texorpdfstring{$K\times K$}{K x K} 的 \texorpdfstring{$\Omega$}{Omega}}
+
+\begin{itemize}
+\item 估计 $n$ 个未知的 $\sigma_i^2$ 是不可能的：每个 $\sigma_i^2$ 只有一个观测 $\hat u_i^2$，后者作为 $\sigma_i^2$ 的估计极不精确，$n$ 再大也不会改善。
+\item 推断只需要 $K\times K$ 的矩阵 $\Omega=\E(x_ix_i\T u_i^2)$。它是一个\key{总体均值}，有 $n$ 个观测可以平均，LLN 保证 $\frac1n\sum_ix_ix_i\T u_i^2\pto\Omega$。
+\item 再把 $u_i$ 换成 $\hat u_i$：二者之差是 $x_i\T(\hat\beta-\beta)$，随 $\hat\beta\pto\beta$ 而可以忽略。
+\end{itemize}
+概括为：“逐个估计很差（ugly），平均起来很好（good）”。这一逻辑在聚类情形会再次出现，只是平均的个数从 $n$ 变为簇数 $G$。
+
+\subsubsection{HC 估计量的一致性（Hansen 定理 7.6）}
+
+\begin{thm}[HC 估计量的一致性（Hansen 定理 7.6）]\label{thm:U05b-hccons}
+在 A1--A5 下，$\hat\Omega=\frac1n\sum_ix_ix_i\T\hat u_i^2\pto\Omega$，从而
+\[
+\widehat V^{HC0}=\widehat Q_{xx}\inv\hat\Omega\,\widehat Q_{xx}\inv\ \pto\ Q_{xx}\inv\Omega\,Q_{xx}\inv=V .
+\]
+无论误差是否同方差都成立。
+\end{thm}
+
+证明思路：把 $\hat\Omega$ 拆成“用真实误差的平均”加“残差替换误差造成的偏差”，前者用 WLLN，后者证明趋于 0。第一步拆分：
+\begin{align*}
+\hat\Omega&=\frac1n\sum_ix_ix_i\T u_i^2+\frac1n\sum_ix_ix_i\T(\hat u_i^2-u_i^2) \why{加一项减一项}\\
+\frac1n\sum_ix_ix_i\T u_i^2&\pto\E(x_ix_i\T u_i^2)=\Omega. \why{WLLN（A5）}
+\end{align*}
+第二步，展开 $\hat u_i^2-u_i^2$：
+\begin{align*}
+\hat u_i&=y_i-x_i\T\hat\beta=u_i-x_i\T(\hat\beta-\beta), \why{$y_i=x_i\T\beta+u_i$}\\
+\hat u_i^2-u_i^2&=-2u_ix_i\T(\hat\beta-\beta)+(\hat\beta-\beta)\T x_ix_i\T(\hat\beta-\beta), \why{平方展开}\\
+|\hat u_i^2-u_i^2|&\le2|u_i|\,\|x_i\|\,\|\hat\beta-\beta\|+\|x_i\|^2\|\hat\beta-\beta\|^2. \why{Cauchy--Schwarz}
+\end{align*}
+第三步，控制第二项的范数（$\|x_ix_i\T\|=\|x_i\|^2$）：
+\begin{align*}
+\Bigl\|\frac1n\sum_ix_ix_i\T(\hat u_i^2-u_i^2)\Bigr\|&\le\frac1n\sum_i\|x_i\|^2\,|\hat u_i^2-u_i^2| \why{三角不等式}\\
+&\le2\Bigl(\frac1n\sum_i\|x_i\|^3|u_i|\Bigr)\|\hat\beta-\beta\|+\Bigl(\frac1n\sum_i\|x_i\|^4\Bigr)\|\hat\beta-\beta\|^2 \why{代入上式}\\
+&\pto0. \why{均值有界，$\hat\beta\pto\beta$}
+\end{align*}
+其中两个样本均值由 WLLN 收敛到有限的 $\E(\|x_i\|^3|u_i|)$ 与 $\E\|x_i\|^4$（四阶矩有限，A5），而 $\|\hat\beta-\beta\|\pto0$（一致性）。合并两步得 $\hat\Omega\pto\Omega$；再由 $\widehat Q_{xx}\inv\pto Q_{xx}\inv$ 与 CMT 得 $\widehat V^{HC0}\pto V$。
+
+结论的意义：HC 标准误在同方差、异方差下\key{都}一致；同方差标准误只在同方差下一致。
+
+\subsection{HC0--HC3 小样本修正（拓展）}
+
+\subsubsection{残差平方平均偏小：\texorpdfstring{$\E(\hat u_i^2\mid X)=(1-h_{ii})\sigma^2$}{E(u-hat2|X) = (1-h\_ii) sigma2}}
+
+记杠杆值 $h_{ii}=x_i\T(X\T X)\inv x_i$（$0\le h_{ii}<1$，$\sum_ih_{ii}=K$，见第 3 章），$M=I_n-X(X\T X)\inv X\T$。同方差下：
+\begin{align*}
+\hat u&=Mu, \why{残差制造矩阵}\\
+\E(\hat u\hat u\T\mid X)&=M\,\E(uu\T\mid X)\,M\T=\sigma^2MM=\sigma^2M, \why{$M$ 对称幂等}\\
+\E(\hat u_i^2\mid X)&=\sigma^2M_{ii}=(1-h_{ii})\sigma^2<\sigma^2. \why{取第 $i$ 个对角元}
+\end{align*}
+残差平方系统地偏小，杠杆值越大偏得越多。于是有以下修正，都写成 $(X\T X)\inv\bigl(\sum_ix_ix_i\T\omega_i\bigr)(X\T X)\inv$ 的形式：
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.1cm}>{\raggedright\arraybackslash}p{2.6cm}L>{\raggedright\arraybackslash}p{3.6cm}}
+\toprule
+名称 & 权重 $\omega_i$ & 性质 & Stata 选项\\
+\midrule
+HC0 & $\hat u_i^2$ & White 原始版本；同方差下向下偏 & ——\\\addlinespace[3pt]
+HC1 & $\dfrac{n}{n-K}\hat u_i^2$ & 自由度调整（类比 $s^2$）；实践中最常用 & \texttt{, robust} 或 \texttt{vce(robust)}\\\addlinespace[3pt]
+HC2 & $\dfrac{\hat u_i^2}{1-h_{ii}}$ & 同方差下条件无偏 & \texttt{vce(hc2)}\\\addlinespace[3pt]
+HC3 & $\dfrac{\hat u_i^2}{(1-h_{ii})^2}$ & 刀切法（jackknife）；保守：期望 $\ge$ 真实方差 & \texttt{vce(hc3)}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{HC0--HC3 的权重、性质与 Stata 选项}
+\end{center}
+
+\subsubsection{HC0 向下偏、HC2 同方差下无偏、HC3 保守}
+
+\begin{itemize}
+\item HC2：同方差下 $\E\bigl[\hat u_i^2/(1-h_{ii})\mid X\bigr]=\sigma^2$，代入得 $\E(\widehat\Var{}^{HC2}\mid X)=(X\T X)\inv(\sum_ix_ix_i\T\sigma^2)(X\T X)\inv=\sigma^2(X\T X)\inv$，恰好无偏；HC0 的权重 $\hat u_i^2$ 期望为 $(1-h_{ii})\sigma^2$，故向下偏（详细推导见第 4 章）。
+\item HC3：$\hat u_i/(1-h_{ii})$ 等于删去第 $i$ 个观测后对 $y_i$ 的预测误差 $\tilde u_i=y_i-x_i\T\hat\beta_{(-i)}$。由于 $u_i$ 与 $\hat\beta_{(-i)}$ 来自不重叠的观测，$\E(\tilde u_i^2\mid X)=\sigma_i^2+\E\bigl[(x_i\T(\hat\beta_{(-i)}-\beta))^2\mid X\bigr]\ge\sigma_i^2$，所以无论是否同方差，HC3 在期望上都不小于真实方差（Hansen 第 4.15 节）。
+\end{itemize}
+
+\subsubsection{大小排序与渐近等价}
+
+\begin{itemize}
+\item 由于 $(1-h_{ii})^{-2}\ge(1-h_{ii})\inv\ge1$，逐项比较“肉”中的权重，得
+\[
+\widehat\Var{}^{HC0}\ \le\ \widehat\Var{}^{HC2}\ \le\ \widehat\Var{}^{HC3}\qquad\text{（矩阵意义：差为半正定）}.
+\]
+\item 四者渐近等价：$\max_ih_{ii}\to0$，$\frac{n}{n-K}\to1$（Hansen 定理 7.7），都一致估计 $V$。差别只在小样本或存在\key{高杠杆点}（某个 $h_{ii}$ 接近 1）时明显。
+\item Hansen 建议优先使用 HC2/HC3；实践中最常用的是 HC1（Stata 的 \texttt{robust}）。
+\end{itemize}
+
+\subsubsection{例：5 个观测的五种标准误}
+
+\begin{exmp}[5 个观测：五种标准误的手算比较]\label{ex:U05b-5obs}
+沿用情形 (i) 一节的 5 个观测：$x=(0,1,2,3,4)$，$y=(1,1,3,2,5)$，$\hat\beta=(0.6,\,0.9)\T$，
+\[
+(X\T X)\inv=\begin{pmatrix}0.6&-0.2\\ -0.2&0.1\end{pmatrix},\qquad\hat u=(0.4,\,-0.5,\,0.6,\,-1.3,\,0.8),\qquad\operatorname{se}^0(\hat\beta_2)=0.321 .
+\]
+计算 $\hat\beta_2$ 的 HC0、HC1、HC2、HC3 标准误及相应的 $t$ 值（检验 $\beta_2=0$）。
+\solution
+第一步，算“肉”。$\hat u^2=(0.16,\,0.25,\,0.36,\,1.69,\,0.64)$，第 $i$ 个观测的回归元向量为 $(1,x_i)\T$：
+\begin{align*}
+\sum_ix_ix_i\T\hat u_i^2&=\begin{pmatrix}\sum\hat u_i^2&\sum x_i\hat u_i^2\\ \sum x_i\hat u_i^2&\sum x_i^2\hat u_i^2\end{pmatrix} \why{$x_ix_i\T$ 的元素}\\
+&=\begin{pmatrix}3.10&8.60\\ 8.60&27.14\end{pmatrix}. \why{逐项求和}
+\end{align*}
+其中 $\sum x_i\hat u_i^2=0+0.25+0.72+5.07+2.56=8.60$，$\sum x_i^2\hat u_i^2=0+0.25+1.44+15.21+10.24=27.14$。
+
+第二步，斜率方差只需 $(X\T X)\inv$ 的第 2 行 $a=(-0.2,\,0.1)$：记肉为 $M$，则 $\widehat\Var{}^{HC0}(\hat\beta_2)=aMa\T$。
+\begin{align*}
+\widehat\Var{}^{HC0}(\hat\beta_2)&=a_1^2M_{11}+2a_1a_2M_{12}+a_2^2M_{22} \why{二次型展开}\\
+&=0.04(3.10)-2(0.02)(8.60)+0.01(27.14) \why{代入}\\
+&=0.124-0.344+0.2714=0.0514, \why{计算}\\
+\operatorname{se}^{HC0}&=\sqrt{0.0514}=0.227, \why{开方}\\
+\operatorname{se}^{HC1}&=\sqrt{0.0514\times\tfrac53}=0.293. \why{$\frac{n}{n-K}=\frac53$}
+\end{align*}
+
+第三步，HC2、HC3 需要杠杆值。$h_{ii}=(1,x_i)(X\T X)\inv(1,x_i)\T$：
+\begin{align*}
+h_{ii}&=0.6-0.4x_i+0.1x_i^2 \why{二次型展开}\\
+&=(0.6,\ 0.3,\ 0.2,\ 0.3,\ 0.6). \why{代入 $x_i$；和为 $K=2$}
+\end{align*}
+为便于计算，把斜率方差写成加权和。记 $c_i=a(1,x_i)\T=-0.2+0.1x_i$：
+\begin{align*}
+\widehat\Var(\hat\beta_2)&=a\Bigl(\sum_i(1,x_i)\T(1,x_i)\,\omega_i\Bigr)a\T \why{取 $(2,2)$ 元}\\
+&=\sum_i\bigl(a(1,x_i)\T\bigr)^2\omega_i=\sum_ic_i^2\,\omega_i, \why{标量的平方}\\
+c_i&=(-0.2,\ -0.1,\ 0,\ 0.1,\ 0.2),\qquad c_i^2=(0.04,\ 0.01,\ 0,\ 0.01,\ 0.04). \why{代入 $x_i$}
+\end{align*}
+\begin{align*}
+\frac{\hat u_i^2}{1-h_{ii}}&=(0.400,\ 0.357,\ 0.450,\ 2.414,\ 1.600), \why{除以 $1-h_{ii}$}\\
+\widehat\Var{}^{HC2}(\hat\beta_2)&=0.04(0.4+1.6)+0.01(0.357+2.414)=0.1077, \why{加权和}\\
+\frac{\hat u_i^2}{(1-h_{ii})^2}&=(1.000,\ 0.510,\ 0.563,\ 3.449,\ 4.000), \why{除以 $(1-h_{ii})^2$}\\
+\widehat\Var{}^{HC3}(\hat\beta_2)&=0.04(1+4)+0.01(0.510+3.449)=0.2396. \why{加权和}
+\end{align*}
+（用同样的加权和验算 HC0：$0.04(0.16+0.64)+0.01(0.25+1.69)=0.0514$。）汇总：
+\begin{center}
+\small
+\begin{tabular}{lccccc}
+\toprule
+ & 同方差 $s^2(X\T X)\inv$ & HC0 & HC1 & HC2 & HC3\\
+\midrule
+$\operatorname{se}(\hat\beta_2)$ & 0.321 & 0.227 & 0.293 & 0.328 & 0.489\\
+$t=0.9/\operatorname{se}$ & 2.80 & 3.97 & 3.07 & 2.74 & 1.84\\
+\bottomrule
+\end{tabular}
+\end{center}
+$n=5$ 的极小样本中，HC0 明显偏小，HC3 最大，$t$ 值从 3.97 到 1.84 不等：小样本下 se 的选择至关重要。排序 HC0 $<$ HC2 $<$ HC3 与上面的理论一致。
+\end{exmp}
+
+\subsection{Stata 实现：\texttt{reg y x, robust}}
+
+\begin{lstlisting}
+reg y x1 x2                  // 默认：同方差 se，s^2 (X'X)^{-1}
+reg y x1 x2, robust          // HC1 稳健 se（= vce(robust)）
+reg y x1 x2, vce(hc2)        // HC2
+reg y x1 x2, vce(hc3)        // HC3
+\end{lstlisting}
+四条命令给出\key{完全相同的系数} $\hat\beta$，只有 Std.\ Err.、$t$、$P>|t|$ 与置信区间不同。
+
+\subsection{何时用哪一个：稳健标准误是默认选择}
+
+\subsubsection{默认报告稳健 se，不必先做异方差检验}
+
+稳健 se 在同方差、异方差下都一致；同方差 se 只在同方差下一致。因此现代实证默认报告稳健 se，通常不必先做异方差检验（如 Breusch--Pagan 检验、White 检验）再决定用哪一种。
+
+\subsubsection{代价：小样本下稳健 se 自身噪声大、往往偏小}
+
+稳健 se 用 $\hat u_i^2$ 估计肉，小样本下估计本身波动大且平均偏小（上例中 HC0 只有 0.227）。小样本或存在高杠杆点时可改用 HC2/HC3。
+
+\subsubsection{稳健 se 只修正推断，不改变 \texorpdfstring{$\hat\beta$}{beta-hat}，也不能挽救内生性}
+
+稳健 se 只改变 $\Var(\hat\beta)$ 的估计，不改变点估计；若 $\E(x_iu_i)\ne0$，$\hat\beta$ 本身不一致，任何标准误都无济于事（第 7 章）。
+
+\subsubsection{例：\texorpdfstring{$n=400$}{n = 400} 的 HC 标准误}
+
+\begin{exmp}[$n=400$ 的 HC 标准误]\label{ex:U05b-n400hc}
+沿用情形 (i) 一节“由样本矩计算同方差标准误”的回归：$n=400$，$\widehat Q_{xx}=\begin{pmatrix}1&2\\ 2&5\end{pmatrix}$，$\hat\beta_2=0.27$，同方差 se 为 0.100（$t=2.70$）。现算得
+\[
+\hat\Omega=\frac1n\sum_ix_ix_i\T\hat u_i^2=\begin{pmatrix}4&9\\ 9&25\end{pmatrix}.
+\]
+若同方差，$\hat\Omega$ 应约为 $\hat\sigma^2\widehat Q_{xx}=4\widehat Q_{xx}=\begin{pmatrix}4&8\\ 8&20\end{pmatrix}$；这里右下角更大，说明 $x$ 大处 $\hat u^2$ 偏大。求 HC 标准误与 $t$ 值。
+\solution
+已知 $\widehat Q_{xx}\inv=\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}$（$\det=1$）。
+\begin{align*}
+\widehat Q_{xx}\inv\hat\Omega&=\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}\begin{pmatrix}4&9\\ 9&25\end{pmatrix}=\begin{pmatrix}2&-5\\ 1&7\end{pmatrix} \why{矩阵乘法}\\
+\widehat V^{HC}=\widehat Q_{xx}\inv\hat\Omega\,\widehat Q_{xx}\inv&=\begin{pmatrix}2&-5\\ 1&7\end{pmatrix}\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}=\begin{pmatrix}20&-9\\ -9&5\end{pmatrix} \why{再右乘面包}\\
+\operatorname{se}^{HC}(\hat\beta_2)&=\sqrt{5/400}=0.1118, \why{除以 $n$ 再开方}\\
+t&=0.27/0.1118=2.41. \why{$t$ 统计量}
+\end{align*}
+异方差使 se 从 0.100 增大约 12\%，$t$ 从 2.70 降到 2.41。
+\end{exmp}
+
+\subsection{HC 公式与同方差公式的关系}
+
+\begin{prac}[HC 夹心的化简]\label{pr:U05b-hcconst}
+证明：若 $\hat u_i^2=c$（常数）对所有 $i$ 成立，则 $\widehat\Var{}^{HC0}(\hat\beta)=c\,(X\T X)\inv$。据此说明 HC 公式与同方差公式的关系。
+\answer
+\begin{align*}
+\widehat\Var{}^{HC0}&=(X\T X)\inv\Bigl(\sum_ix_ix_i\T\cdot c\Bigr)(X\T X)\inv \why{代入 $\hat u_i^2=c$}\\
+&=c\,(X\T X)\inv\Bigl(\sum_ix_ix_i\T\Bigr)(X\T X)\inv \why{常数提出}\\
+&=c\,(X\T X)\inv(X\T X)(X\T X)\inv \why{$\sum_ix_ix_i\T=X\T X$}\\
+&=c\,(X\T X)\inv. \why{$(X\T X)\inv(X\T X)=I_K$}
+\end{align*}
+即当残差平方“看起来同方差”时，HC 公式自动退化为同方差公式 $\hat\sigma^2(X\T X)\inv$（取 $c=\hat\sigma^2$）。一般情形下 HC 用每个观测自己的 $\hat u_i^2$ 加权，允许方差随 $x_i$ 变化。
+\end{prac}
+
+\begin{english}
+Under heteroskedasticity, $E(u_i^2\mid x_i)=\sigma_i^2$, the asymptotic variance keeps the sandwich form $V=Q_{xx}^{-1}\Omega Q_{xx}^{-1}$ with $\Omega=E(x_ix_i'u_i^2)=E(x_ix_i'\sigma_i^2)$; only the variance of the numerator changes. The heteroskedasticity-consistent (White) estimator replaces $\Omega$ by $\hat\Omega=\frac1n\sum_i x_ix_i'\hat u_i^2$, giving $\widehat{\operatorname{Var}}(\hat\beta)=(X'X)^{-1}\bigl(\sum_i x_ix_i'\hat u_i^2\bigr)(X'X)^{-1}$. Although each $\hat u_i^2$ is a poor estimate of $\sigma_i^2$, the average $\hat\Omega$ is consistent for $\Omega$ by the law of large numbers. The estimator is consistent whether or not the errors are homoskedastic, so robust standard errors should be reported by default (Stata: \texttt{reg y x, robust}, which uses HC1); HC2 and HC3 improve small-sample performance.
+\end{english}
+
+%======================================================================
+\section{情形 (iii)：聚类结构与聚类稳健标准误（CRVE）}\label{sec:U05b-cluster}
+
+情形 (ii) 仍假定观测之间相互独立。本节放松独立性：同一组内的观测可以任意相关，不同组之间独立。点估计不受影响，但方差的“肉”中多出大量交叉协方差项，独立信息的个数从 $n$ 降到簇数 $G$。
+
+\subsection{\texorpdfstring{\iid}{i.i.d.} 抽样假设的违背：横截面相依与空间相依}
+
+\subsubsection{独立抽样假设：\texorpdfstring{$(y_i,x_i)\indep(y_j,x_j)$}{(y\_i,x\_i) indep (y\_j,x\_j)}}
+
+A2（\iid 抽样）要求不同个体的观测相互独立：$(y_i,x_i)\indep(y_j,x_j)$，$i\ne j$，$i=1,2,\dots,n$。若数据存在\term{横截面相依}{cross-sectional dependence}或\term{空间相依}{spatial dependence}，这条假设在个体层面不成立，处理办法是把数据分组（group the data），即把 $n$ 个观测划分为 $G$ 个簇。
+
+\subsubsection{四类常见违背}
+
+\begin{itemize}
+\item 同一学校的学生共享师资、同学与生源（教育数据）；
+\item 同一行业或地区的企业受共同冲击（企业数据）；
+\item 同一企业或个人在不同年份的观测（面板数据，第 10 章起反复用到）；
+\item 地理上相邻的单位相互影响（空间相依）。
+\end{itemize}
+
+\subsubsection{个体层面不独立，簇层面独立}
+
+此时独立抽样假设“在个体层面不成立，在簇层面成立”（invalid for individual level, valid for cluster level）：个体之间不独立，但簇与簇之间独立。把“簇”当作抽样单位，大样本理论就可以在簇的层面重新建立。
+
+\subsection{聚类结构：簇内相关、簇间独立}
+
+\begin{defn}[聚类结构]\label{def:U05b-cluster}
+把 $n$ 个观测分成 $G$ 个\term{簇}{cluster}，第 $g$ 簇有 $n_g$ 个观测，$n=n_1+n_2+\cdots+n_G$。\term{聚类结构}{cluster structure}指：
+\[
+\begin{cases}
+\Cov(u_i,u_j)\ne0\ \ (u_i\not\perp u_j), & i,j\ \text{属于同一簇（簇内相关，within-cluster correlation）},\\
+\Cov(u_i,u_j)=0\ \ (u_i\perp u_j), & i,j\ \text{属于不同簇（簇间独立，clusters independent）}.
+\end{cases}
+\]
+\end{defn}
+
+\begin{center}
+\begin{tikzpicture}[cl/.style={draw,rounded corners=2pt,minimum width=1.1cm,minimum height=0.8cm,font=\small},
+  >={Stealth[length=2mm]}]
+\node[cl] (c1) at (0,0) {1};
+\node[cl] (c2) at (2.2,0) {2};
+\node[cl] (c3) at (4.4,0) {3};
+\node at (6.4,0) {$\cdots$};
+\node[cl] (cG) at (8.4,0) {$G$};
+\node[above=2pt of c1,font=\small] (y1) {$Y_1$};
+\node[above=2pt of c2,font=\small] (y2) {$Y_2$};
+\node[above=2pt of c3,font=\small] {$Y_3$};
+\node[above=2pt of cG,font=\small] {$Y_G$};
+\node[below=2pt of c1,font=\footnotesize] {$n_1=10$};
+\node[below=2pt of c2,font=\footnotesize] {$n_2=21$};
+\node[below=2pt of c3,font=\footnotesize] {$n_3=12$};
+\node[below=2pt of cG,font=\footnotesize] {$n_G=32$};
+\draw[<->,cdef] (y1.north) to[bend left=35] node[above,font=\footnotesize]{簇间不相关（uncorrelated）} (y2.north);
+\node[cex,font=\footnotesize,align=center] (cor) at (-2.1,0.15) {簇内相关\\（correlated）};
+\draw[->,cex] (cor.east) -- (c1.west);
+\node[font=\footnotesize,align=left,anchor=west] at (9.1,0) {例：簇 = 学校\\$n_g$ = 该校学生数};
+\end{tikzpicture}
+\captionof{figure}{聚类结构示意：$G$ 个簇，簇内相关、簇间不相关}\label{fig:U05b-cluster}
+\end{center}
+
+另一个典型的划分：1000 个观测 $(y_1,\dots,y_{1000})$ 分成 50 个簇 $g_1,\dots,g_{50}$，簇内相关、簇间不相关。没有现成分组时，可以用 K 均值、K 近邻等方法构造簇（见本节“如何分簇”）。
+
+\subsection{簇层面的模型写法与簇内协方差矩阵 \texorpdfstring{$\Omega_g$}{Omega\_g}}
+
+\subsubsection{把第 \texorpdfstring{$g$}{g} 簇叠起来：\texorpdfstring{$Y_g=X_g\beta+u_g$}{Y\_g = X\_g beta + u\_g}}
+
+把第 $g$ 簇的 $n_g$ 个观测上下叠放：
+\[
+\underset{n_g\times1}{Y_g}=\underset{n_g\times K}{X_g}\ \beta+\underset{n_g\times1}{u_g},\qquad g=1,\dots,G .
+\]
+例如两个观测 $i,j$ 同属一簇时 $Y_g=(y_i,y_j)\T$，$X_g=(x_i,x_j)\T$。下文用 $i\in g$ 表示“观测 $i$ 属于第 $g$ 簇”。
+
+\subsubsection{\texorpdfstring{$\Omega_g$}{Omega\_g}：无聚类时为对角阵，有聚类时为满矩阵}
+
+簇内误差的条件协方差矩阵（$n_g\times n_g$）：
+\[
+\Omega_g=\E(u_gu_g\T\mid X_g),\qquad[\Omega_g]_{ij}=\Cov(u_i,u_j\mid X_g),\quad i,j\in g .
+\]
+\[
+\underbrace{\Omega_g=\begin{pmatrix}\sigma_1^2&&&0\\ &\sigma_2^2&&\\ &&\ddots&\\ 0&&&\sigma_{n_g}^2\end{pmatrix}}_{\text{无聚类（$i,j$ 不相关）：对角阵，即情形 (ii)}}
+\qquad\qquad
+\underbrace{\Omega_g=\begin{pmatrix}\sigma_1^2&\sigma_{12}&\sigma_{13}&\cdots\\ \sigma_{12}&\sigma_2^2&\sigma_{23}&\cdots\\ \vdots&&\ddots&\\ \cdots&&&\sigma_{n_g}^2\end{pmatrix}}_{\text{有聚类：非对角元非零的满矩阵}}
+\]
+对角线最后一个元素是簇内最后一个个体的方差 $\sigma_{n_g}^2$。
+
+\begin{note}[两个 $\Omega$ 不要混淆]
+$\Omega_g$ 是第 $g$ 簇 $n_g\times n_g$ 的\key{误差}协方差矩阵；不带下标的 $\Omega$ 是 $K\times K$ 的“肉”。二者维度不同、含义不同。
+\end{note}
+
+\subsection{对估计的影响（1）：点估计 \texorpdfstring{$\hat\beta_{OLS}$}{beta-hat OLS} 不变}
+
+要证：OLS 公式按簇改写后与原公式完全相同。思路：求和只是换了顺序。
+\begin{align*}
+\hat\beta_{OLS}&=\Bigl(\sum_{i=1}^nx_ix_i\T\Bigr)\inv\Bigl(\sum_{i=1}^nx_iy_i\Bigr) \why{OLS 公式}\\
+&=\Bigl(\sum_{g=1}^G\sum_{i\in g}x_ix_i\T\Bigr)\inv\Bigl(\sum_{g=1}^G\sum_{i\in g}x_iy_i\Bigr) \why{按簇重排求和顺序}\\
+&=\Bigl(\sum_{g=1}^GX_g\T X_g\Bigr)\inv\Bigl(\sum_{g=1}^GX_g\T Y_g\Bigr). \why{$X_g\T X_g=\sum_{i\in g}x_ix_i\T$}
+\end{align*}
+最后一步还用到 $X_g\T Y_g=\sum_{i\in g}x_iy_i$。所以 $\hat\beta_{OLS}$ 不受聚类结构影响（is not affected by cluster structure）：聚类只是换了一种记账方式。
+
+\subsubsection{聚类下 OLS 仍无偏、仍一致}
+
+设簇层面外生 $\E(u_g\mid X_g)=0$。代入 $Y_g=X_g\beta+u_g$：
+\begin{align*}
+\hat\beta-\beta&=\Bigl(\sum_gX_g\T X_g\Bigr)\inv\sum_gX_g\T u_g, \why{代入模型}\\
+\E(\hat\beta-\beta\mid X)&=\Bigl(\sum_gX_g\T X_g\Bigr)\inv\sum_gX_g\T\E(u_g\mid X) \why{给定 $X$ 提出}\\
+&=\Bigl(\sum_gX_g\T X_g\Bigr)\inv\sum_gX_g\T\E(u_g\mid X_g)=0. \why{簇间独立；外生性}
+\end{align*}
+即 OLS 仍无偏（Hansen 定理 4.8）；在簇数 $G\to\infty$ 时由簇层面的 LLN 仍一致。
+
+\subsection{对估计的影响（2）：方差大受影响——\texorpdfstring{$n$}{n} 个独立项与 \texorpdfstring{$G$}{G} 个独立项}
+
+点估计不变，变的是方差（OLS unchanged，Var is changed）。由夹心形式
+\[
+\Var(\hat\beta\mid X)=\Bigl(\sum_ix_ix_i\T\Bigr)\inv\Var\Bigl(\sum_{i=1}^nx_iu_i\Bigm|X\Bigr)\Bigl(\sum_ix_ix_i\T\Bigr)\inv,
+\]
+只需计算中间的 $\Var(\sum_ix_iu_i\mid X)$。对照两种情形：
+\begin{align*}
+\text{无聚类：}&\quad\Var\Bigl(\sum_{i=1}^nx_iu_i\Bigr)=\sum_{i=1}^nx_ix_i\T\Var(u_i) &&\longrightarrow\ n\ \text{个独立项};\\
+\text{有聚类：}&\quad\Var\Bigl(\sum_{i=1}^nx_iu_i\Bigr)=\sum_{g=1}^G\underbrace{X_g\T\Var(u_g)X_g}_{\text{一个簇的方差}} &&\longrightarrow\ G\ \text{个独立项}.
+\end{align*}
+注意维度：$X_g$ 为 $n_g\times K$，$u_g$ 为 $n_g\times1$，所以一个簇的贡献要写成 $X_g\T\Var(u_g\mid X_g)X_g$（$K\times K$），不能写成 $x_gx_g\T\Var(u_g)$。
+
+\subsubsection{\texorpdfstring{$\Var(\sum_ix_iu_i\mid X)=\sum_gX_g'\Omega_gX_g$}{Var(sum x u | X) = sum X\_g' Omega\_g X\_g} 的推导}
+
+思路：按簇分组，簇间协方差为零，簇内用“线性变换的方差”。
+\begin{align*}
+\Var\Bigl(\sum_{i=1}^nx_iu_i\Bigm|X\Bigr)&=\Var\Bigl(\sum_{g=1}^GX_g\T u_g\Bigm|X\Bigr) \why{按簇分组求和}\\
+&=\sum_{g=1}^G\Var(X_g\T u_g\mid X)+\sum_{g\ne h}\underbrace{\Cov(X_g\T u_g,\,X_h\T u_h\mid X)}_{=0} \why{和的方差；簇间独立}\\
+&=\sum_{g=1}^GX_g\T\Var(u_g\mid X)X_g \why{$\Var(A\T u)=A\T\Var(u)A$}\\
+&=\sum_{g=1}^GX_g\T\E(u_gu_g\T\mid X_g)X_g \why{$\E(u_g\mid X)=0$；簇间独立}\\
+&=\sum_{g=1}^GX_g\T\Omega_gX_g. \why{$\Omega_g$ 的定义}
+\end{align*}
+
+\subsubsection{簇内交叉协方差项：比 HC 多出的部分}
+
+展开一个簇的贡献：
+\begin{align*}
+X_g\T\Omega_gX_g&=\sum_{i\in g}\sum_{j\in g}x_ix_j\T\Cov(u_i,u_j\mid X) \why{矩阵乘积写成求和}\\
+&=\underbrace{\sum_{i\in g}x_ix_i\T\sigma_i^2}_{\text{HC 已有的项}}+\underbrace{\sum_{i\in g}\sum_{j\in g,\,j\ne i}x_ix_j\T\Cov(u_i,u_j\mid X)}_{\text{交叉协方差项}}. \why{分出 $i=j$ 的项}
+\end{align*}
+与情形 (ii) 相比，多出了所有 $i\ne j$（同簇）的\key{交叉协方差项}。
+
+\subsubsection{聚类下的夹心公式}
+
+把上式代回夹心：
+\begin{equation}\label{eq:U05b-varcl}
+\Var(\hat\beta_{OLS}\mid X)=(X\T X)\inv\Bigl(\sum_{g=1}^GX_g\T\Omega_gX_g\Bigr)(X\T X)\inv=\frac1n\,\widehat Q_{xx}\inv\Bigl(\frac1n\sum_{g=1}^GX_g\T\Omega_gX_g\Bigr)\widehat Q_{xx}\inv .
+\end{equation}
+第二个等号与 HC 情形同理（每个因子配一个 $\frac1n$）。
+
+\subsubsection{独立信息的个数从 \texorpdfstring{$n$}{n} 降到 \texorpdfstring{$G$}{G}}
+
+无聚类时“肉”是 $n$ 个独立项之和；有聚类时只有 $G$ 个独立项（每簇一项）。独立信息的个数从 $n$ 降到 $G$，这决定了聚类推断的渐近理论必须让 $G\to\infty$。
+
+\subsubsection{正的簇内相关：忽略聚类 \texorpdfstring{$\Rightarrow$}{=>} se 偏小 \texorpdfstring{$\Rightarrow$}{=>} 虚假显著}
+
+簇内相关通常为正（共同冲击），且回归元在簇内往往也正相关（如学校层面的处理变量），于是交叉项为正，真实方差比 HC 公式大。忽略聚类 $\Rightarrow$ se 偏小 $\Rightarrow$ $|t|$ 偏大 $\Rightarrow$ 虚假显著。
+
+\subsection{Moulton 因子：方差放大 \texorpdfstring{$1+\rho(N-1)$}{1 + rho(N-1)}（拓展）}
+
+\subsubsection{条件与结论}
+
+\begin{thm}[Moulton 因子（Moulton 1990；Hansen 第 4.22 节）]\label{thm:U05b-moulton}
+设每簇大小相同 $n_g=N$，$\E(u_{ig}^2\mid X)=\sigma^2$，簇内相关 $\Corr(u_{ig},u_{\ell g}\mid X)=\rho$（$i\ne\ell$），且回归元在簇内不变（如学校层面的处理变量）。则
+\[
+\Var(\hat\beta\mid X)=\sigma^2(X\T X)\inv\bigl[1+\rho(N-1)\bigr].
+\]
+即真实方差是常规同方差公式的 $1+\rho(N-1)$ 倍。
+\end{thm}
+
+证明思路：回归元在簇内不变，$X_g=\one_Nx_g\T$（$x_g$ 为 $K\times1$），而 $\Omega_g=\sigma^2[(1-\rho)I_N+\rho\one_N\one_N\T]$（对角元 $\sigma^2$，非对角元 $\rho\sigma^2$）。先算一个簇的“肉”：
+\begin{align*}
+X_g\T\Omega_gX_g&=x_g\,\one_N\T\Omega_g\one_N\,x_g\T \why{$X_g=\one_Nx_g\T$}\\
+\one_N\T\Omega_g\one_N&=\sigma^2\bigl[(1-\rho)\one_N\T\one_N+\rho(\one_N\T\one_N)^2\bigr] \why{代入 $\Omega_g$}\\
+&=\sigma^2\bigl[(1-\rho)N+\rho N^2\bigr]=\sigma^2N\bigl[1+\rho(N-1)\bigr], \why{$\one_N\T\one_N=N$}\\
+X_g\T\Omega_gX_g&=\sigma^2\bigl[1+\rho(N-1)\bigr]\,Nx_gx_g\T=\sigma^2\bigl[1+\rho(N-1)\bigr]X_g\T X_g. \why{$X_g\T X_g=Nx_gx_g\T$}
+\end{align*}
+再代入夹心：
+\begin{align*}
+\Var(\hat\beta\mid X)&=(X\T X)\inv\Bigl(\sum_g\sigma^2[1+\rho(N-1)]X_g\T X_g\Bigr)(X\T X)\inv \why{代入上式}\\
+&=\sigma^2[1+\rho(N-1)](X\T X)\inv(X\T X)(X\T X)\inv \why{$\sum_gX_g\T X_g=X\T X$}\\
+&=\sigma^2(X\T X)\inv[1+\rho(N-1)]. \why{化简}
+\end{align*}
+回归元在簇内变化时，放大倍数较小（Cameron 与 Miller 2015 的近似为 $1+\rho_x\rho(N-1)$，$\rho_x$ 为回归元的簇内相关）。
+
+\subsubsection{例：Moulton 因子的量级}
+
+\begin{exmp}[Moulton 因子的量级]\label{ex:U05b-moulton}
+(a) 每校 $N=21$ 名学生，$\rho=0.1$；(b) $N=48$（肯尼亚学校例子中的平均每校学生数），$\rho=0.25$。分别求方差放大倍数与 se 放大倍数。
+\solution
+\begin{align*}
+\text{(a)}\quad 1+\rho(N-1)&=1+0.1\times20=3, &\sqrt3&=1.73; \why{代入公式}\\
+\text{(b)}\quad 1+\rho(N-1)&=1+0.25\times47=12.75, &\sqrt{12.75}&=3.57. \why{代入公式}
+\end{align*}
+(a) 中正确 se 是常规 se 的 1.73 倍；(b) 中 se 应放大 3.57 倍。即使 $\rho$ 很小，只要簇很大，忽略聚类的后果也很严重。
+\end{exmp}
+
+\subsubsection{有效样本量 \texorpdfstring{$n/[1+\rho(N-1)]$}{n/[1+rho(N-1)]}}
+
+方差放大 $1+\rho(N-1)$ 倍，相当于有效样本量只有 $n/[1+\rho(N-1)]$。$\rho=1$ 时有效样本量为 $n/N=G$：每簇只相当于一个观测。
+
+\subsubsection{练习：样本均值的 Moulton 因子}
+
+\begin{prac}[Moulton 因子的推导：样本均值]\label{pr:U05b-moulton}
+$G$ 个簇、每簇 $N$ 个观测，$y_{ig}=\mu+u_{ig}$，$\Var(u_{ig})=\sigma^2$，簇内 $\Cov(u_{ig},u_{\ell g})=\rho\sigma^2$（$i\ne\ell$），簇间独立。求 $\Var(\bar y)$，并与“误以为独立”时的 $\sigma^2/n$ 比较（$n=GN$）。
+\answer
+\begin{align*}
+\Var(\bar y)&=\frac1{n^2}\Var\Bigl(\sum_{g=1}^G\sum_{i=1}^Nu_{ig}\Bigr)=\frac1{n^2}\sum_{g=1}^G\Var\Bigl(\sum_{i=1}^Nu_{ig}\Bigr) \why{簇间独立}\\
+\Var\Bigl(\sum_{i=1}^Nu_{ig}\Bigr)&=\sum_i\Var(u_{ig})+\sum_{i\ne\ell}\Cov(u_{ig},u_{\ell g}) \why{和的方差}\\
+&=N\sigma^2+N(N-1)\rho\sigma^2 \why{$N$ 个方差、$N(N-1)$ 个协方差}\\
+&=N\sigma^2[1+\rho(N-1)], \why{提出 $N\sigma^2$}\\
+\Var(\bar y)&=\frac{G\cdot N\sigma^2[1+\rho(N-1)]}{(GN)^2}=\frac{\sigma^2}{n}\bigl[1+\rho(N-1)\bigr]. \why{$n=GN$}
+\end{align*}
+比独立情形大 $1+\rho(N-1)$ 倍（Moulton 因子），等价于有效样本量只有 $n/[1+\rho(N-1)]$。$\rho=1$ 时有效样本量为 $G$：每簇只相当于一个观测。这是上面 Moulton 因子结论在只有截距（$x_i\equiv1$）时的特例。
+\end{prac}
+
+\subsection{聚类稳健方差估计量（CRVE）}
+
+\subsubsection{插入法：用 \texorpdfstring{$\hat u_g\hat u_g'$}{u-hat\_g u-hat\_g'} 代替 \texorpdfstring{$\Omega_g$}{Omega\_g}}
+
+\eqref{eq:U05b-varcl} 中只有 $\Omega_g$ 未知。按矩估计（MM）的思路，$\Omega_g=\E(u_gu_g\T)$ 换成样本对应量，并把 $u_g$ 换成簇残差向量 $\hat u_g=Y_g-X_g\hat\beta$：
+\[
+\Omega_g=\E(u_gu_g\T)\ \xrightarrow{\ \text{MM}\ }\ \hat\Omega_g=\hat u_g\hat u_g\T .
+\]
+
+\begin{defn}[聚类稳健方差估计量（Liang--Zeger 1986；Arellano 1987）]\label{def:U05b-crve}
+\begin{align*}
+\widehat\Var{}^{CR}(\hat\beta)&=(X\T X)\inv\Bigl(\sum_{g=1}^GX_g\T\hat u_g\hat u_g\T X_g\Bigr)(X\T X)\inv
+=\frac1n\,\widehat Q_{xx}\inv\Bigl(\frac1n\sum_{g=1}^GX_g\T\hat u_g\hat u_g\T X_g\Bigr)\widehat Q_{xx}\inv,
+\end{align*}
+其中 $\widehat Q_{xx}=\frac1n\sum_{i=1}^nx_ix_i\T$。称为\term{聚类稳健方差估计}{cluster-robust variance estimator, CRVE}，其对角元的平方根 $\operatorname{se}(\hat\beta_j)_{CRVE}=\sqrt{[\widehat\Var{}^{CR}(\hat\beta)]_{jj}}$ 为\term{聚类稳健标准误}{cluster-robust standard errors}。
+\end{defn}
+
+\subsubsection{簇“得分”之和的外积：\texorpdfstring{$s_g=\sum_{i\in g}x_i\hat u_i$}{s\_g = sum x\_i u-hat\_i}}
+
+记第 $g$ 簇的得分和 $s_g=X_g\T\hat u_g=\sum_{i\in g}x_i\hat u_i$（$K\times1$）。则
+\begin{align*}
+X_g\T\hat u_g\hat u_g\T X_g&=(X_g\T\hat u_g)(X_g\T\hat u_g)\T \why{$(AB)\T=B\T A\T$}\\
+&=\Bigl(\sum_{i\in g}x_i\hat u_i\Bigr)\Bigl(\sum_{i\in g}x_i\hat u_i\Bigr)\T=s_gs_g\T. \why{矩阵乘积写成求和}
+\end{align*}
+展开后 $s_gs_g\T=\sum_{i\in g}\sum_{j\in g}x_ix_j\T\hat u_i\hat u_j$，正好包含了 HC 的项（$i=j$）与簇内交叉项（$i\ne j$）的样本对应。
+
+\begin{method}[CRVE 的计算步骤]
+\begin{enumerate}
+\item OLS 得 $\hat\beta$ 与残差 $\hat u_i$（与是否聚类无关）；
+\item 在簇内把 $x_i\hat u_i$ 加总，得 $s_g=\sum_{i\in g}x_i\hat u_i$，$g=1,\dots,G$；
+\item 把 $G$ 个外积 $s_gs_g\T$ 加起来当“肉”：$\sum_gs_gs_g\T$；
+\item $\widehat\Var{}^{CR}(\hat\beta)=(X\T X)\inv(\sum_gs_gs_g\T)(X\T X)\inv$，必要时乘小样本调整因子 $a_n$；
+\item 取对角元开方得聚类稳健 se，$t=\hat\beta_j/\operatorname{se}$，临界值用 $t(G-1)$。
+\end{enumerate}
+\end{method}
+
+\subsubsection{HC 是 CRVE 的特例：每簇一个观测}
+
+若每簇只有一个观测（$n_g=1$，$G=n$），则 $s_g=x_i\hat u_i$，$s_gs_g\T=x_ix_i\T\hat u_i^2$，CRVE 退化为 HC0。所以 HC 是 CRVE 的特例。
+
+\subsection{为什么逐簇估计 \texorpdfstring{$\Omega_g$}{Omega\_g} 很差，而平均后的“肉”很好}
+
+\subsubsection{很差（ugly）：\texorpdfstring{$\hat\Omega_g=\hat u_g\hat u_g'$}{Omega-hat\_g = u-hat\_g u-hat\_g'} 秩为 1}
+
+$\hat\Omega_g=\hat u_g\hat u_g\T$ 是用一次抽样的残差向量做的外积，秩为 1。它要估计 $\Omega_g$ 的 $n_g(n_g+1)/2$ 个未知元素，估计非常差；簇再大也不会变好，因为每个簇只有“一个样本点”。
+
+\subsubsection{很好（good）：在簇的维度上用 LLN}
+
+推断并不需要每个 $\Omega_g$，只需要 $K\times K$ 的平均量 $\frac1n\sum_gX_g\T\Omega_gX_g$。把它看作“$G$ 个独立的簇层面随机矩阵 $X_g\T u_gu_g\T X_g$ 的平均”，LLN 在簇的维度上起作用：
+\[
+\frac1n\sum_{g=1}^GX_g\T\hat u_g\hat u_g\T X_g=\frac Gn\cdot\underbrace{\frac1G\sum_{g=1}^GX_g\T\hat u_g\hat u_g\T X_g}_{\text{对 $G$ 个簇的 LLN}}\ \approx\ \frac Gn\,\E\bigl(X_g\T u_gu_g\T X_g\bigr)\qquad\text{（$G$ 大时）}.
+\]
+与 HC 完全同理：逐个很差、平均很好。区别在于这里“平均”的个数是 $G$ 而不是 $n$。
+
+\subsection{簇数要多：“\texorpdfstring{$G\ge30$}{G >= 30}”经验法则，\texorpdfstring{$G=1$}{G = 1} 时 \texorpdfstring{$n\to\infty$}{n -> infinity} 也失效}
+
+\subsubsection{渐近理论是 \texorpdfstring{$G\to\infty$}{G -> infinity}，不是 \texorpdfstring{$n\to\infty$}{n -> infinity}}
+
+三种情形下 $t=(\hat\beta-\beta^0)/\operatorname{se}(\hat\beta)\overset{a}{\sim}N(0,1)$ 的条件不同：(1) 同方差、(2) 异方差只要 $n\to\infty$；(3) 聚类则要求 $G$ 大。CRVE 的一致性依赖“簇维度上的 LLN”，$t$ 的正态性依赖“簇维度上的 CLT”。若 $n\to\infty$ 而 $G$ 固定（每簇越来越大），CRVE 不一致，$t$ 也不趋于 $N(0,1)$。
+
+\subsubsection{\texorpdfstring{$G=1$}{G = 1} 的极端情形：CRVE 恒为 0}
+
+只有一个簇（only one cluster）时，$n\to\infty$ 也没用：
+\begin{align*}
+s_1&=\sum_{i=1}^nx_i\hat u_i=X\T\hat u \why{唯一的簇含全部观测}\\
+&=0, \why{OLS 正规方程}\\
+\widehat\Var{}^{CR}&=(X\T X)\inv s_1s_1\T(X\T X)\inv=0. \why{代入}
+\end{align*}
+估计量完全失效。
+
+\subsubsection{“肉”的秩至多 \texorpdfstring{$G-1$}{G-1}}
+
+更一般地，记 $S=(s_1,\dots,s_G)$（$K\times G$），则肉 $\sum_gs_gs_g\T=SS\T$。
+\begin{align*}
+S\one_G&=\sum_{g=1}^Gs_g=\sum_{i=1}^nx_i\hat u_i=X\T\hat u=0, \why{正规方程}\\
+\rank(SS\T)&=\rank(S)\le G-1. \why{$S$ 的列线性相关}
+\end{align*}
+若 $G-1<K$，$\widehat\Var{}^{CR}$ 奇异，无法对全部 $K$ 个系数做联合检验。
+
+\subsubsection{经验法则 \texorpdfstring{$G\ge30$}{G >= 30} 及其局限}
+
+经验法则：簇数至少约 30（也有写作 $G>30$ 的）。簇数少于 30 左右时，聚类 $t$ 检验通常\key{过度拒绝}（se 偏小）。这只是粗略门槛：簇大小高度不均、处理组只有少数几个簇时，$G=50$ 也可能不够（MacKinnon、Nielsen 与 Webb 2023；Hansen 第 4.23 节）。
+
+\subsubsection{有效样本量是 \texorpdfstring{$G$}{G}，不是 \texorpdfstring{$n$}{n}}
+
+CRVE 实际上把每个簇当作一个观测（Hansen 第 4.23 节）。$G=50$ 个州的个人数据，推断精度大致相当于 50 个高度异方差的观测。
+
+\subsubsection{例：样本均值的聚类标准误（手算）}
+
+\begin{exmp}[手算 CRVE：样本均值的聚类标准误]\label{ex:U05b-crvemean}
+回归 $y_i=\beta+u_i$（只有截距，$\hat\beta=\bar y$）。$G=3$ 个簇，各 2 个观测：簇 1：$(3,5)$；簇 2：$(6,8)$；簇 3：$(1,1)$。分别计算同方差、HC0、CRVE 标准误，以及 Stata 调整后的 CRVE。
+\solution
+$x_i\equiv1$，$K=1$，$n=6$。
+\begin{align*}
+\hat\beta&=\bar y=24/6=4,\qquad X\T X=n=6, \why{$x_i\equiv1$}\\
+\hat u&=(-1,\ 1\ \mid\ 2,\ 4\ \mid\ -3,\ -3),\qquad\sum_i\hat u_i^2=40, \why{按簇列出残差}\\
+\text{同方差：}\ s^2&=\frac{40}{n-1}=8,\quad\widehat\Var{}^0=\frac86=1.333,\quad\operatorname{se}=1.155, \why{$s^2(X\T X)\inv$}\\
+\text{HC0：}\ \widehat\Var&=\frac{40}{36}=1.111,\quad\operatorname{se}=1.054, \why{$(X\T X)^{-2}\sum_i\hat u_i^2$}\\
+\text{CRVE：}\ s_g&=\sum_{i\in g}\hat u_i:\quad s_1=0,\ s_2=6,\ s_3=-6, \why{簇内加总，$\sum_gs_g=0$}\\
+\widehat\Var{}^{CR}&=\frac{0^2+6^2+(-6)^2}{36}=\frac{72}{36}=2.0,\quad\operatorname{se}=1.414. \why{$(X\T X)^{-2}\sum_gs_g^2$}
+\end{align*}
+簇 2 的两个残差同为正、簇 3 同为负——簇内正相关。CRVE 把交叉项 $2\hat u_i\hat u_j$ 计入（如簇 2：$s_2^2=2^2+4^2+2\cdot2\cdot4=36$，比 HC 的 $4+16=20$ 多出 16），se 变大。
+
+Stata 的小样本调整：
+\begin{align*}
+a_n&=\frac{n-1}{n-K}\cdot\frac G{G-1}=\frac55\cdot\frac32=1.5, \why{$n=6$，$K=1$，$G=3$}\\
+\widehat\Var&=1.5\times2.0=3.0,\qquad\operatorname{se}=1.732. \why{乘 $a_n$ 后开方}
+\end{align*}
+$G=3$ 远少于 30，此例只用于练习算法，实际中不能据此推断。
+\end{exmp}
+
+\subsection{Stata 实现与小样本调整因子 \texorpdfstring{$a_n$}{a\_n}}
+
+\begin{lstlisting}
+reg y x1 x2, vce(cluster firmid)     // cluster by firm (equivalently: cluster(firmid))
+reg y x1 x2, vce(cluster industry)   // cluster by industry (coarser)
+\end{lstlisting}
+Stata 对 CRVE 乘以小样本调整因子
+\[
+a_n=\frac{n-1}{n-K}\cdot\frac{G}{G-1},
+\]
+其中 $G/(G-1)$ 由 C.~Hansen（2007）在等簇大小情形下导出，用于改善少簇时的表现；$(n-1)/(n-K)$ 是一个经验性的推广。$G=n$ 时 $a_n=\frac{n-1}{n-K}\cdot\frac{n}{n-1}=\frac{n}{n-K}$，正好是 HC1 的调整。Stata 还用 $t(G-1)$ 分布取临界值与 $p$ 值。系数与不聚类时\key{完全相同}。
+
+\subsection{如何分簇：自然分组与数据驱动方法（K-means、KNN）}
+
+聚类推断的第一个实际问题（Q1）是：如何分簇（how to cluster）？
+
+\subsubsection{按制度或设计的自然分组（最常用）}
+
+学校、村庄、企业、行业、城市、省份；面板数据中按个体（企业 ID）聚类。原则：簇之间的独立性要可信——共同冲击、共同政策都应落在同一簇内。
+
+\subsubsection{数据驱动的分簇：K 均值聚类}
+
+没有现成分组、存在空间相依时，可以用数据构造簇。\term{K 均值聚类}{K-means clustering}：给定簇的个数（此处“K”指簇数，与回归元个数 $K$ 无关），反复执行“把每个观测分到最近的中心 $\to$ 把中心更新为簇内均值”，直到收敛；目标是最小化簇内平方和。例如按经纬度把县分成若干空间簇。
+
+\subsubsection{数据驱动的分簇：K 近邻}
+
+\term{K 近邻}{K-nearest neighbours, KNN}：对每个单位找出距离最近的 $k$ 个单位，定义“邻域”，据此构造空间上的相关结构或分组。
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize]
+\foreach \p in {(0.2,0.3),(0.5,0.8),(0.8,0.4),(0.4,-0.1),(1.0,0.9),(0.1,0.7)} \fill[cdef] \p circle (1.4pt);
+\draw[cdef,dashed] (0.55,0.4) ellipse (0.8 and 0.7);
+\foreach \p in {(2.6,0.5),(2.9,0.9),(3.2,0.3),(2.8,0.0),(3.4,0.7),(3.0,0.5)} \fill[cex] \p circle (1.4pt);
+\draw[cex,dashed] (3.0,0.45) ellipse (0.75 and 0.7);
+\foreach \p in {(3.9,0.4),(4.2,0.8),(4.5,0.2),(4.1,0.0),(4.6,0.6),(4.3,0.4)} \fill[cthm] \p circle (1.4pt);
+\draw[cthm,dashed] (4.2,0.4) ellipse (0.75 and 0.7);
+\node[align=center] (lab) at (3.6,-1.1) {两团重叠处：相关（correlated）\\$\Rightarrow$ 聚类标准误};
+\draw[->] (lab.north) -- (3.6,0.3);
+\node at (0.55,1.4) {簇 1};\node at (3.0,1.4) {簇 2};\node at (4.4,1.4) {簇 3};
+\end{tikzpicture}
+\captionof{figure}{K 均值分簇示意：样本点自然形成三团，重叠的两团之间存在相关}\label{fig:U05b-kmeans}
+\end{center}
+
+用数据估计出的簇做推断时要更谨慎，因为分簇本身也有误差。两种算法的细节属于机器学习内容（数据挖掘部分）。
+
+\subsection{在哪一层聚类：细聚类与粗聚类的偏差—方差权衡}
+
+以企业层面数据（firm level data，观测为企业 $i$）为例，可以按企业聚类（细），也可以按行业聚类（粗）。
+
+\subsubsection{细聚类：漏掉高层相关 \texorpdfstring{$\Rightarrow$}{=>} se 有偏（通常偏小）}
+
+\term{细聚类}{fine clustering}（如企业层面）：簇多而小。若真实相关发生在更高层（行业冲击），细聚类会漏掉跨企业的协方差项 $\Rightarrow$ se \key{有偏}（通常偏小），虚假显著。
+
+\subsubsection{粗聚类：无偏但噪声大}
+
+\term{粗聚类}{coarse clustering}（如行业层面）：簇少而大。聚类“过粗”并不产生偏差，但 $G$ 变小，CRVE 包含大量多余的成分，其\key{方差（噪声）变大}，se 不稳定，少簇问题出现。
+
+\subsubsection{结论与实用建议}
+
+选聚类层级是\key{偏差—方差权衡}，现有理论并无定论（Hansen 第 4.24 节）。实用建议：
+\begin{enumerate}
+\item 在保证 $G$ 足够大的前提下，聚到相关性可能存在的最粗一层；
+\item 至少聚到处理（政策）分配的层级（Abadie、Athey、Imbens 与 Wooldridge 2023，\emph{QJE}）；
+\item 报告 $G$，把 $G$ 当作有效样本量，并展示不同层级下结论是否稳健。
+\end{enumerate}
+
+\subsubsection{例：肯尼亚学校分轨实验}
+
+\begin{exmp}[肯尼亚学校分轨实验（Hansen 第 4.22、4.24 节）]\label{ex:U05b-kenya}
+学生标准化成绩对学校层面的“分轨”（tracking）虚拟变量回归，$\hat\beta=0.138$。常规稳健 se $=0.026$，按学校聚类的 se $=0.078$。比较两种推断，并讨论聚类层级。
+\solution
+\begin{align*}
+t^{HC}&=0.138/0.026=5.3, \why{稳健 se}\\
+t^{CR}&=0.138/0.078=1.77<1.96. \why{按学校聚类}
+\end{align*}
+聚类 se 约为稳健 se 的 3 倍；按学校聚类后，5\% 水平不再显著。可选的聚类层级：学校（$G$ 一百余所，每校学生 19--62 人，较均衡）或“区”（$G=9$，太少）。按学校聚类是稳妥的选择；按区聚类会陷入少簇问题。
+\end{exmp}
+
+\subsection{聚类推断的实证指南与聚类层级检验（MacKinnon、Nielsen 与 Webb 2023）}
+
+给定聚类结构之后，实践中怎样聚类？MacKinnon、Nielsen 与 Webb 的两篇论文（均发表于 \emph{Journal of Econometrics}，2023）分别给出 (a) 实证指南与 (b) 聚类层级检验。
+
+\subsubsection{实证指南的四条要点}
+
+“Cluster-robust inference: A guide to empirical practice”：
+\begin{enumerate}
+\item 报告簇数 $G$ 及簇大小的分布；
+\item 簇大小高度不均、处理簇很少时，即使 $G$ 不小，常规 CRVE（CV$_1$）$t$ 检验也会严重过度拒绝；
+\item 推荐用刀切型的 CV$_3$ 方差估计（类似 HC3），以及\term{野聚类自助法}{wild cluster bootstrap}得到更可靠的 $p$ 值；
+\item 用不同聚类层级做稳健性检查。
+\end{enumerate}
+
+\subsubsection{聚类层级检验的思想}
+
+“Testing for the appropriate level of clustering in linear regression models”：原假设为“细层级聚类已足够（更粗层级的簇之间没有额外相关）”。原假设下，细、粗两种层级的方差估计收敛到同一极限；比较二者（基于得分方差的差异）构造检验统计量，拒绝则说明应在更粗的层级聚类。
+
+\subsection{双向聚类}
+
+企业—年份面板中，误差可能同时存在企业内跨年相关（企业层面的持续冲击）与年份内跨企业相关（宏观或市场冲击）。只沿一个维度聚类会漏掉另一个。\term{双向聚类}{two-way clustering}（Cameron、Gelbach 与 Miller 2011；Petersen 2009 在金融面板中的讨论）：
+\[
+\widehat V_{\text{firm, year}}=\widehat V_{\text{firm}}+\widehat V_{\text{year}}-\widehat V_{\text{firm}\cap\text{year}} .
+\]
+直觉是“容斥原理”：按企业聚类的肉计入所有“同企业”的观测对，按年份聚类的肉计入所有“同年份”的观测对；既同企业又同年份的观测对（通常就是观测自身，即 HC 项）被计算了两次，所以减去一次 $\widehat V_{\text{firm}\cap\text{year}}$。要求两个维度的簇数都足够多（如年份只有 10 年时，按年聚类的部分仍是少簇问题）。Stata：\texttt{reghdfe y x, absorb(firm year) vce(cluster firm year)}。
+
+\subsection{少簇问题的补救（拓展）}
+
+当 $G$ 较小或簇极不平衡时：
+\begin{enumerate}
+\item 用 $t(G-1)$ 而非 $N(0,1)$ 的临界值（Stata 默认）；
+\item 用 CR2 / CR3（Bell--McCaffrey 型、刀切型）方差估计；
+\item 用野聚类自助法（Cameron、Gelbach 与 Miller 2008）。
+\end{enumerate}
+
+\subsection{概念辨析}
+
+\begin{prac}[概念辨析：聚类]\label{pr:U05b-concept}
+判断对错并说明：(a) 改用聚类稳健标准误会改变 OLS 系数估计。(b) 有 100 万个观测、但只有 5 个省份簇，按省聚类的 $t$ 检验可以放心使用正态临界值。(c) 按企业聚类比按行业聚类“更保守”。
+\answer
+(a) 错。$\hat\beta=(\sum_gX_g\T X_g)\inv\sum_gX_g\T Y_g$ 与分簇无关，聚类只改变方差估计。
+
+(b) 错。CRVE 的渐近理论要求 $G\to\infty$；$G=5$ 时 CRVE 极不精确（肉的秩至多 4），$t$ 不服从 $N(0,1)$，通常过度拒绝，$n$ 再大也无济于事。应考虑 $t(G-1)$ 临界值、野聚类自助法等。
+
+(c) 一般错。企业层面是更细的聚类，会漏掉同行业企业之间的相关；若存在行业冲击，企业聚类的 se 偏小，反而不保守。按行业聚类允许更多相关性（但簇数少、噪声大）。
+\end{prac}
+
+\begin{english}
+With clustered data the observations are independent across clusters but may be correlated within clusters, so the i.i.d.\ assumption fails at the individual level but holds at the cluster level. The OLS point estimate is unaffected, $\hat\beta=(\sum_g X_g'X_g)^{-1}\sum_g X_g'Y_g$, but its variance becomes $(X'X)^{-1}\bigl(\sum_g X_g'\Omega_gX_g\bigr)(X'X)^{-1}$, which contains within-cluster covariance terms ignored by the HC formula; with positive intra-cluster correlation, conventional standard errors are too small (Moulton factor $1+\rho(N-1)$). The cluster-robust estimator replaces $\Omega_g$ by $\hat u_g\hat u_g'$. Although each $\hat u_g\hat u_g'$ is a poor estimate of $\Omega_g$, the average $\frac1n\sum_g X_g'\hat u_g\hat u_g'X_g$ is consistent by a law of large numbers across clusters, which requires the number of clusters $G$ to be large (rule of thumb $G\ge30$). With $G=1$ the estimator is identically zero. One should cluster at least at the level of treatment assignment and report $G$.
+\end{english}
+
+%======================================================================
+\section{HAC / Newey--West 标准误（拓展）}\label{sec:U05b-hac}
+
+聚类允许“组内”任意相关；时间序列中的相关则沿时间轴展开，且越近的观测相关越强。本节给出此时的“肉”（长期方差）及其估计。
+
+\subsection{时间序列中的序列相关与长期方差}
+
+\subsubsection{分子不再是独立项之和}
+
+时间序列回归 $y_t=x_t\T\beta+u_t$（$t=1,\dots,T$）中，$w_t\equiv x_tu_t$ 往往\term{序列相关}{serial correlation}，分子 $\frac1{\sqrt T}\sum_tx_tu_t$ 不再是独立项之和，CLT 中的方差要把各阶自协方差都算进去。
+
+\subsubsection{长期方差 \texorpdfstring{$\Omega=\sum_j\Gamma_j$}{Omega = sum Gamma\_j} 的推导}
+
+设 $w_t$ 平稳、均值为 0，记自协方差 $\Gamma_j=\E(w_tw_{t-j}\T)=\E(x_tu_tu_{t-j}x_{t-j}\T)$。要算放大后分子的方差。
+\begin{align*}
+\Var\Bigl(\frac1{\sqrt T}\sum_{t=1}^Tw_t\Bigr)&=\frac1T\sum_{t=1}^T\sum_{s=1}^T\E(w_tw_s\T) \why{$\E w_t=0$，展开平方}\\
+&=\frac1T\sum_{j=-(T-1)}^{T-1}(T-|j|)\,\Gamma_j \why{令 $j=t-s$；平稳}\\
+&=\sum_{j=-(T-1)}^{T-1}\Bigl(1-\frac{|j|}T\Bigr)\Gamma_j \why{除以 $T$}\\
+&\to\sum_{j=-\infty}^{\infty}\Gamma_j\equiv\Omega. \why{自协方差绝对可和}
+\end{align*}
+第二步：对固定的 $j$，满足 $t-s=j$ 的 $(t,s)$ 对共有 $T-|j|$ 个。负阶自协方差满足 $\Gamma_{-j}=\E(w_tw_{t+j}\T)=[\E(w_{t+j}w_t\T)]\T=\Gamma_j\T$。于是
+\begin{equation}\label{eq:U05b-lrv}
+\Omega=\sum_{j=-\infty}^{\infty}\Gamma_j=\Gamma_0+\sum_{j=1}^{\infty}\bigl(\Gamma_j+\Gamma_j\T\bigr),\qquad\Gamma_j=\E\bigl(x_tu_tu_{t-j}x_{t-j}\T\bigr),
+\end{equation}
+称为\term{长期方差}{long-run variance}。渐近方差仍是夹心 $Q_{xx}\inv\Omega Q_{xx}\inv$，只是“肉”包含了各阶自协方差。
+
+\subsection{Newey--West 估计量与 Bartlett 权}
+
+\subsubsection{估计量公式}
+
+\term{异方差与自相关一致}{heteroskedasticity and autocorrelation consistent, HAC}估计（Newey 与 West 1987）：
+\begin{equation}\label{eq:U05b-nw}
+\hat\Omega^{NW}=\hat\Gamma_0+\sum_{j=1}^L\Bigl(1-\frac j{L+1}\Bigr)\bigl(\hat\Gamma_j+\hat\Gamma_j\T\bigr),\qquad\hat\Gamma_j=\frac1T\sum_{t=j+1}^Tx_t\hat u_t\hat u_{t-j}x_{t-j}\T ,
+\end{equation}
+相应的方差估计为 $\widehat\Var(\hat\beta)=\frac1T\widehat Q_{xx}\inv\hat\Omega^{NW}\widehat Q_{xx}\inv$。
+
+\subsubsection{截断滞后 \texorpdfstring{$L$}{L} 随 \texorpdfstring{$T$}{T} 缓慢增大}
+
+无穷和不能直接估计，只能截断到 $L$ 阶。$L$ 要随 $T$ 增大（否则漏掉高阶相关），但要远小于 $T$（否则高阶 $\hat\Gamma_j$ 只用很少的观测，噪声大）。常用经验取值 $L\approx0.75\,T^{1/3}$（Hansen 第 14.35 节介绍的 Andrews 规则在一阶自相关取 0.25 时的结果）。
+
+\subsubsection{Bartlett 权递减，保证半正定}
+
+权重 $1-\frac j{L+1}$ 称为 \term{Bartlett 权}{Bartlett kernel}，随滞后阶数线性递减。不加权的简单截断可能给出负的方差：标量情形 $L=1$ 时 $\hat\Omega=\hat\gamma(0)\bigl(1+2\hat\rho(1)\bigr)$，当 $\hat\rho(1)<-\frac12$ 时为负。Bartlett 权保证 $\hat\Omega^{NW}$ 半正定，且随 $L$ 平滑变化。
+
+\subsubsection{\texorpdfstring{$L=0$}{L = 0} 时退化为 HC0}
+
+$L=0$ 时 $\hat\Omega^{NW}=\hat\Gamma_0=\frac1T\sum_tx_tx_t\T\hat u_t^2$，即 White 估计量。HC 是 HAC 的特例。
+
+\subsubsection{Stata 实现}
+
+\begin{lstlisting}
+tsset t
+newey y x, lag(4)        // Newey-West HAC standard errors with L = 4
+\end{lstlisting}
+
+\subsection{与聚类、面板的关系}
+
+\subsubsection{按个体聚类：不加权、不截断的 HAC}
+
+面板数据中按个体聚类（\texttt{vce(cluster id)}）允许同一个体任意形式的跨期相关，可看作“不加权、不截断的 HAC”，其渐近理论依赖个体数 $N$ 大。后续面板章节所说的“HAC/聚类稳健标准误”多指这一做法。
+
+\subsubsection{跨个体相关：Driscoll--Kraay 标准误与双向聚类}
+
+若存在跨个体的横截面相关（共同冲击），可用 Driscoll--Kraay 标准误（依赖 $T$ 大）或双向聚类。
+
+\begin{english}
+When $x_tu_t$ is serially correlated, the middle matrix of the sandwich is the long-run variance $\Omega=\sum_{j=-\infty}^{\infty}\Gamma_j$ with $\Gamma_j=E(x_tu_tu_{t-j}x_{t-j}')$. The Newey--West HAC estimator $\hat\Omega=\hat\Gamma_0+\sum_{j=1}^L\bigl(1-\frac{j}{L+1}\bigr)(\hat\Gamma_j+\hat\Gamma_j')$ is consistent if the truncation lag $L$ grows slowly with $T$, and the Bartlett weights make it positive semi-definite; with $L=0$ it reduces to the White estimator. Clustering by individual in a panel is an unweighted, untruncated HAC within each individual and requires many individuals.
+\end{english}
+
+%======================================================================
+\section{三种情形下的 \texorpdfstring{$t$}{t} 统计量与“se \texorpdfstring{$\to t\to p\to$}{-> t -> p ->} 星号”链条}\label{sec:U05b-t}
+
+前三节给出三种标准误。本节说明：只要 se 与真实误差结构相符，$t$ 统计量都渐近标准正态；用错 se 会系统地过度拒绝；而 se 的选择直接决定 $t$、$p$ 与星号。
+
+\subsection{三种情形下 \texorpdfstring{$t$}{t} 的渐近 \texorpdfstring{$N(0,1)$}{N(0,1)}}
+
+\begin{thm}[$t$ 统计量的渐近分布]\label{thm:U05b-t}
+设 $H_0:\beta_j=\beta_j^0$ 成立，$\widehat V\pto V$（$\widehat V$ 为与真实误差结构相符的一致估计）。则
+\[
+t_j=\frac{\hat\beta_j-\beta_j^0}{\operatorname{se}(\hat\beta_j)}\ \dto\ N(0,1),\qquad\operatorname{se}(\hat\beta_j)=\sqrt{\widehat V_{jj}/n}.
+\]
+所需条件：(1) 同方差且用同方差 se：$n\to\infty$；(2) 异方差且用 HC se：$n\to\infty$；(3) 聚类且用 CRVE：$G\to\infty$（$G$ 大）。
+\end{thm}
+
+证明：分子用渐近正态，分母用一致性，二者用 Slutsky 合成。
+\begin{align*}
+t_j&=\frac{\hat\beta_j-\beta_j}{\sqrt{\widehat V_{jj}/n}} \why{$H_0$ 下 $\beta_j^0=\beta_j$}\\
+&=\frac{\sqrt n(\hat\beta_j-\beta_j)}{\sqrt{\widehat V_{jj}}} \why{分子分母同乘 $\sqrt n$}\\
+&\dto\frac{N(0,V_{jj})}{\sqrt{V_{jj}}}=N(0,1). \why{CMT + Slutsky}
+\end{align*}
+分子：渐近正态定理的第 $j$ 个分量，$\sqrt n(\hat\beta_j-\beta_j)\dto N(0,V_{jj})$；分母：$\widehat V_{jj}\pto V_{jj}>0$，由 CMT 得 $\sqrt{\widehat V_{jj}}\pto\sqrt{V_{jj}}$。三种情形的区别只在于“$\widehat V\pto V$”成立需要什么：前两种需要 $n\to\infty$，聚类需要 $G\to\infty$。
+
+\subsection{用错标准误：过度拒绝的定量计算}
+
+若所用的 se 收敛到错误的方差 $\bar V_{jj}\ne V_{jj}$（例如异方差下用同方差 se、聚类下用 HC se），重复上面的推导：
+\begin{align*}
+t_j=\frac{\sqrt n(\hat\beta_j-\beta_j)}{\sqrt{\widehat{\bar V}_{jj}}}&\dto\frac{N(0,V_{jj})}{\sqrt{\bar V_{jj}}}=N\Bigl(0,\ \frac{V_{jj}}{\bar V_{jj}}\Bigr). \why{分母收敛到 $\sqrt{\bar V_{jj}}$}
+\end{align*}
+设真实方差是所用公式的 3 倍（如 Moulton 因子为 3），则 $t\dto N(0,3)$，名义 5\% 检验的实际拒绝概率为
+\begin{align*}
+P(|t|>1.96)&=P\bigl(\sqrt3\,|Z|>1.96\bigr) \why{$t\approx\sqrt3Z$，$Z\sim N(0,1)$}\\
+&=P\bigl(|Z|>1.96/\sqrt3\bigr)=P(|Z|>1.13)\approx0.26. \why{查标准正态表}
+\end{align*}
+即 $H_0$ 为真时约有 26\% 的概率“发现显著”。这就是忽略聚类导致的虚假显著。比例为 12.75（Moulton 例 (b)）时，拒绝概率高达约 58\%。
+
+\subsection{标准误的选择决定显著性：se \texorpdfstring{$\to t\to p\to$}{-> t -> p ->} 星号}
+
+\subsubsection{链条：se 决定 \texorpdfstring{$t$}{t}，\texorpdfstring{$t$}{t} 决定 \texorpdfstring{$p$}{p}，\texorpdfstring{$p$}{p} 决定星号}
+
+对单个系数的检验（single test），
+\[
+\operatorname{se}(\hat\beta)\ \longrightarrow\ t\ \longrightarrow\ p\ \longrightarrow\ \left\{\begin{array}{l}{*}{*}{*}\\ {*}{*}\\ {*}\end{array}\right.
+\]
+星号惯例：$p<0.01$ 记 ***，$p<0.05$ 记 **，$p<0.1$ 记 *。$\hat\beta$ 不随 se 的选择而变，但 se 一变，整条链条都跟着变。Stata 中可选的 se 包括同方差、稳健、单向聚类与双向聚类；选择空间越大，“挑选”的余地也越大（见下文 p-hacking）。Hansen（第 9.7 节）也指出，报告 $p$ 值优于只报告星号。
+
+\subsubsection{例：同一个 \texorpdfstring{$\hat\beta$}{beta-hat}、三种 se、三种星号}
+
+\begin{exmp}[同一个 $\hat\beta$，三种 se，三种星号]\label{ex:U05b-stars}
+接前例：$n=400$，$\hat\beta_2=0.27$，$\widehat Q_{xx}\inv=\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}$。按 $G=40$ 个企业簇算得“肉”
+\[
+\hat\Omega_{CL}=\frac1n\sum_gX_g\T\hat u_g\hat u_g\T X_g=\begin{pmatrix}6&14\\ 14&40\end{pmatrix}.
+\]
+求聚类 se，并与同方差 se（$\widehat V^0_{22}=4$）、HC se（$\widehat V^{HC}_{22}=5$）比较 $t$、$p$ 与星号。
+\solution
+\begin{align*}
+\widehat Q_{xx}\inv\hat\Omega_{CL}&=\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}\begin{pmatrix}6&14\\ 14&40\end{pmatrix}=\begin{pmatrix}2&-10\\ 2&12\end{pmatrix}, \why{矩阵乘法}\\
+\widehat V^{CL}&=\begin{pmatrix}2&-10\\ 2&12\end{pmatrix}\begin{pmatrix}5&-2\\ -2&1\end{pmatrix}=\begin{pmatrix}30&-14\\ -14&8\end{pmatrix}, \why{再右乘面包}\\
+\operatorname{se}^{CL}(\hat\beta_2)&=\sqrt{8/400}=0.141,\qquad t=0.27/0.141=1.91. \why{除以 $n$ 再开方}
+\end{align*}
+\begin{center}
+\small
+\begin{tabular}{lccccc}
+\toprule
+se 类型 & $\widehat V_{22}$ & $\operatorname{se}(\hat\beta_2)=\sqrt{\widehat V_{22}/400}$ & $t$ & 双侧 $p$ & 星号\\
+\midrule
+同方差 & 4 & 0.100 & 2.70 & 0.007 & ***\\
+HC（稳健） & 5 & 0.112 & 2.41 & 0.016 & **\\
+CRVE（企业聚类） & 8 & 0.141 & 1.91 & 0.056 & *\\
+\bottomrule
+\end{tabular}
+\end{center}
+$p$ 值按 $N(0,1)$ 计算；若像 Stata 那样对聚类 se 用 $t(G-1)=t(39)$，CRVE 行 $p\approx0.064$，仍为 *。系数完全相同，结论却从“1\% 水平显著”变为“仅 10\% 水平显著”。
+\end{exmp}
+
+\subsubsection{例：系数线性组合的标准误与 \texorpdfstring{$t$}{t} 检验}
+
+链条同样适用于系数的线性组合 $\theta=R\beta$：先由 $\widehat\Var(\hat\theta)=R\,\widehat\Var(\hat\beta)R\T$ 得 se，再算 $t$。
+
+\begin{exmp}[经验的边际回报及其标准误]\label{ex:U05b-lincomb}
+$\log(wage)=\beta_1+\beta_2educ+\beta_3exp+\beta_4exp^2+u$ 的估计为 $\hat\beta_3=0.04$，$\hat\beta_4=-0.0008$，$\widehat\Var(\hat\beta_3)=4\times10^{-5}$，$\widehat\Var(\hat\beta_4)=4\times10^{-8}$，$\widehat\Cov(\hat\beta_3,\hat\beta_4)=-1.2\times10^{-6}$。(a) 估计 $exp=10$ 处经验的边际回报 $\theta=\beta_3+20\beta_4$ 及其标准误；(b) 在 5\% 水平检验 $H_0:\theta=0$。
+\solution
+(a) 边际回报 $\partial\log(wage)/\partial exp=\beta_3+2\beta_4exp$，在 $exp=10$ 处为 $\beta_3+20\beta_4$，是线性函数，$R=(0,0,1,20)$。
+\begin{align*}
+\hat\theta&=0.04+20(-0.0008)=0.024, \why{代入估计值}\\
+\widehat\Var(\hat\theta)&=\widehat\Var(\hat\beta_3)+400\,\widehat\Var(\hat\beta_4)+2\cdot20\,\widehat\Cov(\hat\beta_3,\hat\beta_4) \why{$\Var(a+20b)$ 展开}\\
+&=4\times10^{-5}+1.6\times10^{-5}-4.8\times10^{-5}=8\times10^{-6}, \why{代入}\\
+\operatorname{se}(\hat\theta)&=\sqrt{8\times10^{-6}}=0.00283. \why{开方}
+\end{align*}
+(b)
+\begin{align*}
+t&=\frac{0.024}{0.00283}=8.49>1.96. \why{$t$ 统计量}
+\end{align*}
+拒绝 $H_0$：在 10 年经验处，经验的边际回报显著为正（约每年 2.4\%）。注意协方差项为负，使 $\operatorname{se}(\hat\theta)$ 明显小于只用两个方差算出的 $\sqrt{5.6\times10^{-5}}=0.0075$；漏掉协方差是常见错误。
+\end{exmp}
+
+\subsection{p-hacking：挑选标准误与聚类层级}
+
+\subsubsection{定义与后果}
+
+p 值操纵（p-hacking）：在看到结果之后，挑选能让 $p<0.05$ 的设定——换 se 类型、换聚类层级、换控制变量、换样本——只报告“显著”的那一个。后果：报告的 $p$ 值不再具有名义含义，第一类错误率被严重低估（多重检验问题，见第 6 章）。
+
+\subsubsection{良好做法}
+
+\begin{enumerate}
+\item 事前根据抽样设计和处理分配层级确定 se 类型与聚类层级，而不是事后挑选；
+\item 报告簇数 $G$；展示不同 se 与聚类层级下的稳健性；
+\item 重视系数大小与置信区间，而非只看星号（Hansen 第 9.8 节）。
+\end{enumerate}
+
+\subsection{三种方差估计一览与嵌套关系}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.6cm}>{\raggedright\arraybackslash}p{2.5cm}>{\raggedright\arraybackslash}p{5.2cm}>{\raggedright\arraybackslash}p{1.3cm}L}
+\toprule
+情形 & 假设 & $\widehat\Var(\hat\beta)$ & 渐近要求 & Stata\\
+\midrule
+(i) 同方差 & 独立 + $\E(u_i^2\mid x_i)=\sigma^2$ & $\hat\sigma^2(X\T X)\inv$ & $n\to\infty$ & 默认\\
+(ii) HC & 独立，方差任意 & $(X\T X)\inv\bigl(\sum_ix_ix_i\T\hat u_i^2\bigr)(X\T X)\inv$ & $n\to\infty$ & \texttt{, robust}\\
+(iii) CRVE & 簇间独立，簇内任意 & $(X\T X)\inv\bigl(\sum_gX_g\T\hat u_g\hat u_g\T X_g\bigr)(X\T X)\inv$ & $G\to\infty$ & \texttt{vce(cl id)}\\
+HAC & 弱相依时间序列 & $\frac1T\widehat Q_{xx}\inv\hat\Omega^{NW}\widehat Q_{xx}\inv$ & $T\to\infty$ & \texttt{newey}\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{各种方差估计一览}\label{tab:U05b-var}
+\end{center}
+
+嵌套关系：同方差 $\subset$ HC $\subset$ CRVE（$n_g=1$ 时 CRVE $=$ HC；残差平方为常数时 HC $=$ 同方差公式）；HC 也是 HAC 在 $L=0$ 时的特例。越“稳健”的估计允许的相关结构越多，但需要的独立单位（$n$ 或 $G$）越多、噪声越大。
+
+\begin{english}
+Under $H_0:\beta_j=\beta_j^0$, $t_j=(\hat\beta_j-\beta_j^0)/se(\hat\beta_j)\xrightarrow{d}N(0,1)$ provided the standard error is consistent for the true sampling variability: homoskedastic s.e.\ under homoskedasticity, heteroskedasticity-robust s.e.\ under independent heteroskedastic errors, and cluster-robust s.e.\ with many clusters under within-cluster dependence. If the standard error converges to the wrong variance, $t_j$ converges to $N(0,V_{jj}/\bar V_{jj})$ and the test over-rejects. Because the choice of standard error affects $t$, the $p$-value and the significance stars, it should be decided ex ante from the sampling design rather than after seeing the results, to avoid $p$-hacking.
+\end{english}
+
+%======================================================================
+\section{过渡：外生性不成立怎么办（见第 7 章）}\label{sec:U05b-bridge}
+
+\subsection{本章结论的共同前提：外生性}
+
+本章所有结论——一致性、渐近正态、三种标准误——都建立在外生性 $\E(u_i\mid x_i)=0$（至少 $\E(x_iu_i)=0$）之上。标准误的各种稳健化处理的都是\key{误差的方差与相关结构}，不涉及误差的\key{均值}。
+
+\subsection{外生性不成立：分子不再收敛到 0}
+
+一旦 $\E(u_i\mid x_i)\ne0$（遗漏变量、测量误差、联立性等），分子 $\frac1n\sum_ix_iu_i$ 不再收敛到 0，而是收敛到 $\E(x_iu_i)\ne0$，于是 $\plim\hat\beta=\beta+Q_{xx}\inv\E(x_iu_i)\ne\beta$（见本章一致性一节）。OLS 有偏且不一致，再精确的标准误也只是在给一个错误的数加上“置信区间”。如何识别、检验和处理内生性，是第 7--9 章的内容。
+
+\begin{english}
+All results in this chapter---consistency, asymptotic normality and the three types of standard errors---rely on exogeneity, $E(u_i\mid x_i)=0$ or at least $E(x_iu_i)=0$. Robust and clustered standard errors only correct for the variance and dependence structure of the errors. If $E(x_iu_i)\neq0$, then $\operatorname{plim}\hat\beta=\beta+Q_{xx}^{-1}E(x_iu_i)\neq\beta$, OLS is inconsistent, and no choice of standard error can fix this; endogeneity requires instrumental variables or panel methods.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U05b-summary}
+
+一句话：外生性决定 $\hat\beta$ 是否对准真值，误差的相关结构决定标准误该怎么算，而簇数 $G$ 决定聚类推断是否可信。
+
+\subsection{核心公式与结论表}
+
+{\small
+\begin{longtable}{>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{6.7cm}>{\raggedright\arraybackslash}p{6.4cm}}
+\caption{第 5 章核心公式与结论}\label{tab:U05b-core}\\
+\toprule
+主题 & 公式 & 要点\\
+\midrule
+\endfirsthead
+\toprule
+主题 & 公式 & 要点\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+分解式 & $\hat\beta=\beta+\bigl(\frac1n\sum_ix_ix_i\T\bigr)\inv\bigl(\frac1n\sum_ix_iu_i\bigr)$ & 分母 $\pto Q_{xx}$（LLN）；分子 $\pto\E(x_iu_i)=0$\\
+一致性 & WLLN + 外生性（LIE）+ CMT $\Rightarrow\hat\beta\pto\beta$ & 有效推断的最低要求；经验门槛 $n\ge500$；无偏（有限样本）与一致（大样本）互不蕴含\\
+外生性不成立 & $\plim\hat\beta=\beta+Q_{xx}\inv\E(x_iu_i)$ & 偏差与 $n$ 无关，见第 7 章\\
+渐近正态 & $\sqrt n(\hat\beta-\beta)\dto N(0,\,Q_{xx}\inv\Omega Q_{xx}\inv)$，$\Omega=\E(x_ix_i\T u_i^2)$ & $\Var(\hat\beta)\approx V/n\to0$；$\sqrt n$ 一致\\
+Delta 方法 & $\sqrt n(\hat\theta-\theta)\dto N(0,RVR\T)$，$R=\partial r/\partial\beta\T$ & 线性组合：$\widehat\Var(R\hat\beta)=R\widehat\Var(\hat\beta)R\T$\\
+(i) 同方差 & $V^0=\sigma^2Q_{xx}\inv$；$\widehat\Var=\hat\sigma^2(X\T X)\inv$ 或 $s^2(X\T X)\inv$ & OLS 为 BLUE；异方差下该公式不一致\\
+(ii) HC & $(X\T X)\inv\bigl(\sum_ix_ix_i\T\hat u_i^2\bigr)(X\T X)\inv$ & 逐个 $\hat u_i^2$ 差、平均好；HC0--HC3；\texttt{robust} 即 HC1\\
+(iii) CRVE & $(X\T X)\inv\bigl(\sum_gX_g\T\hat u_g\hat u_g\T X_g\bigr)(X\T X)\inv$ & 点估计不变、方差改变；需 $G$ 大（$G\ge30$）；$G=1$ 时 $\equiv0$；Stata 乘 $a_n$、用 $t(G-1)$\\
+Moulton 因子 & $\Var(\hat\beta\mid X)=\sigma^2(X\T X)\inv[1+\rho(N-1)]$ & 有效样本量 $n/[1+\rho(N-1)]$\\
+双向聚类 & $\widehat V_{A,B}=\widehat V_A+\widehat V_B-\widehat V_{A\cap B}$ & 两个维度的簇数都要多\\
+HAC & $\hat\Omega^{NW}=\hat\Gamma_0+\sum_{j=1}^L\bigl(1-\frac j{L+1}\bigr)(\hat\Gamma_j+\hat\Gamma_j\T)$ & $L\approx0.75T^{1/3}$；$L=0$ 即 HC0\\
+$t$ 统计量 & $t_j=(\hat\beta_j-\beta_j^0)/\operatorname{se}(\hat\beta_j)\dto N(0,1)$ & 条件：$n\to\infty$、$n\to\infty$、$G\to\infty$；se $\to t\to p\to$ 星号\\
+\end{longtable}
+}
+
+\subsection{方法对照与选择要点}
+
+三种（四种）方差估计的假设、公式与渐近要求见表 \ref{tab:U05b-var}。选择时按下面的顺序思考：
+
+\begin{method}[如何选择标准误]
+\begin{enumerate}
+\item \key{先问外生性}：$\E(x_iu_i)=0$ 是否可信？不可信则任何标准误都无济于事，转向 IV/GMM 或面板方法（第 7--10 章）。
+\item \key{观测是否独立}？横截面独立抽样 $\Rightarrow$ 默认用 HC（Stata \texttt{robust}，即 HC1）；小样本或有高杠杆点时用 HC2/HC3。同方差 se 只在有充分理由相信同方差时使用。
+\item \key{是否存在组内相关}（学校、村庄、企业、行业、地区、同一个体的多期观测）？是 $\Rightarrow$ 用 CRVE，至少聚到处理分配的层级；在 $G$ 足够大的前提下聚到相关可能存在的最粗一层。
+\item \key{检查簇数} $G$：$G\ge30$ 左右且簇大小较均衡时可用常规 CRVE 与 $t(G-1)$；$G$ 少或极不均衡时用 CR2/CR3、野聚类自助法。
+\item \key{两个维度都有相关}（企业与年份）$\Rightarrow$ 双向聚类；纯时间序列 $\Rightarrow$ Newey--West HAC。
+\item \key{事前确定、如实报告}：报告 se 类型与 $G$，展示不同层级下的稳健性，避免 p-hacking。
+\end{enumerate}
+\end{method}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+\item 以为稳健或聚类标准误会改变 $\hat\beta$：它们只改变方差估计。
+\item 以为异方差使 OLS 不一致：一致性只需 $\E(x_iu_i)=0$，与条件方差无关；异方差只影响方差公式（与效率）。
+\item 以为 White 估计量需要一致估计每个 $\sigma_i^2$：它只需估计 $K\times K$ 的 $\Omega$，靠对 $n$ 项平均的 LLN。
+\item 把 $n\times n$ 的误差协方差矩阵（$D$、$\Omega_g$）与 $K\times K$ 的“肉”$\Omega$ 混为一谈。
+\item 写簇的贡献时维度不对：应为 $X_g\T\Omega_gX_g$（$K\times K$），不是 $x_gx_g\T\Var(u_g)$。
+\item 以为聚类推断只要 $n$ 大：渐近理论要求 $G\to\infty$；$G=1$ 时 CRVE 恒为 0，“肉”的秩至多 $G-1$。
+\item 以为细聚类“更保守”：细聚类漏掉高层相关，se 通常偏小；粗聚类无偏但噪声大。
+\item 忽略簇内相关：正的簇内相关与簇内不变的回归元使真实方差放大 $1+\rho(N-1)$ 倍，常规 se 严重偏小。
+\item 小样本中把 HC0 当作可靠：它向下偏；HC1 只做自由度调整，HC2/HC3 更好。
+\item 以为同方差 se 在异方差下只是“不够有效”：它是不一致的，可能严重低估方差（峰度比例 $\kappa$）。
+\item 计算线性组合的 se 时漏掉协方差项。
+\item 事后挑选 se 类型或聚类层级以获得星号（p-hacking）。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[Consistency and its failure]\label{pr:U05b-comp1}
+Consider $y_i=x_i'\beta+u_i$ with i.i.d.\ data and $Q_{xx}=E(x_ix_i')>0$. (a) Show that $\hat\beta\xrightarrow{p}\beta+Q_{xx}^{-1}E(x_iu_i)$. (b) Under what condition is OLS consistent? Show that $E(u_i\mid x_i)=0$ is sufficient. (c) A student claims: ``OLS is unbiased under $E(u\mid X)=0$, hence consistency is automatic and the sample size does not matter.'' Comment.
+\answer
+(a)
+\begin{align*}
+\hat\beta&=\beta+\widehat Q_{xx}\inv\Bigl(\frac1n\sum_ix_iu_i\Bigr), \why{分解式}\\
+\widehat Q_{xx}&\pto Q_{xx},\qquad\frac1n\sum_ix_iu_i\pto\E(x_iu_i), \why{WLLN}\\
+\hat\beta&\pto\beta+Q_{xx}\inv\E(x_iu_i). \why{CMT：$Q_{xx}$ 正定，求逆连续}
+\end{align*}
+(b) 一致当且仅当 $Q_{xx}\inv\E(x_iu_i)=0$，即 $\E(x_iu_i)=0$（$Q_{xx}\inv$ 可逆）。若 $\E(u_i\mid x_i)=0$：
+\begin{align*}
+\E(x_iu_i)&=\E\bigl[\E(x_iu_i\mid x_i)\bigr] \why{LIE}\\
+&=\E\bigl[x_i\E(u_i\mid x_i)\bigr]=\E[x_i\cdot0]=0. \why{提出 $x_i$；外生性}
+\end{align*}
+(c) 说法不当。无偏性是有限样本性质，只说明抽样分布的中心在 $\beta$；一致性要求抽样分布随 $n$ 增大而坍缩到 $\beta$，需要方差 $\to0$（这里由 LLN 保证）。推断（$t$ 的正态近似）更依赖大样本。且两者互不蕴含：例如 $\tilde\mu=y_1$ 无偏但不一致。
+\end{prac}
+
+\begin{prac}[Computing standard errors by hand]\label{pr:U05b-comp2}
+A regression with an intercept and one regressor uses $n=100$ observations and yields $\hat\beta_2=0.60$, $\frac1n\sum_ix_ix_i'=\begin{pmatrix}1&1\\1&2\end{pmatrix}$, $\hat\sigma^2=2$, and $\frac1n\sum_ix_ix_i'\hat u_i^2=\begin{pmatrix}2&3\\3&6\end{pmatrix}$. (a) Compute the homoskedastic standard error of $\hat\beta_2$ and the corresponding $t$-statistic for $H_0:\beta_2=0$. (b) Compute the heteroskedasticity-robust (HC0) standard error and $t$-statistic. (c) At the 5\% level, do the conclusions differ?
+\answer
+\begin{align*}
+\widehat Q_{xx}\inv&=\frac1{2-1}\begin{pmatrix}2&-1\\ -1&1\end{pmatrix}=\begin{pmatrix}2&-1\\ -1&1\end{pmatrix}. \why{$2\times2$ 求逆，$\det=1$}
+\end{align*}
+(a)
+\begin{align*}
+\widehat V^0&=\hat\sigma^2\widehat Q_{xx}\inv,\qquad\widehat V^0_{22}=2\times1=2, \why{同方差公式}\\
+\operatorname{se}&=\sqrt{2/100}=0.1414,\qquad t=0.60/0.1414=4.24. \why{除以 $n$ 再开方}
+\end{align*}
+(b)
+\begin{align*}
+\widehat Q_{xx}\inv\hat\Omega&=\begin{pmatrix}2&-1\\ -1&1\end{pmatrix}\begin{pmatrix}2&3\\ 3&6\end{pmatrix}=\begin{pmatrix}1&0\\ 1&3\end{pmatrix}, \why{矩阵乘法}\\
+\widehat V^{HC}&=\begin{pmatrix}1&0\\ 1&3\end{pmatrix}\begin{pmatrix}2&-1\\ -1&1\end{pmatrix}=\begin{pmatrix}2&-1\\ -1&2\end{pmatrix}, \why{再右乘面包}\\
+\widehat V^{HC}_{22}&=2,\qquad\operatorname{se}=0.1414,\qquad t=4.24. \why{同 (a) 的计算}
+\end{align*}
+(c) 结论不变：两种 se 恰好相等，都在 1\% 水平显著（$|t|>2.58$）。但 $\hat\Omega\ne\hat\sigma^2\widehat Q_{xx}=\begin{pmatrix}2&2\\ 2&4\end{pmatrix}$，存在异方差，只是本例中对 $\hat\beta_2$ 的方差影响恰好抵消；对 $\hat\beta_1$：同方差 $\widehat V^0_{11}=4$，HC 为 2，并不相同。这说明“有无异方差”与“se 是否改变”要逐个系数看。
+\end{prac}
+
+\begin{prac}[Cluster-robust inference]\label{pr:U05b-comp3}
+Students are sampled from $G$ schools, $N$ students per school, and the regressor of interest is a school-level treatment dummy. The within-school error correlation is $\rho=0.05$ and $N=61$. (a) By what factor does the conventional (i.i.d.) standard error understate the true standard error? (b) Explain why the OLS estimate itself is not affected by clustering. (c) The researcher has only $G=8$ schools. Is the cluster-robust $t$-test reliable? What would you recommend?
+\answer
+(a) 处理变量在学校层面不变，适用 Moulton 公式：
+\begin{align*}
+1+\rho(N-1)&=1+0.05\times60=4, \why{Moulton 因子}\\
+\sqrt4&=2. \why{se 之比为方差之比的平方根}
+\end{align*}
+方差低估 4 倍，se 低估 2 倍。
+
+(b) $\hat\beta=(\sum_ix_ix_i\T)\inv\sum_ix_iy_i=(\sum_gX_g\T X_g)\inv\sum_gX_g\T Y_g$，按簇分组只是改变求和顺序；聚类只影响 $\Var(\sum_ix_iu_i)$ 的结构。
+
+(c) 不可靠。CRVE 的一致性和 $t$ 的正态性依赖簇维度的 LLN/CLT，需要 $G$ 大（经验上 $G\ge30$）；$G=8$ 时 CRVE 噪声很大且偏小，检验过度拒绝。建议：用 $t(G-1)$ 临界值、CR2/CR3 方差、野聚类自助法（MacKinnon、Nielsen 与 Webb 2023），并在报告中说明簇数。
+\end{prac}
+
+\begin{prac}[True or false]\label{pr:U05b-comp4}
+Explain briefly. (a) If the errors are heteroskedastic, OLS is inconsistent. (b) White's estimator requires estimating each $\sigma_i^2$ consistently. (c) If all residuals are clustered within a single cluster ($G=1$), the cluster-robust variance is zero. (d) HC1 and HC0 give the same $t$-statistics in large samples.
+\answer
+(a) 错。一致性只需 $\E(x_iu_i)=0$，与条件方差无关；异方差只影响方差公式（与效率）。
+
+(b) 错。它只需估计 $K\times K$ 的 $\Omega=\E(x_ix_i\T u_i^2)$，靠的是对 $n$ 项取平均的 LLN；单个 $\hat u_i^2$ 并不一致估计 $\sigma_i^2$。
+
+(c) 对。$G=1$ 时“肉”为 $(X\T\hat u)(X\T\hat u)\T$，而 OLS 正规方程给出 $X\T\hat u=0$。
+
+(d) 对。$\widehat V^{HC1}=\frac n{n-K}\widehat V^{HC0}$，$\frac n{n-K}\to1$，两者渐近等价（小样本有差异）。
+\end{prac}
+
+\begin{english}
+\textbf{Chapter summary.} Writing $\hat\beta=\beta+(\frac1n\sum_i x_ix_i')^{-1}\frac1n\sum_i x_iu_i$, the WLLN and exogeneity give consistency, and the CLT and Slutsky's theorem give $\sqrt n(\hat\beta-\beta)\xrightarrow{d}N(0,Q_{xx}^{-1}\Omega Q_{xx}^{-1})$ with $\Omega=E(x_ix_i'u_i^2)$. The point estimate is the same under every error structure; only the estimate of the ``meat'' changes: $\hat\sigma^2(X'X)^{-1}$ under homoskedasticity, the White (HC) estimator under independent heteroskedastic errors, the cluster-robust estimator $(X'X)^{-1}\sum_g X_g'\hat u_g\hat u_g'X_g(X'X)^{-1}$ under within-cluster dependence, and the Newey--West estimator for serially correlated time series. Cluster-robust inference requires many clusters, and ignoring positive intra-cluster correlation understates standard errors by the Moulton factor. The standard error determines $t$, $p$ and the significance stars, so it must be chosen ex ante from the sampling design.
+\end{english}

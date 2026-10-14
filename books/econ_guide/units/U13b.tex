@@ -1,0 +1,1167 @@
+%======================================================================
+% U13b  第 13 章（后半）：PCA 估计、因子个数、应用与本章小结
+%======================================================================
+\section{主成分分析（PCA）估计：完整推导}\label{sec:U13b-pca}
+
+本章前文已经把纯因子模型写成矩阵形式 $U=\Lambda F\T+V$，并说明了 $\Lambda$ 与 $F$ 只能在旋转意义下识别、需要施加 $r^2$ 个标准化约束。本节回答“怎样估计 $\Lambda$ 与 $F$”。核心结论只有两句：
+\begin{center}
+\key{PCA 就是最小二乘}；\qquad \key{PCA 的解就是特征分解}。
+\end{center}
+推导路线是：最小二乘目标 $\to$ 给定 $F$ 求 $\hat\Lambda$ $\to$ 代回得集中化目标 $\to$ 化为迹最大化 $\to$ 解为前 $r$ 个特征向量。先在标准化 $F\T F=I_r$ 下完整推导一遍，再在标准化 $\frac1T F\T F=I_r$ 下重做一遍并比较两者。
+
+\begin{keypt}[本节的考法]
+英文试卷最常见的问法是 “Derive the principal component estimator of $F$ and $\Lambda$. Justify each step.” 作答要写全四步：(1) 写出 $\min\tr(VV\T)$；(2) 给定 $F$ 得 $\hat\Lambda=UF(F\T F)\inv$；(3) 代回并用 $\tr(AB)=\tr(BA)$ 化为 $\max\tr(F\T U\T UF)$ s.t.\ $F\T F=I_r$；(4) 解为 $U\T U$ 前 $r$ 个最大特征值对应的特征向量，极值为 $e_1+\dots+e_r$。另一常见问法是“用 SSR 与信息准则选择因子个数”，见下一节。
+\end{keypt}
+
+%----------------------------------------------------------------------
+\subsection{预备工具：特征分解与迹的性质}
+
+\subsubsection{特征值与特征向量的定义}
+
+\begin{defn}[特征值与特征向量]\label{def:U13b-eig}
+设 $A$ 为 $m\times m$ 矩阵。若存在 $x\neq 0$（$m\times 1$）与标量 $a$ 使 $Ax=ax$，则称 $a$ 为 $A$ 的\term{特征值}{eigenvalue}，$x$ 为对应的\term{特征向量}{eigenvector}。
+\end{defn}
+
+因子模型中 $\lambda_i$ 已用来表示载荷，所以本章把特征值记为 $e_k$（或 $\pi_k$），避免混淆。
+
+\subsubsection{实对称半正定矩阵的谱分解}
+
+对 $T\times T$ 实对称半正定矩阵 $S$（例如 $U\T U$），有\term{谱分解}{spectral decomposition}（第 1 章）：
+\begin{equation}\label{eq:U13b-spectral}
+S=e_1g_1g_1\T+e_2g_2g_2\T+\dots+e_Tg_Tg_T\T=G\diag(e_1,\dots,e_T)G\T,
+\end{equation}
+其中 $e_1\ge e_2\ge\dots\ge e_T\ge 0$ 为特征值，$g_k$（$T\times1$）为\key{标准正交}的特征向量：$g_k\T g_k=1$，$g_k\T g_l=0$（$k\neq l$）；$G=(g_1,\dots,g_T)$ 为 $T\times T$ 正交矩阵，$G\T G=GG\T=I_T$。注意 $S$ 是 $T\times T$ 的，谱分解恰有 $T$ 项。MATLAB 中 \texttt{eig(A)} 计算特征值与特征向量（本节末给出完整代码）。
+
+\subsubsection{本节反复使用的五条迹性质}
+
+设下列矩阵乘积有定义（第 1 章）：
+\begin{center}
+\begin{tabular}{lll}
+(T1) $\tr(A+B)=\tr A+\tr B$; & (T2) $\tr(AB)=\tr(BA)$; & (T3) $\tr(A\T)=\tr(A)$;\\[2pt]
+(T4) $\tr(cA)=c\tr A$; & (T5) $\tr(a\T a)=a\T a=\sum_k a_k^2$. &
+\end{tabular}
+\end{center}
+(T2) 只要求 $AB$ 与 $BA$ 都有定义（$A$ 为 $m\times n$，$B$ 为 $n\times m$），此时 $AB$ 是 $m\times m$、$BA$ 是 $n\times n$，二者维度可以不同但迹相同，称为\term{迹的循环性}{cyclic property of the trace}。它是本节把 $N\times N$ 问题化成 $r\times r$ 问题的关键。
+
+%----------------------------------------------------------------------
+\subsection{模型、记号与最小二乘目标}
+
+\subsubsection{模型 \texorpdfstring{$U=\Lambda F'+V$}{U = Lambda F' + V} 及各矩阵的维度}
+
+纯因子模型（把 $u_{it}$ 视为观测数据）为
+\[
+u_{it}=\lambda_i\T f_t+v_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\]
+其中 $f_t$ 为 $r\times 1$ 因子，$\lambda_i$ 为 $r\times1$ 载荷，$v_{it}$ 为特质误差。按个体叠放与再叠成矩阵：
+\[
+\underbrace{U_i}_{T\times1}=\underbrace{F}_{T\times r}\underbrace{\lambda_i}_{r\times 1}+\underbrace{V_i}_{T\times1},
+\qquad
+\underbrace{U}_{N\times T}=\underbrace{\Lambda}_{N\times r}\underbrace{F\T}_{r\times T}+\underbrace{V}_{N\times T},
+\]
+其中 $U_i=(u_{i1},\dots,u_{iT})\T$，$F=(f_1,\dots,f_T)\T$，$\Lambda=(\lambda_1,\dots,\lambda_N)\T$；$U$ 的第 $i$ 行是 $U_i\T$，$V$ 的第 $i$ 行是 $V_i\T$。\key{目标：估计 $\Lambda$ 与 $F$}。
+
+\subsubsection{PCA 就是最小二乘：\texorpdfstring{$\min\sum_i\sum_t v_{it}^2$}{min sum of squared v}}
+
+PCA 估计量定义为最小二乘解：
+\begin{equation}\label{eq:U13b-ls}
+\min_{\Lambda,F}\ \sum_{i=1}^N\sum_{t=1}^T v_{it}^2=\min_{\Lambda,F}\ \sum_{i=1}^N\sum_{t=1}^T(u_{it}-\lambda_i\T f_t)^2 .
+\end{equation}
+与 OLS 的区别在于：回归元 $f_t$ 也是未知的，要和系数 $\lambda_i$ 一起估计。
+
+\subsubsection{把双重求和写成迹 \texorpdfstring{$\tr(VV')$}{tr(VV')}}
+
+要证 $\sum_i\sum_t v_{it}^2=\tr(VV\T)$。思路：先对 $t$ 求和得到每个个体的平方和，再看它是 $VV\T$ 的哪个元素。
+\begin{align*}
+\sum_{i=1}^N\sum_{t=1}^T v_{it}^2
+&=\sum_{i=1}^N V_i\T V_i \why{$V_i\T V_i=\sum_t v_{it}^2$，(T5)}\\
+&=\tr(VV\T) \why{$VV\T$ 的第 $i$ 个对角元为 $V_i\T V_i$}\\
+&=\tr(V\T V) \why{(T2)}
+\end{align*}
+所以问题（\ref{eq:U13b-ls}）就是矩阵形式的
+\[
+\min_{\Lambda,F}\ \tr(VV\T),\qquad V=U-\Lambda F\T .
+\]
+
+%----------------------------------------------------------------------
+\subsection{第一步：给定 \texorpdfstring{$F$}{F} 用 OLS 估计 \texorpdfstring{$\Lambda$}{Lambda}}
+
+\subsubsection{直观写法：在 \texorpdfstring{$U=\Lambda F'+V$}{U = Lambda F' + V} 两边右乘 \texorpdfstring{$F$}{F}}
+
+若 $F$ 已知，在 $U=\Lambda F\T+V$ 两边右乘 $F$：
+\[
+UF=\Lambda F\T F+\underbrace{VF}_{\text{误差项}}\qquad\Longrightarrow\qquad \hat\Lambda=UF(F\T F)\inv .
+\]
+丢掉 $VF$ 并不是近似：最小二乘的正规方程恰好是残差与回归元正交，$\hat VF=0$（$N\times r$），见下面的严格推导。
+
+\subsubsection{严格写法：目标函数对各 \texorpdfstring{$\lambda_i$}{lambda\_i} 可分，逐个做 OLS}
+
+给定 $F$，$\tr(VV\T)=\sum_i V_i\T V_i=\sum_{i=1}^N(U_i-F\lambda_i)\T(U_i-F\lambda_i)$，第 $i$ 项只含 $\lambda_i$，所以可以对每个 $i$ 分别最小化。第 $i$ 个问题就是 $U_i$（$T\times1$）对 $F$（$T\times r$）的 OLS：
+\begin{align*}
+&\frac{\partial}{\partial\lambda_i}(U_i-F\lambda_i)\T(U_i-F\lambda_i)=-2F\T(U_i-F\lambda_i)=0 \why{一阶条件}\\
+&\hat\lambda_i=(F\T F)\inv F\T U_i \why{OLS 公式}\\
+&\hat\Lambda\T=(\hat\lambda_1,\dots,\hat\lambda_N)=(F\T F)\inv F\T(U_1,\dots,U_N) \why{按列排放}\\
+&\hat\Lambda\T=(F\T F)\inv F\T U\T \why{$(U_1,\dots,U_N)=U\T$}\\
+&\hat\Lambda=UF(F\T F)\inv \why{转置；$(F\T F)\inv$ 对称}
+\end{align*}
+两种写法结果相同。一阶条件 $F\T(U_i-F\hat\lambda_i)=0$ 对所有 $i$ 叠放，就是 $\hat V F=0$，正是直观写法中丢掉的那一项。在标准化 $F\T F=I_r$ 下，
+\begin{equation}\label{eq:U13b-lamhat}
+\hat\Lambda(F)=UF(F\T F)\inv,\qquad\text{在 }F\T F=I_r\text{ 下}\quad \hat\Lambda(F)=UF .
+\end{equation}
+
+\subsubsection{\texorpdfstring{$\hat\Lambda(F)$}{Lambda-hat(F)} 不可行：\texorpdfstring{$\Lambda$}{Lambda} 与 \texorpdfstring{$F$}{F} 都未知}
+
+实际上 $\Lambda$ 与 $F$ \key{都}未知，所以 $\hat\Lambda=UF(F\T F)\inv$ 是\term{不可行的}{infeasible}估计量（英文表述：Neither $\Lambda$ nor $F$ is known, so $\hat\Lambda$ is infeasible, but $F$ can be estimated by PCA）。思路是把 $\hat\Lambda(F)$ 当作 $F$ 的函数代回目标函数，先求出 $\hat F$，再代回得 $\hat\Lambda=\hat\Lambda(\hat F)$。
+
+%----------------------------------------------------------------------
+\subsection{第二步：集中化（轮廓）目标函数}
+
+把 $\hat\Lambda(F)=UF(F\T F)\inv$ 代回 $\tr(VV\T)$，得到只含 $F$ 的目标函数。这种做法叫\term{集中化最小二乘}{concentrated least squares}，也叫\term{轮廓最小二乘}{profiled least squares}：先对一部分参数求最优，再对剩下的参数优化。
+
+\subsubsection{展开 \texorpdfstring{$VV'$}{VV'} 的四项}
+
+先不代入，把 $VV\T$ 按定义展开：
+\begin{align*}
+VV\T&=(U-\Lambda F\T)(U-\Lambda F\T)\T \why{$V=U-\Lambda F\T$}\\
+&=(U-\Lambda F\T)(U\T-F\Lambda\T) \why{$(A-B)\T=A\T-B\T$，$(\Lambda F\T)\T=F\Lambda\T$}\\
+&=UU\T-UF\Lambda\T-\Lambda F\T U\T+\Lambda F\T F\Lambda\T \why{展开四项}
+\end{align*}
+
+\subsubsection{代入 \texorpdfstring{$\hat\Lambda(F)$}{Lambda-hat(F)} 化简为 \texorpdfstring{$UU'-UF(F'F)^{-1}F'U'$}{UU' - UF(F'F)\textasciicircum{}-1F'U'}}
+
+代入 $\hat\Lambda=UF(F\T F)\inv$，从而 $\hat\Lambda\T=(F\T F)\inv F\T U\T$。先逐项计算后三项：
+\begin{align*}
+UF\hat\Lambda\T&=UF(F\T F)\inv F\T U\T \why{代入 $\hat\Lambda\T$}\\
+\hat\Lambda F\T U\T&=UF(F\T F)\inv F\T U\T \why{代入 $\hat\Lambda$}\\
+\hat\Lambda F\T F\hat\Lambda\T&=UF(F\T F)\inv F\T F(F\T F)\inv F\T U\T \why{同时代入 $\hat\Lambda$ 与 $\hat\Lambda\T$}\\
+&=UF(F\T F)\inv F\T U\T \why{$F\T F(F\T F)\inv=I_r$}
+\end{align*}
+再合并：
+\begin{align*}
+\hat V\hat V\T&=UU\T-UF(F\T F)\inv F\T U\T-UF(F\T F)\inv F\T U\T+UF(F\T F)\inv F\T U\T \why{代入上面三项}\\
+&=UU\T-2\,UF(F\T F)\inv F\T U\T+UF(F\T F)\inv F\T U\T \why{合并前两项}\\
+&=UU\T-UF(F\T F)\inv F\T U\T \why{$-2+1=-1$}
+\end{align*}
+
+\subsubsection{投影矩阵写法：\texorpdfstring{$\hat V=UM_F$}{V-hat = U M\_F}}
+
+更简洁、便于记忆的写法：令 $P_F=F(F\T F)\inv F\T$（$T\times T$ 投影矩阵），$M_F=I_T-P_F$，二者都对称幂等（第 3 章）。
+\begin{align*}
+\hat V&=U-\hat\Lambda F\T=U-UF(F\T F)\inv F\T \why{代入 $\hat\Lambda$}\\
+&=U(I_T-P_F)=UM_F \why{提出 $U$}\\
+\hat V\hat V\T&=UM_FM_F\T U\T \why{$(UM_F)\T=M_F\T U\T$}\\
+&=UM_FU\T \why{$M_F$ 对称幂等}\\
+&=UU\T-UP_FU\T \why{$M_F=I_T-P_F$}
+\end{align*}
+与逐项展开的结果完全一致。含义：$\hat V$ 的第 $i$ 行 $U_i\T M_F$ 就是 $U_i$ 对 $F$ 回归的残差——集中化后的残差是把 $U$ 的每一行投影到 $F$ 的列空间之外。
+
+%----------------------------------------------------------------------
+\subsection{第三步：化为迹最大化问题}
+
+\subsubsection{去掉与 \texorpdfstring{$F$}{F} 无关的 \texorpdfstring{$\tr(UU')$}{tr(UU')}}
+
+对第二步的结果取迹再对 $F$ 求最小：
+\begin{align*}
+\min_F\tr(\hat V\hat V\T)&=\min_F\tr\bigl(UU\T-UF(F\T F)\inv F\T U\T\bigr) \why{代入第二步}\\
+&=\min_F\Bigl[\tr(UU\T)-\tr\bigl(UF(F\T F)\inv F\T U\T\bigr)\Bigr] \why{(T1)(T4)}
+\end{align*}
+$\tr(UU\T)$ 由观测数据给定（$\tr(UU\T)$ is given as observed data），与 $F$ 无关。减去的越多，剩下的越少，所以
+\[
+\min_F\tr(\hat V\hat V\T)\iff \max_F\ \tr\bigl(UF(F\T F)\inv F\T U\T\bigr)=\max_F\ \tr(UP_FU\T).
+\]
+
+\subsubsection{标准化 \texorpdfstring{$F'F=I_r$}{F'F = I\_r} 不损失一般性}
+
+目标函数只通过 $P_F$ 依赖于 $F$，而 $P_F$ 只依赖于 $F$ 的列空间：对任意 $r\times r$ 可逆矩阵 $C$，
+\begin{align*}
+P_{FC}&=FC\bigl(C\T F\T FC\bigr)\inv C\T F\T \why{定义}\\
+&=FC\,C\inv(F\T F)\inv(C\T)\inv C\T F\T \why{$(ABC)\inv=C\inv B\inv A\inv$}\\
+&=F(F\T F)\inv F\T=P_F \why{$CC\inv=I_r$，$(C\T)\inv C\T=I_r$}
+\end{align*}
+所以总可以把 $F$ 换成其列空间的一组标准正交基而不改变目标值，即施加 $F\T F=I_r$ 不损失一般性。这正是旋转不定性在估计中的体现。
+
+\subsubsection{用迹的循环性化为 \texorpdfstring{$r\times r$}{r x r} 形式 \texorpdfstring{$\max\tr(F'U'UF)$}{max tr(F'U'UF)}}
+
+施加标准化后 $(F\T F)\inv=I_r$，再交换乘积次序：
+\begin{align*}
+\max_F\ \tr\bigl(UF(F\T F)\inv F\T U\T\bigr)
+&\iff \max_F\ \tr\bigl(\underbrace{UF}_{A}\,\underbrace{F\T U\T}_{B}\bigr)\quad\text{s.t. } F\T F=I_r \why{施加标准化 $F\T F=I_r$}\\
+&\iff \max_F\ \tr(F\T U\T UF)\quad\text{s.t. } F\T F=I_r \why{(T2)：$\tr(AB)=\tr(BA)$}
+\end{align*}
+这里 $A=UF$ 为 $N\times r$，$B=F\T U\T$ 为 $r\times N$；$AB$ 是 $N\times N$，$BA=F\T U\T UF$ 是 $r\times r$。记 $S=U\T U$（$T\times T$），问题成为
+\begin{equation}\label{eq:U13b-tracemax}
+\boxed{\ \max_F\ \tr(F\T SF)\quad\text{s.t.}\quad F\T F=I_r,\qquad S=U\T U\ }
+\end{equation}
+
+\subsubsection{为什么要改写成 \texorpdfstring{$\tr(F'SF)$}{tr(F'SF)}}
+
+$N\times N$ 形式 $\max\tr(UFF\T U\T)$ 并非数学上无解，而是它不是标准的“二次型的迹”形式，看不出怎么解；用循环性改写成 $\tr(F\T SF)$ 后，就是“在正交约束下最大化二次型之迹”，可以直接套用特征向量的结论（下一小节）。
+
+%----------------------------------------------------------------------
+\subsection{第四步：迹最大化的解——前 \texorpdfstring{$r$}{r} 个特征向量}
+
+\subsubsection{迹最大化定理（Ky Fan 定理）}
+
+\begin{thm}[迹最大化（Ky Fan 定理；Hansen 附录 A.15）]\label{thm:U13b-kyfan}
+设 $S$ 为 $T\times T$ 实对称半正定矩阵，特征值 $e_1\ge\dots\ge e_T\ge 0$，对应标准正交特征向量 $g_1,\dots,g_T$。则
+\[
+\max_{F:\ F\T F=I_r}\ \tr(F\T SF)=e_1+e_2+\dots+e_r ,
+\]
+最大值在 $F=G_r\equiv(g_1,\dots,g_r)$（$T\times r$）处取得，也在它的任意正交旋转 $G_rQ$（$Q$ 为 $r\times r$ 正交矩阵）处取得。
+\end{thm}
+\idx{Ky Fan theorem}{Ky Fan 定理}
+
+$r=1$ 时这就是瑞利商的结论 $\max_{g\T g=1}g\T Sg=e_1$（第 1 章）。旋转部分：$(G_rQ)\T(G_rQ)=Q\T Q=I_r$，且 $\tr(Q\T G_r\T SG_rQ)=\tr(G_r\T SG_rQQ\T)=\tr(G_r\T SG_r)$（(T2)），所以 $G_rQ$ 同样可行且目标值相同。
+
+\subsubsection{验证：前 \texorpdfstring{$r$}{r} 个特征向量取到 \texorpdfstring{$e_1+\dots+e_r$}{e\_1+...+e\_r}}
+
+取 $F=(g_1,\dots,g_r)$。由标准正交性（$g_1\T g_2=0$，$g_1\T g_3=0$，……；$g_k\T g_k=1$），$F\T F=I_r$，可行。其目标值：
+\begin{align*}
+\tr(F\T SF)&=\sum_{k=1}^r g_k\T Sg_k \why{$F\T SF$ 的第 $k$ 个对角元是 $g_k\T Sg_k$}\\
+&=\sum_{k=1}^r g_k\T\Bigl(\sum_{l=1}^T e_lg_lg_l\T\Bigr)g_k \why{谱分解 (\ref{eq:U13b-spectral})}\\
+&=\sum_{k=1}^r\sum_{l=1}^T e_l(g_k\T g_l)(g_l\T g_k) \why{乘法对求和的分配律}\\
+&=\sum_{k=1}^r e_k(g_k\T g_k)(g_k\T g_k) \why{$g_k\T g_l=0$（$l\neq k$）}\\
+&=e_1+e_2+\dots+e_r \why{$g_k\T g_k=1$}
+\end{align*}
+
+\subsubsection{证明：任何可行 \texorpdfstring{$F$}{F} 的目标值都不超过 \texorpdfstring{$e_1+\dots+e_r$}{e\_1+...+e\_r}}
+
+思路：把任意可行的 $F$ 在特征向量基下展开，目标函数变成特征值的加权和，权重有上下界，再把“权重额度”全部分给最大的 $r$ 个特征值。设 $F\T F=I_r$，定义权重
+\[
+p_k=g_k\T FF\T g_k=\|F\T g_k\|^2\ \ge 0,\qquad k=1,\dots,T .
+\]
+\textbf{(i) 目标函数是特征值的加权和。}
+\begin{align*}
+\tr(F\T SF)&=\tr\Bigl(F\T\sum_{k=1}^T e_kg_kg_k\T F\Bigr) \why{谱分解}\\
+&=\sum_{k=1}^T e_k\tr(F\T g_kg_k\T F) \why{(T1)(T4)}\\
+&=\sum_{k=1}^T e_k\, g_k\T FF\T g_k \why{(T2)：$\tr(F\T g\cdot g\T F)=\tr(g\T F\cdot F\T g)$}\\
+&=\sum_{k=1}^T e_kp_k \why{$p_k$ 的定义}
+\end{align*}
+\textbf{(ii) 权重之和等于 $r$。}
+\begin{align*}
+\sum_{k=1}^T p_k&=\sum_{k=1}^T\tr(F\T g_kg_k\T F) \why{同上，(T2)}\\
+&=\tr\Bigl(F\T\Bigl(\sum_{k=1}^T g_kg_k\T\Bigr)F\Bigr) \why{(T1)}\\
+&=\tr(F\T GG\T F) \why{$\sum_k g_kg_k\T=GG\T$}\\
+&=\tr(F\T F)=\tr(I_r)=r \why{$GG\T=I_T$，$F\T F=I_r$}
+\end{align*}
+\textbf{(iii) 每个权重不超过 1。} 由 $F\T F=I_r$，$I_T-FF\T$ 对称幂等：$(FF\T)(FF\T)=F(F\T F)F\T=FF\T$。于是
+\begin{align*}
+g_k\T g_k-p_k&=g_k\T(I_T-FF\T)g_k \why{$p_k$ 的定义}\\
+&=g_k\T(I_T-FF\T)\T(I_T-FF\T)g_k \why{$I_T-FF\T$ 对称幂等}\\
+&=\|(I_T-FF\T)g_k\|^2\ \ge 0 \why{$a\T a=\|a\|^2$}
+\end{align*}
+所以 $p_k\le g_k\T g_k=1$。
+
+\textbf{(iv) 比较。} 问题变成：在 $0\le p_k\le 1$、$\sum_kp_k=r$ 下最大化 $\sum_ke_kp_k$。由于 $e_k$ 递减，应把全部额度给最大的 $r$ 个特征值：
+\begin{align*}
+\sum_{k=1}^T e_kp_k-\sum_{k=1}^r e_k&=\sum_{k\le r}e_k(p_k-1)+\sum_{k>r}e_kp_k \why{拆成前 $r$ 项与其余}\\
+&\le\sum_{k\le r}e_r(p_k-1)+\sum_{k>r}e_rp_k \why{见下方说明}\\
+&=e_r\Bigl(\sum_{k=1}^T p_k-r\Bigr)=0 \why{$\sum_kp_k=r$}
+\end{align*}
+第二行的理由：$k\le r$ 时 $e_k\ge e_r$ 且 $p_k-1\le0$，故 $e_k(p_k-1)\le e_r(p_k-1)$；$k>r$ 时 $e_k\le e_r$ 且 $p_k\ge0$，故 $e_kp_k\le e_rp_k$。所以 $\tr(F\T SF)\le e_1+\dots+e_r$，等号在 $p_1=\dots=p_r=1$（此时其余 $p_k=0$，即 $F$ 的列空间等于 $g_1,\dots,g_r$ 张成的空间）时成立。证毕。
+
+\subsubsection{PCA 估计量（标准化 \texorpdfstring{$F'F=I_r$}{F'F = I\_r}）}
+
+\begin{thm}[PCA 估计量：标准化 $F\T F=I_r$]\label{thm:U13b-pca1}
+在 $U=\Lambda F\T+V$ 中，最小二乘问题 $\min_{\Lambda,F}\tr(VV\T)$（s.t.\ $F\T F=I_r$）的解为：
+\begin{enumerate}
+\item $\hat F=G_r=(g_1,\dots,g_r)$：$U\T U$（$T\times T$）的前 $r$ 个最大特征值对应的单位特征向量构成的 $T\times r$ 矩阵，满足 $\hat F\T\hat F=I_r$；
+\item $\hat\Lambda=U\hat F(\hat F\T\hat F)\inv=U\hat F$（$N\times r$）；
+\item 目标函数的极值：$\max\tr(F\T U\T UF)=e_1(U\T U)+\dots+e_r(U\T U)$；
+\item 最小残差平方和 $=\tr(U\T U)-\sum_{k\le r}e_k=\sum_{k>r}e_k$。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{直观：为什么选最大的特征值}
+
+$\tr(F\T U\T UF)=\tr\bigl((UF)\T(UF)\bigr)=\|UF\|_F^2$ 是数据 $U$ 在因子方向上的“投影长度平方”，即共同部分解释掉的平方和。要让残差最小，就要让共同部分解释得最多，所以选数据变化最大的方向——最大特征值对应的特征向量。这与 Hansen 定义 11.1“主成分按对方差的贡献排序”是同一回事（见本节统计 PCA 一小节）。
+
+%----------------------------------------------------------------------
+\subsection{另一种标准化 \texorpdfstring{$\frac1T F'F=I_r$}{F'F/T = I\_r} 下的推导}\label{sec:U13b-norm2}
+
+\begin{note}[记号切换]
+Bai \& Ng 一系列文献（以及本章的另一套写法）把数据记为 $y_{it}$、误差记为 $u_{it}$：
+\[
+y_{it}=\lambda_i\T f_t+u_{it}\iff \underbrace{Y}_{N\times T}=\Lambda F\T+\underbrace{U}_{N\times T},
+\]
+并采用标准化 $\frac1T F\T F=I_r$。本小节及以后凡写 $Y$ 处，$Y$ 都是\key{数据矩阵}、$U$ 是误差；前面第一种写法中的数据 $U$ 对应这里的 $Y$。两套写法的推导完全平行。
+\end{note}
+
+\subsubsection{目标函数与给定 \texorpdfstring{$F$}{F} 时的 \texorpdfstring{$\hat\Lambda=\frac1T YF$}{Lambda-hat = YF/T}}
+
+目标函数（对 $\lambda_i$、$f_t$ 求最小）：
+\[
+\min\sum_{i=1}^N\sum_{t=1}^T(y_{it}-\lambda_i\T f_t)^2=\min\tr(UU\T)=\min\tr\bigl[(Y-\Lambda F\T)(Y-\Lambda F\T)\T\bigr]\quad\text{w.r.t. }\lambda_i,f_t .
+\]
+给定 $F$：$YF=\Lambda F\T F+UF$（$Y$、$F\T$ 为数据或给定量），与第一步相同地得
+\begin{align*}
+\hat\Lambda&=YF(F\T F)\inv \why{给定 $F$ 的 OLS}\\
+&=YF\Bigl[T\cdot\tfrac1TF\T F\Bigr]\inv=\tfrac1TYF\Bigl(\tfrac1TF\T F\Bigr)\inv \why{插入 $T\cdot\frac1T$；$(cA)\inv=c\inv A\inv$}\\
+&=\tfrac1TYF \why{$\frac1TF\T F=I_r$}
+\end{align*}
+
+\subsubsection{集中化目标函数 \texorpdfstring{$\tr(YY')-\frac1T\tr(F'Y'YF)$}{tr(YY') - tr(F'Y'YF)/T}}
+
+代入 $\hat\Lambda F\T=\frac1TYFF\T$，并注意 $\bigl(Y-\frac1TYFF\T\bigr)\T=Y\T-\frac1TFF\T Y\T$：
+\begin{align*}
+&\tr\Bigl[\bigl(Y-\tfrac1TYFF\T\bigr)\bigl(Y-\tfrac1TYFF\T\bigr)\T\Bigr] \why{代入 $\hat\Lambda F\T=\frac1TYFF\T$}\\
+&=\tr\Bigl[YY\T-\tfrac1TYFF\T Y\T-\tfrac1TYFF\T Y\T+\tfrac1{T^2}YFF\T FF\T Y\T\Bigr] \why{展开}\\
+&=\tr\Bigl[YY\T-\tfrac2TYFF\T Y\T+\tfrac1TYF\underbrace{\bigl(\tfrac1TF\T F\bigr)}_{=I_r}F\T Y\T\Bigr] \why{提出 $\frac1TF\T F$}\\
+&=\tr\Bigl[YY\T-\tfrac1TYFF\T Y\T\Bigr] \why{$-\frac2T+\frac1T=-\frac1T$}\\
+&=\underbrace{\tr(YY\T)}_{\text{data}}-\tr\Bigl(\tfrac1TYFF\T Y\T\Bigr) \why{(T1)}\\
+&=\tr(YY\T)-\tfrac1T\tr(F\T Y\T YF) \why{(T2)(T4)}
+\end{align*}
+
+\subsubsection{化为迹最大化：\texorpdfstring{$\max\tr(F'S_{yy}F)$}{max tr(F'S\_yy F)} s.t.\ \texorpdfstring{$\frac1TF'F=I_r$}{F'F/T = I\_r}}
+
+与第一种标准化的第三步相同：
+\begin{align*}
+\min_F\ (\cdot)&\iff\max_F\ \tr\Bigl(\tfrac1TYFF\T Y\T\Bigr) \why{$\tr(YY\T)$ 与 $F$ 无关}\\
+&\iff\max_F\ \tr\Bigl(F\T\bigl(\tfrac1TY\T Y\bigr)F\Bigr)\quad\text{s.t. }\tfrac1TF\T F=I_r \why{(T2)}
+\end{align*}
+令 $S_{yy}=\frac1TY\T Y$（$T\times T$，对称半正定），谱分解为
+\[
+S_{yy}=\pi_1v_1v_1\T+\pi_2v_2v_2\T+\dots+\pi_Tv_Tv_T\T,\qquad \pi_1\ge\dots\ge\pi_T\ge0,\quad v_k\T v_l=\mathbf 1\{k=l\}.
+\]
+
+\subsubsection{变量替换 \texorpdfstring{$F=\sqrt T\tilde F$}{F = sqrt(T) F-tilde} 套用 Ky Fan 定理}
+
+约束 $\frac1TF\T F=I_r$ 不是 Ky Fan 定理要求的形式。作变量替换 $F=\sqrt T\tilde F$：
+\begin{align*}
+\tfrac1TF\T F&=\tfrac1T\cdot T\,\tilde F\T\tilde F=\tilde F\T\tilde F=I_r \why{代入 $F=\sqrt T\tilde F$}\\
+\tr(F\T S_{yy}F)&=T\,\tr(\tilde F\T S_{yy}\tilde F) \why{(T4)}\\
+&\le T(\pi_1+\dots+\pi_r) \why{Ky Fan 定理}
+\end{align*}
+等号在 $\tilde F=(v_1,\dots,v_r)$ 处取得，即 $\hat F=\sqrt T(v_1,\dots,v_r)$。
+
+\begin{thm}[PCA 估计量：标准化 $\frac1TF\T F=I_r$]\label{thm:U13b-pca2}
+在 $Y=\Lambda F\T+U$ 中，令 $S_{yy}=\frac1TY\T Y$，其特征值 $\pi_1\ge\dots\ge\pi_T$、单位特征向量 $v_1,\dots,v_T$。则
+\begin{enumerate}
+\item $\hat F=\sqrt T\times(v_1,\dots,v_r)$，即 $\sqrt T$ 乘以 $\frac1TY\T Y$ 的前 $r$ 个最大特征值对应的单位特征向量（$T\times r$），满足 $\frac1T\hat F\T\hat F=I_r$；
+\item $\hat\Lambda=\frac1TY\hat F$（$N\times r$，不带转置：$Y$ 是 $N\times T$，$\hat F$ 是 $T\times r$）；
+\item 极值 $\max\tr(F\T S_{yy}F)=T(\pi_1+\dots+\pi_r)$（只有在 $F\T F=I_r$ 下才是 $\pi_1+\dots+\pi_r$）；
+\item 拟合值 $\hat Y=\hat\Lambda\hat F\T$；最小残差平方和 $=T\sum_{k>r}\pi_k$。
+\end{enumerate}
+\end{thm}
+
+最小残差平方和的推导：$\tr(YY\T)=\tr(Y\T Y)=T\tr(S_{yy})=T\sum_{k=1}^T\pi_k$，减去极值 $T\sum_{k\le r}\pi_k$，得 $T\sum_{k>r}\pi_k$。
+
+\begin{note}[三个易错点]
+(1) 在 $\frac1TF\T F=I_r$ 下，极值是 $T(\pi_1+\dots+\pi_r)$，不是 $\pi_1+\dots+\pi_r$。(2) $\hat\Lambda=\frac1TY\hat F$，不是 $\frac1TY\hat F\T$（维度对不上）。(3) $\hat F$ 要取单位特征向量的 $\sqrt T$ 倍，才满足 $\frac1T\hat F\T\hat F=I_r$。另外，最值是对\key{迹}求的：应写 $\min\tr(\cdot)$、$\max\tr(F\T S_{yy}F)$，而不是 $\tr\min(\cdot)$ 或漏写 $\tr$；$S_{yy}$ 的谱分解有 $T$ 项，写到 $\pi_Tv_Tv_T\T$。
+\end{note}
+
+\subsubsection{两种标准化的比较：拟合值相同，尺度分配不同}
+
+把两套结果并列（统一用数据矩阵 $U$ 书写）：
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 标准化一 $F\T F=I_r$ & 标准化二 $\frac1TF\T F=I_r$\\
+\midrule
+$\hat F$ & $G_r=(g_1,\dots,g_r)$ & $\sqrt T\,G_r$\\
+$\hat\Lambda$ & $U\hat F=UG_r$ & $\frac1TU\hat F=\frac1{\sqrt T}UG_r$\\
+$\hat\Lambda\T\hat\Lambda$ & $\diag(e_1,\dots,e_r)$（对角） & $\frac1T\diag(e_1,\dots,e_r)=\diag(\pi_1,\dots,\pi_r)$（对角）\\
+迹的极值 & $\tr(F\T U\T UF)=\sum_{k\le r}e_k$ & $\tr\bigl(F\T\frac1TU\T UF\bigr)=T\sum_{k\le r}\pi_k=\sum_{k\le r}e_k$\\
+拟合值 $\hat\Lambda\hat F\T$ & $UG_rG_r\T$ & $\frac1TU\cdot TG_rG_r\T=UG_rG_r\T$（相同）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{两种标准化下的 PCA 解（数据矩阵记为 $U$）}\label{tab:U13b-norms}
+\end{center}
+
+表中 $g_k$ 是 $U\T U$ 的单位特征向量，$e_k$ 是 $U\T U$ 的特征值，$\pi_k=e_k/T$ 是 $\frac1TU\T U$ 的特征值（二者特征向量相同：$U\T Ug=eg\iff\frac1TU\T Ug=\frac eTg$）。
+
+\textbf{$\hat\Lambda\T\hat\Lambda$ 对角的验证（标准化一）。}
+\begin{align*}
+\hat\Lambda\T\hat\Lambda&=G_r\T U\T UG_r \why{$\hat\Lambda=UG_r$}\\
+\bigl(\hat\Lambda\T\hat\Lambda\bigr)_{kl}&=g_k\T(U\T Ug_l)=g_k\T(e_lg_l)=e_l\,g_k\T g_l \why{$U\T Ug_l=e_lg_l$}\\
+&=e_k\mathbf 1\{k=l\} \why{标准正交性}
+\end{align*}
+即 $\hat\Lambda\T\hat\Lambda=\diag(e_1,\dots,e_r)$。标准化二下 $\hat\Lambda\T\hat\Lambda=\frac1TG_r\T U\T UG_r=\diag(\pi_1,\dots,\pi_r)$。
+
+\textbf{PCA 解自动满足识别条件。} 本章识别一节的标准化由两部分组成：$F\T F=I_r$（或 $\frac1TF\T F=I_r$）给出 $r(r+1)/2$ 个约束（对称矩阵的独立元素个数），$\Lambda\T\Lambda$ 为对角矩阵给出 $r(r-1)/2$ 个约束（非对角元为 0），合计 $r^2$ 个，恰等于旋转矩阵 $C$（$r\times r$ 可逆）的自由度。上面两个验证说明 PCA 解\key{同时满足两条}；剩下的不定性只有每列的\key{符号}（$g_k$ 与 $-g_k$ 都是单位特征向量），在特征值互异时次序由特征值从大到小确定。两种标准化只是把同一个 $\hat\Lambda\hat F\T$ 在 $\Lambda$ 与 $F$ 之间分配尺度的方式不同。
+
+%----------------------------------------------------------------------
+\subsection{PCA 估计量小结与拟合值 \texorpdfstring{$\hat Y=\hat\Lambda\hat F'$}{Y-hat = Lambda-hat F-hat'}}
+
+\subsubsection{四步路线一览：PCA = 集中化最小二乘 = 特征分解}
+
+\begin{method}[PCA 估计的四步（标准化 $F\T F=I_r$）]
+模型 $u_{it}=\lambda_i\T f_t+v_{it}$，$U_i=F\lambda_i+V_i$，$U=\Lambda F\T+V$；目标：估计 $\Lambda$ 与 $F$。
+\begin{enumerate}
+\item 用最小二乘：$\min\sum_i\sum_tv_{it}^2=\min\tr(VV\T)$；
+\item 用集中化（轮廓）最小二乘：以 $F$ 为条件，$\hat\Lambda=UF(F\T F)\inv$；
+\item 代回：$\min\tr(VV\T)\iff\max\tr(F\T U\T UF)$，约束 $F\T F=I_r$；
+\item 一个解：$\hat F$ 是 $U\T U$ 的 $r$ 个最大特征值对应的特征向量（$r=\dim f_t$，即因子个数）；给定 $\hat F$，$\hat\Lambda=U\hat F$。
+\end{enumerate}
+\end{method}
+
+第 4 步说“一个解”（one possible solution），是因为解只在旋转/符号意义下唯一（Ky Fan 定理中的 $G_rQ$）。注意是“$r$ 个最大特征值”（$r$ 为因子个数），而不是回归元个数 $K$。
+
+\subsubsection{拟合值：向 \texorpdfstring{$\hat F$}{F-hat} 列空间的投影，与标准化无关}
+
+模型与拟合值的对应关系：
+\[
+y_{it}=\lambda_i\T f_t+u_{it}\iff Y=\Lambda F\T+U;\qquad
+\hat y_{it}=\hat\lambda_i\T\hat f_t\iff \boxed{\hat Y=\hat\Lambda\hat F\T}.
+\]
+在 $F\T F=I_r$ 下：
+\begin{align*}
+\hat Y&=\hat\Lambda\hat F\T=Y\hat F\hat F\T \why{$\hat\Lambda=Y\hat F$}\\
+&=Y\hat F(\hat F\T\hat F)\inv\hat F\T=YP_{\hat F} \why{$\hat F\T\hat F=I_r$}
+\end{align*}
+$\hat Y$ 的第 $i$ 行是 $Y_i\T P_{\hat F}$，即个体 $i$ 的时间序列 $Y_i$（$T\times1$）对 $\hat F$ 做 OLS 的拟合值：拟合值就是把每个个体的时间序列投影到 $\hat F$ 的列空间上。由表 \ref{tab:U13b-norms} 的最后一行，拟合值与标准化方式无关。
+
+%----------------------------------------------------------------------
+\subsection{残差平方和等于剩余特征值之和}\label{sec:U13b-ssr}
+
+\subsubsection{推导 \texorpdfstring{$SSR(r)=\sum_{k>r}e_k$}{SSR(r) = sum of remaining eigenvalues}}
+
+这一结论在选因子个数时直接有用。设 $e_1\ge\dots\ge e_T$ 为 $Y\T Y$ 的特征值，残差矩阵 $\hat U=Y-\hat\Lambda\hat F\T$，在 $F\T F=I_r$ 下：
+\begin{align*}
+SSR(r)&=\tr(\hat U\hat U\T)=\tr(YY\T)-\tr(\hat F\T Y\T Y\hat F) \why{集中化目标在最优点的值}\\
+&=\tr(Y\T Y)-\sum_{k=1}^re_k \why{(T2) 与极值 $\sum_{k\le r}e_k$}\\
+&=\sum_{k=1}^Te_k-\sum_{k=1}^re_k \why{迹 $=$ 特征值之和}\\
+&=\sum_{k=r+1}^Te_k
+\end{align*}
+所以 $SSR(r)$ 随 $r$ 单调递减，第 $r$ 个因子使 SSR 下降 $e_r$；$SSR(0)=\tr(Y\T Y)$，$SSR(T)=0$（$r=T$ 时完全拟合）。
+
+\subsubsection{第 \texorpdfstring{$k$}{k} 个主成分解释的比例 \texorpdfstring{$e_k/\sum_le_l$}{e\_k / sum e\_l}}
+
+总平方和 $\tr(Y\T Y)=\sum_le_l$ 中，第 $k$ 个因子（主成分）解释了 $e_k$，所以
+\[
+\text{第 $k$ 个主成分解释的比例}=\frac{e_k}{\sum_{l}e_l},\qquad
+\text{前 $r$ 个累计解释的比例}=\frac{\sum_{k\le r}e_k}{\sum_le_l}=1-\frac{SSR(r)}{SSR(0)}.
+\]
+这就是 Hansen 表 11.1 中 Proportion 一列的含义。
+
+%----------------------------------------------------------------------
+\subsection{对偶算法、SVD 与最优低秩逼近}
+
+\subsubsection{\texorpdfstring{$Y'Y$}{Y'Y} 与 \texorpdfstring{$YY'$}{YY'} 的非零特征值相同}
+
+上面对 $T\times T$ 的 $Y\T Y$ 做分解。也可以对 $N\times N$ 的 $YY\T$ 做分解，因为二者的\key{非零特征值相同}。要证：若 $Y\T Yg=eg$，$e>0$，$g\T g=1$，则 $e$ 也是 $YY\T$ 的特征值，特征向量为 $Yg$。
+\begin{align*}
+YY\T(Yg)&=Y(Y\T Yg) \why{矩阵乘法结合律}\\
+&=Y(eg)=e\,(Yg) \why{$Y\T Yg=eg$}\\
+(Yg)\T(Yg)&=g\T Y\T Yg=e\,g\T g=e>0 \why{故 $Yg\neq0$}
+\end{align*}
+所以 $Yg$ 是 $YY\T$ 对应特征值 $e$ 的特征向量，其单位化为 $h=Yg/\sqrt e$。反过来同理。两个矩阵的零特征值个数不同（$Y\T Y$ 有 $T$ 个特征值，$YY\T$ 有 $N$ 个），但非零部分一一对应。
+
+\subsubsection{对偶算法：标准化 \texorpdfstring{$\frac1N\Lambda'\Lambda=I_r$}{Lambda'Lambda/N = I\_r} 下对 \texorpdfstring{$YY'$}{YY'} 做特征分解}
+
+把 $\Lambda$ 与 $F$ 的角色互换（看 $Y\T=F\Lambda\T+U\T$），改为对载荷施加标准化 $\frac1N\Lambda\T\Lambda=I_r$。记 $y_t$（$N\times1$）为 $Y$ 的第 $t$ 列，$P_\Lambda=\Lambda(\Lambda\T\Lambda)\inv\Lambda\T$（$N\times N$），$M_\Lambda=I_N-P_\Lambda$。
+\begin{align*}
+&\tr(UU\T)=\tr(U\T U)=\sum_{t=1}^T(y_t-\Lambda f_t)\T(y_t-\Lambda f_t) \why{(T2)；按时期展开}\\
+&\hat f_t=(\Lambda\T\Lambda)\inv\Lambda\T y_t \why{给定 $\Lambda$，$y_t$ 对 $\Lambda$ 的 OLS}\\
+&\hat F=Y\T\Lambda(\Lambda\T\Lambda)\inv=\tfrac1NY\T\Lambda \why{叠放；$\Lambda\T\Lambda=NI_r$}\\
+&\hat U=Y-\Lambda\hat F\T=\bigl(I_N-\Lambda(\Lambda\T\Lambda)\inv\Lambda\T\bigr)Y=M_\Lambda Y \why{代入 $\hat F$}\\
+&\tr(\hat U\T\hat U)=\tr(Y\T M_\Lambda Y)=\tr(Y\T Y)-\tr(Y\T P_\Lambda Y) \why{$M_\Lambda$ 对称幂等}\\
+&\phantom{\tr(\hat U\T\hat U)}=\tr(Y\T Y)-\tfrac1N\tr(\Lambda\T YY\T\Lambda) \why{$P_\Lambda=\frac1N\Lambda\Lambda\T$；(T2)}
+\end{align*}
+于是 $\max\tr\bigl(\Lambda\T\frac1NYY\T\Lambda\bigr)$ s.t.\ $\frac1N\Lambda\T\Lambda=I_r$，由 Ky Fan 定理（变量替换 $\Lambda=\sqrt N\tilde\Lambda$）：
+\[
+\hat\Lambda=\sqrt N\times\bigl(YY\T\text{ 的前 $r$ 个单位特征向量}\bigr),\qquad \hat F=\tfrac1NY\T\hat\Lambda .
+\]
+两种算法给出相同的拟合值 $\hat Y$（下一小小节用 SVD 证明）。
+
+\subsubsection{计算量：对 \texorpdfstring{$\min(N,T)$}{min(N,T)} 那一维做分解}
+
+$T\times T$ 矩阵的特征分解计算量随 $T$ 迅速增长，$N\times N$ 同理。实践中对 $\min(N,T)$ 那一维做分解更省计算。资产定价中股票数 $N$ 远大于时期数 $T$（$N\gg T$），常对 $T\times T$ 矩阵做分解，即 Connor \& Korajczyk (1986) 的\term{渐近主成分}{asymptotic principal components}。
+
+\subsubsection{奇异值分解与截断 SVD \tagext}
+
+设 $Y$（$N\times T$）的\term{奇异值分解}{singular value decomposition, SVD}为
+\[
+Y=\sum_{k}s_kp_kq_k\T,\qquad s_1\ge s_2\ge\dots\ge0,
+\]
+其中 $p_k$（$N\times1$）彼此标准正交，$q_k$（$T\times1$）彼此标准正交。由它可以读出两个特征分解：
+\begin{align*}
+Y\T Y&=\Bigl(\sum_ks_kq_kp_k\T\Bigr)\Bigl(\sum_ls_lp_lq_l\T\Bigr) \why{$Y\T=\sum_ks_kq_kp_k\T$}\\
+&=\sum_k\sum_ls_ks_l\,q_k(p_k\T p_l)q_l\T \why{展开}\\
+&=\sum_ks_k^2\,q_kq_k\T \why{$p_k\T p_l=\mathbf 1\{k=l\}$}
+\end{align*}
+所以 $s_k^2=e_k$，$q_k=g_k$（$Y\T Y$ 的特征向量）；同理 $YY\T=\sum_ks_k^2p_kp_k\T$，$p_k$ 是 $YY\T$ 的特征向量。PCA 拟合值就是\key{截断 SVD}：
+\begin{align*}
+YG_rG_r\T&=\sum_ks_kp_kq_k\T\sum_{l\le r}q_lq_l\T \why{代入 SVD，$g_l=q_l$}\\
+&=\sum_{k\le r}s_kp_kq_k\T \why{$q_k\T q_l=\mathbf 1\{k=l\}$}
+\end{align*}
+同理对偶算法的拟合值 $\hat\Lambda\hat F\T=\frac1N\hat\Lambda\hat\Lambda\T Y=H_rH_r\T Y=\sum_{k\le r}s_kp_kq_k\T$（$H_r=(p_1,\dots,p_r)$），两种算法的 $\hat Y$ 相同。
+
+\subsubsection{Eckart--Young 定理：PCA = 最优低秩逼近 \tagext}
+
+\begin{thm}[Eckart--Young]\label{thm:U13b-ey}
+在所有秩不超过 $r$ 的 $N\times T$ 矩阵 $A$ 中，按 Frobenius 范数 $\|Y-A\|_F^2=\tr\bigl[(Y-A)(Y-A)\T\bigr]$ 最接近 $Y$ 的是截断 SVD $A^*=\sum_{k\le r}s_kp_kq_k\T$，最小值为 $\sum_{k>r}s_k^2=\sum_{k>r}e_k$。
+\end{thm}
+\idx{Eckart-Young theorem}{Eckart--Young 定理}
+
+它其实就是本节的结论换一种说法：任何秩不超过 $r$ 的 $N\times T$ 矩阵都能写成 $\Lambda F\T$（$\Lambda$ 为 $N\times r$，$F$ 为 $T\times r$），反之亦然，所以 $\min_{\rank A\le r}\|Y-A\|_F^2=\min_{\Lambda,F}\tr(UU\T)=SSR(r)=\sum_{k>r}e_k$。这从另一个角度说明了“PCA $=$ 最优低秩逼近 $=$ 低秩回归”。
+
+%----------------------------------------------------------------------
+\subsection{统计意义上的 PCA：方差最大化与数据标准化}
+
+\subsubsection{总体主成分：逐个最大化方差（Hansen §11.12）}
+
+\begin{defn}[总体主成分（Hansen 定义 11.1）]\label{def:U13b-pc}
+设 $X$ 为 $k\times1$ 随机向量，$\Sigma=\Var(X)$。第 1 主成分为 $h_1\T X$，其中 $h_1=\argmax_{h\T h=1}\Var(h\T X)$；第 $j$ 主成分为 $h_j\T X$，其中 $h_j$ 在 $h\T h=1$ 且与 $h_1,\dots,h_{j-1}$ 正交的约束下最大化 $\Var(h\T X)$。
+\end{defn}
+\idx{principal component}{主成分}
+
+由 $\Var(h\T X)=h\T\Sigma h$ 与二次型的极值（Hansen 附录 A.15），$h_j$ 是 $\Sigma$ 的第 $j$ 大特征值 $d_j$ 对应的特征向量（Hansen 定理 11.8）。记 $H=(h_1,\dots,h_k)$，$D=\diag(d_1,\dots,d_k)$，$\Sigma=HDH\T$，则全部主成分 $H\T X$ 的方差为
+\begin{align*}
+\Var(H\T X)&=H\T\Var(X)H=H\T\Sigma H \why{$\Var(AX)=A\Var(X)A\T$}\\
+&=H\T HDH\T H=D \why{谱分解；$H\T H=I_k$}
+\end{align*}
+所以各主成分\key{互不相关}，第 $j$ 个的方差为 $d_j$，对总方差的贡献比例为 $d_j/\tr(\Sigma)$。
+
+\subsubsection{与最小二乘推导等价：最大化解释平方和 \texorpdfstring{$\iff$}{<=>} 最小化残差平方和}
+
+二者是同一个特征值问题的两种表述。在样本中，取 $\hat Y=YP_{\hat F}$、$\hat U=YM_{\hat F}$，总平方和分解为
+\begin{align*}
+\tr(YY\T)&=\tr\bigl(Y(P_{\hat F}+M_{\hat F})Y\T\bigr) \why{$P+M=I_T$}\\
+&=\tr(YP_{\hat F}Y\T)+\tr(YM_{\hat F}Y\T) \why{(T1)}\\
+&=\tr(\hat Y\hat Y\T)+\tr(\hat U\hat U\T) \why{$P$、$M$ 对称幂等}
+\end{align*}
+左边与 $F$ 无关，所以“最大化被共同部分解释的平方和”$\iff$“最小化残差平方和”。
+
+\subsubsection{先去均值、必要时标准化：PCA 对尺度敏感}
+
+\begin{itemize}
+\item PCA 对变量尺度敏感：把某个序列乘以 10，它在 $Y\T Y$ 中的分量放大 100 倍，主成分会被它主导。一般先把每个序列\key{去均值}（在因子模型中相当于先去掉个体效应 $a_i$），必要时再\key{标准化}为单位方差（此时相当于对相关系数矩阵做 PCA）。
+\item 统计 PCA 中“观测”与“变量”的对应：若把 $N$ 个个体的序列当作 $N$ 个变量、$T$ 个时期当作观测，样本协方差矩阵就是 $\frac1TYY\T$（$N\times N$），对它做分解就是对偶算法；Hansen §11.14 的 $X_i$、$n$、$k$ 分别对应本章的 $y_t$、$T$、$N$。
+\end{itemize}
+
+\subsubsection{变量少且设定正确时：因子模型的最大似然估计}
+
+当变量个数固定且模型设定正确时，因子模型也可用最大似然估计（Hansen §11.13）：$\Sigma=\Lambda\Lambda\T+\Psi$，$\Psi$ 为对角矩阵（特质误差互不相关）；Stata 命令 \texttt{factor y1-y20, ml factors(2)}；因子得分用 Bartlett 法或回归评分法（\texttt{predict} 的 \texttt{bartlett} 或 \texttt{regression} 选项）。变量个数很大、特质误差可能相关时（\term{近似因子模型}{approximate factor model}），用本节的 PCA（Hansen §11.14 定理 11.9）。Hansen 定理 11.9 的解 $\hat\Lambda=\hat H\hat D^{1/2}$、$\hat F_i=\hat D^{-1/2}\hat H\T X_i$（$\hat D$、$\hat H$ 为样本协方差矩阵的前 $r$ 个特征值与特征向量）正是本节标准化二下的 PCA 解换成 Hansen 记号的结果。
+
+\subsubsection{例：Duflo、Dupas 与 Kremer (2011) 七门考试成绩的主成分}
+
+\begin{exmp}[七门成绩的相关矩阵 PCA（Hansen §11.12）]\label{ex:U13b-ddk}
+对肯尼亚一年级学生 7 门分项成绩（4 门语文类、3 门数学类）的样本\key{相关矩阵}做 PCA，前两个特征值为 $4.02$ 与 $1.04$。第一主成分的权重全为正且大小相近；第二主成分的权重语文类为负、数学类为正。求前两个主成分解释的比例，并解释两个主成分。
+\solution
+相关矩阵的对角元全为 1，所以特征值之和 $=\tr(\text{相关矩阵})=7$。
+\begin{align*}
+\frac{d_1}{\tr}&=\frac{4.02}{7}\approx0.57 \why{贡献比例 $d_j/\tr(\Sigma)$}\\
+\frac{d_2}{\tr}&=\frac{1.04}{7}\approx0.15 \why{同上}\\
+\frac{d_1+d_2}{\tr}&\approx0.72 \why{累计比例}
+\end{align*}
+第一主成分权重全正且相近，近似于\key{总分平均}（“综合能力”）；第二主成分近似于\key{数学减语文}。七门成绩 57\% 的变异可由简单平均解释，72\% 可由“语文平均”与“数学平均”两个指标解释。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{软件实现：MATLAB、R、Python 与 Stata}
+
+\subsubsection{MATLAB：{\mdseries\texttt{eig(U'*U)}} 与降序重排}
+
+给定 $U$，\texttt{[eigvec, eigval] = eig(U'*U)} 即得特征向量与特征值（MATLAB 中乘号不能省略，须写 \texttt{U'*U}）。完整、可运行的写法：
+\begin{lstlisting}
+% U: N x T data matrix (demeaned);  r: number of factors
+[eigvec, eigval] = eig(U'*U);             % T x T eigen-decomposition
+[e, idx] = sort(diag(eigval), 'descend'); % eig returns ascending order
+Fhat = eigvec(:, idx(1:r));               % T x r, Fhat'*Fhat = eye(r)
+Lhat = U*Fhat;                            % N x r, Lambda-hat = U*F-hat
+Chat = Lhat*Fhat';                        % fitted common component
+SSR  = sum(e(r+1:end));                   % SSR = sum of remaining eigenvalues
+% normalization F'F/T = I:  Fhat = sqrt(T)*Fhat;  Lhat = U*Fhat/T;
+\end{lstlisting}
+
+\subsubsection{特征值的排列顺序：最易出错的一步}
+
+\begin{note}[排序易错点]
+MATLAB 的 \texttt{eig} 对实对称矩阵按\key{升序}返回特征值，若不排序，“最后 $r$ 列”才是需要的特征向量；R 的 \texttt{eigen()} 按降序返回；Python 的 \texttt{numpy.linalg.eigh} 按升序返回。取错一端就会得到“最不重要”的方向。
+\end{note}
+
+\subsubsection{R 与 Python}
+
+\begin{lstlisting}
+e    <- eigen(t(U) %*% U, symmetric = TRUE)   # R: eigenvalues in decreasing order
+Fhat <- e$vectors[, 1:r];  Lhat <- U %*% Fhat
+# statistical PCA: prcomp(X, scale. = TRUE)   (X: observations x variables)
+\end{lstlisting}
+\begin{lstlisting}
+import numpy as np
+w, G = np.linalg.eigh(U.T @ U)          # ascending order
+Fhat = G[:, ::-1][:, :r];  Lhat = U @ Fhat
+\end{lstlisting}
+
+\subsubsection{Stata：{\mdseries\texttt{pca}} 与 {\mdseries\texttt{factor, pcf}}；注意行列排法}
+
+Stata：\texttt{pca y1-y20}（默认对相关矩阵）；因子模型的主成分法：\texttt{factor y1-y20, pcf factors(2)}，再 \texttt{predict f1 f2} 得因子估计（Hansen §11.13--11.14）。注意 Stata/R 的统计 PCA 把“变量”放在列上，与本章 $U$（$N\times T$，个体为行）的排法互为转置，使用时要分清对哪一维求特征分解。R 的 \texttt{prcomp} 默认不标准化，需加 \texttt{scale.\ = TRUE}。
+
+%----------------------------------------------------------------------
+\subsection{数值例与练习：手算 PCA}
+
+\subsubsection{例：\texorpdfstring{$4\times2$}{4 x 2} 数据，\texorpdfstring{$r=1$}{r = 1}}
+
+\begin{exmp}[手算 PCA：$N=4$，$T=2$，$r=1$]\label{ex:U13b-pca42}
+数据（行为个体、列为时期）：
+\[
+Y=\begin{pmatrix}2&1\\1&2\\3&3\\-1&-1\end{pmatrix}_{4\times2}.
+\]
+求 $r=1$ 时的 PCA 估计 $\hat F$、$\hat\Lambda$、拟合值与 SSR，并比较两种标准化。
+\solution
+\textbf{第 1 步：算 $Y\T Y$（$2\times2$）。} 第 1 列 $(2,1,3,-1)\T$，第 2 列 $(1,2,3,-1)\T$：
+\[
+Y\T Y=\begin{pmatrix}4+1+9+1&2+2+9+1\\2+2+9+1&1+4+9+1\end{pmatrix}=\begin{pmatrix}15&14\\14&15\end{pmatrix}.
+\]
+\textbf{第 2 步：特征值。}
+\begin{align*}
+\det\begin{pmatrix}15-e&14\\14&15-e\end{pmatrix}&=(15-e)^2-14^2=0 \why{$2\times2$ 行列式}\\
+\Rightarrow\ 15-e=\pm14\ &\Rightarrow\ e_1=29,\ e_2=1 \why{平方差}
+\end{align*}
+检验：$e_1+e_2=30=\tr(Y\T Y)$；$e_1e_2=29=\det(Y\T Y)=225-196$。
+
+\textbf{第 3 步：特征向量。} $e_1=29$：$(15-29)g_{1}+14g_{2}=0\Rightarrow g_{1}=g_{2}$，单位化得 $g_1=\frac1{\sqrt2}(1,1)\T$。$e_2=1$：$14g_{1}+14g_{2}=0$，得 $g_2=\frac1{\sqrt2}(1,-1)\T$。二者正交。
+
+\textbf{第 4 步：PCA（$r=1$，标准化 $F\T F=1$）。}
+\[
+\hat F=\tfrac1{\sqrt2}\begin{pmatrix}1\\1\end{pmatrix},\qquad
+\hat\Lambda=Y\hat F=\tfrac1{\sqrt2}\begin{pmatrix}3\\3\\6\\-2\end{pmatrix}\approx\begin{pmatrix}2.121\\2.121\\4.243\\-1.414\end{pmatrix},\qquad
+\hat\Lambda\T\hat\Lambda=\tfrac{9+9+36+4}{2}=29=e_1 .
+\]
+\textbf{第 5 步：拟合值与残差。} $\hat Y=\hat\Lambda\hat F\T=\frac12(3,3,6,-2)\T(1,1)$：
+\[
+\hat Y=\begin{pmatrix}1.5&1.5\\1.5&1.5\\3&3\\-1&-1\end{pmatrix},\qquad
+\hat U=Y-\hat Y=\begin{pmatrix}0.5&-0.5\\-0.5&0.5\\0&0\\0&0\end{pmatrix},\qquad
+SSR=4\times0.25=1=e_2 .
+\]
+\textbf{第 6 步：换成标准化 $\frac1TF\T F=1$（$T=2$）。} $\hat F=\sqrt2\cdot\frac1{\sqrt2}(1,1)\T=(1,1)\T$，$\frac12\hat F\T\hat F=1$；$\hat\Lambda=\frac12Y\hat F=(1.5,1.5,3,-1)\T$；$\hat\Lambda\hat F\T$ 与第 5 步\key{完全相同}。
+
+\textbf{解读：} 因子 $\hat f_t$ 两期相等，共同部分就是每个个体两期的平均水平（各行均值 $1.5,1.5,3,-1$）；个体 3 载荷最大，个体 4 载荷为负（与其他个体反向变动）。数值核对：\texttt{numpy.linalg.eigh} 给出特征值 $[1,29]$，$\hat Y$ 与 SSR 与上面一致。
+\end{exmp}
+
+\subsubsection{练习：\texorpdfstring{$3\times2$}{3 x 2} 数据手算 PCA}
+
+\begin{prac}[PCA 手算]\label{pr:U13b-pca32}
+设 $Y=\begin{pmatrix}1&3\\3&1\\2&2\end{pmatrix}$（$N=3$，$T=2$）。(a) 求 $Y\T Y$ 的特征值与单位特征向量；(b) 求 $r=1$ 时的 $\hat F$、$\hat\Lambda$（标准化 $F\T F=1$）、$\hat Y$ 与 $SSR(1)$；(c) 写出 $SSR(0)$ 与 $SSR(2)$。
+\answer
+(a) 两列 $(1,3,2)\T$、$(3,1,2)\T$：平方和均为 $1+9+4=14$，内积 $3+3+4=10$，
+\[
+Y\T Y=\begin{pmatrix}14&10\\10&14\end{pmatrix},\qquad (14-e)^2=100\ \Rightarrow\ e_1=24,\ e_2=4;
+\]
+特征向量 $g_1=\frac1{\sqrt2}(1,1)\T$，$g_2=\frac1{\sqrt2}(1,-1)\T$。
+
+(b) $\hat F=g_1$；$\hat\Lambda=Y\hat F=\frac1{\sqrt2}(4,4,4)\T=2\sqrt2\,(1,1,1)\T$；$\hat Y=\hat\Lambda\hat F\T=\frac12(4,4,4)\T(1,1)$，每行都是 $(2,2)$。残差各行为 $(-1,1)$、$(1,-1)$、$(0,0)$，$SSR(1)=1+1+1+1=4=e_2$。
+
+(c) $SSR(0)=\tr(Y\T Y)=28=e_1+e_2$；$SSR(2)=0$（$r=T=2$ 时完全拟合）。
+\end{prac}
+
+\subsubsection{练习：给定 \texorpdfstring{$F$}{F} 的载荷估计与最优目标值}
+
+\begin{prac}[推导题：给定 $F$ 的载荷估计]\label{pr:U13b-lam}
+在 $U=\Lambda F\T+V$ 中，证明给定 $F$ 时最小化 $\tr(VV\T)$ 的 $\Lambda$ 为 $\hat\Lambda=UF(F\T F)\inv$，并证明在 $F\T F=I_r$ 下最优目标值为 $\tr(UU\T)-\tr(F\T U\T UF)$。
+\answer
+$\tr(VV\T)=\sum_{i=1}^N(U_i-F\lambda_i)\T(U_i-F\lambda_i)$，各 $\lambda_i$ 分离。对 $\lambda_i$ 求导：$-2F\T(U_i-F\lambda_i)=0\Rightarrow\hat\lambda_i=(F\T F)\inv F\T U_i$。按列排放 $\hat\Lambda\T=(F\T F)\inv F\T U\T$，转置得 $\hat\Lambda=UF(F\T F)\inv$。代回：$\hat V=U-UF(F\T F)\inv F\T=UM_F$，
+\begin{align*}
+\tr(\hat V\hat V\T)&=\tr(UM_FU\T) \why{$M_F$ 对称幂等}\\
+&=\tr(UU\T)-\tr\bigl(UF(F\T F)\inv F\T U\T\bigr) \why{$M_F=I_T-P_F$，(T1)}\\
+&=\tr(UU\T)-\tr(UFF\T U\T) \why{$F\T F=I_r$}\\
+&=\tr(UU\T)-\tr(F\T U\T UF) \why{(T2)，$UF$ 为 $N\times r$}
+\end{align*}
+\end{prac}
+
+\begin{english}
+The PCA estimator solves $\min_{\Lambda,F}\sum_i\sum_t(u_{it}-\lambda_i'f_t)^2=\min\operatorname{tr}(VV')$ with $V=U-\Lambda F'$. For given $F$, least squares gives $\hat\Lambda=UF(F'F)^{-1}$. Substituting it back (profiled, or concentrated, least squares) yields $\operatorname{tr}(UU')-\operatorname{tr}(UF(F'F)^{-1}F'U')$. Since $\operatorname{tr}(UU')$ does not depend on $F$, minimization is equivalent to $\max_F\operatorname{tr}(F'U'UF)$ subject to the normalization $F'F=I_r$, where we used $\operatorname{tr}(AB)=\operatorname{tr}(BA)$. The solution $\hat F$ consists of the eigenvectors of $U'U$ associated with its $r$ largest eigenvalues, and the maximized value equals the sum of these eigenvalues; then $\hat\Lambda=U\hat F$, the fitted common component is $\hat\Lambda\hat F'$, and the minimized sum of squared residuals equals the sum of the remaining eigenvalues. Under the alternative normalization $F'F/T=I_r$, $\hat F$ equals $\sqrt T$ times these eigenvectors and $\hat\Lambda=U\hat F/T$; the fitted values are the same.
+\end{english}
+
+%======================================================================
+\section{因子个数的确定}\label{sec:U13b-nfac}
+
+前一节假定因子个数 $r$ 已知。实际中要回答 “How many factors? $r=?$”。方法是\term{模型选择}{model selection}：对每个候选 $r$ 估计模型，再用“拟合优度 $+$ 复杂度惩罚”的准则挑出最好的一个。
+
+%----------------------------------------------------------------------
+\subsection{模型选择框架：对每个候选 \texorpdfstring{$r$}{r} 做 PCA 并计算 SSR}
+
+\subsubsection{候选模型表 \texorpdfstring{$M_1,\dots,M_G$}{M\_1,...,M\_G}}
+
+设候选的最大因子数为 $G$（文献中也记为 $k_{\max}$ 或 $M$）。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{clLcc}
+\toprule
+$r$ & 模型 & PCA 输出 & 模型 & 准则\\
+\midrule
+1 & $u_{it}=\lambda_if_t+v_{it}$ & $\hat\lambda_i,\hat f_t\to\hat v_{it}=u_{it}-\hat\lambda_i\hat f_t\Rightarrow SSR_1$ & $M_1$ & $AIC_1$ / $BIC_1$\\
+2 & $u_{it}=\lambda_{i1}f_{1t}+\lambda_{i2}f_{2t}+v_{it}$ & $\hat\lambda_{i1},\hat\lambda_{i2},\hat f_{1t},\hat f_{2t}\to\hat v_{it}\Rightarrow SSR_2$ & $M_2$ & $AIC_2$ / $BIC_2$\\
+3 & $u_{it}=\sum_{k=1}^3\lambda_{ik}f_{kt}+v_{it}$ & 同上 $\Rightarrow SSR_3$ & $M_3$ & $AIC_3$ / $BIC_3$\\
+$\vdots$ & $\vdots$ & $\vdots$ & $\vdots$ & $\vdots$\\
+$G$ & $u_{it}=\sum_{k=1}^G\lambda_{ik}f_{kt}+v_{it}$ & $\Rightarrow SSR_G$ & $M_G$ & $AIC_G$ / $BIC_G$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{因子个数的模型选择表}\label{tab:U13b-select}
+\end{center}
+
+问题是：“Which $r\in\{1,2,\dots,G\}$ is the best one?”
+
+\subsubsection{一次特征分解得到全部 \texorpdfstring{$SSR_r$}{SSR\_r}}
+
+由上一节“残差平方和等于剩余特征值之和”，$SSR_r=\sum_{k>r}e_k$。所以表中各行不必分别重做 PCA：\key{只需做一次特征分解}，按 $e_1\ge e_2\ge\cdots$ 依次累减即可得到所有 $SSR_r$。
+
+\subsubsection{只看 SSR 必然过拟合：需要惩罚项}
+
+$SSR_r$ 随 $r$ 单调下降（每多一个因子下降 $e_{r+1}\ge0$）。若只看 SSR，永远会选最大的 $r$（过拟合）；所以必须加\key{惩罚项}，惩罚随因子个数增加。
+
+%----------------------------------------------------------------------
+\subsection{AIC/BIC 型准则与示意写法 \texorpdfstring{$AIC_i=SSR_i+2i$}{AIC\_i = SSR\_i + 2i}}
+
+\subsubsection{“拟合度 \texorpdfstring{$+$}{+} 参数个数惩罚”与 \texorpdfstring{$\hat r=\argmin$}{r-hat = argmin}}
+
+用 AIC 或 BIC 估计 $r$。最简单的示意写法是
+\[
+AIC_i=SSR_i+2\cdot i,\qquad i=1,2,\dots,G,\qquad
+\hat r=\argmin_{i\in\{1,\dots,G\}}AIC_i .
+\]
+注意要的是使 AIC 最小的\key{下标}，所以写 $\argmin$，不能写成 $\hat r=\min(AIC_1,\dots,AIC_G)$（那是最小值本身）。这一做法属于模型选择；在适当条件下 $\hat r\pto r_0$（真实因子个数），理论见 Bai \& Ng (2002)，PCA 估计量本身的渐近理论见 Bai (2003)。
+
+\subsubsection{示意写法的两个缺陷：尺度依赖与参数个数随 \texorpdfstring{$N,T$}{N,T} 增长}
+
+$AIC_i=SSR_i+2i$ 只表达“拟合度 $+$ 参数个数惩罚”的思想，不能直接使用：
+\begin{enumerate}
+\item \key{尺度依赖}：SSR 的量级随数据单位和 $NT$ 变化，而惩罚“$2i$”是固定数，结论会随数据单位改变（见下面的练习）；
+\item \key{参数个数随 $N,T$ 增长}：在因子模型中每多一个因子要多估计 $\lambda_{ik}$（$N$ 个）与 $f_{kt}$（$T$ 个），共 $N+T$ 个参数，惩罚应随 $N,T$ 变化。
+\end{enumerate}
+正式的做法是下一小节的 Bai \& Ng (2002) 准则：对 $\ln V(k)$ 加上随 $N,T$ 变化的惩罚。
+
+\subsubsection{练习：示意 AIC 与数据尺度}
+
+\begin{prac}[示意 AIC 的尺度问题]\label{pr:U13b-aicscale}
+用上一节“手算 PCA”例题的 $4\times2$ 数据（$SSR_0=30$，$SSR_1=1$，$SSR_2=0$）。(a) 用 $AIC_i=SSR_i+2i$（$i=0,1,2$）选 $r$。(b) 若把所有数据乘以 $0.1$（例如计量单位从“元”换成“十元”），各 SSR 变为原来的 $0.01$ 倍，重新选 $r$。(c) 说明用 $\ln V(k)$ 形式的准则为什么没有这个问题。
+\answer
+(a) $AIC_0=30$，$AIC_1=1+2=3$，$AIC_2=0+4=4$，$\hat r=\argmin=1$。
+
+(b) SSR 变为 $0.3,\ 0.01,\ 0$：$AIC_0=0.3$，$AIC_1=2.01$，$AIC_2=4$，$\hat r=0$。仅仅改变数据单位，结论就从 1 个因子变成 0 个因子——说明 $SSR_i+2i$ 只是示意。
+
+(c) 数据乘以 $c$ 时 $V(k)$ 变为 $c^2V(k)$，$\ln V(k)$ 对所有 $k$ 加上同一个常数 $2\ln c$，不改变 $\argmin$；惩罚只依赖 $k,N,T$。所以 Bai--Ng 型准则对数据尺度不变。（注意 $k=T$ 时 $V=0$、$\ln V=-\infty$，故 $k_{\max}$ 应取得远小于 $\min(N,T)$。）
+\end{prac}
+
+%----------------------------------------------------------------------
+\subsection{Bai--Ng (2002) 信息准则 \tagext}
+
+\subsubsection{平均残差平方 \texorpdfstring{$V(k)$}{V(k)} 与 \texorpdfstring{$C_{NT}^2$}{C\_NT\^{}2}}
+
+令
+\[
+V(k)=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^T\bigl(y_{it}-\hat\lambda_i^{(k)\prime}\hat f_t^{(k)}\bigr)^2=\frac{SSR_k}{NT}
+\]
+为用 $k$ 个因子时的平均残差平方（$\hat\lambda_i^{(k)}$、$\hat f_t^{(k)}$ 为 $k$ 个因子的 PCA 估计），$C_{NT}^2=\min(N,T)$。
+
+\subsubsection{三个 \texorpdfstring{$IC_p$}{IC\_p} 准则与三个 \texorpdfstring{$PC_p$}{PC\_p} 准则}
+
+\begin{defn}[Bai--Ng 信息准则]\label{def:U13b-baing}
+Bai \& Ng (2002, \emph{Econometrica}) 提出
+\begin{align*}
+IC_{p1}(k)&=\ln V(k)+k\,\frac{N+T}{NT}\ln\Bigl(\frac{NT}{N+T}\Bigr),\\
+IC_{p2}(k)&=\ln V(k)+k\,\frac{N+T}{NT}\ln C_{NT}^2,\\
+IC_{p3}(k)&=\ln V(k)+k\,\frac{\ln C_{NT}^2}{C_{NT}^2},
+\end{align*}
+以及把 $\ln V(k)$ 换成 $V(k)$、惩罚乘以 $\hat\sigma^2$（通常取 $V(k_{\max})$）的 $PC_{p1},PC_{p2},PC_{p3}$。估计量为
+\[
+\hat r=\argmin_{0\le k\le k_{\max}}IC(k).
+\]
+\end{defn}
+\idx{information criterion}{信息准则}
+
+三个 $IC_p$ 都可写成 $IC(k)=\ln V(k)+k\,g(N,T)$，只是惩罚函数 $g(N,T)$ 不同；最常用的是 $IC_{p2}$。
+
+\subsubsection{例：Bai--Ng 准则的计算}
+
+\begin{exmp}[Bai--Ng 准则的计算]\label{ex:U13b-icp}
+设 $N=100$，$T=50$，对 $k=0,\dots,5$ 做 PCA 得 $V(k)=2.00,\ 1.20,\ 0.90,\ 0.88,\ 0.87,\ 0.865$。用 $IC_{p2}$ 选因子个数，并用 $IC_{p1}$、$IC_{p3}$ 核对。
+\solution
+$IC_{p2}$ 的惩罚：
+\begin{align*}
+g_2&=\frac{N+T}{NT}\ln\min(N,T)=\frac{150}{5000}\ln50 \why{代入 $N=100,T=50$}\\
+&=0.03\times3.912=0.1174 \why{$\ln 50\approx3.912$}
+\end{align*}
+\begin{center}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+$k$ & 0 & 1 & 2 & 3 & 4 & 5\\
+\midrule
+$\ln V(k)$ & 0.693 & 0.182 & $-0.105$ & $-0.128$ & $-0.139$ & $-0.145$\\
+$IC_{p2}(k)=\ln V(k)+0.1174k$ & 0.693 & 0.300 & \textbf{0.129} & 0.224 & 0.330 & 0.442\\
+\bottomrule
+\end{tabular}
+\end{center}
+$IC_{p2}$ 在 $k=2$ 处最小，$\hat r=2$。从 $k=2$ 到 $k=3$，$\ln V$ 只下降 $0.023$，小于惩罚增量 $0.117$，所以第 3 个“因子”不值得加入。
+
+核对：$IC_{p1}$ 的惩罚 $g_1=0.03\ln(5000/150)=0.03\times3.507=0.1052$，$IC_{p1}(k)=0.693,\ 0.288,\ \mathbf{0.105},\ 0.188,\ 0.282,\ 0.381$；$IC_{p3}$ 的惩罚 $g_3=\ln50/50=0.0782$，$IC_{p3}(k)=0.693,\ 0.261,\ \mathbf{0.051},\ 0.107,\ 0.174,\ 0.246$。三个准则都在 $k=2$ 取最小。
+\end{exmp}
+
+\subsubsection{练习：\texorpdfstring{$N=200$, $T=100$}{N=200, T=100} 时选因子个数}
+
+\begin{prac}[Number of factors]\label{pr:U13b-nf}
+A researcher applies PCA to a balanced panel with $N=200$ and $T=100$ and obtains $V(0)=1.50$, $V(1)=0.80$, $V(2)=0.70$, $V(3)=0.69$. Using $IC_{p2}(k)=\ln V(k)+k\frac{N+T}{NT}\ln\min(N,T)$, determine $\hat r$. Explain why simply minimizing $V(k)$ is not appropriate.
+\answer
+惩罚 $g=\frac{300}{20000}\ln100=0.015\times4.605=0.0691$。$\ln V(k)=0.405,\ -0.223,\ -0.357,\ -0.371$。
+\begin{align*}
+IC_{p2}(0)&=0.405 \why{$k=0$ 无惩罚}\\
+IC_{p2}(1)&=-0.223+0.069=-0.154 \why{加 $1\times g$}\\
+IC_{p2}(2)&=-0.357+0.138=-0.219 \why{加 $2\times g$}\\
+IC_{p2}(3)&=-0.371+0.207=-0.164 \why{加 $3\times g$}
+\end{align*}
+最小在 $k=2$，$\hat r=2$。$V(k)=\frac1{NT}\sum_{l>k}e_l$ 随 $k$ 单调下降，只看 $V(k)$ 总会选最大的 $k$，造成过拟合；必须用随 $N,T$ 适当变化的惩罚项。
+\end{prac}
+
+%----------------------------------------------------------------------
+\subsection{一致性：\texorpdfstring{$\hat r\pto r_0$}{r-hat -> r\_0}}
+
+\subsubsection{一致性定理：\texorpdfstring{$g\to0$}{g -> 0} 且 \texorpdfstring{$C_{NT}^2g\to\infty$}{C\_NT\^{}2 g -> infinity}}
+
+\begin{thm}[Bai \& Ng (2002) 的一致性条件]\label{thm:U13b-bnconsist}
+在 Bai \& Ng (2002) 的正则条件下（因子为强因子、特质误差至多弱相关等），设 $k_{\max}\ge r_0$。若惩罚函数 $g(N,T)$（即 $IC(k)=\ln V(k)+k\,g(N,T)$ 中的 $g$）满足
+\[
+g(N,T)\to0\qquad\text{且}\qquad C_{NT}^2\,g(N,T)\to\infty\qquad(N,T\to\infty),
+\]
+则 $P(\hat r=r_0)\to1$，即 $\hat r\pto r_0$（真实因子个数）。
+\end{thm}
+
+\subsubsection{两个条件的直观：防少选与防多选}
+
+\begin{itemize}
+\item $g\to0$ 保证不会因惩罚过重而\key{少选}：漏掉一个真因子会使 $V(k)$ 上升一个\key{固定量}（不随 $N,T$ 消失），而少一个因子节省的惩罚 $g$ 趋于 0，划不来。
+\item $C_{NT}^2g\to\infty$ 保证不会\key{多选}：多加一个假因子只能把 $V(k)$ 降低 $O_p(C_{NT}^{-2})$，比惩罚增加量 $g$ 小（$g/C_{NT}^{-2}=C_{NT}^2g\to\infty$）。
+\end{itemize}
+三个 $IC_p$ 都满足这两个条件。例如 $IC_{p2}$：$g=\frac{N+T}{NT}\ln C_{NT}^2\le\frac{2}{C_{NT}^2}\ln C_{NT}^2\to0$，且 $C_{NT}^2g\ge\ln C_{NT}^2\to\infty$（用到 $\frac1{C^2_{NT}}\le\frac{N+T}{NT}=\frac1N+\frac1T\le\frac2{C^2_{NT}}$）。
+
+\subsubsection{经典 AIC 不满足第二个条件，会多选因子}
+
+把经典 AIC 直接搬过来：样本量 $n=NT$，每多一个因子多 $N+T$ 个参数，每个参数罚 $2/(NT)$，即
+\begin{align*}
+g_{AIC}&=\frac{2(N+T)}{NT}\to0 \why{第一个条件成立}\\
+C_{NT}^2g_{AIC}&=\min(N,T)\cdot\frac{2(N+T)}{NT}=\frac{2(N+T)}{\max(N,T)} \why{$\frac{\min(N,T)}{NT}=\frac1{\max(N,T)}$}\\
+&=2\Bigl(1+\frac{\min(N,T)}{\max(N,T)}\Bigr)\in(2,4] \why{有界}
+\end{align*}
+例如 $N=T$ 时等于 4。第二个条件不成立，所以经典 AIC 倾向\key{多选}因子。
+
+\subsubsection{经典 BIC 的情形}
+
+同理，经典 BIC 每个参数罚 $\ln(NT)/(NT)$，$g_{BIC}=\frac{(N+T)\ln(NT)}{NT}$。此时 $C_{NT}^2g_{BIC}=\frac{(N+T)\ln(NT)}{\max(N,T)}\ge\ln(NT)\to\infty$，第二个条件成立；第一个条件 $g_{BIC}\to0$ 要求 $\ln(NT)/\min(N,T)\to0$，在 $N$ 与 $T$ 同阶增长时成立，但当一个维度相对另一个维度增长极快（例如 $T$ 随 $N$ 指数增长）时不成立。Bai--Ng 准则的惩罚以 $C_{NT}^2=\min(N,T)$ 为基准，正是为了在各种 $N,T$ 相对速度下都满足两个条件。
+
+\subsubsection{适用前提：\texorpdfstring{$N,T$}{N,T} 同时趋于无穷，且只针对强因子}
+
+“$\hat r\pto r_0$（true）”需要 $N$ 与 $T$ \key{同时}趋于无穷：只有一个维度大时，“真因子”与“噪声”的特征值差距不够大（见本章强因子与弱因子一节的特征值分析），无法一致地选对因子个数。另外，这一结论针对的是\key{强因子}的个数；弱因子不会被这些准则选出。
+
+%----------------------------------------------------------------------
+\subsection{其他方法：碎石图与特征值比 \tagext}
+
+\subsubsection{碎石图：找特征值的“断崖”}
+
+\term{碎石图}{scree plot}：把特征值从大到小画出来，看在哪里出现明显“断崖”，断崖前的特征值个数即 $\hat r$。这就是 Hansen §11.13 所说的区分 “large” 与 “small” eigenvalues，取 $r$ 为“大”特征值的个数。碎石图直观但带主观性。
+
+\subsubsection{特征值比：Ahn--Horenstein (2013)}
+
+\term{特征值比}{eigenvalue ratio}估计量（Ahn \& Horenstein 2013, \emph{Econometrica}）：
+\[
+\hat r=\argmax_{1\le k\le k_{\max}}\ \frac{e_k}{e_{k+1}} .
+\]
+依据是：强因子的特征值随 $N,T$ 发散，噪声特征值有界，所以“最后一个强因子的特征值与第一个噪声特征值之比”最大。它不需要选惩罚函数。
+
+\begin{english}
+The number of factors is chosen by model selection. For each candidate $k=1,\dots,k_{\max}$ we estimate the factor model by principal components and compute $V(k)=SSR_k/(NT)$, which decreases in $k$; hence a penalty is required. Bai and Ng (2002) propose $IC(k)=\ln V(k)+k\,g(N,T)$, e.g.\ $g(N,T)=\frac{N+T}{NT}\ln\min(N,T)$, and set $\hat r=\arg\min_kIC(k)$. If $g(N,T)\to0$ and $\min(N,T)\,g(N,T)\to\infty$, then $\hat r$ is consistent for the true number of (strong) factors as $N,T\to\infty$. The naive criterion $SSR_k+2k$ is not scale invariant, and the classical AIC penalty violates the second condition and tends to overestimate the number of factors.
+\end{english}
+
+%======================================================================
+\section{应用：弱因子、预测与资产定价}\label{sec:U13b-app}
+
+前两节给出了估计因子与选因子个数的工具。本节说明它们的三个用途与边界：弱因子（PCA 的盲区）、宏观预测（扩散指数）、资产定价（因子模型的发源地）；最后预告第 14、16 章如何把因子结构用于面板回归与处理效应。
+
+%----------------------------------------------------------------------
+\subsection{弱因子：PCA 与信息准则之外（Bai \& Ng 2023）}
+
+本章强因子与弱因子一节已经说明：PCA 与信息准则针对的是\key{强因子}（$\Lambda\T\Lambda/N\to\Sigma_\Lambda>0$），弱因子的特征值与噪声同阶，PCA 无法把它与噪声区分开，Bai--Ng 准则也不会把它计入 $\hat r$。识别与估计弱因子需要专门的方法（Bai \& Ng 2023, \emph{Journal of Econometrics}，研究载荷弱于标准强因子时 PCA 的表现），是当前的研究前沿。
+
+%----------------------------------------------------------------------
+\subsection{预测：扩散指数与因子增广回归}
+
+\subsubsection{高维预测变量的降维思路}
+
+宏观预测中有成百上千个候选预测变量 $X_t$（$N\times1$，此时“个体”$i$ 是\key{变量}而不是经济个体），直接把它们全部放进回归，参数太多、估计不稳定。因子模型假定这些变量的共动由少数几个因子驱动：
+\[
+X_t=\Lambda f_t+e_t,\qquad f_t\ \text{为}\ r\times1,\ r\ll N .
+\]
+
+\subsubsection{两步法：PCA 提取扩散指数，再做因子增广回归}
+
+\begin{method}[扩散指数预测（Hansen §11.16）]
+\begin{enumerate}
+\item 对 $X_t$（$t=1,\dots,T$）做 PCA，得到少数几个因子估计 $\hat f_t$，称为\term{扩散指数}{diffusion index}；
+\item 做\term{因子增广回归}{factor-augmented regression}：
+\[
+y_{t+h}=\alpha+\beta\T\hat f_t+\gamma\T w_t+\varepsilon_{t+h},
+\]
+其中 $w_t$ 为少数几个观测变量（如 $y_t$ 的滞后），$h$ 为预测步长；
+\item 用估计出的系数和最新的 $\hat f_T$、$w_T$ 预测 $y_{T+h}$。
+\end{enumerate}
+\end{method}
+这就是 Stock \& Watson (2002, \emph{JASA}; \emph{JBES}) 的扩散指数预测。因为因子只在旋转意义下识别，$\beta$ 本身一般不作解释；关心的是预测值或 $w_t$ 的系数 $\gamma$（$\gamma$ 的估计不受因子尺度选择影响）。
+
+\subsubsection{生成回归元：为何需要 \texorpdfstring{$N$}{N} 与 \texorpdfstring{$T$}{T} 都大}
+
+第二步把\key{估计出的}因子 $\hat f_t$ 当回归元，这是一个生成回归元问题。Hansen §11.16 指出：若变量个数 $N$ 固定、只有 $T\to\infty$，$\hat f_t$ 含有不消失的特质噪声，第二步系数收敛到
+\[
+\beta^*=\bigl(I_r+D\inv\Lambda\T\Psi\Lambda D\inv\bigr)\inv\beta\neq\beta
+\]
+（$\Psi=\Var(e_t)$，$D=\Lambda\T\Lambda$），类似测量误差造成的衰减偏误；当 $N\to\infty$ 时 $D$ 随 $N$ 增大，偏误项趋于 0。所以估计量一致需要 $N$（变量个数）与 $T$ 都大。推断还需要更强的条件：Bai \& Ng (2006) 的推断理论要求 $\sqrt T/N\to0$，即变量个数相对样本期数足够多。
+
+%----------------------------------------------------------------------
+\subsection{与资产定价的联系 \tagext}
+
+因子模型源于资产定价。下面把本章工具与资产定价的基本模型对应起来。
+
+\subsubsection{CAPM：单因子与 \texorpdfstring{$\beta_i$}{beta\_i}}
+
+\term{资本资产定价模型}{capital asset pricing model, CAPM}（Sharpe 1964；Lintner 1965）：
+\[
+\E(r_i)-r_f=\beta_i\bigl[\E(r_m)-r_f\bigr],
+\]
+单因子，因子是市场超额收益 $r_m-r_f$，$\beta_i$ 就是因子载荷。
+
+\subsubsection{APT：因子结构 \texorpdfstring{$+$}{+} 无套利 \texorpdfstring{$\Rightarrow$}{=>} 风险溢价}
+
+\term{套利定价理论}{arbitrage pricing theory, APT}（Ross 1976, \emph{Journal of Economic Theory}）：若收益服从因子结构
+\[
+r_{it}=a_i+\beta_i\T f_t+\varepsilon_{it},
+\]
+且特质误差 $\varepsilon_{it}$ 截面\key{弱相关}，则无套利意味着
+\[
+\E(r_i)\approx r_f+\beta_i\T\gamma ,
+\]
+$\gamma$ 为因子的\term{风险溢价}{risk premium}。Chamberlain \& Rothschild (1983, \emph{Econometrica}) 提出的\key{近似因子模型}（允许特质误差弱相关）就是为 APT 服务的，也是 Hansen §11.14 的出发点。
+
+\subsubsection{载荷（风险暴露）与风险溢价：记号撞车}
+
+\begin{note}[载荷 $\ne$ 风险溢价]
+载荷 $\beta_i$（本章的 $\lambda_i$）是资产对因子的\key{风险暴露}；风险溢价 $\gamma$ 是每单位暴露获得的\key{补偿}。资产定价文献常把风险溢价记为 $\lambda$，与本章载荷的记号“撞车”，阅读文献时要留意。
+\end{note}
+
+\subsubsection{可观测因子（Fama--French）与潜在因子的对照}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 可观测因子 & 潜在因子\\
+\midrule
+例子 & CAPM 的市场因子；Fama--French (1993) 三因子 MKT、SMB、HML；(2015) 五因子再加 RMW、CMA & 统计因子：对收益面板做 PCA 得到 $\hat f_t$\\
+估计载荷 & 对每个资产做时间序列回归 $r_{it}-r_{ft}=\alpha_i+\beta_i\T f_t+\varepsilon_{it}$ & PCA：$\hat\Lambda=U\hat F$\\
+优点 & 因子有经济含义 & 不需事先指定因子，数据驱动；避免遗漏因子\\
+缺点 & 可能遗漏真实定价因子 & 只识别到旋转，难以解释；只能找到强因子\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{可观测因子与潜在因子}
+\end{center}
+
+\subsubsection{潜在因子文献：渐近主成分、遗漏因子与 IPCA}
+
+Connor \& Korajczyk (1986, \emph{Journal of Financial Economics}) 用“渐近主成分”从大量股票中提取潜在因子；Giglio \& Xiu (2021, \emph{Journal of Political Economy}) 的 “Asset pricing with omitted factors” 用 PCA 处理遗漏因子问题；本章前文的 IPCA 则让载荷随公司特征变化。
+
+\subsubsection{分散化：等权组合的方差与强/弱因子}
+
+本章的截面相关度量 $\frac1N\one\T\Sigma\one=N\Var(\bar u_t)$ 在资产定价中有直接含义。设 $r_t=(r_{1t},\dots,r_{Nt})\T$，$\Sigma=\Var(r_t)$，等权组合 $\bar r_t=\frac1N\sum_ir_{it}=\frac1N\one\T r_t$：
+\begin{align*}
+\Var(\bar r_t)&=\tfrac1{N^2}\one\T\Var(r_t)\one=\tfrac1{N^2}\one\T\Sigma\one \why{$\Var(a\T r)=a\T\Var(r)a$}
+\end{align*}
+以单因子 $r_{it}=a_i+\lambda_if_t+\varepsilon_{it}$（$f_t$ 与 $\varepsilon_t$ 不相关，$\Var(f_t)=\sigma_f^2$，$\Sigma_\varepsilon=\Var(\varepsilon_t)$）为例：
+\begin{align*}
+\bar r_t&=\bar a+\bar\lambda f_t+\bar\varepsilon_t \why{对 $i$ 平均，$\bar\lambda=\frac1N\sum_i\lambda_i$}\\
+\Var(\bar r_t)&=\bar\lambda^2\sigma_f^2+\Var(\bar\varepsilon_t) \why{$f_t$ 与 $\varepsilon_t$ 不相关}\\
+&=\bar\lambda^2\sigma_f^2+\tfrac1N\Bigl[\tfrac1N\one\T\Sigma_\varepsilon\one\Bigr] \why{同上一式}
+\end{align*}
+\begin{itemize}
+\item \key{特质风险}（弱相关部分）：方括号有界，贡献 $O(1/N)$，随 $N$ 增大被\key{分散掉}；
+\item \key{强因子风险}：$\bar\lambda\to\bar\lambda_0\neq0$，贡献 $\sigma_f^2\bar\lambda^2$ 不随 $N$ 消失，\key{不可分散}（系统性风险），因而需要风险溢价补偿；
+\item \key{弱因子风险}：$\sum_i|\lambda_i|$ 有界，$|\bar\lambda|=O(1/N)$，贡献 $O(1/N^2)$，在大组合中同样被分散掉——这就是弱因子在定价上“难以识别”的根源。
+\end{itemize}
+
+\subsubsection{资产定价中的弱因子问题：两步法与弱工具变量的类比}
+
+传统的\key{两步法}（Fama--MacBeth 1973）：先对每个资产做时间序列回归得 $\hat\beta_i$，再把平均收益对 $\hat\beta_i$ 做截面回归得风险溢价 $\hat\gamma$。当某个候选因子的载荷 $\beta_i$ 普遍很小（弱因子）时，第二步回归元 $\hat\beta_i$ 的“信号”很弱、主要是估计误差，类似于\key{弱工具变量}问题，风险溢价的估计与检验不可靠（Kleibergen 2009, \emph{Journal of Econometrics}）。Anatolyev \& Mikusheva (2022, \emph{Journal of Econometrics}) 研究了强、弱因子并存时两步法的性质；Giglio、Xiu 与 Zhang 关于“测试资产与弱因子”（test assets and weak factors）的研究讨论如何选择测试资产以应对弱因子。
+
+%----------------------------------------------------------------------
+\subsection{后续章节：含潜在因子的面板与处理效应}
+
+本章的因子模型在后续章节有两个方向的推广：
+\begin{enumerate}
+\item \key{含潜在因子的面板}（panel with latent factors）：面板回归 $y_{it}=x_{it}\T\beta+\lambda_i\T f_t+v_{it}$，误差含交互固定效应 $\lambda_i\T f_t$，见第 14 章（Bai 2009 的 PCA 迭代估计、Pesaran 2006 的 CCE 估计）；
+\item \key{因子模型用于处理效应}（application of factor models）：合成控制法（SCM）、面板数据法/回归控制法（PDA/RCM）、矩阵补全（matrix completion），见第 16 章；处理效应的基本框架见第 15 章。
+\end{enumerate}
+
+\begin{english}
+Factor models are central to asset pricing. In the APT, returns follow $r_{it}=a_i+\beta_i'f_t+\varepsilon_{it}$ with weakly dependent idiosyncratic errors; idiosyncratic risk is diversifiable, while exposure to strong factors is systematic and earns a risk premium. Factors may be observable (e.g.\ the Fama--French factors), in which case loadings are estimated by time-series regressions, or latent, in which case they are extracted by principal components. In forecasting, principal-component factors extracted from a large panel of predictors (diffusion indexes) are used as regressors in a factor-augmented regression; consistency requires both the number of predictors $N$ and the sample size $T$ to be large. Weak factors cannot be recovered by principal components and make two-pass risk-premium estimates unreliable.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U13b-summary}
+
+一句话概括本章：截面相关最常来自少数共同因子；强因子造成不可分散的全局相关，可用 PCA（$=$ 集中化最小二乘 $=$ 特征分解）在旋转意义下估计，因子个数用带惩罚的信息准则选择。
+
+%----------------------------------------------------------------------
+\subsection{核心公式与结论}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}L}
+\toprule
+主题 & 公式 / 结论\\
+\midrule
+截面相关（CSD） & $\E(u_{it}u_{jt})\neq0$（$i\neq j$）；比聚类更一般（聚类 $=$ 已知组内相关，组间不相关）\\
+强/弱相关的度量 & $\frac1N\one\T\Sigma_u\one=\frac1N\sum_i\sum_j\Cov(u_{it},u_{jt})=N\Var(\bar u_t)$：随 $N$ 发散 $\Rightarrow$ 强（全局）相关；有界 $\Rightarrow$ 弱（局部）相关\\
+三个基准情形 & 协方差全相等（$=\sigma^2$）：$N\sigma^2$，强；截面不相关：$\frac1N\sum_i\sigma_i^2$，弱；SAR（权重 $\sum_j|w_{ij}|$ 有界）：弱\\
+因子模型的协方差 & $u_{it}=\lambda_i\T f_t+v_{it}\Rightarrow\Cov(u_{it},u_{jt})=\lambda_i\T\E(f_tf_t\T)\lambda_j$（$i\neq j$；$\E f_t=0$，$f_t$ 与 $v$ 不相关，$v$ 截面不相关）；$\Sigma_u=\Lambda\Sigma_f\Lambda\T+\Sigma_v$\\
+强/弱因子 & 强：$\sum_i\lambda_i$ 发散，$\frac1N\sum_i\lambda_i\to$ 常数（严格：$\Lambda\T\Lambda/N\to\Sigma_\Lambda>0$）；弱：$\sum_i\lambda_i$ 有界。PCA 只识别强因子\\
+矩阵形式 & $U_{N\times T}=\Lambda_{N\times r}F\T_{r\times T}+V$；$U_i=F\lambda_i+V_i$\\
+旋转不定性与标准化 & $\lambda_i\T f_t=(C\T\lambda_i)\T(C\inv f_t)$；$F\T F=I_r$（或 $\frac1TF\T F=I_r$）$+$ $\Lambda\T\Lambda$ 对角，共 $r(r+1)/2+r(r-1)/2=r^2$ 个约束\\
+PCA 四步 & $\min\tr(VV\T)\Rightarrow\hat\Lambda=UF(F\T F)\inv\Rightarrow\hat V\hat V\T=UU\T-UF(F\T F)\inv F\T U\T\Rightarrow\max\tr(F\T U\T UF)$ s.t.\ $F\T F=I_r$\\
+PCA 解 & $\hat F=U\T U$ 前 $r$ 个特征向量，$\max=e_1+\dots+e_r$，$\hat\Lambda=U\hat F$，拟合值 $\hat\Lambda\hat F\T=UP_{\hat F}$\\
+标准化二 & $\hat F=\sqrt T\times(\frac1TY\T Y$ 前 $r$ 个单位特征向量$)$，$\hat\Lambda=\frac1TY\hat F$，$\max=T(\pi_1+\dots+\pi_r)$；拟合值不变\\
+残差平方和 & $SSR(r)=\sum_{k>r}e_k$；第 $k$ 个主成分解释比例 $e_k/\sum_le_l$\\
+低秩逼近 & PCA 拟合值 $=$ 截断 SVD $=\argmin_{\rank A\le r}\|Y-A\|_F^2$（Eckart--Young）\\
+因子个数 & $\hat r=\argmin_kIC(k)$，$IC(k)=\ln V(k)+k\,g(N,T)$，$V(k)=SSR_k/(NT)$；$g\to0$ 且 $\min(N,T)\,g\to\infty\Rightarrow\hat r\pto r_0$\\
+$IC_{p2}$ & $g=\frac{N+T}{NT}\ln\min(N,T)$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 13 章核心公式与结论}\label{tab:U13b-core}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{方法对照与选择要点}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm}LL}
+\toprule
+问题 & 选项 A & 选项 B\\
+\midrule
+误差依赖的类型 & HAC：同一个体跨时间相关；聚类：已知组内相关 & CSD：同一时刻不同个体相关，组结构未知；强 CSD 常由共同因子产生\\
+PCA 的标准化 & $F\T F=I_r$：$\hat F=G_r$，$\hat\Lambda=U\hat F$ & $\frac1TF\T F=I_r$：$\hat F=\sqrt TG_r$，$\hat\Lambda=\frac1TU\hat F$；拟合值相同\\
+对哪个矩阵做分解 & $T\times T$ 的 $Y\T Y$（得 $\hat F$） & $N\times N$ 的 $YY\T$（得 $\hat\Lambda$）；选 $\min(N,T)$ 那一维更省计算\\
+估计方法 & 最大似然：变量少、模型设定正确、$\Psi$ 对角 & PCA：变量多、近似因子模型（特质误差可弱相关）\\
+因子个数 & Bai--Ng $IC_p$/$PC_p$：有一致性理论，需 $N,T\to\infty$ & 碎石图（直观、主观）；特征值比 $\argmax_ke_k/e_{k+1}$（无需惩罚函数）\\
+因子的来源 & 可观测因子（Fama--French）：有经济含义，可能遗漏 & 潜在因子（PCA）：数据驱动，只识别到旋转，只找到强因子\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 13 章方法对照}
+\end{center}
+
+选择要点：(1) 先判断截面相关是强还是弱——弱相关可用聚类或空间方法处理，强相关通常意味着共同因子，需要因子模型；(2) 估计因子前先去均值，变量单位不同时先标准化；(3) 因子个数用 $IC_{p2}$ 等 Bai--Ng 准则，并用碎石图或特征值比交叉核对；(4) 不对单个载荷或因子作经济解释（只识别到旋转），需要解释时改用可观测因子或对估计因子做回归比对。
+
+%----------------------------------------------------------------------
+\subsection{常见错误清单}
+
+\begin{enumerate}
+\item 把 $\sum_i\sum_tv_{it}^2$ 写成 $\tr(V\T V)$ 后又误认为它与 $\tr(VV\T)$ 不同——二者由 (T2) 相等。
+\item 给定 $F$ 时写 $\hat\Lambda=(F\T F)\inv F\T U$（维度不对）；正确为 $\hat\Lambda=UF(F\T F)\inv$（$N\times r$）。
+\item 停在 $N\times N$ 形式 $\max\tr(UFF\T U\T)$ 而无法求解；应由迹的循环性改写成 $r\times r$ 形式 $\max\tr(F\T U\T UF)$。
+\item 取\key{最小}特征值对应的特征向量（MATLAB、numpy 的 \texttt{eig}/\texttt{eigh} 按升序返回，未排序就取前 $r$ 列）。
+\item 说“$K$ 个最大特征值”：应为 $r$ 个（$r=\dim f_t$，因子个数），不是回归元个数。
+\item 在 $\frac1TF\T F=I_r$ 下写 $\max=\pi_1+\dots+\pi_r$（应为 $T(\pi_1+\dots+\pi_r)$）、写 $\hat\Lambda=\frac1TY\hat F\T$（应无转置）、忘记 $\hat F$ 要乘 $\sqrt T$。
+\item 把 $U\T U$（$T\times T$）的谱分解写成 $N$ 项；应有 $T$ 项。
+\item 认为 PCA 的解唯一：只在旋转/符号意义下唯一，所以说 “one possible solution”。
+\item 写 $\hat r=\min(AIC_1,\dots,AIC_G)$；应为 $\hat r=\argmin_iAIC_i$。
+\item 直接用 $SSR_i+2i$ 或经典 AIC 选因子个数：前者依赖数据尺度，后者惩罚不足、会多选。
+\item 以为 PCA 或信息准则能找出弱因子；或以为只要 $N$ 大（或只要 $T$ 大）就能一致选对 $r$——需要 $N,T$ 同时趋于无穷。
+\item 混淆 Stata/R 统计 PCA（变量在列）与本章 $U$（个体在行）的排法，对错误的维度做分解；忘记先去均值。
+\item 拟合值写成 $P_{\hat F}Y$；$P_{\hat F}$ 是 $T\times T$ 的，应右乘：$\hat Y=YP_{\hat F}$。
+\item 资产定价中把载荷 $\beta_i$（风险暴露）与风险溢价 $\gamma$（文献常记为 $\lambda$）混为一谈。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{本章综合练习}
+
+\subsubsection{截面相关的度量：等相关与几何衰减相关}
+
+\begin{prac}[CSD measure]\label{pr:U13b-csd}
+Let $u_t=(u_{1t},\dots,u_{Nt})'$ with $\Var(u_{it})=1$ for all $i$. (a) Show that $\frac1N\one_N'\Sigma_u\one_N=N\Var(\bar u_t)$. (b) Suppose $\Cov(u_{it},u_{jt})=\rho$ for all $i\neq j$ with $0<\rho<1$. Compute $\frac1N\one_N'\Sigma_u\one_N$ and classify the dependence. (c) Suppose instead $\Cov(u_{it},u_{jt})=\rho^{|i-j|}$. Is the dependence strong or weak?
+\answer
+(a)
+\begin{align*}
+\one\T\Sigma_u\one&=\one\T\Var(u_t)\one=\Var(\one\T u_t) \why{$\Var(a\T u)=a\T\Var(u)a$}\\
+&=\Var(N\bar u_t)=N^2\Var(\bar u_t) \why{$\one\T u_t=N\bar u_t$}
+\end{align*}
+两边除以 $N$ 即得。
+
+(b) 对角元之和为 $N$，非对角元之和为 $N(N-1)\rho$，故
+\[
+\tfrac1N\one\T\Sigma_u\one=\tfrac1N\bigl[N+N(N-1)\rho\bigr]=1+(N-1)\rho\to\infty ,
+\]
+强（全局）相关。这是“单因子、载荷相等”的情形：$u_{it}=\sqrt\rho f_t+\sqrt{1-\rho}\,v_{it}$（$f_t$、$v_{it}$ 相互独立、方差为 1）。
+
+(c)
+\begin{align*}
+\tfrac1N\one\T\Sigma_u\one&=\tfrac1N\sum_i\sum_j\rho^{|i-j|} \why{定义}\\
+&\le\tfrac1N\sum_i\sum_{h=-\infty}^{\infty}\rho^{|h|} \why{每行补全为双侧级数}\\
+&=\tfrac1N\cdot N\cdot\Bigl(1+2\sum_{h\ge1}\rho^h\Bigr)=\frac{1+\rho}{1-\rho} \why{几何级数 $\sum_{h\ge1}\rho^h=\frac{\rho}{1-\rho}$}
+\end{align*}
+有界：弱（局部）相关。相关随“距离”$|i-j|$ 几何衰减，与 SAR 模型同类。
+\end{prac}
+
+\subsubsection{因子诱导的截面相关与特征值}
+
+\begin{prac}[Factor-induced dependence]\label{pr:U13b-fid}
+Consider $u_{it}=\lambda_if_t+v_{it}$, where $f_t$ has mean zero and variance $\sigma_f^2$, $v_{it}$ is i.i.d.\ across $i$ and $t$ with variance $\sigma_v^2$, and $f_t$ and $v_{js}$ are independent. (a) Derive $\Cov(u_{it},u_{jt})$ and $\Corr(u_{it},u_{jt})$ for $i\neq j$. (b) Let $\lambda_i=1$ for all $i$. Derive the eigenvalues of $\Sigma_u$. (c) Explain why principal components can recover $f_t$ in case (b) when $N$ is large, but not when only $\lambda_1\neq0$.
+\answer
+(a)
+\begin{align*}
+\Cov(u_{it},u_{jt})&=\E\bigl[(\lambda_if_t+v_{it})(\lambda_jf_t+v_{jt})\bigr] \why{均值为 0}\\
+&=\lambda_i\lambda_j\E(f_t^2)+\lambda_i\E(f_tv_{jt})+\lambda_j\E(v_{it}f_t)+\E(v_{it}v_{jt}) \why{展开}\\
+&=\lambda_i\lambda_j\sigma_f^2 \why{独立性；$i\neq j$}
+\end{align*}
+$\Var(u_{it})=\lambda_i^2\sigma_f^2+\sigma_v^2$，故
+\[
+\Corr(u_{it},u_{jt})=\frac{\lambda_i\lambda_j\sigma_f^2}{\sqrt{(\lambda_i^2\sigma_f^2+\sigma_v^2)(\lambda_j^2\sigma_f^2+\sigma_v^2)}} .
+\]
+(b) $\Sigma_u=\sigma_f^2\one\one\T+\sigma_v^2I_N$。$\one\one\T$ 的特征值为 $N$（特征向量 $\one/\sqrt N$，因 $\one\one\T\one=N\one$）与 $0$（$N-1$ 重，特征向量为与 $\one$ 正交的向量）；加上 $\sigma_v^2I_N$ 使每个特征值平移 $\sigma_v^2$。所以 $\Sigma_u$ 的特征值为 $N\sigma_f^2+\sigma_v^2$（1 个）与 $\sigma_v^2$（$N-1$ 重）。
+
+(c) 情形 (b) 中因子方向的特征值 $N\sigma_f^2+\sigma_v^2$ 随 $N$ 发散，远离噪声特征值 $\sigma_v^2$，第一主成分方向为 $\one/\sqrt N$，第一主成分
+\[
+\tfrac1{\sqrt N}\one\T u_t=\sqrt N(\bar\lambda f_t+\bar v_t),\qquad \bar v_t=O_p(N^{-1/2}),
+\]
+特质噪声被平均掉，故能（在尺度意义下）一致恢复 $f_t$。若只有 $\lambda_1\neq0$，因子方向的特征值 $\lambda_1^2\sigma_f^2+\sigma_v^2$ 有界、与噪声同阶，样本中 PCA 无法把它从噪声中分离；即使找到该方向，对应的主成分也只是 $u_{1t}=\lambda_1f_t+v_{1t}$，噪声 $v_{1t}$ 无法被平均掉：弱因子。
+\end{prac}
+
+\subsubsection{标准化 \texorpdfstring{$F'F/T=I_r$}{F'F/T = I\_r} 下的 PCA 推导}
+
+\begin{prac}[PCA derivation]\label{pr:U13b-deriv}
+Let $Y$ be an $N\times T$ data matrix and consider $Y=\Lambda F'+U$ with $F'F/T=I_r$. (a) Show that for given $F$ the least squares estimator of $\Lambda$ is $YF/T$. (b) Show that the concentrated objective function equals $\tr(YY')-\frac1T\tr(F'Y'YF)$. (c) Using the eigen-decomposition of $Y'Y/T$, derive the PCA estimator of $F$ and the minimized sum of squared residuals. Justify each step.
+\answer
+(a) 给定 $F$，$\tr(UU\T)=\sum_i(Y_i-F\lambda_i)\T(Y_i-F\lambda_i)$，各 $\lambda_i$ 的 OLS 为 $(F\T F)\inv F\T Y_i$，叠放得 $\hat\Lambda=YF(F\T F)\inv=\frac1TYF\bigl(\frac1TF\T F\bigr)\inv=\frac1TYF$。
+
+(b) $Y-\hat\Lambda F\T=Y-\frac1TYFF\T$。
+\begin{align*}
+&\tr\bigl[(Y-\tfrac1TYFF\T)(Y-\tfrac1TYFF\T)\T\bigr]\\
+&=\tr(YY\T)-\tfrac2T\tr(YFF\T Y\T)+\tfrac1{T^2}\tr(YFF\T FF\T Y\T) \why{展开，(T1)}\\
+&=\tr(YY\T)-\tfrac2T\tr(YFF\T Y\T)+\tfrac1T\tr\bigl(YF(\tfrac1TF\T F)F\T Y\T\bigr) \why{提出 $\frac1T$}\\
+&=\tr(YY\T)-\tfrac1T\tr(YFF\T Y\T) \why{$\frac1TF\T F=I_r$}\\
+&=\tr(YY\T)-\tfrac1T\tr(F\T Y\T YF) \why{迹的循环性}
+\end{align*}
+(c) 最小化等价于在 $\frac1TF\T F=I_r$ 下最大化 $\tr(F\T S_{yy}F)$，$S_{yy}=\frac1TY\T Y=\sum_k\pi_kv_kv_k\T$。令 $F=\sqrt T\tilde F$，则 $\tilde F\T\tilde F=I_r$，目标 $=T\tr(\tilde F\T S_{yy}\tilde F)\le T(\pi_1+\dots+\pi_r)$（Ky Fan），等号在 $\tilde F=(v_1,\dots,v_r)$。故 $\hat F=\sqrt T(v_1,\dots,v_r)$，$\hat\Lambda=\frac1TY\hat F$。最小 SSR $=\tr(YY\T)-T\sum_{k\le r}\pi_k=T\sum_{k>r}\pi_k$（因 $\tr(YY\T)=\tr(Y\T Y)=T\sum_k\pi_k$）。
+\end{prac}
+
+\subsubsection{识别：旋转不定性、\texorpdfstring{$r^2$}{r\^{}2} 个约束与 PCA 解的验证}
+
+\begin{prac}[Identification]\label{pr:U13b-ident}
+In the factor model $y_{it}=\lambda_i'f_t+u_{it}$ with $r$ factors, (a) explain why $\lambda_i$ and $f_t$ are not identified without further restrictions; (b) state a set of normalization conditions and show that it imposes exactly $r^2$ restrictions; (c) verify that the PCA solution satisfies both conditions.
+\answer
+(a) 对任意 $r\times r$ 可逆矩阵 $C$，
+\[
+\lambda_i\T f_t=\lambda_i\T CC\inv f_t=(C\T\lambda_i)\T(C\inv f_t),
+\]
+$(\lambda_i,f_t)$ 与 $(C\T\lambda_i,C\inv f_t)$ 生成相同的数据分布（观测等价），故不可识别。
+
+(b) $\frac1TF\T F=I_r$：对称矩阵方程，独立方程 $r(r+1)/2$ 个；$\Lambda\T\Lambda$ 对角：$r(r-1)/2$ 个非对角元为 0。合计 $r(r+1)/2+r(r-1)/2=r^2$，等于 $C$ 的自由度（$r^2$ 个元素）。
+
+(c) PCA 给出 $\hat F=\sqrt T(v_1,\dots,v_r)$：
+\begin{align*}
+\tfrac1T\hat F\T\hat F&=(v_k\T v_l)_{k,l\le r}=I_r \why{标准正交}\\
+\hat\Lambda\T\hat\Lambda&=\tfrac1{T^2}\hat F\T Y\T Y\hat F=\tfrac1T(v_k\T Y\T Yv_l)_{k,l\le r} \why{$\hat\Lambda=\frac1TY\hat F$}\\
+&=\tfrac1T\diag(T\pi_1,\dots,T\pi_r)=\diag(\pi_1,\dots,\pi_r) \why{$Y\T Yv_l=T\pi_lv_l$}
+\end{align*}
+两个条件都满足。
+\end{prac}
+
+\begin{english}
+Cross-sectional dependence arises when $\E(u_{it}u_{jt})\neq0$ for $i\neq j$; it is strong if $N^{-1}\mathbf 1'\Sigma_u\mathbf 1=N\Var(\bar u_t)$ diverges and weak if it is bounded. A latent factor structure $u_{it}=\lambda_i'f_t+v_{it}$ with strong (pervasive) factors, $\Lambda'\Lambda/N\to\Sigma_\Lambda>0$, generates strong dependence. Factors and loadings are identified only up to an $r\times r$ rotation, so $r^2$ normalizations such as $F'F/T=I_r$ and $\Lambda'\Lambda$ diagonal are imposed. The principal component estimator is the least squares estimator: $\hat F$ is $\sqrt T$ times the eigenvectors of $Y'Y/T$ associated with the $r$ largest eigenvalues and $\hat\Lambda=Y\hat F/T$. The number of factors is estimated consistently by minimizing $\ln V(k)+k\,g(N,T)$ with $g\to0$ and $\min(N,T)g\to\infty$.
+\end{english}

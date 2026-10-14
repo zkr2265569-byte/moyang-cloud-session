@@ -1,0 +1,834 @@
+%======================================================================
+\section{权重矩阵 \texorpdfstring{$W$}{W} 的选择}\label{sec:U08b-W}
+
+前几节得到了线性 GMM 估计量的闭式解与渐近分布，二者都依赖于 $L\times L$ 的权重矩阵 $W$（$W>0$）：$W$ 取法不同，得到的 GMM 估计量就不同。本节依次讨论四种取法——等权的一步 GMM、$W=(Z\T Z)\inv$ 给出的 2SLS、理论上最优的 $W=\Omega\inv$、以及它的可行版本两步 GMM——然后比较它们的性质。
+
+\subsection{出发点：GMM 估计量与夹心方差（记号回顾）}
+
+沿用本章前文的记号：
+\begin{itemize}
+  \item 结构方程 $y_i=x_i\T\beta+u_i$，$i=1,\dots,n$ 独立同分布；回归元 $x_i$ 为 $K\times1$，工具 $z_i$ 为 $L\times1$，$L\ge K$；矩条件 $\E(z_iu_i)=0$。
+  \item 数据矩阵 $Y$（$n\times1$）、$X$（$n\times K$）、$Z$（$n\times L$）、$u$（$n\times1$）。
+  \item 样本矩 $\bar g_n(\beta)=\frac1n\sum_i z_i(y_i-x_i\T\beta)=\frac1nZ\T(Y-X\beta)$（$L\times1$）；准则函数 $J(\beta)=\bar g_n(\beta)\T W\bar g_n(\beta)$。Hansen 把准则函数定义为 $n\,\bar g_n(\beta)\T W\bar g_n(\beta)$；常数倍 $n$ 不影响最小化，但构造检验统计量时必须带上 $n$。
+  \item 总体矩：$Q=\E(z_ix_i\T)$（$L\times K$，列满秩），$\Omega=\E(z_iz_i\T u_i^2)$（$L\times L$，正定）。
+\end{itemize}
+GMM 估计量及其渐近分布为
+\begin{equation}\label{eq:U08b-gmm}
+\hat\beta_{GMM}=(X\T ZWZ\T X)\inv X\T ZWZ\T Y ,
+\end{equation}
+\begin{equation}\label{eq:U08b-VW}
+\sqrt n(\hat\beta_{GMM}-\beta)\dto N(0,V_W),\qquad V_W=(Q\T WQ)\inv Q\T W\Omega WQ(Q\T WQ)\inv .
+\end{equation}
+两条事实贯穿本节：(1) $W$ 换成 $cW$（$c>0$）时 \eqref{eq:U08b-gmm} 中 $c$ 与 $c\inv$ 相消，$W$ 只在相差常数倍的意义上起作用；(2) 若 $W$ 是随机的 $\hat W$ 且 $\hat W\pto W>0$，\eqref{eq:U08b-VW} 不变。
+
+%----------------------------------------------------------------------
+\subsection{一步 GMM：\texorpdfstring{$W=I_L$}{W = I}（等权）}\label{sec:U08b-onestep}
+
+\subsubsection{一步 GMM 的估计量公式}
+
+取 $W=I_L$ 得到\term{一步 GMM}{one-step GMM}。代入 \eqref{eq:U08b-gmm}：
+\begin{align*}
+\hat\beta^{1S}_{GMM}&=(X\T ZI_LZ\T X)\inv(X\T ZI_LZ\T Y) \why{代入 $W=I_L$}\\
+&=(X\T ZZ\T X)\inv(X\T ZZ\T Y). \why{$ZI_L=Z$}
+\end{align*}
+第一个括号是 $X\T ZZ\T X$，最后一个因子是 $X$；$I_L$ 代入后直接消失，不会留下 $W$。
+
+\subsubsection{等权的含义：\texorpdfstring{$J$}{J} 是各样本矩的平方和}
+
+记第 $j$ 个样本矩为 $\bar g_{nj}(\beta)=\frac1n\sum_iz_{ij}(y_i-x_i\T\beta)$。$W=I_L$ 时
+\[
+J(\beta)=\bar g_n(\beta)\T I_L\,\bar g_n(\beta)=\sum_{j=1}^L\bar g_{nj}(\beta)^2 ,
+\]
+每个矩条件的平方偏离被一视同仁。一步 GMM 就是对 $L$ 个样本矩方程做普通最小二乘。
+
+\subsubsection{缺点：估计值依赖工具的度量单位}
+
+把第 $j$ 个工具乘以常数 $c$（例如单位从“百元”改为“元”，$c=100$）：
+\begin{align*}
+\bar g_{nj}(\beta)&\ \to\ \frac1n\sum_i(cz_{ij})(y_i-x_i\T\beta)=c\,\bar g_{nj}(\beta), \why{工具乘以 $c$}\\
+\bar g_{nj}(\beta)^2&\ \to\ c^2\,\bar g_{nj}(\beta)^2=10^4\,\bar g_{nj}(\beta)^2 . \why{$c=100$}
+\end{align*}
+第 $j$ 个矩条件在 $J$ 中的权重放大 $10^4$ 倍，最小化点随之改变：仅仅换一个单位，估计值就变了。后文将看到，2SLS 与有效 GMM 都不受工具单位（更一般地，工具的非奇异线性变换）的影响。
+
+\subsubsection{一步 GMM 的用途：产生第一步的一致估计}
+
+任何正定 $W$ 都给出一致估计，一步 GMM 也不例外；但它一般不有效，又依赖工具单位，所以通常只用来为两步 GMM 提供第一步的一致估计（在没有 2SLS 可用的非线性 GMM 中尤其如此）。
+
+%----------------------------------------------------------------------
+\subsection{\texorpdfstring{$W=(Z'Z)^{-1}$}{W = inverse of Z'Z}：GMM 等于两阶段最小二乘}\label{sec:U08b-2sls}
+
+\subsubsection{\texorpdfstring{$(Z'Z)^{-1}$}{inverse of Z'Z}：工具样本二阶矩的逆，由数据决定的权重}
+
+取
+\[
+W=(Z\T Z)\inv=\Big(\sum_{i=1}^nz_iz_i\T\Big)\inv .
+\]
+$\frac1nZ\T Z$ 是工具的样本二阶矩矩阵（未中心化的“样本方差”）。由于 $W$ 只在常数倍意义上起作用，$(Z\T Z)\inv$ 与 $(\frac1nZ\T Z)\inv$ 给出同一个估计量。这个权重完全由数据决定，所以 2SLS 是“由数据选权重矩阵”的 GMM。下面证明：它就是\term{两阶段最小二乘}{two-stage least squares, 2SLS}，并给出它的几种等价写法。
+
+\subsubsection{投影矩阵 \texorpdfstring{$P_Z$}{P\_Z} 对称且幂等}
+
+定义 $n\times n$ 的\term{投影矩阵}{projection matrix} $P_Z=Z(Z\T Z)\inv Z\T$（第 3 章已讨论过，这里完整写出所需的两条性质）：
+\begin{align*}
+P_Z\T&=\big[Z(Z\T Z)\inv Z\T\big]\T \why{定义}\\
+&=Z\big[(Z\T Z)\inv\big]\T Z\T \why{$(ABC)'=C'B'A'$}\\
+&=Z(Z\T Z)\inv Z\T=P_Z , \why{$Z'Z$ 对称，其逆也对称}\\
+P_ZP_Z&=Z(Z\T Z)\inv\underbrace{Z\T Z(Z\T Z)\inv}_{=I_L}Z\T \why{展开}\\
+&=Z(Z\T Z)\inv Z\T=P_Z . \why{幂等}
+\end{align*}
+此外 $P_ZZ=Z(Z\T Z)\inv Z\T Z=Z$：$Z$ 的列空间中的向量投影到自身。
+
+\subsubsection{代入 GMM 闭式解：\texorpdfstring{$(X'P_ZX)^{-1}X'P_ZY=(\hat X'\hat X)^{-1}\hat X'Y$}{2SLS formula}}
+
+\begin{align*}
+\hat\beta_{GMM}\big|_{W=(Z'Z)^{-1}}&=\big(X\T Z(Z\T Z)\inv Z\T X\big)\inv X\T Z(Z\T Z)\inv Z\T Y \why{代入 $W$}\\
+&=(X\T P_ZX)\inv X\T P_ZY \why{$P_Z$ 的定义}\\
+&=(X\T P_Z\T P_ZX)\inv X\T P_Z\T Y \why{$P_Z=P_Z'P_Z$，$P_Z=P_Z'$}\\
+&=\big((P_ZX)\T(P_ZX)\big)\inv(P_ZX)\T Y \why{$(AB)'=B'A'$}\\
+&=(\hat X\T\hat X)\inv\hat X\T Y , \why{记 $\hat X=P_ZX$}
+\end{align*}
+其中第三行用到 $P_Z\T P_Z=P_ZP_Z=P_Z$。$\hat X=P_ZX=Z\big[(Z\T Z)\inv Z\T X\big]$ 正是“把 $X$ 的每一列对 $Z$ 做 OLS 回归”得到的拟合值（$n\times K$）。
+
+\subsubsection{\texorpdfstring{$\hat X'X=\hat X'\hat X$}{X-hat'X = X-hat'X-hat}：2SLS 是以 \texorpdfstring{$\hat X$}{X-hat} 为工具的 IV}
+
+\begin{align*}
+\hat X\T X&=X\T P_Z\T X=X\T P_ZX \why{$P_Z$ 对称}\\
+&=X\T P_Z\T P_ZX=\hat X\T\hat X . \why{$P_Z$ 对称幂等}
+\end{align*}
+因此 $\hat\beta_{2SLS}=(\hat X\T X)\inv\hat X\T Y$：这正是 IV 公式 $(Z\T X)\inv Z\T Y$ 把工具矩阵换成 $\hat X$——2SLS 是以 $K$ 个“构造的工具” $\hat X$ 为工具的恰好识别 IV 估计量。
+
+\begin{thm}[2SLS 的四种等价写法（Hansen 第 12.12 节、定理 13.2）]\label{thm:U08b-2sls}
+记 $P_Z=Z(Z\T Z)\inv Z\T$，$\hat X=P_ZX$。则
+\begin{align*}
+\hat\beta_{2SLS}&=\big(X\T Z(Z\T Z)\inv Z\T X\big)\inv X\T Z(Z\T Z)\inv Z\T Y=(X\T P_ZX)\inv X\T P_ZY\\
+&=(\hat X\T\hat X)\inv\hat X\T Y=(\hat X\T X)\inv\hat X\T Y .
+\end{align*}
+它是 $W=(Z\T Z)\inv$ 的 GMM 估计量；恰好识别（$K=L$）时等于 $\hat\beta_{IV}=(Z\T X)\inv Z\T Y$（证明见第 \ref{sec:U08b-justid} 小节）。
+\end{thm}
+
+\subsubsection{2SLS 不受工具非奇异线性变换的影响}
+
+设新工具 $\tilde Z=ZA$，$A$ 为 $L\times L$ 非奇异矩阵（把某个工具乘以 $c$ 是 $A=\diag(1,\dots,c,\dots,1)$ 的特例）：
+\begin{align*}
+P_{ZA}&=ZA\big(A\T Z\T ZA\big)\inv A\T Z\T \why{定义}\\
+&=ZA\,A\inv(Z\T Z)\inv(A\T)\inv A\T Z\T \why{$(ABC)^{-1}=C^{-1}B^{-1}A^{-1}$}\\
+&=Z(Z\T Z)\inv Z\T=P_Z . \why{$AA^{-1}=I_L$}
+\end{align*}
+2SLS 只通过 $P_Z$ 依赖工具，所以换单位、取线性组合都不改变 2SLS——这是它优于一步 GMM 之处。
+
+%----------------------------------------------------------------------
+\subsection{2SLS 的两阶段解释}\label{sec:U08b-twostage}
+
+\subsubsection{第一阶段：\texorpdfstring{$X$}{X} 的每一列对 \texorpdfstring{$Z$}{Z} 回归}
+
+第一阶段（简约式）把每个回归元写成工具的线性函数：$X=Z\Gamma+V$，$\Gamma$ 为 $L\times K$。逐列做 OLS：
+\[
+\hat\Gamma=(Z\T Z)\inv Z\T X,\qquad \hat X=Z\hat\Gamma=Z(Z\T Z)\inv Z\T X=P_ZX .
+\]
+
+\subsubsection{第二阶段：\texorpdfstring{$Y$}{Y} 对 \texorpdfstring{$\hat X$}{X-hat} 回归，逐步验证等于 GMM}
+
+第二阶段把 $Y$ 对 $\hat X$ 做 OLS，得 $(\hat X\T\hat X)\inv\hat X\T Y$。逐项代入 $\hat X\T=X\T Z(Z\T Z)\inv Z\T$：
+\begin{align*}
+\hat X\T\hat X&=X\T Z(Z\T Z)\inv\,\underbrace{Z\T Z\,(Z\T Z)\inv}_{=I_L}Z\T X \why{代入 $\hat X$}\\
+&=X\T Z(Z\T Z)\inv Z\T X , \why{$Z'Z(Z'Z)^{-1}=I_L$}\\
+\hat X\T Y&=X\T Z(Z\T Z)\inv Z\T Y , \why{代入 $\hat X'$}\\
+(\hat X\T\hat X)\inv\hat X\T Y&=\big(X\T Z(Z\T Z)\inv Z\T X\big)\inv X\T Z(Z\T Z)\inv Z\T Y . \why{代入上两式}
+\end{align*}
+右端正是 $W=(Z\T Z)\inv$ 的 GMM。两阶段的名字由此而来：第一阶段“提纯”$X$ 中由工具驱动的外生变动，第二阶段只用这部分变动估计 $\beta$。
+
+\subsubsection{外生回归元的拟合值就是它自己：\texorpdfstring{$P_Zx_2=x_2$}{P\_Z x2 = x2}}
+
+把回归元分块 $X=(X_1,X_2)$：$X_1$（$n\times k_1$）为内生回归元，$X_2$（$n\times k_2$，含常数列）为外生回归元；工具 $Z=(\tilde Z,X_2)$，$\tilde Z$ 为排除工具（外生回归元自己当自己的工具）。$X_2$ 的每一列都是 $Z$ 的一列，即 $X_2=ZS$（$S$ 为选取列的 $0$--$1$ 矩阵），于是
+\begin{align*}
+P_ZX_2&=P_ZZS \why{$X_2=ZS$}\\
+&=ZS=X_2 . \why{$P_ZZ=Z$}
+\end{align*}
+第一阶段对外生回归元的拟合是完美的，$\hat X=(\hat X_1,X_2)$：\key{只有内生回归元被拟合值替换}，第二阶段是 $y$ 对“内生回归元的拟合值”和“外生回归元本身”回归。
+
+\subsubsection{第一阶段必须包含全部外生回归元}
+
+\begin{note}[常见错误：第一阶段漏掉外生回归元]
+若第一阶段只用排除工具 $\tilde Z$ 拟合 $X_1$，得 $\tilde X_1=P_{\tilde Z}X_1$，再把 $Y$ 对 $(\tilde X_1,X_2)$ 回归，一般\key{不一致}。第二阶段的方程是
+\[
+Y=\tilde X_1\beta_1+X_2\beta_2+\big[u+(X_1-\tilde X_1)\beta_1\big],
+\]
+其中 $X_1-\tilde X_1=M_{\tilde Z}X_1$ 只与 $\tilde Z$ 正交，不与 $X_2$ 正交；$X_2$ 与 $X_1$ 相关时，回归元 $X_2$ 与第二阶段误差相关，估计不一致。正确做法是第一阶段用\key{全部工具} $Z=(\tilde Z,X_2)$（含常数项）。此时误差中的多余项 $(X-\hat X)\beta=M_ZX\beta$ 与第二阶段全部回归元正交：
+\begin{align*}
+\hat X\T(X-\hat X)&=X\T P_Z(I_n-P_Z)X \why{$\hat X=P_ZX$}\\
+&=X\T(P_Z-P_ZP_Z)X=0 . \why{$P_Z$ 幂等}
+\end{align*}
+\end{note}
+
+\subsubsection{2SLS 残差的正交性：\texorpdfstring{$\hat X'\hat e=0$}{X-hat' e-hat = 0}，过度识别时 \texorpdfstring{$Z'\hat e\neq0$}{Z' e-hat != 0}}
+
+记结构残差 $\hat e=Y-X\hat\beta_{2SLS}$（用原始 $X$，不是 $\hat X$）。则
+\begin{align*}
+\hat X\T\hat e&=X\T Z(Z\T Z)\inv Z\T Y-X\T Z(Z\T Z)\inv Z\T X\hat\beta_{2SLS} \why{$\hat X'=X'Z(Z'Z)^{-1}Z'$}\\
+&=X\T Z(Z\T Z)\inv Z\T Y-X\T Z(Z\T Z)\inv Z\T Y=0 . \why{代入 $\hat\beta_{2SLS}$ 的定义}
+\end{align*}
+残差与 $K$ 个构造的工具 $\hat X$ 正交。但过度识别（$L>K$）时一般 $Z\T\hat e\neq0$：$L$ 个方程不可能都被 $K$ 个参数满足。恰好识别时 $Z\T\hat e=0$。
+
+\begin{prac}[2SLS 残差与恰好识别]\label{pr:U08b-resid}
+(1) 证明 $K=L$ 时 2SLS 残差满足 $Z\T\hat e=0$。(2) 设 $L>K$，解释为什么 $Z\T\hat e=0$ 一般不成立，以及这与过度识别检验（第 9 章）的关系。
+\answer
+(1) $K=L$ 时 $\hat\beta_{2SLS}=\hat\beta_{IV}=(Z\T X)\inv Z\T Y$（定理 \ref{thm:U08b-2sls}），于是
+\begin{align*}
+Z\T\hat e&=Z\T Y-Z\T X(Z\T X)\inv Z\T Y \why{代入 $\hat\beta_{IV}$}\\
+&=Z\T Y-Z\T Y=0 . \why{$Z'X(Z'X)^{-1}=I_L$}
+\end{align*}
+(2) $L>K$ 时，$Z\T\hat e=0$ 是 $L$ 个方程、只有 $K$ 个自由参数，一般无法全部满足；2SLS 只保证 $K$ 个线性组合为零：$\hat X\T\hat e=X\T Z(Z\T Z)\inv\,Z\T\hat e=0$。其余 $L-K$ 个方向上 $Z\T\hat e$ 的大小反映了矩条件之间的“矛盾程度”：若工具都有效，$\frac1nZ\T\hat e$ 应接近 $0$。过度识别检验正是以加权后的 $\|Z\T\hat e\|$ 为统计量，自由度为 $L-K$。
+\end{prac}
+
+%----------------------------------------------------------------------
+\subsection{为什么手工第二阶段回归的标准误不对}\label{sec:U08b-handse}
+
+\subsubsection{第二阶段残差与结构残差之差：\texorpdfstring{$\hat v_i=\hat e_i+\hat r_i'\hat\beta$}{v-hat = e-hat + r-hat' beta-hat}}
+
+若真的分两次用 \texttt{regress} 做 2SLS，第二阶段软件报告的残差是 $\hat v_i=y_i-\hat x_i\T\hat\beta_{2SLS}$，而正确的结构残差是 $\hat e_i=y_i-x_i\T\hat\beta_{2SLS}$。二者的关系：
+\begin{align*}
+\hat v_i&=y_i-x_i\T\hat\beta_{2SLS}+(x_i-\hat x_i)\T\hat\beta_{2SLS} \why{加减 $x_i'\hat\beta_{2SLS}$}\\
+&=\hat e_i+\hat r_i\T\hat\beta_{2SLS}\ \neq\ \hat e_i , \why{$\hat r_i=x_i-\hat x_i$ 为第一阶段残差}
+\end{align*}
+所以 $\hat\sigma_v^2=\frac1n\sum_i\hat v_i^2$ 估计的是 $\E\big[(u_i+r_i\T\beta)^2\big]$（$r_i$ 为第一阶段误差），而不是 $\sigma^2=\E(u_i^2)$。手工第二阶段报告的标准误——无论同方差公式还是稳健公式——都是错的；\key{点估计是对的}。
+
+\subsubsection{正确的方差估计：面包用 \texorpdfstring{$\hat x_i$}{x-hat}，残差用原始 \texorpdfstring{$x_i$}{x}}
+
+同方差时：
+\[
+\widehat{\Var}(\hat\beta_{2SLS})=\hat\sigma^2(X\T P_ZX)\inv,\qquad \hat\sigma^2=\frac1n\sum_{i=1}^n\hat e_i^2 .
+\]
+异方差时用夹心公式。把 $\hat Q=\frac1nZ\T X$、$W=(\frac1nZ\T Z)\inv$、$\hat\Omega=\frac1n\sum_iz_iz_i\T\hat e_i^2$ 代入 $\frac1n\hat V_W$，并注意 $\hat x_i=X\T Z(Z\T Z)\inv z_i$（$K\times1$）：
+\begin{align*}
+\hat Q\T W\hat Q&=\tfrac1nX\T Z(Z\T Z)\inv Z\T X=\tfrac1n\hat X\T\hat X , \why{$n$ 的幂次相消}\\
+\hat Q\T W\hat\Omega W\hat Q&=X\T Z(Z\T Z)\inv\Big(\tfrac1n\sum_iz_iz_i\T\hat e_i^2\Big)(Z\T Z)\inv Z\T X \why{$\hat Q'W=X'Z(Z'Z)^{-1}$}\\
+&=\tfrac1n\sum_i\hat x_i\hat x_i\T\hat e_i^2 , \why{$\hat x_i=X'Z(Z'Z)^{-1}z_i$}\\
+\widehat{\Var}(\hat\beta_{2SLS})&=\tfrac1n\big(\hat Q\T W\hat Q\big)\inv\hat Q\T W\hat\Omega W\hat Q\big(\hat Q\T W\hat Q\big)\inv \why{夹心公式除以 $n$}\\
+&=(\hat X\T\hat X)\inv\Big(\sum_i\hat x_i\hat x_i\T\hat e_i^2\Big)(\hat X\T\hat X)\inv . \why{代入上两式}
+\end{align*}
+“面包”用拟合值 $\hat x_i$，“肉”里的残差必须用原始 $x_i$ 算出的 $\hat e_i$。
+
+\subsubsection{实践：直接用 \texttt{ivregress 2sls}}
+
+实践中直接用 \texttt{ivregress 2sls}（稳健标准误加选项 \texttt{r}），不要分两步手工回归（Hansen 第 12.18 节）。
+
+%----------------------------------------------------------------------
+\subsection{有效 GMM：\texorpdfstring{$W=\Omega^{-1}$}{W = inverse of Omega} 与方差下界}\label{sec:U08b-egmm}
+
+\subsubsection{代入夹心公式：方差化简为 \texorpdfstring{$(Q'\Omega^{-1}Q)^{-1}$}{(Q' Omega-inv Q)-inv}}
+
+把 $W=\Omega\inv$ 代入 \eqref{eq:U08b-VW}：
+\begin{align*}
+V_{\Omega^{-1}}&=(Q\T\Omega\inv Q)\inv Q\T\Omega\inv\,\Omega\,\Omega\inv Q(Q\T\Omega\inv Q)\inv \why{代入 $W=\Omega^{-1}$}\\
+&=(Q\T\Omega\inv Q)\inv\underbrace{Q\T\Omega\inv Q(Q\T\Omega\inv Q)\inv}_{=I_K} \why{$\Omega^{-1}\Omega=I_L$}\\
+&=(Q\T\Omega\inv Q)\inv . \why{“面包”与“肉”相消}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$\Omega$}{Omega} 是矩条件 \texorpdfstring{$z_iu_i$}{z u} 的方差}
+
+\begin{align*}
+\Omega=\Var(z_iu_i)&=\E(z_iz_i\T u_i^2)-\E(z_iu_i)\,\E(z_iu_i)\T \why{方差的定义}\\
+&=\E(z_iz_i\T u_i^2). \why{$\E(z_iu_i)=0$}
+\end{align*}
+
+\subsubsection{有效 GMM 估计量及其不可行性}
+
+取 $W=\Omega\inv$ 的估计量称为\term{有效 GMM}{efficient GMM}（又称最优 GMM，optimal GMM）：
+\[
+\hat\beta_{EGMM}=(X\T Z\Omega\inv Z\T X)\inv X\T Z\Omega\inv Z\T Y .
+\]
+有限样本中常把方差写成加总标度（见本章“$\Omega$ 的两种标度”一小节）。记 $\Omega_n=\Var(Z\T u)=\sum_{i=1}^n\Var(z_iu_i)=n\Omega$（观测独立），则
+\begin{align*}
+\Var(\hat\beta_{EGMM})&\approx(X\T Z\,\Omega_n\inv Z\T X)\inv \why{$W=\Omega_n^{-1}$ 时夹心相消}\\
+&=\Big(n\cdot\tfrac1nX\T Z\,\Omega\inv\,\tfrac1nZ\T X\Big)\inv \why{$\Omega_n=n\Omega$}\\
+&=\tfrac1n\big(\hat Q\T\Omega\inv\hat Q\big)\inv . \why{$\hat Q=\frac1nZ'X$}
+\end{align*}
+这是所有 GMM 估计量方差的\key{下界}（见下面的结论）；但 $\Omega$ 依赖不可观测的 $u_i$，有效 GMM \key{不可行}（infeasible）。
+
+\begin{thm}[有效 GMM（Hansen 定理 13.4、13.5）]\label{thm:U08b-egmm}
+在本章的 i.i.d.、外生性、秩条件与矩条件下，对任意正定 $W$，
+\[
+V_W-(Q\T\Omega\inv Q)\inv\ \ge\ 0\quad\text{（半正定）}.
+\]
+因此 $W=\Omega\inv$（或任何 $\hat W\pto\Omega\inv$）给出所有 GMM 估计量中最小的渐近方差 $(Q\T\Omega\inv Q)\inv$。Chamberlain (1987) 进一步证明：若关于数据分布只知道 $\E(z_iu_i)=0$（半参数模型），则任何正则估计量的渐近方差都不能小于 $(Q\T\Omega\inv Q)\inv$——有效 GMM 是半参数有效的。
+\end{thm}
+
+\subsubsection{证明：任意 \texorpdfstring{$W$}{W} 的方差减去下界是半正定的}
+
+思路：把两个方差都写成“$\Omega$ 夹在中间”的二次型 $A\T\Omega A$、$B\T\Omega B$，再证明交叉项为零，差就是一个半正定二次型。令
+\[
+A=WQ(Q\T WQ)\inv,\qquad B=\Omega\inv Q(Q\T\Omega\inv Q)\inv\qquad\text{（均为 }L\times K\text{）},
+\]
+记 $V_0=(Q\T\Omega\inv Q)\inv$。
+\begin{align*}
+A\T\Omega A&=(Q\T WQ)\inv Q\T W\Omega WQ(Q\T WQ)\inv=V_W , \why{$W$、$(Q'WQ)^{-1}$ 对称}\\
+B\T\Omega B&=(Q\T\Omega\inv Q)\inv Q\T\Omega\inv\Omega\Omega\inv Q(Q\T\Omega\inv Q)\inv=V_0 , \why{同上一小节}\\
+B\T\Omega A&=(Q\T\Omega\inv Q)\inv Q\T\Omega\inv\Omega WQ(Q\T WQ)\inv \why{直接相乘}\\
+&=(Q\T\Omega\inv Q)\inv\,Q\T WQ(Q\T WQ)\inv=V_0=B\T\Omega B , \why{$\Omega^{-1}\Omega=I_L$}\\
+\Rightarrow\ B\T\Omega(A-B)&=0 . \why{两式相减}
+\end{align*}
+再把 $A$ 写成 $B+(A-B)$：
+\begin{align*}
+V_W&=\big(B+(A-B)\big)\T\Omega\big(B+(A-B)\big) \why{$A=B+(A-B)$}\\
+&=B\T\Omega B+B\T\Omega(A-B)+(A-B)\T\Omega B+(A-B)\T\Omega(A-B) \why{展开}\\
+&=V_0+(A-B)\T\Omega(A-B) . \why{交叉项及其转置为 $0$}
+\end{align*}
+对任意 $a\in\R^K$，令 $c=(A-B)a$，有 $a\T(A-B)\T\Omega(A-B)a=c\T\Omega c\ge0$（$\Omega>0$）。故 $V_W-V_0\ge0$。
+
+证明只用到 $(Q\T WQ)\inv$ 存在，并未用到 $W$ 正定；第 \ref{sec:U08b-extra} 小节将利用这一点证明“增加矩条件不降低效率”。
+
+\subsubsection{直觉：按信息量加权，与 GLS 同理}
+
+$\Omega$ 是各矩条件 $z_{ij}u_i$ 的方差—协方差矩阵。噪声大的矩条件信息少，应少给权重；彼此高度相关的矩条件信息重叠，不应重复计权。$W=\Omega\inv$ 正是“按信息量加权”——与 GLS 用 $\Var(u)\inv$ 给观测加权是同一个道理。有效 GMM 也不受工具线性变换的影响：$Z\to ZA$ 时 $\Omega\to A\T\Omega A$，$X\T ZA(A\T\Omega A)\inv A\T Z\T X=X\T Z\Omega\inv Z\T X$。
+
+%----------------------------------------------------------------------
+\subsection{两步可行 GMM：用 \texorpdfstring{$\hat\Omega$}{Omega-hat} 代替 \texorpdfstring{$\Omega$}{Omega}}\label{sec:U08b-twostep}
+
+\subsubsection{两步 GMM 的算法}
+
+$\Omega=\E(z_iz_i\T u_i^2)$ 未知，但可以用第一步的残差估计。这就是\term{两步 GMM}{two-step GMM}，它是有效 GMM 的可行版本。
+
+\begin{method}[两步 GMM]
+\begin{enumerate}
+  \item \textbf{第一步}：用任一一致估计量得到 $\tilde\beta$——通常用 2SLS（或一步 GMM），算残差 $\tilde u_i=y_i-x_i\T\tilde\beta$。
+  \item \textbf{构造权重}：$\hat\Omega=\frac1n\sum_{i=1}^nz_iz_i\T\tilde u_i^2$（$L\times L$；注意是外积 $z_iz_i\T$，不是 $z_i^2$）。
+  \item \textbf{第二步}：$\hat\beta^{2S}_{GMM}=(X\T Z\hat\Omega\inv Z\T X)\inv X\T Z\hat\Omega\inv Z\T Y$。
+  \item \textbf{方差估计}：用最终残差 $\hat u_i=y_i-x_i\T\hat\beta^{2S}_{GMM}$ 重新算 $\hat\Omega$，$\hat V=(\hat Q\T\hat\Omega\inv\hat Q)\inv$，$\hat Q=\frac1nZ\T X$；第 $j$ 个系数的标准误为 $\sqrt{\hat V_{jj}/n}$。Stata：\texttt{ivregress gmm}。
+\end{enumerate}
+\end{method}
+
+\subsubsection{未中心化与中心化的 \texorpdfstring{$\hat\Omega$}{Omega-hat}}
+
+上面的 $\hat\Omega$ 是未中心化的（Stata 默认）。中心化版本为
+\[
+\hat\Omega^*=\frac1n\sum_{i=1}^n(\tilde g_i-\bar g)(\tilde g_i-\bar g)\T,\qquad \tilde g_i=z_i\tilde u_i,\quad \bar g=\frac1n\sum_i\tilde g_i
+\]
+（Stata 选项 \texttt{center}）。模型设定正确时二者都一致；模型误设（$\E(z_iu_i)\neq0$）时中心化版本仍是 $\Var(z_iu_i)$ 的合理估计，Hansen 因此推荐中心化版本。恰好识别时 $\bar g=0$，二者相同。
+
+\subsubsection{\texorpdfstring{$\hat\Omega$}{Omega-hat} 的一致性}
+
+要证 $\hat\Omega\pto\Omega$。思路：把 $\tilde u_i$ 写成真实误差加估计误差，展开后估计误差项都乘着 $\tilde\beta-\beta\pto0$。由 $\tilde u_i=y_i-x_i\T\tilde\beta=u_i-x_i\T(\tilde\beta-\beta)$：
+\begin{align*}
+\hat\Omega&=\frac1n\sum_iz_iz_i\T\big[u_i-x_i\T(\tilde\beta-\beta)\big]^2 \why{代入 $\tilde u_i$}\\
+&=\frac1n\sum_iz_iz_i\T u_i^2-\frac2n\sum_iz_iz_i\T u_i\,x_i\T(\tilde\beta-\beta)+\frac1n\sum_iz_iz_i\T\big(x_i\T(\tilde\beta-\beta)\big)^2 \why{展开平方}\\
+&\pto\Omega-0+0=\Omega . \why{WLLN；$\tilde\beta-\beta\pto0$}
+\end{align*}
+第二项的每个元素是 $\sum_k\big[\frac1n\sum_iz_{ij}z_{il}u_ix_{ik}\big](\tilde\beta_k-\beta_k)=O_p(1)\cdot o_p(1)$；第三项的每个元素的绝对值不超过 $\|\tilde\beta-\beta\|^2\cdot\frac1n\sum_i|z_{ij}z_{il}|\,\|x_i\|^2=o_p(1)\cdot O_p(1)$（需要相应的矩有限）。再由连续映射定理（CMT），$\hat\Omega\inv\pto\Omega\inv$。
+
+\begin{thm}[两步 GMM 渐近有效（Hansen 定理 13.7）]\label{thm:U08b-twostep}
+在有效 GMM 的条件下，若 $\hat W=\hat\Omega\inv$ 或 $\hat\Omega^{*-1}$，则
+\[
+\sqrt n\big(\hat\beta^{2S}_{GMM}-\beta\big)\dto N\big(0,(Q\T\Omega\inv Q)\inv\big).
+\]
+两步 GMM 与不可行的有效 GMM 有\key{相同的渐近分布}：它是可行的有效 GMM（feasible efficient GMM）。
+\end{thm}
+理由：GMM 的渐近分布只通过 $\hat W$ 的概率极限依赖权重矩阵，而 $\hat\Omega\inv\pto\Omega\inv$。渐近分布也不依赖第一步用的是哪个一致估计量，但有限样本中的数值依赖它。
+
+%----------------------------------------------------------------------
+\subsection{同方差下 2SLS 就是有效 GMM}\label{sec:U08b-homo}
+
+要证：条件同方差 $\E(u_i^2\mid z_i)=\sigma^2$ 时，有效 GMM 的权重与 2SLS 的权重成比例，因而有效 GMM 就是 2SLS。
+
+\subsubsection{有限样本写法：\texorpdfstring{$\Var(Z'u\mid Z)=\sigma^2Z'Z$}{Var(Z'u|Z) = sigma2 Z'Z}}
+
+给定 $Z$，同方差且观测独立意味着 $\Var(u\mid Z)=\sigma^2I_n$。于是
+\begin{align*}
+\Omega_n=\Var(Z\T u\mid Z)&=Z\T\Var(u\mid Z)Z=\sigma^2Z\T Z , \why{$\Var(Au)=A\Var(u)A'$}\\
+\hat\beta_{EGMM}&=\big(X\T Z(\sigma^2Z\T Z)\inv Z\T X\big)\inv X\T Z(\sigma^2Z\T Z)\inv Z\T Y \why{$W=\Omega_n^{-1}$}\\
+&=\big(X\T Z(Z\T Z)\inv Z\T X\big)\inv X\T Z(Z\T Z)\inv Z\T Y=\hat\beta_{2SLS} . \why{$\sigma^{2}$ 与 $\sigma^{-2}$ 相消}
+\end{align*}
+
+\subsubsection{渐近写法：\texorpdfstring{$\Omega=\sigma^2M$}{Omega = sigma2 M}}
+
+记 $M=\E(z_iz_i\T)$（$L\times L$）。
+\begin{align*}
+\Omega=\E(z_iz_i\T u_i^2)&=\E\big[z_iz_i\T\,\E(u_i^2\mid z_i)\big] \why{迭代期望律}\\
+&=\sigma^2\E(z_iz_i\T)=\sigma^2M , \why{条件同方差}\\
+\Omega\inv&=\sigma^{-2}M\inv\ \propto\ M\inv=\plim\Big(\frac1nZ\T Z\Big)\inv . \why{2SLS 权重的极限}
+\end{align*}
+2SLS 的（渐近）权重恰与有效权重成比例，而权重的常数倍不影响估计量：\key{同方差下 2SLS 是有效 GMM}（Hansen 定理 13.6，第 13.9 节）。
+
+\subsubsection{同方差下 2SLS 的渐近方差 \texorpdfstring{$\sigma^2(Q'M^{-1}Q)^{-1}$}{sigma2 (Q' M-inv Q)-inv}}
+
+2SLS 的权重极限为 $W=M\inv$，代入 \eqref{eq:U08b-VW}：
+\begin{align*}
+V_{2SLS}&=(Q\T M\inv Q)\inv Q\T M\inv(\sigma^2M)M\inv Q(Q\T M\inv Q)\inv \why{$W=M^{-1}$，$\Omega=\sigma^2M$}\\
+&=\sigma^2(Q\T M\inv Q)\inv\,Q\T M\inv Q\,(Q\T M\inv Q)\inv \why{$M^{-1}M=I_L$}\\
+&=\sigma^2(Q\T M\inv Q)\inv . \why{$(Q'M^{-1}Q)^{-1}Q'M^{-1}Q=I_K$}
+\end{align*}
+它与有效方差 $(Q\T\Omega\inv Q)\inv=(Q\T\sigma^{-2}M\inv Q)\inv=\sigma^2(Q\T M\inv Q)\inv$ 一致。估计时用 $\hat\sigma^2(X\T P_ZX)\inv$。
+
+\subsubsection{三者的关系：精确相等与渐近相等}
+
+“同方差下 $\hat\beta_{2SLS}=\hat\beta_{EGMM}=\hat\beta^{2S}_{GMM}$”应准确理解为：(1) 以真实 $\Omega$（同方差形式）为权重的有效 GMM 与 2SLS \key{精确相等}；(2) 两步 GMM 用的 $\hat\Omega=\frac1n\sum_iz_iz_i\T\tilde u_i^2$ 在有限样本中并不严格等于 $\hat\sigma^2\frac1nZ\T Z$，所以数值上与 2SLS 略有不同，但二者\key{渐近等价}。
+
+\begin{note}[异方差时 2SLS 仍一致，但不再有效]
+若 $\E(u_i^2\mid z_i)$ 随 $z_i$ 变化，则 $\Omega\not\propto M$，2SLS 不再有效，两步 GMM 的渐近方差更小。2SLS 仍一致、渐近正态，只是必须用稳健（夹心）标准误（Stata：\texttt{ivregress 2sls ..., r}）。样本不大时 2SLS 往往更稳健：两步 GMM 要估计 $L(L+1)/2$ 个元素的 $\hat\Omega$，权重矩阵的估计误差会使其有限样本表现变差。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{迭代 GMM 与连续更新 GMM（拓展）}\label{sec:U08b-iter}
+
+\subsubsection{迭代 GMM：反复更新权重直到收敛}
+
+两步 GMM 的数值依赖于第一步估计量。\term{迭代 GMM}{iterated GMM} 用 $\hat\beta^{2S}_{GMM}$ 的残差重新算 $\hat\Omega$，再估计 $\beta$，如此反复直到相邻两次估计之差小于给定容忍度（Stata：\texttt{ivregress gmm, igmm}）。渐近分布与两步 GMM 相同，但去除了对第一步估计量的依赖（Hansen 第 13.11 节）。
+
+\subsubsection{连续更新 GMM：权重矩阵写成 \texorpdfstring{$\beta$}{beta} 的函数}
+
+\term{连续更新 GMM}{continuously-updated GMM, CU-GMM}（L.\ Hansen, Heaton \& Yaron, 1996）把权重矩阵直接写成 $\beta$ 的函数，最小化
+\[
+J(\beta)=n\,\bar g_n(\beta)\T\Big[\frac1n\sum_{i=1}^ng_i(\beta)g_i(\beta)\T\Big]\inv\bar g_n(\beta),\qquad g_i(\beta)=z_i(y_i-x_i\T\beta) .
+\]
+目标函数不再是 $\beta$ 的二次型，需要数值优化。它与迭代 GMM 求解的是不同的一阶条件，二者不是同一个估计量。CU-GMM 偏误较小，但分布尾部较厚，应用较少（Hansen 第 13.20 节）。
+
+%----------------------------------------------------------------------
+\subsection{四种权重矩阵对照表}\label{sec:U08b-Wtable}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.3cm}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{4.4cm}L}
+\toprule
+$W$ & 名称 & 估计量 & 性质\\
+\midrule
+$I_L$ & 一步 GMM & $(X\T ZZ\T X)\inv X\T ZZ\T Y$ & 一致；一般不有效；依赖工具单位\\
+$(Z\T Z)\inv$ & 2SLS & $(X\T P_ZX)\inv X\T P_ZY$ & 一致；同方差下有效；不受工具线性变换影响\\
+$\Omega\inv$ & 有效（最优）GMM & $(X\T Z\Omega\inv Z\T X)\inv X\T Z\Omega\inv Z\T Y$ & 达到方差下界 $(Q\T\Omega\inv Q)\inv$；不可行\\
+$\hat\Omega\inv$ & 两步 GMM & $(X\T Z\hat\Omega\inv Z\T X)\inv X\T Z\hat\Omega\inv Z\T Y$ & 可行；渐近有效；有限样本依赖第一步（迭代 GMM 可消除）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{四种权重矩阵对照}
+\end{center}
+
+\begin{english}
+\textbf{Choice of the weighting matrix.} With $W=I_L$ we obtain one-step GMM, which is consistent but depends on the units of the instruments. With $W=(Z'Z)^{-1}$, GMM equals 2SLS: $\hat\beta_{2SLS}=(X'P_ZX)^{-1}X'P_ZY=(\hat X'\hat X)^{-1}\hat X'Y$, since $P_Z$ is symmetric and idempotent; it can be computed by regressing $X$ on $Z$ and then $Y$ on the fitted values, but the second-stage standard errors must use the residuals $y_i-x_i'\hat\beta$. The efficient weight is $W=\Omega^{-1}$ with $\Omega=\E(z_iz_i'u_i^2)$, which attains the lower bound $(Q'\Omega^{-1}Q)^{-1}$ but is infeasible; two-step GMM replaces $\Omega$ by $\hat\Omega=\frac1n\sum z_iz_i'\tilde u_i^2$ computed from a first-step consistent estimator and is asymptotically efficient. Under conditional homoskedasticity $\Omega=\sigma^2\E(z_iz_i')$, so 2SLS is the efficient GMM estimator.
+\end{english}
+
+%======================================================================
+\section{GMM 的特例：IV、OLS、GLS}\label{sec:U08b-special}
+
+GMM 不只是一个估计量，而是一个框架：选定矩条件（工具）和权重矩阵，就得到一个估计量。本节说明本书前面的 IV、OLS、GLS 都是 GMM 的特例。
+
+\subsection{恰好识别时 GMM 等于 IV，与 \texorpdfstring{$W$}{W} 无关}\label{sec:U08b-justid}
+
+\subsubsection{推导：三个 \texorpdfstring{$K\times K$}{K x K} 可逆方阵分别求逆}
+
+$K=L$ 时，$X\T Z$、$W$、$Z\T X$ 都是 $K\times K$ 方阵，且由秩条件都可逆。于是
+\begin{align*}
+\hat\beta_{GMM}&=(X\T Z\,W\,Z\T X)\inv X\T ZWZ\T Y \why{GMM 闭式解}\\
+&=(Z\T X)\inv W\inv(X\T Z)\inv\,X\T ZWZ\T Y \why{$(ABC)^{-1}=C^{-1}B^{-1}A^{-1}$}\\
+&=(Z\T X)\inv W\inv WZ\T Y \why{$(X'Z)^{-1}X'Z=I_K$}\\
+&=(Z\T X)\inv Z\T Y=\hat\beta_{IV} . \why{$W^{-1}W=I_K$}
+\end{align*}
+
+\subsubsection{推论：各种 GMM 全部等于 IV，且 \texorpdfstring{$J(\hat\beta)=0$}{J = 0}}
+
+恰好识别时权重矩阵无关紧要：一步 GMM、2SLS、有效 GMM、两步 GMM 全部等于 $\hat\beta_{IV}$。此时样本矩条件被精确满足：
+\begin{align*}
+\bar g_n(\hat\beta_{IV})&=\tfrac1n\big(Z\T Y-Z\T X(Z\T X)\inv Z\T Y\big) \why{代入 $\hat\beta_{IV}$}\\
+&=\tfrac1n(Z\T Y-Z\T Y)=0 , \why{$Z'X(Z'X)^{-1}=I_K$}
+\end{align*}
+所以 $J(\hat\beta)=\bar g_n\T W\bar g_n=0$：没有“多余的方程”可供检验矩条件是否相互矛盾，恰好识别时工具的外生性无法用数据检验（第 9 章）。
+
+\subsection{OLS 是 \texorpdfstring{$Z=X$}{Z = X} 时的 GMM}\label{sec:U08b-ols}
+
+$Z=X$ 即“每个回归元给自己当工具”（全部回归元外生），此时 $K=L$，由上一小节
+\[
+\hat\beta_{GMM}=(X\T XWX\T X)\inv(X\T XWX\T Y)=(X\T X)\inv X\T Y=\hat\beta_{OLS} .
+\]
+矩条件 $\E[x_i(y_i-x_i\T\beta)]=0$ 的样本版本 $X\T(Y-X\beta)=0$ 正是 OLS 的正规方程。
+
+\subsection{GLS 是 \texorpdfstring{$Z=\Sigma^{-1}X$}{Z = Sigma-inv X} 时的 GMM}\label{sec:U08b-gls}
+
+\subsubsection{记号：这里的协方差矩阵是 \texorpdfstring{$n\times n$}{n x n} 的}
+
+\begin{note}[记号冲突]
+GLS 中的协方差矩阵是 $n\times n$ 的误差协方差矩阵 $\Var(u\mid X)$（第 4 章记作 $\Omega$），不是本章 $L\times L$ 的 $\Omega=\Var(z_iu_i)$。为避免混淆，本小节记 $\Sigma=\Var(u\mid X)$（$n\times n$，已知，对称正定）。
+\end{note}
+
+\subsubsection{推导：用恰好识别的 IV 公式}
+
+取 $Z=\Sigma\inv X$（$n\times K$）。由 $\E(u\mid X)=0$，矩条件 $\E(X\T\Sigma\inv u)=\E\big[X\T\Sigma\inv\E(u\mid X)\big]=0$ 成立。$K=L$，用 IV 公式：
+\begin{align*}
+\hat\beta_{GMM}&=(Z\T X)\inv Z\T Y \why{恰好识别}\\
+&=\big((\Sigma\inv X)\T X\big)\inv(\Sigma\inv X)\T Y \why{代入 $Z=\Sigma^{-1}X$}\\
+&=(X\T\Sigma\inv X)\inv X\T\Sigma\inv Y=\hat\beta_{GLS} . \why{$\Sigma$ 对称，$(\Sigma^{-1})'=\Sigma^{-1}$}
+\end{align*}
+
+\subsubsection{推广：最优工具}
+
+更一般地，在条件矩约束 $\E(u_i\mid z_i)=0$ 下，\term{最优工具}{optimal instrument}为 $A_i=\sigma_i^{-2}\E(x_i\mid z_i)$，$\sigma_i^2=\E(u_i^2\mid z_i)$（Hansen 第 13.27 节）。外生回归模型中 $x_i=z_i$，最优工具为 $\sigma_i^{-2}x_i$——即加权最小二乘 / GLS。详见第 \ref{sec:U08b-condmom} 小节。
+
+\subsection{GMM 统一了本书的估计量}\label{sec:U08b-unify}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm}L>{\raggedright\arraybackslash}p{3.2cm}}
+\toprule
+估计量 & 矩条件 / 工具 & 权重\\
+\midrule
+样本均值、样本方差 & $\E(y_i-\mu)=0$、$\E[(y_i-\mu)^2-\sigma^2]=0$ 等 & 恰好识别，无关\\
+OLS & $Z=X$ & 无关\\
+GLS & $Z=\Sigma\inv X$（$\Sigma=\Var(u\mid X)$） & 无关\\
+IV & $Z$，$L=K$ & 无关\\
+2SLS & $Z$，$L>K$ & $(Z\T Z)\inv$\\
+有效 / 两步 GMM & $Z$，$L>K$ & $\Omega\inv$ / $\hat\Omega\inv$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{GMM 框架下的各种估计量}
+\end{center}
+第 12 章的动态面板 GMM（Arellano--Bond 等）也属于同一框架：用滞后项构造大量矩条件，再选权重矩阵。
+
+\begin{english}
+\textbf{Special cases of GMM.} In the just-identified case $K=L$ the matrices $X'Z$, $W$ and $Z'X$ are square and invertible, so $(X'ZWZ'X)^{-1}X'ZWZ'Y=(Z'X)^{-1}W^{-1}(X'Z)^{-1}X'ZWZ'Y=(Z'X)^{-1}Z'Y$: the weighting matrix is irrelevant, GMM reduces to IV, and the minimized criterion is exactly zero. Setting $Z=X$ gives OLS, and setting $Z=\Sigma^{-1}X$, where $\Sigma=\Var(u\mid X)$, gives GLS. Hence GMM nests OLS, GLS, IV and 2SLS.
+\end{english}
+
+%======================================================================
+\section{弱工具（拓展）}\label{sec:U08b-weak}
+
+\tagext\ 前面的大样本理论假定工具与内生回归元的相关性是固定的非零常数。若相关性很弱，这些近似会严重失真。本节先看相关性为零的极端情形，再看“弱而不为零”的情形，最后讨论工具个数的权衡与应对办法。
+
+\subsection{识别失败的极端情形：\texorpdfstring{$\gamma=0$}{gamma = 0}}\label{sec:U08b-idfail}
+
+\subsubsection{最简单模型与标准化假设}
+
+考虑单回归元、单工具、无常数项的模型（Hansen 第 12.35 节）：
+\[
+y_i=x_i\beta+u_i,\qquad x_i=z_i\gamma+v_i,\qquad \E(z_iu_i)=\E(z_iv_i)=0 .
+\]
+假设条件同方差并标准化：$\E(z_i^2)=1$，$\Var(u_i\mid z_i)=\Var(v_i\mid z_i)=1$，$\Cov(u_i,v_i\mid z_i)=\rho\neq0$（$x_i$ 内生）。$\beta$ 可识别当且仅当 $\gamma\neq0$。
+
+\subsubsection{推导：IV 估计量收敛到两个正态变量之比}
+
+设 $\gamma=0$（工具完全无关），则 $x_i=v_i$。先求联合 CLT 的方差：
+\begin{align*}
+\Var(z_iu_i)&=\E\big[z_i^2\E(u_i^2\mid z_i)\big]=\E(z_i^2)=1 , \why{迭代期望律}\\
+\Cov(z_iu_i,z_iv_i)&=\E\big[z_i^2\E(u_iv_i\mid z_i)\big]=\rho\,\E(z_i^2)=\rho . \why{迭代期望律}
+\end{align*}
+于是
+\begin{align*}
+\hat\beta_{IV}-\beta&=\frac{\sum_iz_iu_i}{\sum_iz_ix_i}=\frac{n^{-1/2}\sum_iz_iu_i}{n^{-1/2}\sum_iz_iv_i} \why{$\gamma=0\Rightarrow x_i=v_i$}\\
+&\dto\frac{\xi_1}{\xi_2},\qquad \begin{pmatrix}\xi_1\\ \xi_2\end{pmatrix}\sim N\left(0,\begin{pmatrix}1&\rho\\ \rho&1\end{pmatrix}\right) \why{联合 CLT；CMT}\\
+&=\rho+\frac{\xi_0}{\xi_2},\qquad \xi_0=\xi_1-\rho\xi_2 . \why{正态分解}
+\end{align*}
+CMT 适用，因为 $\xi_1/\xi_2$ 只在 $\xi_2=0$ 处不连续，而该事件概率为零。$\xi_0$ 与 $\xi_2$ 联合正态且 $\Cov(\xi_0,\xi_2)=\rho-\rho=0$，故相互独立，$\Var(\xi_0)=1-\rho^2$。
+
+作为对照，OLS 的极限为
+\begin{align*}
+\hat\beta_{OLS}-\beta&=\frac{\frac1n\sum_iv_iu_i}{\frac1n\sum_iv_i^2} \why{$x_i=v_i$}\\
+&\pto\frac{\E(u_iv_i)}{\E(v_i^2)}=\rho . \why{WLLN；CMT}
+\end{align*}
+
+\subsubsection{三个后果：不一致、中位数偏向 OLS、Cauchy 型分布}
+
+\begin{enumerate}
+  \item \key{不一致}：$\hat\beta_{IV}$ 不收敛到常数，而是收敛到一个随机变量。$\beta$ 不可识别，自然不可能被一致估计。
+  \item \key{没有纠正 OLS 的偏误}：$\xi_0/\xi_2$ 关于 $0$ 对称，所以极限分布的中位数是 $\beta+\rho$，恰好等于 OLS 的概率极限。
+  \item \key{非正态}：两个独立正态之比服从 Cauchy 分布，没有均值、尾部极厚，基于正态的 $t$ 检验完全失效。
+\end{enumerate}
+更糟的是常规标准误。可以证明 $\hat\sigma^2=\frac1n\sum_i(y_i-x_i\hat\beta_{IV})^2\dto1-2\rho\frac{\xi_1}{\xi_2}+\big(\frac{\xi_1}{\xi_2}\big)^2$；当 $\rho\to1$ 时 $\xi_1/\xi_2\to1$，$\hat\sigma^2\to0$，标准误趋于零而 $|t|$ 发散——毫无信息的估计看上去却“非常精确”。
+
+\subsection{弱而不为零：局部趋零设定}\label{sec:U08b-weaklocal}
+
+\subsubsection{Staiger--Stock 的局部趋零设定 \texorpdfstring{$\gamma=C/\sqrt n$}{gamma = C/sqrt(n)}}
+
+工具“弱而不为零”时，Staiger \& Stock (1997) 用\term{局部趋零}{local-to-zero}设定 $\gamma=C/\sqrt n$ 刻画：第一阶段的信号与抽样噪声同阶。这不是说 $\gamma$ 真会随 $n$ 变化，而是一种更贴近“弱工具”现实的分布近似。在上面的模型中：
+\begin{align*}
+\frac1{\sqrt n}\sum_iz_ix_i&=\frac1{\sqrt n}\sum_iz_i\Big(z_i\frac{C}{\sqrt n}+v_i\Big) \why{代入第一阶段}\\
+&=C\cdot\frac1n\sum_iz_i^2+\frac1{\sqrt n}\sum_iz_iv_i\ \dto\ C+\xi_2 , \why{WLLN；CLT}\\
+\hat\beta_{IV}-\beta&=\frac{n^{-1/2}\sum_iz_iu_i}{n^{-1/2}\sum_iz_ix_i}\ \dto\ \frac{\xi_1}{C+\xi_2} . \why{CMT}
+\end{align*}
+极限仍是随机的、非正态的，畸变程度取决于 $|C|$：$|C|\to\infty$ 时极限集中到 $0$，回到通常的强识别情形。多工具、多回归元时结论形式相同，只是 $C$ 换成矩阵（Hansen 定理 12.18）。在此设定下，第一阶段 $t$ 统计量 $\hat\gamma/se(\hat\gamma)\dto C+\xi_2$，$F=t^2$ 不随 $n$ 增大而发散——“弱工具”在数据中的表现就是第一阶段 $F$ 偏小。
+
+\subsubsection{偏向 OLS：偏误约为 OLS 偏误的 \texorpdfstring{$1/(F+1)$}{1/(F+1)}}
+
+工具越弱，2SLS 的有限样本分布越向 OLS 的概率极限集中。Angrist \& Pischke (2009) 给出一个常用近似：
+\[
+\E(\hat\beta_{2SLS})-\beta\ \approx\ \text{（OLS 偏误）}\times\frac1{F+1},
+\]
+$F$ 为第一阶段排除工具联合显著性的（总体）$F$ 统计量。$F\to0$ 时 2SLS 的偏误趋近 OLS 的偏误；$F$ 越大，偏误越小。
+
+\subsubsection{分布非正态、检验失真}
+
+名义 5\% 的 $t$ 检验的实际拒绝率可能远高于 5\%，置信区间的实际覆盖率不足名义水平。
+
+\subsubsection{放大外生性的微小违背}
+
+工具弱时，对外生性（排他性约束）的微小违背会被放大（Bound, Jaeger \& Baker, 1995）。单回归元、单工具时，由 $\hat\beta_{IV}=\widehat{\Cov}(z,y)/\widehat{\Cov}(z,x)$：
+\begin{align*}
+\plim\hat\beta_{IV}-\beta&=\frac{\Cov(z,u)}{\Cov(z,x)} \why{代入 $y=x\beta+u$；WLLN}\\
+&=\frac{\Corr(z,u)\,\sigma_z\sigma_u}{\Corr(z,x)\,\sigma_z\sigma_x}=\frac{\Corr(z,u)}{\Corr(z,x)}\cdot\frac{\sigma_u}{\sigma_x} . \why{$\Cov=\Corr\cdot\sigma\sigma$}
+\end{align*}
+对照 OLS：$\plim\hat\beta_{OLS}-\beta=\Cov(x,u)/\Var(x)=\Corr(x,u)\,\sigma_u/\sigma_x$。分母 $\Corr(z,x)$ 很小时，即使 $\Corr(z,u)$ 只有一点点，IV 的不一致也可能比 OLS 还大：IV 优于 OLS 当且仅当 $|\Corr(z,u)/\Corr(z,x)|<|\Corr(x,u)|$。
+
+\begin{prac}[弱工具放大外生性违背]\label{pr:U08b-bjb}
+设 $\sigma_u=\sigma_x=1$，$\Corr(x,u)=0.3$。工具 $z$ 略微违背外生性：$\Corr(z,u)=0.05$，且 $\Corr(z,x)=0.1$。比较 OLS 与 IV 的渐近偏误；若 $\Corr(z,x)=0.5$ 呢？
+\answer
+\begin{align*}
+\plim\hat\beta_{OLS}-\beta&=\Corr(x,u)\frac{\sigma_u}{\sigma_x}=0.3 , \why{$\sigma_u=\sigma_x=1$}\\
+\plim\hat\beta_{IV}-\beta&=\frac{0.05}{0.1}\cdot\frac11=0.5>0.3 . \why{上式}
+\end{align*}
+IV 比 OLS 还差。若 $\Corr(z,x)=0.5$，IV 偏误为 $0.05/0.5=0.1<0.3$，IV 优于 OLS。结论：工具越弱，对排他性的微小违背越敏感。
+\end{prac}
+
+\subsection{工具数量的权衡：多工具偏误}\label{sec:U08b-many}
+
+\subsubsection{增加有效工具降低 2SLS 的渐近方差}
+
+设 $Z_1$ 的列是 $Z$ 的一部分。$P_Z-P_{Z_1}$ 是向 $Z$ 的列空间中与 $Z_1$ 正交的部分的投影，半正定，所以 $X\T P_ZX\ge X\T P_{Z_1}X$，同方差下 $\hat\sigma^2(X\T P_ZX)\inv\le\hat\sigma^2(X\T P_{Z_1}X)\inv$：工具越多，2SLS 的（渐近）方差越小（Hansen 第 12.17 节）。这是过度识别带来的效率收益。
+
+\subsubsection{代价：有限样本偏误随工具个数增加}
+
+但 2SLS 的有限样本偏误大致随工具个数线性增加：工具越多，第一阶段越容易“过拟合”内生变量，$\hat X$ 越接近 $X$，2SLS 越接近 OLS（极端情形 $L=n$ 时 $P_Z=I_n$，2SLS 就是 OLS）。
+
+Bekker (1994) 的\term{多工具渐近}{many-instrument asymptotics}把这一点精确化：令工具个数与样本量同比例增长，$L/n\to\alpha\in[0,1)$。单个内生回归元 $x_i=z_i\T\gamma+v_i$、条件同方差时，记 $h=\plim\frac1n\sum_i(z_i\T\gamma)^2$（第一阶段可解释的变动），$\sigma_v^2=\Var(v_i)$，$\sigma_{vu}=\Cov(v_i,u_i)$，则（Hansen 定理 12.19）
+\[
+\plim\hat\beta_{OLS}=\beta+\frac{\sigma_{vu}}{h+\sigma_v^2},\qquad
+\plim\hat\beta_{2SLS}=\beta+\frac{\alpha\,\sigma_{vu}}{h+\alpha\sigma_v^2},\qquad
+\plim\hat\beta_{LIML}=\beta .
+\]
+2SLS 的不一致程度随 $\alpha$ 增大而增大，$\alpha=1$ 时与 OLS 相同；LIML（第 \ref{sec:U08b-liml} 节）在多工具下仍一致。经验上，$\alpha=L/n\ge0.05$ 时就应认真对待多工具问题。
+
+\subsubsection{案例：Angrist--Krueger (1991) 的出生季度工具}
+
+Angrist \& Krueger (1991) 用出生季度构造教育年限的工具，估计教育回报（Hansen 第 12.41 节）：
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{5.0cm}ccL}
+\toprule
+排除工具 & 第一阶段 $F$ & 教育系数（标准误） & 评价\\
+\midrule
+30 个“出生季度 $\times$ 出生年份”交互项 & 4.8 & 0.081 (0.016) & 远低于 Stock--Yogo 临界值，弱工具\\
+扩展到 180 个交互项（加出生州） & 2.43 & 0.083 (0.009) & 标准误变小不是更精确，而是更不可靠\\
+只用 3 个出生季度虚拟变量 & 31 & 0.099 (0.021) & 超过临界值，结果可信得多\\
+\bottomrule
+\end{tabularx}
+\end{center}
+$F$ 的 $p$ 值在前两种设定下都接近 $0$——“工具显著”不等于“工具足够强”（第 9 章）。
+
+\subsection{弱工具下的应对}\label{sec:U08b-weakremedy}
+
+\subsubsection{先检验：报告第一阶段 \texorpdfstring{$F$}{F}}
+
+报告第一阶段排除工具的 $F$ 统计量，与经验法则（$F>10$）或 Stock--Yogo 临界值比较（第 9 章）。
+
+\subsubsection{寻找更强的工具，或减少工具个数}
+
+只保留最强的少数几个工具，如上面案例中只用 3 个出生季度虚拟变量。
+
+\subsubsection{用 LIML 替代 2SLS}
+
+LIML 对弱工具、多工具引起的偏误不那么敏感（第 \ref{sec:U08b-liml} 节）。
+
+\subsubsection{对弱工具稳健的推断：Anderson--Rubin 检验}
+
+\term{Anderson--Rubin 检验}{Anderson-Rubin test}检验 $H_0:\beta=\beta_0$ 时，不估计 $\beta$，直接看 $H_0$ 下的样本矩 $\bar g_n(\beta_0)=\frac1nZ\T(Y-X\beta_0)$ 是否接近 $0$。统计量为
+\[
+AR(\beta_0)=n\,\bar g_n(\beta_0)\T\hat\Omega(\beta_0)\inv\bar g_n(\beta_0),\qquad
+\hat\Omega(\beta_0)=\frac1n\sum_{i=1}^nz_iz_i\T(y_i-x_i\T\beta_0)^2 .
+\]
+$H_0$ 下的分布推导：
+\begin{align*}
+\sqrt n\,\bar g_n(\beta_0)&=\frac1{\sqrt n}\sum_iz_i(y_i-x_i\T\beta_0)=\frac1{\sqrt n}\sum_iz_iu_i \why{$H_0$ 下 $y_i-x_i'\beta_0=u_i$}\\
+&\dto\xi\sim N(0,\Omega) , \why{CLT；与 $x_i$ 无关}\\
+\hat\Omega(\beta_0)&=\frac1n\sum_iz_iz_i\T u_i^2\pto\Omega , \why{WLLN}\\
+AR(\beta_0)&=\big(\sqrt n\bar g_n\big)\T\hat\Omega(\beta_0)\inv\big(\sqrt n\bar g_n\big)\dto\xi\T\Omega\inv\xi\sim\chi^2_L . \why{CMT；标准化正态平方和}
+\end{align*}
+推导中没有用到工具与 $x_i$ 的相关性，所以\key{无论工具强弱}，$H_0$ 下 $AR(\beta_0)\dto\chi^2_L$。要点：
+\begin{itemize}
+  \item 自由度是 $L$ 而不是 $L-K$，因为没有估计任何参数。
+  \item 若改用任意固定的 $W$，$n\bar g_n(\beta_0)\T W\bar g_n(\beta_0)\dto\xi\T W\xi$，是若干 $\chi^2_1$ 的加权和，分布依赖未知的 $\Omega$；只有取 $W=\hat\Omega(\beta_0)\inv$ 才得到已知的 $\chi^2_L$。$\hat\Omega(\beta_0)$ 用 $H_0$ 下的残差 $y_i-x_i\T\beta_0$ 构造，充分利用了原假设。
+  \item 把所有不被拒绝的 $\beta_0$ 收集起来得到置信集 $\{\beta_0:AR(\beta_0)\le\chi^2_{L,1-\alpha}\}$。工具弱时它可能是无界的，或由几段不相连的区间组成，不一定是椭圆——这恰恰如实反映了信息不足。
+  \item $L>K$ 时，$AR$ 检验同时检验 $\beta=\beta_0$ 与矩条件的有效性；拒绝也可能源于工具无效。
+\end{itemize}
+
+\begin{english}
+\textbf{Weak instruments.} If the instruments are only weakly correlated with the endogenous regressor, the IV/2SLS estimator is biased towards OLS in finite samples, its distribution is far from normal, and conventional $t$-tests are size-distorted. In the extreme case of no correlation the IV estimator converges to a Cauchy-type random variable whose median equals the OLS probability limit. Weak instruments also magnify the consequences of small violations of exogeneity, since $\plim\hat\beta_{IV}-\beta=\Cov(z,u)/\Cov(z,x)$. Using many instruments lowers the asymptotic variance but increases the finite-sample bias of 2SLS. Researchers should report the first-stage $F$-statistic and, if instruments are weak, use fewer and stronger instruments, LIML, or weak-instrument-robust inference such as the Anderson--Rubin test, whose null distribution $\chi^2_L$ does not depend on instrument strength.
+\end{english}
+
+%======================================================================
+\section{LIML 与 \texorpdfstring{$k$}{k} 类估计量（拓展）}\label{sec:U08b-liml}
+
+\tagext\ 本节简述 2SLS 的主要替代者 LIML。它在强工具下与 2SLS 渐近等价，但在弱工具、多工具下表现更好，是上一节“应对办法”之一。
+
+\subsection{LIML：结构方程加简约式的正态极大似然}
+
+沿用分块记号：$Y=X_1\beta_1+X_2\beta_2+u$，$X_1$（$n\times k_1$）内生，$X_2$（$n\times k_2$）外生；内生回归元的简约式为 $X_1=Z\Gamma+V$，$Z=(\tilde Z,X_2)$，$\tilde Z$ 为 $L_2$ 个排除工具。\term{有限信息最大似然}{limited information maximum likelihood, LIML}（Anderson \& Rubin, 1949）假定 $(u,V)$ 联合正态，对“结构方程 $+$ 内生回归元的简约式”求极大似然。“有限信息”指它只需要 $X_1$ 的简约式，不需要 $X_1$ 自己的结构方程（需要全部结构方程的是完全信息极大似然 FIML）。
+
+\subsection{\texorpdfstring{$k$}{k} 类估计量}
+
+\subsubsection{\texorpdfstring{$k$}{k} 类估计量的统一公式}
+
+LIML 可以写成\term{$k$ 类估计量}{k-class estimator}：
+\begin{equation}\label{eq:U08b-kclass}
+\hat\beta(\kappa)=\big(X\T(I_n-\kappa M_Z)X\big)\inv X\T(I_n-\kappa M_Z)Y,\qquad M_Z=I_n-P_Z .
+\end{equation}
+
+\subsubsection{\texorpdfstring{$\kappa=0$}{kappa = 0}：OLS}
+
+$I_n-0\cdot M_Z=I_n$，$\hat\beta(0)=(X\T X)\inv X\T Y=\hat\beta_{OLS}$。
+
+\subsubsection{\texorpdfstring{$\kappa=1$}{kappa = 1}：2SLS}
+
+$I_n-M_Z=P_Z$，$\hat\beta(1)=(X\T P_ZX)\inv X\T P_ZY=\hat\beta_{2SLS}$。
+
+\subsubsection{\texorpdfstring{$\kappa=\hat\kappa$}{kappa = kappa-hat}：LIML 与最小方差比}
+
+记 $\tilde Y=(Y,X_1)$（$n\times(1+k_1)$），$M_2=I_n-X_2(X_2\T X_2)\inv X_2\T$。LIML 取
+\[
+\hat\kappa=\min_{\gamma\neq0}\frac{\gamma\T\tilde Y\T M_2\tilde Y\gamma}{\gamma\T\tilde Y\T M_Z\tilde Y\gamma},
+\]
+即 $\tilde Y\T M_2\tilde Y$ 相对于 $\tilde Y\T M_Z\tilde Y$ 的最小广义特征值，再代入 \eqref{eq:U08b-kclass} 得 $\hat\beta_{LIML}=\hat\beta(\hat\kappa)$。直观含义：取 $\gamma=(1,-\beta_1\T)\T$，则 $\tilde Y\gamma=Y-X_1\beta_1$；分子是 $Y-X_1\beta_1$ 只对 $X_2$ 回归的残差平方和，分母是对全部工具 $Z$ 回归的残差平方和。若 $\beta_1$ 取对了且排除工具有效，$\tilde Z$ 对 $Y-X_1\beta_1$ 不应有额外解释力，比值接近 1。LIML 选 $\beta_1$ 使排除工具的额外解释力最小（\term{最小方差比}{least variance ratio}），与 Anderson--Rubin 检验的思想一脉相承。
+
+\subsubsection{\texorpdfstring{$\hat\kappa\ge1$}{kappa-hat >= 1}，恰好识别时 \texorpdfstring{$\hat\kappa=1$}{kappa-hat = 1}}
+
+对任意 $\gamma$：
+\begin{align*}
+\gamma\T\tilde Y\T M_2\tilde Y\gamma&=\gamma\T\tilde Y\T M_Z\tilde Y\gamma+\gamma\T\tilde Y\T(M_2-M_Z)\tilde Y\gamma \why{加一项减一项}\\
+&=\gamma\T\tilde Y\T M_Z\tilde Y\gamma+\gamma\T\tilde Y\T(P_Z-P_2)\tilde Y\gamma \why{$M=I_n-P$}\\
+&\ge\gamma\T\tilde Y\T M_Z\tilde Y\gamma , \why{$X_2\subset Z$，$P_Z-P_2\ge0$}
+\end{align*}
+所以比值不小于 1，$\hat\kappa\ge1$。由 FWL 定理（第 3 章），$P_Z-P_2$ 是向 $M_2\tilde Z$ 的列空间的投影，故等号成立当且仅当 $\tilde Z\T M_2\tilde Y\gamma=0$——这是关于 $1+k_1$ 个未知数的 $L_2$ 个线性方程。恰好识别时 $L_2=k_1<1+k_1$，一定有非零解，于是 $\hat\kappa=1$，LIML $=$ 2SLS。过度识别时一般 $\hat\kappa>1$。$\kappa$ 从 0 到 1，估计量从 OLS 移到 2SLS；可以直观地把 $\hat\kappa>1$ 理解为把估计量进一步推离 OLS，对 2SLS 偏向 OLS 的倾向做修正。
+
+\subsection{LIML 的性质}
+
+\subsubsection{恰好识别时 LIML、2SLS 与 IV 相同}
+
+由上一小节，$K=L$ 时 $\hat\kappa=1$，LIML $=$ 2SLS $=$ IV。由此还得到一个推论：恰好识别且误差正态时，IV 估计量就是极大似然估计量。
+
+\subsubsection{过度识别时：与 2SLS 渐近等价，弱工具、多工具下偏误更小}
+
+\begin{itemize}
+  \item 强工具、工具个数固定时，LIML 与 2SLS 的渐近分布相同。
+  \item 弱工具、多工具下 LIML 的中位数偏误明显小于 2SLS：Stock--Yogo 临界值表中 LIML 的门槛远低于 2SLS，且 2SLS 的门槛随工具个数上升而 LIML 的门槛下降（第 9 章）；多工具渐近下 LIML 仍一致而 2SLS 不一致（第 \ref{sec:U08b-many} 小节）。
+  \item 代价：有限样本离散程度更大（分布尾部更厚）。
+  \item Stata：\texttt{ivregress liml}。
+\end{itemize}
+
+\begin{english}
+\textbf{LIML.} The limited information maximum likelihood estimator belongs to the $k$-class $\hat\beta(\kappa)=(X'(I-\kappa M_Z)X)^{-1}X'(I-\kappa M_Z)Y$, which gives OLS for $\kappa=0$ and 2SLS for $\kappa=1$; LIML sets $\kappa$ equal to the smallest root $\hat\kappa\ge1$ of a least-variance-ratio problem, and $\hat\kappa=1$ in the just-identified case, so that LIML, 2SLS and IV coincide. LIML is asymptotically equivalent to 2SLS but has much smaller median bias when instruments are weak or numerous, so it is a useful alternative when the first-stage $F$-statistic is small.
+\end{english}
+
+%======================================================================
+\section{GMM 的推断与扩展}\label{sec:U08b-infer}
+
+本节把第 6 章的检验方法搬到 GMM 框架，并讨论约束估计、非线性矩条件、额外矩条件与最优工具，对应 Hansen 第 13.14--13.27 节。
+
+\subsection{GMM 下的 Wald 检验}\label{sec:U08b-wald}
+
+\subsubsection{delta 方法给出 \texorpdfstring{$\hat\theta$}{theta-hat} 的渐近分布}
+
+设要检验 $H_0:\theta=r(\beta)=\theta_0$，$r:\R^K\to\R^q$（$q$ 个约束），$\hat\theta=r(\hat\beta_{GMM})$。记 $R=\partial r(\beta)\T/\partial\beta$（$K\times q$），$V_\beta$ 为 GMM 的渐近方差（一般 $W$ 时为 $V_W$，有效 GMM 时为 $(Q\T\Omega\inv Q)\inv$）。
+\begin{align*}
+\hat\theta-\theta&=R(\bar\beta)\T(\hat\beta-\beta) , \why{中值定理，$\bar\beta$ 介于两者之间}\\
+\sqrt n(\hat\theta-\theta)&=R(\bar\beta)\T\sqrt n(\hat\beta-\beta)\dto R\T N(0,V_\beta) \why{$\bar\beta\pto\beta$；Slutsky}\\
+&=N(0,\,R\T V_\beta R) . \why{$\Var(A\xi)=A\Var(\xi)A'$}
+\end{align*}
+
+\subsubsection{Wald 统计量及其 \texorpdfstring{$\chi^2_q$}{chi2(q)} 极限}
+
+记 $\hat V_\theta=\hat R\T\hat V_\beta\hat R$，$\hat R=R(\hat\beta)$。为避免与权重矩阵 $W$ 混淆，Wald 统计量记作 $\mathcal W$：
+\[
+\mathcal W=n(\hat\theta-\theta_0)\T\big(\hat R\T\hat V_\beta\hat R\big)\inv(\hat\theta-\theta_0)\ \dto\ \chi^2_q\qquad(H_0\text{ 下}).
+\]
+理由：$H_0$ 下 $\sqrt n(\hat\theta-\theta_0)\dto N(0,V_\theta)$，$\hat V_\theta\pto V_\theta$，正态向量用其方差的逆标准化后的二次型服从 $\chi^2_q$（Hansen 定理 13.8）。推导与第 6 章 OLS 的 Wald 检验完全相同，只是 $\hat V_\beta$ 换成 GMM 的方差估计。
+
+\subsubsection{Stata 实现}
+
+\texttt{ivregress gmm} 之后用 \texttt{test}、\texttt{testparm} 检验线性假设，用 \texttt{testnl}、\texttt{nlcom} 检验非线性假设。
+
+\subsection{带线性约束的 GMM}\label{sec:U08b-cgmm}
+
+\subsubsection{问题与拉格朗日推导}
+
+在 $R\T\beta=c$（$R$ 为 $K\times q$，$c$ 为 $q\times1$）下最小化 $J(\beta)$。记 $G=Z\T X$（$L\times K$）、$a=Z\T Y$（$L\times1$），则 $J(\beta)=\frac1{n^2}(a-G\beta)\T W(a-G\beta)$。常数倍不影响解，用拉格朗日乘子（方法同第 6 章的约束最小二乘）：
+\begin{align*}
+\mathcal L&=\tfrac12(a-G\beta)\T W(a-G\beta)+\lambda\T(R\T\beta-c) \why{拉格朗日函数}\\
+0=\frac{\partial\mathcal L}{\partial\beta}&=-G\T W(a-G\beta)+R\lambda \why{对 $\beta$ 求导，$W$ 对称}\\
+\Rightarrow\ \tilde\beta&=(G\T WG)\inv G\T Wa-(G\T WG)\inv R\lambda \why{解出 $\beta$}\\
+&=\hat\beta_{GMM}-(G\T WG)\inv R\lambda , \why{\eqref{eq:U08b-gmm}}\\
+c=R\T\tilde\beta&=R\T\hat\beta_{GMM}-R\T(G\T WG)\inv R\lambda \why{代入约束 $R'\tilde\beta=c$}\\
+\Rightarrow\ \lambda&=\big[R\T(G\T WG)\inv R\big]\inv(R\T\hat\beta_{GMM}-c) . \why{解出 $\lambda$}
+\end{align*}
+把 $\lambda$ 代回 $\tilde\beta$ 的表达式即得下面的结论。
+
+\begin{thm}[约束 GMM（Hansen 第 13.15 节）]\label{thm:U08b-cgmm}
+\[
+\hat\beta_{cgmm}=\hat\beta_{gmm}-(X\T ZWZ\T X)\inv R\big[R\T(X\T ZWZ\T X)\inv R\big]\inv(R\T\hat\beta_{gmm}-c).
+\]
+若 $W=\hat\Omega\inv$（有效权重），则 $\hat\beta_{cgmm}=\hat\beta_{gmm}-\hat V_\beta R(R\T\hat V_\beta R)\inv(R\T\hat\beta_{gmm}-c)$，$\hat V_\beta=(\hat Q\T\hat\Omega\inv\hat Q)\inv$，渐近方差为 $V_\beta-V_\beta R(R\T V_\beta R)\inv R\T V_\beta$（Hansen 定理 13.10）。
+\end{thm}
+
+\subsubsection{有效权重下的简化：与有效最小距离公式相同}
+
+$W=\hat\Omega\inv$ 时，$G\T WG=X\T Z\hat\Omega\inv Z\T X=n^2\hat Q\T\hat\Omega\inv\hat Q=n^2\hat V_\beta\inv$，于是
+\begin{align*}
+(G\T WG)\inv R\big[R\T(G\T WG)\inv R\big]\inv&=n^{-2}\hat V_\beta R\big[n^{-2}R\T\hat V_\beta R\big]\inv \why{代入 $G'WG=n^2\hat V_\beta^{-1}$}\\
+&=\hat V_\beta R(R\T\hat V_\beta R)\inv . \why{$n^{-2}$ 与 $n^2$ 相消}
+\end{align*}
+这正是\term{有效最小距离}{efficient minimum distance}估计量的公式（Hansen 第 8 章）：用有效权重时，约束 GMM 等于对无约束估计做有效最小距离修正。
+
+\subsubsection{约束估计量的渐近分布}
+
+设约束为真，$c=R\T\beta$，则 $R\T\hat\beta_{gmm}-c=R\T(\hat\beta_{gmm}-\beta)$。代入结论 \ref{thm:U08b-cgmm}，并与上一小节一样把 $G\T WG=n^2\hat Q\T W\hat Q$ 中的 $n^2$ 约去：
+\begin{align*}
+\sqrt n(\hat\beta_{cgmm}-\beta)&=\Big[I_K-(\hat Q\T W\hat Q)\inv R\big(R\T(\hat Q\T W\hat Q)\inv R\big)\inv R\T\Big]\sqrt n(\hat\beta_{gmm}-\beta) \why{代入 $c=R'\beta$}\\
+&\dto N\big(0,\ P_WV_WP_W\T\big),\quad P_W=I_K-(Q\T WQ)\inv R\big(R\T(Q\T WQ)\inv R\big)\inv R\T . \why{Slutsky}
+\end{align*}
+约束 GMM 是无约束 GMM 的线性变换，渐近方差由此直接得出（一般 $W$ 时展开很繁琐，即 Hansen 定理 13.9）。有效权重时 $(Q\T WQ)\inv=V$（记 $V=V_\beta$），$P=I_K-VR(R\T VR)\inv R\T$，$P\T=I_K-R(R\T VR)\inv R\T V$：
+\begin{align*}
+PVP\T&=V-VR(R\T VR)\inv R\T V-VR(R\T VR)\inv R\T V \\
+&\qquad+VR(R\T VR)\inv R\T VR(R\T VR)\inv R\T V \why{展开三个因子}\\
+&=V-2VR(R\T VR)\inv R\T V+VR(R\T VR)\inv R\T V \why{$R'VR(R'VR)^{-1}=I_q$}\\
+&=V-VR(R\T VR)\inv R\T V . \why{合并同类项}
+\end{align*}
+施加正确的约束使方差减小（减去一个半正定矩阵）。
+
+\subsubsection{特例：\texorpdfstring{$Z=X$}{Z = X} 时即约束 OLS 与有效最小距离}
+
+线性投影模型 $\E(x_iu_i)=0$ 是 $Z=X$ 的恰好识别 GMM，无约束估计就是 OLS。代入有效权重的约束公式：
+\[
+\hat\beta_{cgmm}=\hat\beta_{OLS}-\hat V_\beta R(R\T\hat V_\beta R)\inv(R\T\hat\beta_{OLS}-c)=\hat\beta_{EMD},
+\]
+即有效最小距离估计量（Hansen 第 13.17 节）。约束前模型恰好识别、权重无关；施加约束后模型变成过度识别，权重就起作用了。
+
+\subsection{GMM 距离检验}\label{sec:U08b-dist}
+
+\subsubsection{距离统计量 \texorpdfstring{$D$}{D} 与 \texorpdfstring{$\chi^2_q$}{chi2(q)} 极限}
+
+用有效权重 $\hat\Omega\inv$ 定义带 $n$ 的准则函数 $J_n(\beta)=n\,\bar g_n(\beta)\T\hat\Omega\inv\bar g_n(\beta)$。分别做无约束估计 $\hat\beta_{gmm}=\argmin_\beta J_n(\beta)$ 与约束估计 $\hat\beta_{cgmm}=\argmin_{r(\beta)=\theta_0}\tilde J_n(\beta)$（$\tilde J_n$ 的权重可以是同一个 $\hat\Omega$，也可以是用约束估计残差算的 $\tilde\Omega$），比较准则函数的最小值：
+\[
+D=\tilde J_n(\hat\beta_{cgmm})-J_n(\hat\beta_{gmm})\ \dto\ \chi^2_q\qquad(H_0\text{ 下，Hansen 定理 13.12}).
+\]
+这就是\term{GMM 距离统计量}{GMM distance statistic}，又称“类似似然比的”（LR-like）统计量：$D$ 小说明施加约束后样本矩没有明显远离 0，约束与数据相容；$D$ 大则拒绝。它是分别估计两个嵌套模型的自然副产品。
+
+\subsubsection{准则函数的分解：\texorpdfstring{$J_n(\beta)=J_n(\hat\beta)+n(\beta-\hat\beta)'\hat V^{-1}(\beta-\hat\beta)$}{J decomposition}}
+
+线性模型中可以把准则函数精确地分解。记 $\hat\beta=\hat\beta_{gmm}$，$\hat V=(\hat Q\T\hat\Omega\inv\hat Q)\inv$，$d=\beta-\hat\beta$：
+\begin{align*}
+\bar g_n(\beta)&=\tfrac1nZ\T(Y-X\hat\beta)-\tfrac1nZ\T X(\beta-\hat\beta)=\bar g_n(\hat\beta)-\hat Qd , \why{加减 $X\hat\beta$}\\
+J_n(\beta)&=n\big[\bar g_n(\hat\beta)-\hat Qd\big]\T\hat\Omega\inv\big[\bar g_n(\hat\beta)-\hat Qd\big] \why{代入}\\
+&=J_n(\hat\beta)-2n\,d\T\hat Q\T\hat\Omega\inv\bar g_n(\hat\beta)+n\,d\T\hat Q\T\hat\Omega\inv\hat Qd \why{展开}\\
+&=J_n(\hat\beta)+n\,(\beta-\hat\beta)\T\hat V\inv(\beta-\hat\beta) . \why{一阶条件 $\hat Q'\hat\Omega^{-1}\bar g_n(\hat\beta)=0$}
+\end{align*}
+其中一阶条件即 $X\T Z\hat\Omega\inv Z\T(Y-X\hat\beta)=0$。含义：在 $\hat\beta$ 附近，GMM 准则函数就是以 $\hat V\inv$ 为权重、到 $\hat\beta$ 的距离。所以\key{约束有效 GMM 就是最小距离估计}：对任何约束（包括参数化约束 $\beta=H\theta$，$H$ 为已知的 $K\times m$ 矩阵），最小化 $J_n$ 等价于最小化 $n(\beta-\hat\beta)\T\hat V\inv(\beta-\hat\beta)$；例如 $\beta=H\theta$ 时得 $\hat\theta=(H\T\hat V\inv H)\inv H\T\hat V\inv\hat\beta$。
+
+\subsubsection{同一 \texorpdfstring{$\hat\Omega$}{Omega-hat} 下 \texorpdfstring{$D\ge0$}{D >= 0}，线性约束时 \texorpdfstring{$D$}{D} 等于 Wald}
+
+约束与无约束估计用同一 $\hat\Omega$ 时，二者最小化的是同一个函数，约束下的最小值不会小于无约束的最小值，故 $D\ge0$。若约束是线性的 $R\T\beta=c$，由上面的分解，$D=\min_{R'\beta=c}n(\beta-\hat\beta)\T\hat V\inv(\beta-\hat\beta)$，最小化点为 $\tilde\beta=\hat\beta-\hat VR(R\T\hat VR)\inv(R\T\hat\beta-c)$（与结论 \ref{thm:U08b-cgmm} 的有效权重形式相同）。代入：
+\begin{align*}
+D&=n(\tilde\beta-\hat\beta)\T\hat V\inv(\tilde\beta-\hat\beta) \why{分解式}\\
+&=n(R\T\hat\beta-c)\T(R\T\hat VR)\inv R\T\hat V\,\hat V\inv\,\hat VR(R\T\hat VR)\inv(R\T\hat\beta-c) \why{代入 $\tilde\beta-\hat\beta$}\\
+&=n(R\T\hat\beta-c)\T(R\T\hat VR)\inv(R\T\hat\beta-c)=\mathcal W . \why{$R'\hat VR(R'\hat VR)^{-1}=I_q$}
+\end{align*}
+同一 $\hat\Omega$、线性约束时，$D$ 与 Wald 统计量\key{数值相等}（Hansen 定理 13.13）。若约束估计改用 $\tilde\Omega$，有限样本中 $D$ 可能为负，此时在任何水平上都不拒绝 $H_0$。
+
+\subsubsection{非线性约束：\texorpdfstring{$D$}{D} 不受约束写法影响}
+
+非线性约束下，Wald 统计量受约束的代数写法影响（如 $\beta_1\beta_2=1$ 与 $\beta_1=1/\beta_2$ 给出不同的 $\mathcal W$），而 $D$ 只依赖约束集本身，不受写法影响。现有证据表明 $D$ 的抽样性质较好，检验非线性假设时通常优于 Wald。
+
+\subsubsection{恰好识别时 \texorpdfstring{$D$}{D} 就是约束模型的过度识别统计量}
+
+恰好识别时无约束估计满足 $J_n(\hat\beta_{gmm})=0$，故 $D=\tilde J_n(\hat\beta_{cgmm})$。施加 $q$ 个约束后，自由参数从 $K=L$ 个减为 $K-q$ 个，模型变成过度识别（$L-(K-q)=q$ 个过度识别约束），$D$ 正是约束模型的过度识别统计量（第 9 章的 $J$ 统计量），自由度为 $q$。
+
+\begin{keypt}[恰好识别模型中三种检验之争]
+恰好识别模型 $y_i=x_{1i}\T\beta_1+x_{2i}\T\beta_2+u_i$，$\E(z_iu_i)=0$，检验 $H_0:\beta_1=0$。三种提议——Wald 检验、GMM 距离检验、对约束模型做过度识别检验——在此情形下是同一回事：距离检验 $D$ 就是约束模型的过度识别 $J$ 统计量；约束是线性的，用同一 $\hat\Omega$ 时 $D$ 又与 Wald 数值相等；三者都渐近服从 $\chi^2_{q}$，$q=\dim\beta_1$。差别只在实现：Wald 只需无约束估计；$D$ 与 $J$ 需要估计约束模型，但不受约束写法影响；若各自用不同的 $\hat\Omega$，有限样本数值会略有差异。
+\end{keypt}

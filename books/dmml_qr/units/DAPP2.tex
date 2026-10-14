@@ -1,0 +1,359 @@
+\chapter{常见报错、易错点与英文答题句式}
+% ======================================================================
+% 单元 DAPP2：附录 常见报错与易错点 + 英文关键表述与答题句式
+% ======================================================================
+\providecommand{\DEbs}{\textbackslash}
+\newcommand{\DEsz}{\scriptsize}
+% 三列报错表：现象/报错信息 | 原因 | 对策
+\newenvironment{DEerr}{\par\DEsz\setlength{\LTpre}{1pt}\setlength{\LTpost}{2pt}%
+  \setlength{\tabcolsep}{2.5pt}\renewcommand{\arraystretch}{1.0}\rowcolors{2}{}{gray!7}%
+  \begin{longtable}{@{}>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{4.9cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-10.3cm-10pt\relax}@{}}\toprule
+  \bfseries 现象 / 报错信息 & \bfseries 原因 & \bfseries 对策\\\midrule\endhead}%
+  {\bottomrule\end{longtable}\par}
+% 英文句式条目：#1 中文提示，#2 英文句子
+\newcommand{\DEe}[2]{\par\noindent\hangindent=1em\hangafter=1{\bfseries\color{chead}#1}\enspace #2\par}
+\makeatletter
+\newcommand{\DEneed}[1]{\par\begingroup\setlength{\dimen@}{#1}\vskip\z@\@plus\dimen@\penalty-100\vskip\z@\@plus-\dimen@\vskip\dimen@\penalty9999\vskip-\dimen@\vskip\z@skip\endgroup}
+\makeatother
+\newenvironment{DEeng}{\par\DEsz\setlength{\parskip}{0.6pt}\setlength{\columnsep}{10pt}\begin{multicols}{2}}{\end{multicols}\par}
+
+{\footnotesize\noindent\key{用法}\quad 前半按“网页请求 → Selenium → 正则 → 文件/PDF/Excel → 文本分析 → 建模 → 版本差异 → 概念辨析”排列，三列为“现象/报错原文—原因—对策”（报错原文按 Python 3.13 下的写法），读代码题、找错题、“为什么结果不对”题直接对照；后半按六种答题动作给出英文句式，方括号 [~] 内按题目替换，最后是简答/论述的作答结构与四类常考题的答题要点。\par}
+
+% ======================================================================
+\section{网页请求与 Selenium 报错}
+
+\subsection{requests 与中文编码：乱码、403、动态加载、超时、相对网址、\&amp;}
+\begin{DEerr}
+\texttt{r.text} 中文乱码，如 \texttt{'ä¸\DEbs xadæ...'} & 响应头没写 charset 时，requests 对 \texttt{text/*} 按 ISO-8859-1 解码 & \texttt{r.encoding = r.apparent\_encoding}（或按 \texttt{<meta charset>} 设 \texttt{'utf-8'}/\texttt{'gbk'}）；下载文件用 \texttt{r.content}\\
+返回空页面、403 Forbidden 或“简化版页面” & 没加 User-Agent，被识别为爬虫 & \texttt{headers=\{'User-Agent': ...\}}（必须是字典）；必要时加 Referer、Cookie\\
+源码里搜不到网页上看得见的内容 & JavaScript 动态加载，requests 只拿到初始 HTML & Selenium 取 \texttt{page\_source}；或 F12 → Network → XHR 找数据接口\\
+程序长时间卡住 & 没设超时 & \texttt{timeout=10} + \texttt{try/except}\\
+\texttt{ProxyError}、\texttt{ConnectTimeout} & 代理 IP 失效（免费代理不稳定）或写法不对 & 换 IP；\texttt{'https'} 键的值也常写 \texttt{'http://ip:端口'}（以代理商说明为准）\\
+一段时间内访问不了、IP 被封 & 同一 IP 短时间访问过多 & \texttt{time.sleep}、随机间隔、IP 代理池\\
+链接打不开，形如 \texttt{/new/disclosure/detail?...} & 源码中是相对网址 & 补域名 \texttt{'http://www.cninfo.com.cn' + href}，或 \texttt{urllib.parse.urljoin}\\
+网址中出现 \texttt{\&amp;} & HTML 转义：\texttt{\&}→\texttt{\&amp;}，\texttt{<}→\texttt{\&lt;}，\texttt{>}→\texttt{\&gt;} & \texttt{href.replace('\&amp;', '\&')} 或 \texttt{html.unescape(href)}\\
+百度翻页只抓到第一页 & URL 中 \texttt{pn} 没变或没转字符串 & \texttt{'\&pn=' + str((page-1)*10)}\\
+\texttt{SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes ... truncated \DEbs UXXXXXXXX escape} & 普通字符串 \texttt{'C:\DEbs Users\DEbs ...'} 中 \texttt{\DEbs U} 被当成转义 & 路径前加 \texttt{r}；或写 \texttt{'C:\DEbs\DEbs Users'}、\texttt{'C:/Users'}；拼路径用 \texttt{os.path.join}（免得漏写末尾 \texttt{\DEbs\DEbs}）\\
+\end{DEerr}
+
+\DEneed{6\baselineskip}
+\subsection{Selenium 4 报错：\texorpdfstring{\texttt{find\_element\_by\_*}}{find\_element\_by\_*}、\texorpdfstring{\texttt{executable\_path}}{executable\_path}、驱动版本、NoSuchElement}
+\begin{DEerr}
+\texttt{AttributeError: 'WebDriver' object has no attribute 'find\_element\_by\_xpath'} & Selenium 4.3 起删除 \texttt{find\_element\_by\_*} 系列 & \texttt{browser.find\_element(By.XPATH, '...')}，并 \texttt{from selenium.webdriver.common.by import By}\\
+\texttt{TypeError: WebDriver.\_\_init\_\_() got an unexpected keyword argument 'executable\_path'} & Selenium 4.10 起删除该参数 & \texttt{webdriver.Chrome(service=Service(r'路径'))}；4.6 起可直接 \texttt{webdriver.Chrome()}\\
+\texttt{SessionNotCreatedException: ... only supports Chrome version ...} & ChromeDriver 与本机 Chrome 大版本不一致 & 下载对应版本（菜单 → 帮助 → 关于 Google Chrome 查版本）；或升级 Selenium（4.6 起自动管理驱动）\\
+\texttt{NoSuchElementException} & (1) 页面没加载完 (2) XPath 写错或网站改版 (3) 元素在 iframe 中 (4) 按位置定位（\texttt{a[7]}），翻页后位置变了 & 显式等待或 \texttt{time.sleep}；重新 Copy XPath；\texttt{switch\_to.frame}；按文字 \texttt{contains(text(),"下一页")} 定位，或改 URL 翻页\\
+\texttt{InvalidSelectorException}（XPath 以 \texttt{/@href}、\texttt{/text()} 结尾） & \texttt{find\_element} 只能定位元素 & 先定位元素，再 \texttt{.get\_attribute('href')}、\texttt{.text}\\
+\texttt{ElementClickInterceptedException}、\texttt{ElementNotInteractableException} & 元素被弹窗/悬浮栏遮挡，或不可见 & 先关弹窗、滚动到元素，或 \texttt{browser.execute\_script('arguments[0].click();', el)}\\
+\texttt{StaleElementReferenceException} & 翻页/刷新后旧的元素对象失效 & 每次操作前重新 \texttt{find\_element}\\
+\texttt{TimeoutException} & 显式等待的条件在时限内未满足 & 检查定位条件，适当延长等待\\
+翻页后取到的还是上一页 / 数据重复 & 点击后页面未刷新就读了 \texttt{page\_source} & 点击后 \texttt{time.sleep(2)} 或等待新内容出现\\
+后面几页取不到源码 & \texttt{browser.quit()} 写在了循环里 & 全部循环结束后再 \texttt{quit()}（注意浏览器关闭时间）\\
+无界面模式找不到元素 & headless 默认窗口小，布局变了 & 加 \texttt{--window-size=1920,1080}\\
+\end{DEerr}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{正则、文件、PDF 与 Excel 报错}
+
+\DEneed{6\baselineskip}
+\subsection{正则表达式：非贪婪空匹配、re.S、贪婪、nothing to repeat、捕获组}
+\begin{DEerr}
+\texttt{re.findall(r'日期：(.*?)', s)} 返回 \texttt{['']} & 非贪婪 \texttt{(.*?)} 右边没有边界，匹配 0 个字符就满足 & 右边加“文本 B”；或改 \texttt{(.*)}、\texttt{(\DEbs d\{4\}-\DEbs d\{2\}-\DEbs d\{2\})}、\texttt{(.*?)\$}\\
+写了 \texttt{文本A(.*?)文本B} 却返回 \texttt{[]} & 目标跨行，\texttt{.} 不匹配换行 & 加 \texttt{re.S}；结果再 \texttt{.strip()}\\
+\texttt{<title>(.*)</title>} 一次吞掉多个标题 & \texttt{.*} 贪婪 & 改用 \texttt{.*?}\\
+\texttt{re.sub('<.*>', '', s)} 把正文也删了 & 贪婪：从第一个 \texttt{<} 吃到最后一个 \texttt{>} & \texttt{'<.*?>'}\\
+\texttt{re.error: nothing to repeat at position 0}（3.13 起类名为 \texttt{re.PatternError}） & \texttt{*}、\texttt{+}、\texttt{?} 前面没有可重复的单位，如 \texttt{re.sub('*', '', '*ST阿里')} & \texttt{'[*]'}、\texttt{r'\DEbs *'} 或 \texttt{re.escape()}\\
+\texttt{TypeError: expected string or bytes-like object, got 'NoneType'} & 对 None（空单元格、\texttt{extract\_text()} 返回值）做正则 & 先 \texttt{if cell:}，或 \texttt{text or ''}\\
+\texttt{IndexError: list index out of range} & \texttt{findall(...)[0]} 时没有任何匹配 & 先判断 \texttt{if result:}\\
+\texttt{findall} 返回元组而不是字符串 & 规则里有 $\ge2$ 个捕获组（包括为“或”加的括号） & 不需要的括号写成 \texttt{(?:...)}\\
+\texttt{'(ab)+'} 只返回 \texttt{'ab'} & 重复的捕获组只保留最后一次 & \texttt{(?:ab)+}\\
+\texttt{\DEbs w+} 把汉字也匹配进来 & Python 3 默认 Unicode 规则 & 只要英文数字：\texttt{[A-Za-z0-9\_]+}\\
+\texttt{SyntaxWarning: invalid escape sequence '\DEbs d'} & 普通字符串里写 \texttt{'\DEbs d'}：能运行但属无效转义（3.12 起警告，此前为默认不显示的 DeprecationWarning） & 一律用原始字符串 \texttt{r'\DEbs d'}\\
+\texttt{re.match} 匹配不到中间的内容 & \texttt{match} 只从开头匹配 & 用 \texttt{re.search} 或 \texttt{findall}\\
+\texttt{'序号' in table[0]} 为 False & 列表的 \texttt{in} 要求元素完全相等，表头实为 \texttt{'序 号'} 或含 \texttt{\DEbs n} & 先 \texttt{replace(' ', '')}、\texttt{replace('\DEbs n', '')} 再判断，或用正则\\
+\end{DEerr}
+
+\DEneed{6\baselineskip}
+\subsection{文件、编码、PDF 与 Excel：GBK、utf-8-sig、None、break、openpyxl 行号}
+\begin{DEerr}
+\texttt{UnicodeDecodeError: 'utf-8' codec can't decode byte 0xd6 ...} & 文件实际是 GBK 编码（Windows 中文软件常见） & \texttt{open(p, encoding='gbk')}；\texttt{pd.read\_csv(p, encoding='gbk')}\\
+加了 \texttt{errors='ignore'} 读出乱码碎片或大量缺字，却不报错 & 编码选错时 ignore \key{静默丢弃}无法解码的字节，偶然拼成合法 UTF-8 的字节变成怪字 & 先确定正确编码；ignore 只用来跳过个别坏字符\\
+CSV 用 Excel 打开中文乱码 & Excel 识别不出无 BOM 的 UTF-8 & \texttt{to\_csv(..., encoding='utf-8-sig')}\\
+股票代码 \texttt{000019} 读成 \texttt{19} & pandas 自动推断为整数 & \texttt{dtype=\{'code': str\}} 或 \texttt{.astype(str).str.zfill(6)}\\
+\texttt{FileNotFoundError: [Errno 2] No such file or directory} & 目标文件夹不存在；相对路径以当前工作目录为起点 & \texttt{os.makedirs(d, exist\_ok=True)}；用绝对路径\\
+\texttt{PermissionError: [Errno 13] Permission denied}（Windows） & 要写入的 Excel 正在打开 & 关闭文件后再 \texttt{save}\\
+\texttt{ValueError: Row or column values must be at least 1} & openpyxl 行列号从 1 开始，却写了第 0 行/列 & \texttt{row=i+1}（有表头时 \texttt{i+2}）\\
+\texttt{os.path.isfile('1.py')} 总是 False & 只传文件名，在当前工作目录下找 & 先 \texttt{os.path.join(file\_dir, name)}\\
+\texttt{.PDF} 文件被漏掉 & 后缀大小写不同 & \texttt{os.path.splitext(f)[1].lower() == '.pdf'}\\
+\texttt{os.walk} 混进 \texttt{.idea} 下的 xml 文件 & walk 递归进入所有子目录 & 只要本层：\texttt{os.listdir} + \texttt{isfile}\\
+\texttt{TypeError: sequence item 1: expected str instance, NoneType found} & \texttt{''.join()} 的列表里有 None（某页 \texttt{extract\_text()} 返回 None） & \texttt{page.extract\_text() or ''}\\
+\texttt{AttributeError: 'NoneType' object has no attribute 'replace'} & 表格单元格为 None（合并单元格） & \texttt{(c or '').replace('\DEbs n', '')}\\
+\texttt{AttributeError: 'NoneType' object has no attribute 'get\_text'} & \texttt{soup.find} 没找到，返回 None & \texttt{if div:} 再取文字\\
+\texttt{TypeError: Tag.find() got multiple values for argument 'name'} & \texttt{soup.find('div', **\{'name':'article'\})}：\texttt{name} 正是 find 的第一个参数 & 写 \texttt{soup.find('article')}\\
+去空值后各列错位 & \texttt{[c for c in row if c]} 删掉了行中间的空单元格 & 用 \texttt{(c or '')} 保留位置；去表头用 \texttt{table[1:]}\\
+\texttt{StopIteration}；\texttt{TypeError: 'list' object is not an iterator} & 迭代器已到末尾还 \texttt{next()}（跨页时已是最后一页）；对列表直接 \texttt{next()} & \texttt{next(it, None)} 并判断；先 \texttt{it = iter(pdf.pages)}\\
+同一个 PDF 被重复加入结果 & 命中多个关键词却没 \texttt{break} & 命中即 \texttt{break}，或 \texttt{if any(w in text for w in keywords)}\\
+两个 \texttt{break} 之后仍在遍历后面的页 & \texttt{break} 只跳出最近一层循环 & 标志变量 \texttt{find} + 外层 \texttt{if find: break}，或写成函数 \texttt{return}\\
+扫描版 PDF 提取出空文本 & 页面是图片，没有文字层 & 需要 OCR \tagext\\
+\end{DEerr}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{文本分析易错：分词、TF-IDF、向量化、Word2Vec、LDA、SnowNLP}
+\begin{DEerr}
+打印出 \texttt{<generator object ...>}；第二次遍历为空 & \texttt{jieba.cut} 返回生成器，只能遍历一次 & 用 \texttt{jieba.lcut} 得到列表\\
+统计“学习”时把“深度学习”也算进去 & \texttt{str.count} 是子串计数 & 分词后对列表 \texttt{count}；复合词用 \texttt{add\_word}/\texttt{load\_userdict}\\
+自定义词没生效 & 加词写在分词之后；词典文件不是 UTF-8 或格式不对 & 先加载词典再分词；每行“词 词频 词性”\\
+停用词去不掉 / 出现空白“词” & 读停用词表时没 \texttt{strip()} 掉换行；没过滤空白 & \texttt{set(line.strip() for line in f)}；\texttt{if w.strip()}\\
+\texttt{TfidfVectorizer} 的词表是一整句中文 & 没有先分词；默认 \texttt{token\_pattern} 把连续汉字当成一个“词” & \texttt{" ".join(jieba.lcut(t))} 后再输入\\
+\texttt{ValueError: empty vocabulary; perhaps the documents only contain stop words}；“好”“差”“涨”等单字词消失 & 默认 \texttt{token\_pattern=r"(?u)\DEbs b\DEbs w\DEbs w+\DEbs b"} 要求至少 2 个字符，单字词全被丢弃 & \texttt{token\_pattern=r"(?u)\DEbs b\DEbs w+\DEbs b"}\\
+\texttt{ValueError: X has 2 features, but MultinomialNB is expecting 4 features as input.} & 对测试集/新文本重新 \texttt{fit\_transform}，词表变了 & 训练集 \texttt{fit\_transform}，其余只 \texttt{transform}；或用 \texttt{Pipeline}\\
+手算 TF-IDF 与 sklearn 对不上 & 口径不同：IDF 是否 $+1$ 平滑、对数底数、TF 是否除总词数、是否 L2 归一化 & 写清口径；sklearn 默认 $\mathrm{idf}=\ln\frac{1+N}{1+\mathrm{df}}+1$ 再 L2 归一化，可设 \texttt{smooth\_idf=False, norm=None}\\
+TF-IDF 全是 0 或负数 & 用 $\ln\frac{N}{\mathrm{df}+1}$：$N=2$ 时只在一篇出现的词为 0，两篇都有的为负 & 用 $\log\frac{N}{\mathrm{df}}$ 或 sklearn 口径；扩大语料\\
+DF 统计偏大 & 同一篇文档中的重复出现被多次计数 & \texttt{for w in set(words): df[w] += 1}（IDF 在\key{整个语料}上算）\\
+IDF 用到了测试集文档 & 在全部文档上 fit 后再划分（轻度数据泄漏） & 先划分，只在训练集上 fit\\
+输出的 top 词是数字 & \texttt{argsort} 得到的是\key{列编号}不是词 & \texttt{vec.get\_feature\_names\_out()[top\_idx]}\\
+\texttt{KeyError: "Key '利润' not present"}（gensim） & 词不在词表：出现次数低于 \texttt{min\_count}（默认 5）或未登录 & 调低 \texttt{min\_count}；改用 FastText；先判断 \texttt{if w in model.wv}\\
+LDA 主题全是“公司”“发展”等高频词 & 没去停用词/极高频词 & \texttt{dictionary.filter\_extremes(no\_below=5, no\_above=0.5)}；补充领域停用词\\
+\texttt{LdaModel} 跑得很慢、主题很碎 & \texttt{num\_topics} 默认 100 & 显式设定，并用困惑度/一致性比较\\
+词云中文显示为方框 & 没指定中文字体 & \texttt{WordCloud(font\_path='simhei.ttf')}\\
+SnowNLP 对中性句、金融文本打分偏高 & 模型是在商品评论上训练的朴素贝叶斯 & 用领域语料 \texttt{sentiment.train} 重训，或用金融情感词典\\
+\end{DEerr}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{建模易错：标准化、数据泄漏、类别不平衡与过拟合}
+\begin{DEerr}
+KNN、$k$-means、RBF-SVM、PCA 的结果被某一个变量主导；梯度下降收敛很慢；Ridge/Lasso 对各系数惩罚不公平 & 未标准化，量纲大的特征主导距离/方差/梯度。例：$(10^6\text{元},30\text{岁})$ 与 $(1.01\times10^6\text{元},60\text{岁})$ 的欧氏距离 $\approx10000.04$，年龄差 30 几乎不起作用 & \texttt{StandardScaler}；PCA 用标准化数据（相关矩阵）\\
+测试集表现好得不正常（数据泄漏） & (1) 在全样本上 fit 标准化/TF-IDF/特征选择后再划分 (2) 特征含“未来”信息 (3) 时间序列随机打乱/随机 KFold（用未来预测过去，前视偏差） (4) 同一公司/重复样本同时出现在训练集和测试集 & 先划分；预处理放进 \texttt{Pipeline} 在交叉验证内部 fit；时间序列按时间切分（\texttt{TimeSeriesSplit}）；按公司分组（\texttt{GroupKFold}）\\
+用测试集调参 & 测试集被“看过”，估计偏乐观 & 调参用验证集或交叉验证，测试集只用一次\\
+反复换模型直到“效果好”（数据窥探） & 同一份数据上多次试错，结果偏乐观 & 留出最终测试集；如实报告所有尝试\\
+准确率 99\% 但模型毫无用处 & 类别不平衡：违约率 1\% 时全猜“不违约”，准确率 0.99、召回率 0 & 看 P/R/F1、PR-AUC；\texttt{class\_weight='balanced'}；欠/过采样（SMOTE）；调阈值；\texttt{stratify=y}\\
+ROC-AUC 很高但精确率很低 & 负例极多时 FPR 分母大，ROC 对误报不敏感 & 同时报告 P-R 曲线\\
+\texttt{roc\_auc\_score} 结果异常 & 传入 0/1 类别而非得分 & 传 \texttt{predict\_proba(X)[:,1]} 或 \texttt{decision\_function(X)}\\
+训练误差很小、测试误差很大 & 过拟合（模型太复杂、数据太少） & 正则化、减少特征、提前停止、更多数据、交叉验证选超参数\\
+训练、测试误差都大 & 欠拟合 & 更复杂的模型或更多特征、减弱正则\\
+每次运行结果不同 & 随机划分、随机初始化 & 固定 \texttt{random\_state}；报告多次平均\\
+\texttt{ConvergenceWarning: lbfgs failed to converge after 100 iteration(s)} & 迭代次数不够或特征未标准化 & 标准化；\texttt{max\_iter=1000}\\
+\texttt{ValueError: Expected 2D array, got 1D array instead} & sklearn 的 $X$ 必须是二维（样本 $\times$ 特征） & 单特征 \texttt{x.reshape(-1, 1)}；单样本 \texttt{reshape(1, -1)} 或 \texttt{[[...]]}\\
+\texttt{ValueError: Input X contains NaN.} & 有缺失值 & \texttt{SimpleImputer} 或 \texttt{dropna}\\
+\texttt{ValueError: dtype='numeric' is not compatible with arrays of bytes/strings} & 字符串类别变量直接进了模型 & \texttt{OneHotEncoder} 或 \texttt{pd.get\_dummies}\\
+\texttt{ValueError: Target is multiclass but average='binary'.} & 多分类沿用默认 \texttt{average='binary'} & \texttt{average='macro'} 或 \texttt{'weighted'}\\
+\texttt{UndefinedMetricWarning: Precision is ill-defined and being set to 0.0 due to no predicted samples.} & 模型从未预测出正类 & 检查不平衡；\texttt{zero\_division=0}\\
+混淆矩阵读反 & sklearn：行 = 真实、列 = 预测，类别升序，二分类为 \texttt{[[TN, FP], [FN, TP]]}；不少教材把正类放第一行 & 先看清 \texttt{labels} 顺序\\
+\end{DEerr}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{库的版本差异：scikit-learn、gensim、pandas、Selenium}
+\begin{DEerr}
+\texttt{get\_feature\_names()} 报 AttributeError & scikit-learn 1.2 起删除 & \texttt{get\_feature\_names\_out()}\\
+\texttt{AdaBoostClassifier(base\_estimator=...)} 报错 & 1.2 起改名 \texttt{estimator}（旧名 1.4 起删除） & \texttt{estimator=DecisionTreeClassifier(max\_depth=1)}\\
+\texttt{OneHotEncoder(sparse=False)} 报错 & 1.2 起改名 \texttt{sparse\_output}（旧名 1.4 起删除） & \texttt{sparse\_output=False}\\
+\texttt{KMeans} 结果与旧教程不同 & 1.4 起 \texttt{n\_init} 默认 \texttt{'auto'}（k-means++ 时只跑 1 次） & 显式写 \texttt{n\_init=10}\\
+\texttt{mean\_squared\_error(..., squared=False)} 报错 & 1.4 起弃用、1.6 起移除 \texttt{squared} & \texttt{root\_mean\_squared\_error}（1.4 起提供）\\
+\texttt{LogisticRegression(penalty=...)} 出现弃用警告 & 1.8 起弃用 \texttt{penalty} & 用 \texttt{l1\_ratio}（0 为 L2，1 为 L1）和 \texttt{C}；\texttt{C=np.inf} 为不加正则\\
+\texttt{SVC(probability=True)} 出现弃用警告 & 1.9 起弃用 & \texttt{CalibratedClassifierCV(SVC(), ensemble=False)}\\
+\texttt{Word2Vec(size=..., iter=...)} 报错；\texttt{model['词']} 报错 & gensim 4 起改名 \texttt{vector\_size}、\texttt{epochs}；词向量放在 \texttt{model.wv} & \texttt{Word2Vec(vector\_size=100, epochs=5)}；\texttt{model.wv['词']}\\
+\texttt{df.append(...)} 报 AttributeError & pandas 2.0 起删除 & \texttt{pd.concat([df, new])}\\
+Selenium 旧代码 \texttt{find\_element\_by\_*}、\texttt{executable\_path} 报错 & 分别于 4.3、4.10 起删除 & 见上文 Selenium 表\\
+\end{DEerr}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{概念易混点辨析：评价指标、正则、集成、模型类型、函数对}
+\begingroup\DEsz\setlength{\LTpre}{1pt}\setlength{\LTpost}{2pt}\setlength{\tabcolsep}{2.5pt}\renewcommand{\arraystretch}{1.0}\rowcolors{2}{}{gray!7}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-6.9cm-10pt\relax}>{\raggedright\arraybackslash}p{3.7cm}@{}}\toprule
+\bfseries 易混点 & \bfseries 正确理解 & \bfseries 一句话判别\\\midrule\endhead
+精确率 vs 召回率 & P 的分母是“预测为正”，R 的分母是“实际为正”；漏报代价大（违约、欺诈、疾病）重召回，误报代价大（垃圾邮件误杀）重精确 & “查得准”vs“查得全”\\
+准确率 vs 精确率 & Accuracy 看全部样本，Precision 只看预测为正的样本 & accuracy $\ne$ precision\\
+ROC vs P-R 曲线 & ROC：TPR–FPR；P-R：Precision–Recall；正例稀少时 P-R 更能反映误报 & 不平衡数据看 P-R\\
+L1 vs L2 & L1：菱形约束、稀疏、特征选择、拉普拉斯先验；L2：圆形约束、整体收缩、高斯先验、解唯一 & Lasso 选变量，Ridge 治共线\\
+$\lambda$/\texttt{alpha} vs $C$ & 岭、Lasso 的 $\lambda$（sklearn \texttt{alpha}）越大正则越强；SVM、LogisticRegression 的 $C$ 是正则强度的倒数，越大越弱 & $C$ 大易过拟合\\
+偏差 vs 方差 & 高偏差 = 欠拟合（训练误差也大）；高方差 = 过拟合（训练好、测试差） & 看训练–验证误差之差\\
+Bagging vs Boosting & Bagging 并行、等权、自助采样、降方差（随机森林）；Boosting 串行、加权、关注错分样本、降偏差（AdaBoost、GBDT） & “投票”vs“接力”\\
+参数 vs 超参数 & 参数（$\bm w,b$）由数据学出；超参数（学习率、$\lambda$、$k$、树深）训练前设定，靠验证集/交叉验证选 & 学习率是超参数\\
+验证集 vs 测试集 & 验证集用于选模型、调参；测试集只用于最终评估一次 & 用测试集调参 = 作弊\\
+经验/期望/结构风险 & 训练集平均损失 / 真实分布下的期望损失 / 经验风险 + 正则项 & ERM 易过拟合，SRM 加正则\\
+MLE vs MAP & MLE 只最大化似然；MAP 再乘先验，相当于加正则 & 高斯先验 $\Rightarrow$ 岭\\
+交叉熵 vs KL 散度 & $H(p,q)=H(p)+\mathrm{KL}(p\|q)$，$p$ 固定时二者只差常数 & 最小化交叉熵 $\equiv$ 最小化 KL $\equiv$ MLE\\
+Logistic 回归是“回归”吗 & 名字叫回归，实为分类模型（输出类别概率） & 用于分类\\
+感知器 vs Logistic vs SVM & 损失分别为 $\max(0,-m)$、$\log(1+e^{-m})$、$\max(0,1-m)$，$m=yf(\bm x)$ & 只要分对 / 要概率 / 要间隔\\
+生成 vs 判别模型 & 生成：建模 $p(\bm x,y)$（朴素贝叶斯、GMM、LDA 主题模型）；判别：直接建模 $p(y\mid\bm x)$ 或 $f(\bm x)$（Logistic、SVM、神经网络） & 朴素贝叶斯是生成模型\\
+$k$-means vs kNN & $k$-means：无监督聚类，$k$ 是簇数；kNN：有监督分类/回归，$k$ 是近邻数 & 两个 $k$ 含义不同\\
+PCA vs LDA vs LDA & PCA 无监督、保留最大方差；线性判别分析有监督、最大化类间/类内散度比；潜在狄利克雷分配是文本主题模型 & 先写全称\\
+One-hot/BoW/TF-IDF vs 词嵌入 & 前者高维稀疏、词与词正交、无语义；词嵌入低维稠密、相似词距离近 & 词嵌入能算“国王 $-$ 男人 $+$ 女人”\\
+TF vs DF & TF：词在一篇文档中出现的次数/频率；DF：多少篇文档含该词 & IDF 由 DF 算\\
+CBOW vs Skip-gram & CBOW 用上下文预测中心词（快）；Skip-gram 用中心词预测上下文（对低频词好） & gensim \texttt{sg=0/1}\\
+fit vs transform & fit 学参数（均值、词表、IDF）；transform 用学到的参数变换数据 & 测试集只 transform\\
+支持度 vs 置信度 vs 提升度 & 覆盖面 / 条件概率 $P(Y\mid X)$ / 与独立时相比的倍数 & 置信度高 $\ne$ 正相关，看 lift\\
+相关 vs 因果 & 预测准确、特征重要性高只说明预测相关，不说明因果效应 & 因果靠识别策略（DID、IV、DML）\\
+\texttt{find}/\texttt{find\_all}；\texttt{find\_element(s)} & 前者返回第一个（找不到：bs4 返回 None，Selenium 抛异常）；后者返回列表（找不到为空列表） & 单数/复数\\
+\texttt{search} vs \texttt{match} vs \texttt{findall} & 任意位置第一个（Match 对象）/ 只从开头 / 全部（列表） & 判断有无用 search\\
+\texttt{r.text} vs \texttt{r.content} & 解码后的字符串 / 原始字节 & 存 PDF 用 content\\
+\texttt{str.replace} vs \texttt{re.sub} & 固定子串替换 / 按规则替换 & 去所有标签 \texttt{re.sub('<.*?>','',s)}\\
+\texttt{close()} vs \texttt{quit()} & 关闭当前标签页 / 关闭浏览器并结束驱动进程 & 程序结束用 quit()\\
+\texttt{os.walk} vs \texttt{os.listdir} & 递归所有子文件夹 / 只列本层名字 & 只要本层用 listdir\\
+\texttt{extract\_table} vs \texttt{extract\_tables} & 最大的一个表 / 该页全部表（列表） & 单数/复数\\
+\texttt{jieba.cut} vs \texttt{jieba.lcut} & 生成器 / 列表 & 计数用 lcut\\
+\texttt{str.count} vs \texttt{list.count} & 子串计数 / 元素完全相等才计数 & “深度学习”含“学习”\\
+\bottomrule
+\end{longtable}\endgroup
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{英文答题句式：定义、比较、解释、步骤、优缺点、研究设计}
+\begin{DEeng}
+\subsection{定义概念（Defining a concept）}
+\DEe{通用}{[Term] refers to [a class of methods] that [distinguishing feature]. Formally, [Term] is defined as [formula], where [symbol] denotes [meaning].}
+\DEe{机器学习}{Machine learning studies algorithms that learn a mapping $f:\mathcal X\to\mathcal Y$ from data in order to predict accurately on unseen samples.}
+\DEe{三要素}{A learning method has three elements: a model (hypothesis space $\mathcal F$), a learning criterion (loss function and risk), and an optimization algorithm.}
+\DEe{监督/无监督/强化}{Supervised learning uses pairs $(\bm x,y)$ to predict $y$ from $\bm x$; unsupervised learning observes only $\bm x$ and discovers structure such as clusters; in reinforcement learning an agent learns a policy by interacting with an environment and receiving rewards.}
+\DEe{过拟合/欠拟合}{Overfitting occurs when a model fits the noise in the training data: low training error but high generalization error. Underfitting occurs when the model is too simple: both errors are high.}
+\DEe{泛化误差}{The generalization error is the gap $\mathcal R(f)-\mathcal R^{emp}_{\mathcal D}(f)$; a good model needs both a small training error and a small gap.}
+\DEe{正则化}{Regularization is any modification of learning that aims to reduce the generalization error rather than the training error, e.g.\ a penalty $\lambda\|\bm w\|_2^2$, early stopping or dropout.}
+\DEe{超参数}{A hyperparameter (learning rate, $\lambda$, $k$) is set before training rather than learned from data, and is usually tuned by cross-validation.}
+\DEe{交叉验证}{In $K$-fold CV each of the $K$ folds serves once as the validation set while the other $K-1$ folds are used for training; the $K$ validation errors are averaged.}
+\DEe{偏差与方差}{Bias is the distance between the average prediction and the true function; variance is the fluctuation of the prediction across training sets. More complexity lowers bias but raises variance.}
+\DEe{梯度下降}{Gradient descent updates $\bm\theta_{t+1}=\bm\theta_t-\alpha\nabla_{\bm\theta}\mathcal R(\bm\theta_t)$, where the learning rate $\alpha$ controls the step size.}
+\DEe{反向传播}{Backpropagation applies the chain rule layer by layer from the output backward, using the error terms $\delta^{(l)}=\partial\mathcal L/\partial\bm z^{(l)}$, to obtain the gradients for all weights.}
+\DEe{SVM}{An SVM finds the hyperplane that maximizes the margin $2/\|\bm w\|$; by the KKT conditions the solution depends only on the support vectors.}
+\DEe{核技巧}{The kernel trick replaces $\bm x_i^\top\bm x_j$ with $K(\bm x_i,\bm x_j)=\phi(\bm x_i)^\top\phi(\bm x_j)$, giving a nonlinear boundary without computing $\phi$ explicitly.}
+\DEe{集成学习}{Ensemble learning combines multiple base learners (voting or weighted averaging) to outperform any single learner.}
+\DEe{聚类}{Clustering partitions unlabeled observations into groups that are internally similar and mutually dissimilar.}
+\DEe{PCA}{PCA finds orthogonal directions of maximal variance: the eigenvectors of the sample covariance matrix, ordered by eigenvalue.}
+\DEe{关联规则}{A rule $X\Rightarrow Y$ states that transactions containing itemset $X$ tend also to contain $Y$; it is evaluated by support, confidence and lift.}
+\DEe{网络爬虫}{Web scraping is the automated collection of website information: send HTTP requests, receive the HTML, and extract fields with regular expressions, XPath or an HTML parser.}
+\DEe{正则表达式}{A regular expression is a pattern describing a set of strings, used to search for, extract or replace matching text.}
+\DEe{TF-IDF}{TF-IDF weights a term by its frequency in a document times its inverse document frequency, so terms frequent in a document but rare in the corpus get high weights.}
+\DEe{词嵌入}{Word embeddings are dense, low-dimensional vectors learned from co-occurrence, so that semantically similar words are close.}
+\DEe{LDA 主题模型}{LDA is an unsupervised generative model: each document is a mixture of topics, each topic a distribution over words.}
+\DEe{情感分析}{Sentiment analysis identifies the polarity (positive/negative/neutral) of a text with a lexicon or a supervised classifier.}
+\DEe{数据泄漏}{Data leakage occurs when information unavailable at prediction time (test-set statistics, future values) is used in training, giving over-optimistic estimates.}
+
+\subsection{比较方法（Comparing methods）}
+\DEe{通用}{Both [A] and [B] [shared feature]. However, [A] [property], whereas [B] [property]. Therefore, [A] is preferable when [condition], while [B] suits [condition].}
+\DEe{比较维度}{The two methods differ in (i) the objective function, (ii) the type of output, and (iii) the computational cost.}
+\DEe{L1 与 L2}{L1 (Lasso) yields sparse solutions and performs variable selection, whereas L2 (ridge) shrinks all coefficients without setting any exactly to zero.}
+\DEe{Bagging/Boosting}{Bagging trains learners independently on bootstrap samples and averages them, mainly reducing variance; boosting trains them sequentially, each focusing on previously misclassified examples, mainly reducing bias.}
+\DEe{Logistic/SVM}{Logistic regression minimizes the log loss and outputs probabilities; the SVM minimizes the hinge loss and depends only on the support vectors.}
+\DEe{生成/判别}{Generative models (naive Bayes) model $p(\bm x,y)$, whereas discriminative models (logistic regression) model $p(y\mid\bm x)$ directly.}
+\DEe{GD/SGD}{Batch GD uses all $N$ samples per update (exact gradient); SGD uses one sample or a mini-batch, so each step is cheaper and its gradient is unbiased but noisy.}
+\DEe{精确率/召回率}{Precision is the share of predicted positives that are truly positive; recall is the share of actual positives correctly identified; they trade off as the threshold changes.}
+\DEe{ID3/C4.5/CART}{ID3 splits on information gain, biased toward many-valued attributes; C4.5 corrects this with the gain ratio; CART uses the Gini index and grows binary trees for classification and regression.}
+\DEe{ML/计量}{Machine learning targets prediction ($\hat y$) judged out of sample, whereas econometrics targets estimation of and inference on (causal) parameters ($\hat\beta$) under identification assumptions.}
+\DEe{requests/Selenium}{requests fetches the raw server HTML quickly; Selenium drives a real browser, executes JavaScript and simulates clicks, at the cost of speed.}
+\DEe{词典法/机器学习法}{Dictionaries are transparent, replicable and need no labels but ignore context; machine learning captures context and domain language but needs labeled data and is less transparent.}
+\DEe{BoW/词嵌入}{BoW and TF-IDF vectors are high-dimensional, sparse and treat words as unrelated symbols; embeddings are dense and place related words close together.}
+\DEe{$k$-means/层次聚类}{$k$-means needs $k$ in advance and scales well; hierarchical clustering needs no $k$ and yields a dendrogram, but is more expensive.}
+
+\subsection{解释结果（Interpreting results）}
+\DEe{准确率}{The model achieves a test accuracy of [0.85], i.e.\ [85\%] of test samples are correctly classified. Because the classes are [imbalanced], we also report precision, recall and F1.}
+\DEe{精确率/召回率}{A precision of [0.80] means [80\%] of firms predicted to default actually default; a recall of [0.67] means the model identifies [67\%] of all actual defaults.}
+\DEe{F1}{The F1 score of [0.73] is the harmonic mean of precision and recall, so it is high only when both are high.}
+\DEe{AUC}{An AUC of [0.89] means a random positive example is scored above a random negative one with probability [0.89]; a random classifier gives 0.5.}
+\DEe{混淆矩阵}{Most errors are false negatives, i.e.\ the model tends to miss [defaults] rather than raise false alarms.}
+\DEe{样本外 $R^2$}{An out-of-sample $R^2$ of [1.2\%] means the model reduces the mean squared prediction error by [1.2\%] relative to the historical-mean benchmark, which is economically meaningful for return prediction.}
+\DEe{Logistic 系数}{Holding other variables constant, a one-unit increase in [leverage] multiplies the odds of [default] by $e^{\hat w_j}=[1.35]$, i.e.\ raises the odds by [35\%].}
+\DEe{过拟合诊断}{The gap between training ([0.99]) and validation ([0.75]) accuracy suggests overfitting; a stronger penalty or a simpler model is needed.}
+\DEe{交叉验证}{The five-fold CV accuracy is [0.98] (s.d.\ [0.01]), suggesting stable performance across folds.}
+\DEe{超参数}{$\lambda=[0.1]$ minimizes the cross-validated MSE; larger values underfit and smaller values overfit.}
+\DEe{特征重要性}{[Leverage] is the most important predictor; however, importance reflects predictive relevance, not a causal effect.}
+\DEe{聚类/PCA}{A silhouette coefficient of [0.71] indicates well-separated clusters. The first principal component explains [96\%] of the variance, so the [two indicators] can be summarized by one index.}
+\DEe{关联规则}{[\{diapers\}] $\Rightarrow$ [\{beer\}] has support [0.6], confidence [0.75] and lift [1.25]: buying [diapers] raises the probability of buying [beer] by [25\%] over its baseline.}
+\DEe{主题/语调}{Topic [3] is characterized by [``R\&D'', ``patent''] and can be labeled [``innovation'']. The average MD\&A tone fell from [0.32] to [0.18] during [the crisis], suggesting more pessimistic managers.}
+\DEe{相关非因果}{These results document a robust association between [X] and [Y]; they should not be interpreted as causal without further identification.}
+
+\subsection{写算法步骤（Algorithm steps）}
+\DEe{通用}{Input: [$\mathcal D$, hyperparameters]. Step 1: Initialize [\dots]. Step 2: [\dots]. Step 3: [\dots]. Repeat Steps 2--3 until [convergence]. Output: [model].}
+\DEe{小批量 SGD}{(1) Initialize $\bm\theta$ randomly. (2) Each epoch, shuffle the data and split into mini-batches. (3) For each batch compute the gradient $\bm g$ and set $\bm\theta\leftarrow\bm\theta-\alpha\bm g$. (4) Stop when the validation error stops decreasing (early stopping).}
+\DEe{反向传播}{(1) Forward pass: compute $\bm z^{(l)},\bm a^{(l)}$ and the loss. (2) Backward pass: $\delta^{(l)}=f_l'(\bm z^{(l)})\odot(W^{(l+1)})^\top\delta^{(l+1)}$ from $\delta^{(L)}$. (3) $\partial\mathcal L/\partial W^{(l)}=\delta^{(l)}(\bm a^{(l-1)})^\top$, $\partial\mathcal L/\partial\bm b^{(l)}=\delta^{(l)}$. (4) Gradient-descent update.}
+\DEe{感知器}{(1) $\bm w=\bm 0$. (2) For each example with $y\,\bm w^\top\bm x\le0$, update $\bm w\leftarrow\bm w+y\bm x$. (3) Repeat until no error or the epoch limit.}
+\DEe{$k$-means}{(1) Initialize $K$ centroids (k-means++). (2) Assign each point to its nearest centroid. (3) Recompute centroids as cluster means. (4) Repeat until assignments stop changing; $\sum_k\sum_{\bm x\in C_k}\|\bm x-\bm\mu_k\|^2$ never increases.}
+\DEe{决策树}{(1) If a node is pure or no attribute is left, make a leaf. (2) Else split on the attribute with the largest information gain (gain ratio). (3) Recurse on children. (4) Prune.}
+\DEe{AdaBoost}{(1) $w_{1,i}=1/N$. (2) For $m=1,\dots,M$: fit $G_m$ with weights $\bm w_m$, compute $\varepsilon_m$ and $\alpha_m=\frac12\ln\frac{1-\varepsilon_m}{\varepsilon_m}$, up-weight misclassified samples and normalize. (3) $G(\bm x)=\operatorname{sgn}\big(\sum_m\alpha_mG_m(\bm x)\big)$.}
+\DEe{Apriori}{(1) Find frequent 1-itemsets. (2) Join frequent $(k-1)$-itemsets into candidates; prune any with an infrequent subset. (3) Keep candidates above the minimum support. (4) Repeat, then keep rules above the confidence threshold.}
+\DEe{爬虫流程}{(1) Inspect the page (F12) for target elements and the URL pattern. (2) Request with a User-Agent, timeout and random delays; Selenium for JavaScript content. (3) Parse with regex, XPath or BeautifulSoup. (4) Clean fields. (5) Save to Excel/CSV; log failed URLs with try/except.}
+\DEe{年报文本分析}{(1) Download reports from CNINFO; PDF to text with pdfplumber. (2) Remove numbers/punctuation, segment with jieba (custom dictionary), drop stop words. (3) Features: counts, TF-IDF, topics or embeddings. (4) Firm-year indicators, e.g.\ the relative frequency of [digital-transformation] keywords. (5) Merge with financial data for regressions.}
+\DEe{模型评估}{(1) Split into training/test sets (stratified; chronological for time series). (2) Tune by $K$-fold CV on the training set only, preprocessing inside a pipeline. (3) Refit the best model. (4) Evaluate once on the test set; report [accuracy, F1, AUC].}
+
+\subsection{讨论优缺点（Pros and cons）}
+\DEe{通用}{The main advantage of [method] is that [\dots]. Its main limitation is that [\dots], which can be mitigated by [remedy].}
+\DEe{Logistic}{Simple, fast, interpretable, outputs probabilities; but only linear boundaries unless nonlinear features are added, so it may underfit.}
+\DEe{决策树}{Interpretable, handles mixed features, needs no scaling; but a single tree has high variance and overfits unless pruned.}
+\DEe{随机森林}{Reduces variance by averaging decorrelated trees, little tuning needed; but less interpretable, and importances can be biased.}
+\DEe{Boosting}{Often state-of-the-art on tabular data; but sensitive to noisy labels and outliers, and the learning rate and number of iterations need careful tuning.}
+\DEe{SVM}{Works well in high dimensions (text) and small samples, kernels give nonlinear boundaries; but costly for large data and sensitive to $C$ and kernel parameters.}
+\DEe{朴素贝叶斯}{Fast and good on small text data; but the conditional independence assumption rarely holds, so probabilities are poorly calibrated.}
+\DEe{kNN}{No training, easy to understand; but slow prediction, curse of dimensionality, sensitive to scaling.}
+\DEe{$k$-means}{Simple and scalable; but needs $k$, is sensitive to initialization and outliers, and favors spherical clusters of similar size.}
+\DEe{神经网络}{Approximate highly nonlinear functions and learn representations; but need much data and computation, non-convex optimization, hard to interpret.}
+\DEe{词典法}{Transparent and replicable; but ignores context and negation, and general dictionaries misread financial words.}
+\DEe{LDA}{Finds latent themes without labels; but the number of topics must be chosen, results depend on preprocessing and initialization, and labels are subjective.}
+\DEe{Selenium}{Handles JavaScript pages and simulates user actions; but much slower than HTTP requests and fragile to layout changes.}
+
+\subsection{研究设计（Research design）}
+\DEe{研究问题}{This study examines whether [media coverage] affects the [stock price crash risk] of [Chinese A-share listed firms] over [2012--2023].}
+\DEe{数据来源}{We scrape [news] from [Baidu News] and [annual reports] from [CNINFO, the CSRC-designated disclosure platform], and obtain financial data from [CSMAR].}
+\DEe{变量（计数）}{[Media coverage] is the natural logarithm of one plus the number of news articles mentioning the firm in year $t$.}
+\DEe{变量（文本）}{[Tone] $=(Pos-Neg)/(Pos+Neg)$, where $Pos$ and $Neg$ count positive and negative words in the MD\&A, based on [a Chinese financial sentiment dictionary].}
+\DEe{预处理}{We segment the text with jieba and a custom financial dictionary, remove stop words, numbers and punctuation, and drop documents with fewer than [500] words.}
+\DEe{测度效度}{We manually code a random sample of [300] documents; the algorithm agrees with human coders in [87\%] of cases.}
+\DEe{计量模型}{$Y_{i,t+1}=\beta X_{it}+\bm\gamma^\top\bm Z_{it}+\mu_i+\lambda_t+\varepsilon_{it}$, with controls $\bm Z_{it}$, firm and year fixed effects, and firm-clustered standard errors.}
+\DEe{内生性}{To address endogeneity, we exploit [an exogenous shock] in a difference-in-differences design and use [instrument] as an IV.}
+\DEe{ML 预测设计}{To avoid look-ahead bias, models are trained on data up to year $t$ and evaluated on $t+1$ with a rolling window; hyperparameters are tuned by CV within each window.}
+\DEe{稳健性}{Results are robust to alternative dictionaries, TF-IDF weighting schemes, numbers of topics, and definitions of [crash risk].}
+\DEe{局限性}{Dictionary measures ignore context; future research could use pre-trained language models such as FinBERT.}
+\DEe{数据合规}{We comply with the terms of service and robots.txt, throttle requests, and collect no personal information.}
+\DEe{研究贡献}{This study contributes in two ways. First, it constructs [a new text-based measure of \dots]. Second, it provides evidence that [\dots].}
+\end{DEeng}
+
+% ======================================================================
+\DEneed{8\baselineskip}
+\section{英文简答/论述作答结构与常考题答题要点}
+\begin{DEeng}
+\subsection{简答四步：定义—机制—例子—评价}
+\DEe{(1) 定义/结论}{[Term] is [definition]. / The answer is [conclusion], because [reason].（第一句就给结论或定义）}
+\DEe{(2) 机制/公式}{Formally, [formula], where [notation]. This works because [mechanism].}
+\DEe{(3) 例子/应用}{For example, [small numerical example or finance application].}
+\DEe{(4) 评价/限定}{However, [limitation or condition]. In practice, [remedy or recommendation].}
+\subsection{论述五段式：引言—主体 2–3 段—结论}
+\DEe{引言（1 段）}{重述问题、界定概念、给出论点与路线：This essay [compares A and B]. I first define \dots, then discuss \dots, and finally \dots}
+\DEe{主体（每段一论点）}{主题句 → 解释（机制、公式）→ 证据/例子 → 小结衔接：First, \dots\ This is because \dots\ For example, \dots\ Hence, \dots}
+\DEe{结论（1 段）}{总结、回答题目、补局限或建议：In summary, \dots\ Therefore, the choice between A and B depends on \dots}
+
+\subsection{要点：过拟合及其防止（Overfitting）}
+\DEe{题}{\emph{What is overfitting, and how can it be prevented?}}
+\DEe{定义}{The model learns the noise as well as the pattern: small training error, large generalization error; typical when the model is too complex for the data (a degree-9 polynomial through 10 points oscillates wildly); low bias, high variance.}
+\DEe{对策}{(1) Regularization, e.g.\ ridge $\min_{\bm w}\frac12\sum_n(y_n-\bm w^\top\bm x_n)^2+\frac\lambda2\|\bm w\|^2$ shrinks the coefficients; (2) more data; (3) early stopping when the validation error rises; (4) choose $M$ or $\lambda$ by $K$-fold CV; (5) ensembles (random forests) and dropout. 收尾句：The goal is good generalization, not a perfect fit to the training set.}
+
+\subsection{要点：Bagging 与 Boosting 比较}
+\DEe{题}{\emph{Compare bagging and boosting.}}
+\DEe{共同点}{Both are ensembles that combine many base learners (usually trees) into a stronger learner; they differ in how learners are trained and combined.}
+\DEe{Bagging}{Independent learners on bootstrap samples, aggregated by voting/averaging. Averaging $M$ learners with variance $\sigma^2$ and correlation $\rho$ gives $\rho\sigma^2+\frac{1-\rho}{M}\sigma^2$ → mainly reduces variance; random forests lower $\rho$ by random feature subsets; parallel; out-of-bag error estimate.}
+\DEe{Boosting}{Sequential. AdaBoost up-weights misclassified samples, $G(\bm x)=\operatorname{sgn}\big(\sum_m\alpha_mG_m(\bm x)\big)$, $\alpha_m=\frac12\ln\frac{1-\varepsilon_m}{\varepsilon_m}$; gradient boosting fits each tree to the negative gradient. Mainly reduces bias, often more accurate, but sensitive to noisy labels, needs tuning.}
+\DEe{结论}{Bagging suits unstable high-variance learners; boosting suits underfitting weak learners on relatively clean data.}
+
+\subsection{要点：TF-IDF 及其金融应用}
+\DEe{题}{\emph{Explain TF-IDF and its use in finance research.}}
+\DEe{定义}{$\text{TF-IDF}(w,d)=TF(w,d)\times\log\frac{N}{df(w)}$: $TF$ relative frequency of $w$ in $d$, $N$ number of documents, $df(w)$ documents containing $w$. IDF down-weights ``company'' (in almost every report) and up-weights ``lithography''. scikit-learn uses $\ln\frac{1+N}{1+df(w)}+1$ plus L2 normalization, so always report the scheme.}
+\DEe{应用与局限}{Cosine similarity of TF-IDF vectors of product descriptions → product-market similarity between firms; TF-IDF features in naive Bayes/SVM → sentiment of news or investor posts. It ignores word order and semantics → word embeddings, pre-trained language models.}
+
+\subsection{要点：媒体关注研究设计（新闻爬取）}
+\DEe{题}{\emph{Design a study using web-scraped news to measure media attention.}}
+\DEe{问题与数据}{Does media attention reduce the crash risk of Chinese listed firms? Scrape Baidu News by firm short name, 2012--2023: User-Agent, timeout, random delays; paginate with \texttt{pn}$=(\text{page}-1)\times10$; Selenium for JavaScript content; extract title/link/source/date by regex or BeautifulSoup; standardize dates, remove duplicates, drop articles whose body does not mention the firm; log failures with try/except.}
+\DEe{测度}{Attention $=\ln(1+\#\text{articles})$ in year $t$; tone $(Pos-Neg)/(Pos+Neg)$ after jieba and stop-word removal; crash risk by NCSKEW (negative skewness of firm-specific weekly returns) and DUVOL (down-to-up volatility).}
+\DEe{实证}{$Crash_{i,t+1}=\beta\,Attention_{it}+\bm\gamma^\top\bm Z_{it}+\mu_i+\lambda_t+\varepsilon_{it}$, firm-clustered SE; DID with an exogenous shock to coverage; robustness with alternative measures, dictionaries and crash-risk definitions; manual validation of a random sample; comply with terms of service.}
+
+\subsection{连接词、限定语与常见措辞错误}
+\DEe{顺序}{First, \dots\ Second, \dots\ Finally, \dots; Step 1/Step 2; then, next, subsequently}
+\DEe{递进}{In addition, Moreover, Furthermore, More importantly}
+\DEe{对比/让步}{However, In contrast, whereas, while, On the other hand, Although \dots}
+\DEe{因果}{Therefore, Hence, As a result, Consequently, because, since, due to}
+\DEe{举例/解释}{For example, For instance, such as, In particular, That is, i.e., e.g.}
+\DEe{条件/限定}{Under the assumption that, provided that, holding other factors constant, to the extent that, in general, typically}
+\DEe{谨慎结论}{suggests, indicates, is consistent with, is associated with（相关，不写 causes）, tends to, may}
+\DEe{总结}{In summary, To conclude, Overall, Taken together}
+\DEe{\textbf{易错}措辞}{the data \emph{are}（复数）；criterion → criteria；affect（动词）/ effect（名词）；相关性结果不写 prove、cause；fewer + 可数、less + 不可数；a lot of、very very、and so on → many、substantially、such as}
+\end{DEeng}

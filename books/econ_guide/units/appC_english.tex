@@ -1,0 +1,689 @@
+\chapter{英文答题句式与模板}
+\label{ch:UappC-english}
+
+高级计量经济学试卷为全英文命题，宜用英文作答。本附录按“陈述模型与假设 $\to$ 写推导 $\to$ 陈述结论 $\to$ 检验决策 $\to$ 估计量性质 $\to$ 方法比较 $\to$ 识别假设”七类给出可直接套用的规范英文句子，左栏为英文，右栏为中文提示；每类再按主题分小节，便于从目录直接查找。最后两节给出考场作答结构模板（Setup $\to$ Derivation $\to$ Result $\to$ Interpretation/Assumptions）、一道 2025 年真题的示范骨架，以及常用连接词和易错表达。正文各节末尾的 English version 盒是按专题展开的版本，可配合使用。
+
+%======================================================================
+\section{陈述模型与假设（Stating the model and assumptions）}\label{sec:UappC-model}
+
+\subsection{截面线性回归：模型、矩阵形式与标准假设}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Consider the linear regression model $y_i=x_i\T\beta+u_i$, $i=1,\dots,n$, where $x_i$ is a $K\times 1$ vector of regressors including a constant and $u_i$ is an unobserved error term. & 写出模型并交代维度、含义（答题的第一句）\\
+\addlinespace[2pt]
+In matrix notation, $Y=X\beta+u$, where $Y$ is $n\times 1$, $X$ is $n\times K$ with $i$-th row $x_i\T$, and $u$ is $n\times 1$. & 矩阵形式；先写维度可避免后面出错\\
+\addlinespace[2pt]
+Assume that $\{(y_i,x_i)\}_{i=1}^n$ are i.i.d., $\E(u_i\mid x_i)=0$, $\E(x_ix_i\T)$ is positive definite, and the fourth moments of $(y_i,x_i)$ are finite. & OLS 大样本理论的标准假设\\
+\addlinespace[2pt]
+We further assume conditional homoskedasticity, $\E(u_i^2\mid x_i)=\sigma^2$ for all $i$. & 同方差假设（Gauss–Markov 定理、2SLS 有效时需要）\\
+\end{longtable}}
+
+
+\subsection{内生性与工具变量}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The regressor $x_{1i}$ is endogenous, i.e.\ $\E(x_{1i}u_i)\neq 0$, so OLS is inconsistent. & 声明内生性\\
+\addlinespace[2pt]
+Let $z_i$ be an $L\times 1$ vector of instruments ($L\ge K$) satisfying the exogeneity condition $\E(z_iu_i)=0$ and the relevance (rank) condition $\rank\E(z_ix_i\T)=K$. & IV 的两个条件\\
+\end{longtable}}
+
+
+\subsection{面板模型：静态面板、动态面板与因子结构}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Consider the static panel data model $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$, $i=1,\dots,N$, $t=1,\dots,T$, where $\alpha_i$ is an unobserved individual effect that may be correlated with $x_{it}$. & FE 模型（$\alpha_i$ 可与 $x_{it}$ 相关）\\
+\addlinespace[2pt]
+We assume strict exogeneity, $\E(u_{it}\mid x_{i1},\dots,x_{iT},\alpha_i)=0$ for all $t$, and consider asymptotics with $N\to\infty$ and $T$ fixed. & 严格外生 + 交代渐近框架\\
+\addlinespace[2pt]
+In the dynamic panel model $y_{it}=\alpha_i+\rho\,y_{i,t-1}+u_{it}$ with $|\rho|<1$, the errors are serially uncorrelated and sequentially exogenous: $\E(u_{it}\mid y_{i,t-1},\dots,y_{i0},\alpha_i)=0$. & 动态面板的序贯外生\\
+\addlinespace[2pt]
+Suppose the error has a factor structure, $u_{it}=\lambda_i\T f_t+v_{it}$, where $f_t$ is an $r\times 1$ vector of unobserved common factors and $\lambda_i$ is the vector of factor loadings. & 因子结构 / 交互固定效应\\
+\end{longtable}}
+
+
+\subsection{潜在结果框架}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Let $y_{it}(1)$ and $y_{it}(0)$ denote the potential outcomes with and without treatment, so that the observed outcome is $y_{it}=D_{it}\,y_{it}(1)+(1-D_{it})\,y_{it}(0)$. & 潜在结果框架\\
+\end{longtable}}
+
+
+%======================================================================
+\section{写推导（Writing derivations）}\label{sec:UappC-deriv}
+
+\subsection{开头：说明要证什么、思路是什么}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+To show that $\hat\beta$ is consistent and asymptotically normal, I first write the estimation error in terms of sample averages and then apply the LLN and the CLT. & 先说“要证什么、思路是什么”\\
+\end{longtable}}
+
+
+\subsection{代入模型、取条件期望与迭代期望律}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Substituting $Y=X\beta+u$ into the estimator gives $\hat\beta=\beta+(X\T X)\inv X\T u$. & 代入模型\\
+\addlinespace[2pt]
+Taking expectations conditional on $X$ and using $\E(u\mid X)=0$, we obtain $\E(\hat\beta\mid X)=\beta$. & 取条件期望\\
+\addlinespace[2pt]
+By the law of iterated expectations, $\E(x_iu_i)=\E[x_i\,\E(u_i\mid x_i)]=0$. & 迭代期望律 + 提出已知因子\\
+\end{longtable}}
+
+
+\subsection{大样本推导：分母用 LLN，分子用 CLT}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Multiplying by $\sqrt n$, $\sqrt n(\hat\beta-\beta)=\bigl(\frac1n\sum_i x_ix_i\T\bigr)\inv\frac{1}{\sqrt n}\sum_i x_iu_i$. & 乘 $\sqrt n$，分配 $\frac1n$ 与 $\frac{1}{\sqrt n}$\\
+\addlinespace[2pt]
+By the WLLN, $\frac1n\sum_i x_ix_i\T\pto Q_{xx}$; by the CLT, $\frac{1}{\sqrt n}\sum_i x_iu_i\dto N(0,\Omega)$; the result then follows from the continuous mapping theorem and Slutsky's theorem. & “分母用 LLN，分子用 CLT”\\
+\end{longtable}}
+
+
+\subsection{一阶条件、零化矩阵、标量转置与迹技巧}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The first-order condition $\partial J(\beta)/\partial\beta=0$ is equivalent to $X\T ZWZ\T(Y-X\beta)=0$, which yields $\hat\beta=(X\T ZWZ\T X)\inv X\T ZWZ\T Y$. & 写一阶条件并解出\\
+\addlinespace[2pt]
+Premultiplying the stacked model by $M_D=I_N\otimes M_T$ eliminates $\alpha_i$, because $M_T\one_T=0$. & 左乘零化矩阵消去效应\\
+\addlinespace[2pt]
+Note that $Y\T X\beta$ is a scalar and therefore equals its transpose $\beta\T X\T Y$. & 标量转置\\
+\addlinespace[2pt]
+Since $u\T Mu$ is a scalar and $\E(uu\T\mid X)=\sigma^2I_n$, $\E(u\T Mu\mid X)=\E[\tr(Muu\T)\mid X]=\tr\bigl(M\,\E(uu\T\mid X)\bigr)=\sigma^2\tr(M)=\sigma^2(n-K)$. & 迹技巧（$\tr(M)=n-K$）\\
+\end{longtable}}
+
+
+\subsection{“只需证明”与“不失一般性”}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+It suffices to show that the remaining terms are $o_p(1)$; without loss of generality, we normalize $F\T F/T=I_r$. & “只需证明”“不失一般性”\\
+\end{longtable}}
+
+
+%======================================================================
+\section{陈述定理与结论（Stating results）}\label{sec:UappC-results}
+
+\subsection{无偏、一致与渐近正态}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Hence $\hat\beta$ is conditionally unbiased: $\E(\hat\beta\mid X)=\beta$. & 无偏\\
+\addlinespace[2pt]
+Therefore $\hat\beta\pto\beta$ as $n\to\infty$; that is, $\hat\beta$ is consistent. & 一致\\
+\addlinespace[2pt]
+$\sqrt n(\hat\beta-\beta)\dto N(0,V)$ with $V=Q_{xx}\inv\Omega Q_{xx}\inv$, which is consistently estimated by $\hat V=\hat Q_{xx}\inv\hat\Omega\hat Q_{xx}\inv$. & 渐近正态 + 方差估计\\
+\end{longtable}}
+
+
+\subsection{有效性：同方差下的夹心塌缩、Gauss–Markov 与有效 GMM}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Under homoskedasticity the sandwich collapses to $V^0=\sigma^2Q_{xx}\inv$. & 夹心塌缩\\
+\addlinespace[2pt]
+By the Gauss--Markov theorem, OLS is the best linear unbiased estimator (BLUE) under the Gauss--Markov assumptions, in particular $\E(u\mid X)=0$ and $\Var(u\mid X)=\sigma^2I_n$. & BLUE\\
+\addlinespace[2pt]
+The efficient GMM estimator, which uses $W=\Omega\inv$, attains the asymptotic variance bound $(Q\T\Omega\inv Q)\inv$, where $Q=\E(z_ix_i\T)$ and $\Omega=\E(z_iz_i\T u_i^2)$. & 有效 GMM（$Q$ 为 $L\times K$，$\Omega$ 为 $L\times L$）\\
+\end{longtable}}
+
+
+\subsection{面板结论：数值等价、RE 收敛于 FE、Nickell 偏误与伴随参数问题}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+This shows that $\hat\beta_{LSDV}$ and $\hat\beta_{WG}$ are numerically identical. & 数值等价（不是“渐近等价”）\\
+\addlinespace[2pt]
+As $T\to\infty$, $\psi=\sigma_u^2/(\sigma_u^2+T\sigma_\alpha^2)\to 0$ and the RE (GLS) estimator converges to the within estimator. & RE $\to$ FE\\
+\addlinespace[2pt]
+For fixed $T$ the within estimator of $\rho$ is inconsistent, with asymptotic bias approximately $-(1+\rho)/(T-1)$ (the Nickell bias). & Nickell 偏误\\
+\addlinespace[2pt]
+$\hat\beta$ is consistent as $N\to\infty$, whereas the estimated individual effects $\hat\alpha_i$ are consistent only as $T\to\infty$ (the incidental parameter problem). & 伴随参数问题\\
+\end{longtable}}
+
+
+%======================================================================
+\section{做检验决策（Making test decisions）}\label{sec:UappC-tests}
+
+\subsection{写出假设与检验统计量}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+We test $H_0:R\beta=r$ against $H_1:R\beta\neq r$, where $R$ is a $q\times K$ matrix of rank $q$. & 先写假设与 $R$ 的维度\\
+\addlinespace[2pt]
+Under $H_0$, $W=(R\hat\beta-r)\T\bigl[R\hat V_{\hat\beta}R\T\bigr]\inv(R\hat\beta-r)\dto\chi^2_q$. & 写出统计量及其分布\\
+\end{longtable}}
+
+
+\subsection{拒绝、不拒绝与置信区间的标准说法}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Since $W=9.10>\chi^2_{3,0.95}=7.815$, we reject $H_0$ at the 5\% significance level ($p=0.028$). & 拒绝的标准说法（临界值查附录 A）\\
+\addlinespace[2pt]
+Because $|t|=1.42<1.96$, we fail to reject $H_0$ at the 5\% level; this does not prove that $H_0$ is true. & 用 “fail to reject”，不要说 “accept”\\
+\addlinespace[2pt]
+The 95\% confidence interval $\hat\beta_j\pm 1.96\,\mathrm{se}(\hat\beta_j)$ excludes zero, so $\beta_j$ is statistically significant at the 5\% level. & 用置信区间作判断\\
+\end{longtable}}
+
+
+\subsection{常见检验结果的解读：弱工具、\texorpdfstring{$J$}{J} 检验、Hausman、AR(2) 与 CD}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The first-stage $F$ statistic (35.2) exceeds the rule-of-thumb threshold of 10 and the Stock--Yogo critical value, so the instruments are not weak. & 相关性检验\\
+\addlinespace[2pt]
+The Hansen $J$ statistic is 1.80 with $L-K=2$ degrees of freedom ($p=0.41$), so we do not reject the overidentifying restrictions: there is no evidence against instrument validity. & 过度识别检验（不拒绝 $\neq$ 工具有效）\\
+\addlinespace[2pt]
+The Hausman statistic rejects the null that $\alpha_i$ is uncorrelated with $x_{it}$; hence the RE estimator is inconsistent and we use the FE estimator. & FE vs RE\\
+\addlinespace[2pt]
+The AR(1) test rejects while the AR(2) test does not, which is consistent with serially uncorrelated $u_{it}$ and supports the validity of $y_{i,t-2}$ as an instrument. & 动态面板设定检验\\
+\addlinespace[2pt]
+The Pesaran CD statistic (12.3) is far above 1.96, indicating strong cross-sectional dependence, so a model with common factors is needed. & 截面相关检验\\
+\end{longtable}}
+
+
+%======================================================================
+\section{解释估计量性质（Explaining properties of estimators）}\label{sec:UappC-props}
+
+\subsection{无偏与一致；异方差与聚类标准误}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Unbiasedness is a finite-sample property, whereas consistency is a large-sample property; neither implies the other. & 无偏与一致的区别\\
+\addlinespace[2pt]
+Under heteroskedasticity OLS remains unbiased and consistent but is no longer efficient, and the conventional standard errors are invalid; we therefore report heteroskedasticity-robust (White) standard errors. & 异方差的后果与对策\\
+\addlinespace[2pt]
+Cluster-robust standard errors allow arbitrary correlation within clusters but require the number of clusters $G$ to be large; the point estimates are unchanged. & 聚类标准误\\
+\end{longtable}}
+
+
+\subsection{2SLS 的有限样本偏误与弱工具}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+2SLS is consistent but biased in finite samples; with weak instruments it is biased toward OLS and its sampling distribution is far from normal. & 弱工具\\
+\end{longtable}}
+
+
+\subsection{FE、RE 与 Arellano–Bond 估计量的性质}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The within estimator uses only within-unit variation over time: it is robust to any correlation between $\alpha_i$ and $x_{it}$, but it cannot identify the coefficients of time-invariant regressors. & FE 的优缺点\\
+\addlinespace[2pt]
+The RE estimator is efficient under the RE assumptions but inconsistent if $\E(\alpha_i\mid x_{it})\neq 0$. & RE 的优缺点\\
+\addlinespace[2pt]
+The Arellano--Bond estimator is consistent for fixed $T$ as $N\to\infty$, but lagged levels become weak instruments when $\rho$ is close to one. & AB 的性质\\
+\end{longtable}}
+
+
+\subsection{因子的旋转不确定性与个体处理效应估计}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The factors and loadings are identified only up to an invertible rotation, but the common component $\lambda_i\T f_t$ and $\hat\beta$ are invariant to the rotation. & 因子识别\\
+\addlinespace[2pt]
+The estimator of an individual treatment effect is unbiased but not consistent, because its error contains the idiosyncratic shock of that unit and period. & 个体处理效应\\
+\end{longtable}}
+
+
+%======================================================================
+\section{比较方法（Comparing methods）}\label{sec:UappC-compare}
+
+\subsection{OLS 与 IV；2SLS 与两步 GMM}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Compared with OLS, IV is consistent under endogeneity but less precise: with a single instrument its asymptotic variance is inflated by the factor $1/\rho_{zx}^2$. & OLS vs IV\\
+\addlinespace[2pt]
+2SLS is GMM with $W=(Z\T Z)\inv$; it is efficient under conditional homoskedasticity, whereas two-step GMM is efficient under general heteroskedasticity. & 2SLS vs 两步 GMM\\
+\end{longtable}}
+
+
+\subsection{FE 与 RE；差分 GMM 与系统 GMM}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+FE is consistent under both the FE and the RE models, whereas RE is consistent only under the RE model but is more efficient when that model is correct. & FE vs RE\\
+\addlinespace[2pt]
+Difference GMM uses lagged levels as instruments for the differenced equation, while System GMM additionally uses lagged differences as instruments for the level equation, at the cost of an initial-condition assumption. & AB vs System\\
+\end{longtable}}
+
+
+\subsection{Bai 迭代主成分与 CCE}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Bai's (2009) iterative principal components estimator requires both $N$ and $T$ to be large and the number of factors to be known, whereas the CCE estimator only needs $N\to\infty$ and does not require $r$, but assumes that the regressors load linearly on the factors. & Bai vs CCE\\
+\end{longtable}}
+
+
+\subsection{SCM 与 PDA；平均效应与个体效应；交错处理}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+SCM restricts the weights to be non-negative and to sum to one (a convex combination of control units), whereas PDA uses an unrestricted linear combination estimated by OLS on the pre-treatment periods. & SCM vs PDA\\
+\addlinespace[2pt]
+DiD and TWFE target the average treatment effect on the treated, whereas SCM and PDA estimate the unit-specific effects of a single (or a few) treated unit(s). & 平均效应 vs 个体效应\\
+\addlinespace[2pt]
+With staggered adoption and heterogeneous effects, static TWFE may put negative weights on some cohort-time effects; heterogeneity-robust estimators (Callaway--Sant'Anna, Sun--Abraham, imputation) use only clean comparisons with not-yet- or never-treated units. & 交错处理\\
+\end{longtable}}
+
+
+%======================================================================
+\section{讨论识别假设（Discussing identifying assumptions）}\label{sec:UappC-ident}
+
+\subsection{IV：相关性、外生性与恰好识别时不可检验}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Identification requires the instruments to be relevant, $\rank\E(z_ix_i\T)=K$, and exogenous, $\E(z_iu_i)=0$; the exclusion restriction cannot be tested when the model is exactly identified. & IV 识别；恰好识别时无法检验\\
+\end{longtable}}
+
+
+\subsection{DiD：平行趋势、无预期与 SUTVA、事前检验的局限}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The key identifying assumption is parallel trends: in the absence of treatment, the average outcomes of the treated and control groups would have followed the same trend. & 平行趋势\\
+\addlinespace[2pt]
+We also assume no anticipation and SUTVA (no spillovers between units); spillovers onto the control group would bias the DiD estimate. & 无预期、SUTVA\\
+\addlinespace[2pt]
+Jointly insignificant pre-treatment coefficients support, but do not prove, the parallel trends assumption. & 事前检验的局限\\
+\end{longtable}}
+
+
+\subsection{面板：FE 的识别来源与系统 GMM 的初始条件}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+The FE estimator is identified from within-unit variation over time; regressors that do not vary over time are absorbed by $\alpha_i$. & FE 的识别来源\\
+\addlinespace[2pt]
+System GMM requires the mean-stationarity condition $y_{i0}=\alpha_i/(1-\rho)+v_{i0}$ with $v_{i0}$ uncorrelated with $\alpha_i$, so that $\Delta y_{i,t-1}$ is uncorrelated with $\alpha_i$. & System GMM 的额外假设\\
+\end{longtable}}
+
+
+\subsection{因子标准化、SCM 的适用条件与 FEF 的识别}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{11.4cm}>{\raggedright\arraybackslash\small}p{4.3cm}@{}}
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文句式（可直接套用，按需替换符号）} & \textbf{中文提示 / 用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Factors and loadings are identified only up to rotation, so we impose $r^2$ normalizations: $F\T F/T=I_r$ and $\Lambda\T\Lambda$ diagonal. & 因子标准化（$\frac{r(r+1)}{2}+\frac{r(r-1)}{2}=r^2$ 个约束）\\
+\addlinespace[2pt]
+SCM is valid if the loadings of the treated unit lie in the convex hull of the control units' loadings and the pre-treatment fit is good over a long pre-treatment period. & SCM 的条件\\
+\addlinespace[2pt]
+The FEF estimator identifies $\gamma$ only if the time-invariant regressors $z_i$ are uncorrelated with $\alpha_i$; otherwise instruments are needed in the second step (FEF-IV). & 时不变变量的识别\\
+\end{longtable}}
+
+
+%======================================================================
+\section{考场作答结构模板}\label{sec:UappC-structure}
+
+\subsection{四步结构：Setup \texorpdfstring{$\to$}{->} Derivation \texorpdfstring{$\to$}{->} Result \texorpdfstring{$\to$}{->} Interpretation/Assumptions}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{6.2cm}>{\raggedright\arraybackslash}p{6.9cm}@{}}
+\toprule
+\textbf{步骤} & \textbf{要写什么（中文提示）} & \textbf{英文骨架}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{步骤} & \textbf{要写什么（中文提示）} & \textbf{英文骨架}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+1. Setup & 写模型、下标范围、维度；定义要用的记号（均值、变换矩阵等）；写出假设与渐近框架 & “Consider \ldots, where \ldots\ is $n\times K$. Assume \ldots. Define \ldots.”\\
+\addlinespace[2pt]
+2. Derivation & 先一句“要证什么、思路是什么”；按 hint 的路线逐步推导，每步写一个理由（代入、LIE、$M_T\one_T=0$、LLN/CLT 等） & “To show \ldots, I first \ldots. Substituting \ldots\ gives \ldots. By the LIE / WLLN / CLT, \ldots.”\\
+\addlinespace[2pt]
+3. Result & 把答案单独写成一行（方框或 “Hence”），给出估计量公式 / 分布 / 等价关系 & “Hence $\hat\beta=\ldots$.” “Therefore $\sqrt n(\hat\beta-\beta)\dto N(0,V)$.”\\
+\addlinespace[2pt]
+4. Interpretation / Assumptions & 解释结论的含义；列出所需假设（外生性、秩条件、平衡面板等）；指出假设失效时的后果与对策 & “This shows that \ldots. The result requires \ldots. If \ldots\ fails, \ldots\ is inconsistent and we should use \ldots\ instead.”\\
+\end{longtable}}
+
+
+\begin{note}[作答要点]
+(1) 题目给了 hint，就\key{顺着 hint 的路线写}；(2) 先定义后使用：凡与题目记号不同的符号，第一次出现时写一句 “where \ldots\ denotes \ldots”；(3) 推导不跳步，矩阵写维度；(4) 结论句与推导分开，让阅卷人一眼找到；(5) 时间不够时，至少写出 Setup、关键公式和结论，并说明所需假设。
+\end{note}
+
+\subsection{示范骨架：2025 年真题第 1(a) 题（双向组内变换）}
+
+\tagexam\ 题目：对平衡面板 TWFE 模型 $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$，写出同时消去 $\alpha_i$ 与 $\lambda_t$ 的组内变换及 $\hat\beta_{FE}$（完整讲解见第 17 章）。
+
+\begin{english}[Model answer skeleton]
+\textbf{Setup.} Consider $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$, $i=1,\dots,N$, $t=1,\dots,T$, with a balanced panel. Define $\bar Y_{i\cdot}=\frac1T\sum_t Y_{it}$, $\bar Y_{\cdot t}=\frac1N\sum_i Y_{it}$, $\bar Y_{\cdot\cdot}=\frac{1}{NT}\sum_i\sum_t Y_{it}$, and similarly for $x$ and $\epsilon$; let $\bar\alpha=\frac1N\sum_i\alpha_i$ and $\bar\lambda=\frac1T\sum_t\lambda_t$.
+
+\textbf{Derivation.} Averaging the model over $t$, over $i$, and over both gives
+\begin{gather*}
+\bar Y_{i\cdot}=\alpha_i+\bar\lambda+\beta\bar x_{i\cdot}+\bar\epsilon_{i\cdot},\qquad
+\bar Y_{\cdot t}=\bar\alpha+\lambda_t+\beta\bar x_{\cdot t}+\bar\epsilon_{\cdot t},\\
+\bar Y_{\cdot\cdot}=\bar\alpha+\bar\lambda+\beta\bar x_{\cdot\cdot}+\bar\epsilon_{\cdot\cdot}.
+\end{gather*}
+Hence the two-way within transformation $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$ satisfies $\ddot Y_{it}=\beta\ddot x_{it}+\ddot\epsilon_{it}$, because $\alpha_i-\alpha_i-\bar\alpha+\bar\alpha=0$ and $\lambda_t-\bar\lambda-\lambda_t+\bar\lambda=0$.
+
+\textbf{Result.} Applying OLS to the transformed equation,
+\[
+\hat\beta_{FE}=\frac{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}\ddot Y_{it}}{\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}^2};
+\qquad\text{in matrix form}\quad \hat\beta_{FE}=(x\T Qx)\inv x\T QY,\quad Q=M_N\otimes M_T ,
+\]
+where $x$ and $Y$ are the $NT\times 1$ vectors stacking $x_{it}$ and $Y_{it}$ by individual (with $t$ running fastest), and $M_m=I_m-m^{-1}\one_m\one_m\T$ is the $m\times m$ demeaning matrix.
+
+\textbf{Interpretation and assumptions.} Both $\alpha_i$ and $\lambda_t$ are removed exactly because the panel is balanced. $\hat\beta_{FE}$ is unbiased under strict exogeneity, $\E(\epsilon_{it}\mid x_{i1},\dots,x_{iT},\alpha_i,\lambda_t)=0$, together with independence across $i$, and it is consistent as $N\to\infty$ with $T$ fixed, provided that $\frac{1}{NT}\sum_i\sum_t\ddot x_{it}^2$ has a positive probability limit. It is numerically identical to the estimator obtained from the one-way within transformation with time dummies (FWL theorem). In an unbalanced panel the simple double-demeaning formula no longer removes $\alpha_i+\lambda_t$; one should then include unit and time dummies (equivalently, use the Wansbeek--Kapteyn two-way transformation or iterated demeaning).
+\end{english}
+
+%======================================================================
+\section{常用连接词与易错表达}\label{sec:UappC-phrases}
+
+\subsection{推导与论证中的连接词}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{9.6cm}>{\raggedright\arraybackslash\small}p{6.1cm}@{}}
+\toprule
+\textbf{英文} & \textbf{用法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{英文} & \textbf{用法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+Hence / Therefore / Thus / It follows that & 引出结论\\
+\addlinespace[2pt]
+Since \ldots\ / Because \ldots\ / Given that \ldots & 给出理由（放在句首）\\
+\addlinespace[2pt]
+where \ldots\ denotes \ldots & 公式后解释记号\\
+\addlinespace[2pt]
+which implies that \ldots\ / so that \ldots & 推出下一步\\
+\addlinespace[2pt]
+under $H_0$ / under the null hypothesis & 检验分布的前提\\
+\addlinespace[2pt]
+as $N\to\infty$ with $T$ fixed / as $(N,T)\to\infty$ jointly & 交代渐近框架\\
+\addlinespace[2pt]
+provided that \ldots\ / as long as \ldots & 所需条件\\
+\addlinespace[2pt]
+in contrast / whereas / on the other hand & 比较方法\\
+\addlinespace[2pt]
+up to an invertible rotation / up to scale & “在……意义下”唯一\\
+\addlinespace[2pt]
+numerically identical / asymptotically equivalent & 数值相同 vs 渐近等价（不要混用）\\
+\end{longtable}}
+
+
+\subsection{常见错误表达与正确说法}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{6.6cm}>{\raggedright\arraybackslash}p{4.5cm}@{}}
+\toprule
+\textbf{不要写} & \textbf{应写} & \textbf{理由}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{不要写} & \textbf{应写} & \textbf{理由}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+We accept $H_0$. & We fail to reject (do not reject) $H_0$. & 不拒绝不等于证明为真\\
+\addlinespace[2pt]
+The $p$-value is the probability that $H_0$ is true. & The $p$-value is the probability, under $H_0$, of obtaining a test statistic at least as extreme as the one observed. & $p$ 值的定义\\
+\addlinespace[2pt]
+The estimate is consistent. & The estimator is consistent. & 一致性是估计量（规则）的性质\\
+\addlinespace[2pt]
+$\hat\beta$ converges to $\beta$. & $\hat\beta$ converges in probability to $\beta$ ($\hat\beta\pto\beta$). & 写清收敛方式\\
+\addlinespace[2pt]
+The instruments are valid because $J$ is insignificant. & There is no evidence against instrument validity. & $J$ 检验只检验工具之间的相对有效性\\
+\addlinespace[2pt]
+Parallel trends hold because the pre-trend test is insignificant. & The pre-trend test supports, but does not prove, parallel trends. & 事前检验的功效可能很低\\
+\addlinespace[2pt]
+OLS is biased because of heteroskedasticity. & Under heteroskedasticity OLS is unbiased but inefficient, and the usual standard errors are wrong. & 异方差不影响无偏性\\
+\addlinespace[2pt]
+SSE（不加说明） & the residual sum of squares $SSR=\sum_i\hat u_i^2$ & 不同教材 SSE 的含义相反（Hansen 指残差平方和，Wooldridge 指解释平方和），第一次出现要写全称\\
+\end{longtable}}

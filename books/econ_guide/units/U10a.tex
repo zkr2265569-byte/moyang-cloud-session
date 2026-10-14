@@ -1,7 +1,7 @@
 \chapter{静态面板（一）：固定效应、LSDV、组内估计与双向固定效应}
 \label{ch:U10a-panel1}
 
-前九章处理的都是截面数据 $(y_i,x_i)$：外生条件下用 OLS，内生条件下用 IV/GMM。从本章起进入面板数据——同一批个体被反复观测多期。面板最大的好处是：\key{不需要工具变量}，就能控制那些不随时间变化、观测不到、又可能与解释变量相关的个体特征 $\alpha_i$（能力、偏好、企业文化等）。本章依次回答三个问题：(1) 面板模型是什么、为什么要用；(2) 当 $\alpha_i$ 与 $x_{it}$ 任意相关时如何一致估计 $\beta$——最小二乘虚拟变量（LSDV）估计与组内（WG）估计，用 FWL 定理证明二者完全相同，并给出正确的标准误；(3) 再加入时间效应 $\lambda_t$ 时如何做双向固定效应（TWFE）估计。第 11 章讲随机效应、Hausman 检验与时不变变量，第 12 章讲动态面板，第 15 章讲 DiD 的处理效应框架。
+前九章处理截面数据 $(y_i,x_i)$：外生时用 OLS，内生时用 IV/GMM。本章进入面板数据——同一批个体被反复观测多期。面板最大的好处是\key{不需要工具变量}，就能控制不随时间变化、观测不到、又可能与解释变量相关的个体特征 $\alpha_i$。本章回答三个问题：(1) 面板模型是什么、为什么要用；(2) $\alpha_i$ 与 $x_{it}$ 任意相关时如何一致估计 $\beta$——LSDV 与组内（WG）估计、二者的 FWL 等价及正确的标准误；(3) 加入时间效应 $\lambda_t$ 后如何做双向组内变换（TWFE），以及它为何与“个体去均值 $+$ 年份虚拟变量”给出数值上完全相同的估计。第 11 章讲随机效应、Hausman 检验与时不变变量，第 12 章讲动态面板，第 15 章讲 DiD 的处理效应框架。对应 Hansen 第 17 章 §17.1–17.13、§17.16–17.20、§17.22、§17.26–17.27；FWL 定理见 Hansen 定理 3.5（第 3 章）。
 
 \begin{keypt}[本章与 2025 年真题]
 \tagexam\ 2025 年真题第 1 题（30 分）考 TWFE 模型 $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$：(a) 写出同时消去 $\alpha_i$ 与 $\lambda_t$ 的组内变换及 $\hat\beta_{FE}$；(b) 用时间虚拟变量表示 $\lambda_t$、只做消去 $\alpha_i$ 的组内变换时 $\hat\beta_{FE}$ 的公式。作答所需的工具——组内变换、去均值矩阵 $M_T$、Kronecker 积写法与 FWL 定理——都在本章前半部分建立；双向情形在本章后半部分展开，逐步作答见第 17 章。
@@ -70,7 +70,8 @@ Hansen 第 17.1 节的说法与此对应：\term{微观面板}{micro panel}—�
   含固定效应时没有像组内变换那样能精确消去 $\alpha_i$ 的通用办法，伴随参数问题会污染 $\hat\beta$（见本章 LSDV 一节与第 11 章）。
 \end{itemize}
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{面板数据的三种分类}
 \small
 \begin{tabularx}{\linewidth}{lllL}
 \toprule
@@ -81,8 +82,7 @@ $T$ 的大小 & 短面板 / 长面板 & $N\to\infty$, $T$ 固定 / $T$ 也大 & 
 模型形式 & 线性 / 非线性 & 线性回归 / 二元选择 & 非线性 FE 受伴随参数问题困扰（第 11 章）\\
 \bottomrule
 \end{tabularx}
-\captionof{table}{面板数据的三种分类}
-\end{center}
+\end{minipage}\end{center}
 
 \subsection{面板方法全景图：从静态面板到因果推断}
 
@@ -93,7 +93,7 @@ $T$ 的大小 & 短面板 / 长面板 & $N\to\infty$, $T$ 固定 / $T$ 也大 & 
   \item d. 因果推断 / 处理效应——DiD $\to$ TWFE、合成控制法、回归控制法 / 矩阵补全 / 因子结构，第 15–16 章。
 \end{itemize}
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
 \begin{tikzpicture}[
   box/.style={draw,rounded corners=2pt,align=center,font=\small,inner sep=3pt},
   >={Stealth[length=2mm]}]
@@ -111,7 +111,7 @@ $T$ 的大小 & 短面板 / 长面板 & $N\to\infty$, $T$ 固定 / $T$ 也大 & 
   node[midway,below=4pt,font=\small] {early research};
 \end{tikzpicture}
 \captionof{figure}{面板数据方法全景图}
-\end{center}
+\end{minipage}\end{center}
 
 图中缩写：\term{因子模型}{factor model} 用少数共同因子刻画大量个体（如资产收益）的共动；SCM 为\term{合成控制法}{synthetic control method}；RCM 为\term{回归控制法}{regression control method}，即\term{面板数据法}{panel data approach}（PDA）；MC 为\term{矩阵补全}{matrix completion}。本章后半部分将说明 DiD 是 TWFE 的一个特例，这就是图中“DiD $\to$ TWFE”箭头的含义。
 
@@ -119,7 +119,8 @@ $T$ 的大小 & 短面板 / 长面板 & $N\to\infty$, $T$ 固定 / $T$ 也大 & 
 
 2025 真题与 Hansen 教材对同一对象所用的符号不同，最容易混淆的是\key{时间效应}与 Hansen 的\key{个体效应}。本书统一如下：
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{本章记号对照}
 \small
 \begin{tabularx}{\linewidth}{Lccc}
 \toprule
@@ -136,8 +137,7 @@ $\alpha_i$ 的方差 / $u_{it}$ 的方差 & $\sigma_\alpha^2,\ \sigma_u^2$ & —
 回归元个数 & $K$ & 1 & $k$\\
 \bottomrule
 \end{tabularx}
-\captionof{table}{本章记号对照}
-\end{center}
+\end{minipage}\end{center}
 
 另外：$\one_T$ 为 $T\times1$ 全 1 向量；
 \[
@@ -159,6 +159,8 @@ Panel data consist of repeated observations $(y_{it},x_{it})$ on $N$ individuals
 现实中大量数据天然是面板：上市公司年报、工业企业数据库、CFPS / CHARLS 等追踪调查、省级 / 城市统计年鉴。数据本身就是“同一批个体、多个年份”的结构，自然要用适合它的模型。
 
 \subsection{静态线性面板模型与个体效应 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+要讲清第二条理由，先写出模型并说明 $\alpha_i$ 是什么。
 
 \subsubsection{模型设定：\texorpdfstring{$y_{it}=\alpha_i+x_{it}'\beta+u_{it}$}{y = alpha + x'beta + u}}
 
@@ -188,7 +190,7 @@ $\alpha_i$ 汇集了个体身上一切不随时间变化的因素：
 $\alpha_i$ 包含个人能力、性格、家庭背景等一切不随时间变的因素。能力强的人往往受教育多（$\alpha_i$ 与 $\text{edu}_{it}$ 正相关），同时工资也高。若不把 $\alpha_i$ 分离出来，$\hat\beta_1$ 会把“能力”的作用错算到“教育”头上——典型的\term{遗漏变量偏误}{omitted variable bias}（第 7 章），且偏误为正。
 \end{exmp}
 
-\subsection{理由二：截面数据中 \texorpdfstring{$\alpha_i$}{alpha\_i} 无法处理}
+\subsection{理由二（上）：截面数据中 \texorpdfstring{$\alpha_i$}{alpha\_i} 无法处理}
 
 \subsubsection{\texorpdfstring{$N+K$}{N+K} 个参数只有 \texorpdfstring{$N$}{N} 个观测：\texorpdfstring{$\beta$}{beta} 不可识别}
 
@@ -217,7 +219,7 @@ y_i &= \alpha_i+x_i\T\beta+u_i \why{原模型}\\
 \end{align*}
 只要 $\alpha_i$ 与 $x_i$ 相关（$\Cov(x_i,\alpha_i)\neq0$），$\E(\alpha_i\mid x_i)$ 就随 $x_i$ 变，$\E(e_i\mid x_i)\neq0$，OLS 有偏且不一致。截面中唯一的出路是找工具变量（第 7--8 章）。
 
-\subsection{面板的优势：同一个 \texorpdfstring{$\alpha_i$}{alpha\_i} 出现 \texorpdfstring{$T$}{T} 次}
+\subsection{理由二（下）：面板的优势——同一个 \texorpdfstring{$\alpha_i$}{alpha\_i} 出现 \texorpdfstring{$T$}{T} 次}
 
 \subsubsection{用个体内的跨期比较消去 \texorpdfstring{$\alpha_i$}{alpha\_i}，无需工具变量}
 
@@ -375,7 +377,8 @@ The individual effect $\alpha_i$ captures time-invariant unobserved heterogeneit
 
 \subsection{先定模型、再选估计：模型与估计的对照}
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{FE / RE 的“模型”与“估计”}
 \begin{tabularx}{\linewidth}{lLL}
 \toprule
  & \textbf{Model}（取决于 $\alpha_i$ 与 $x_{it}$ 的关系） & \textbf{Estimation}（取决于如何处理 $\alpha_i$）\\
@@ -384,24 +387,23 @@ FE & FE model：$\E(\alpha_i\mid x_{it})\neq0$ & FE estimation：WG（或 LSDV�
 RE & RE model：$\E(\alpha_i\mid x_{it})=0$ & RE estimation：GLS\\
 \bottomrule
 \end{tabularx}
-\captionof{table}{FE / RE 的“模型”与“估计”}
-\end{center}
+\end{minipage}\end{center}
 
 原则：\key{Model first, estimation second}——先确定模型，再选估计方法。数据究竟服从 FE 模型还是 RE 模型，用 Hausman 检验判断（第 11 章）。
 
 \subsubsection{两种模型下 WG 与 GLS 的一致性}
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{两种估计在两种模型下的性质}
 \begin{tabularx}{\linewidth}{lLL}
 \toprule
 估计量 & 在 FE 模型下（$\E(\alpha_i\mid x_{it})\neq0$） & 在 RE 模型下（$\E(\alpha_i\mid x_{it})=0$）\\
 \midrule
 WG（FE 估计） & 一致（$\alpha_i$ 被精确消去） & 一致，但不如 GLS 有效\\
-GLS（RE 估计） & \key{不一致}（$\alpha_i$ 留在误差中且与 $x_{it}$ 相关） & 一致且有效\\
+GLS（RE 估计） & \textbf{不一致}（$\alpha_i$ 留在误差中且与 $x_{it}$ 相关） & 一致且有效\\
 \bottomrule
 \end{tabularx}
-\captionof{table}{两种估计在两种模型下的性质}
-\end{center}
+\end{minipage}\end{center}
 
 \begin{keypt}[“FE 模型”是否等于“FE 估计”]
 考试中若问 “Is the fixed effects model the same as fixed effects estimation?”，要答：\key{不同}。FE / RE \emph{model} 是关于数据生成过程的假设（$\alpha_i$ 是否与 $x_{it}$ 相关）；FE / RE \emph{estimation} 是估计方法（WG 还是 GLS）。WG 估计在两种模型下都一致；GLS 只在 RE 模型下一致。
@@ -409,19 +411,19 @@ GLS（RE 估计） & \key{不一致}（$\alpha_i$ 留在误差中且与 $x_{it}$
 
 \subsection{静态线性面板中 \texorpdfstring{$\beta$}{beta} 的三种估计方法}
 
-\begin{center}
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{$\beta$ 的三种估计方法}
 \small
-\begin{tabularx}{\linewidth}{lLlL}
+\begin{tabularx}{\linewidth}{lLl>{\raggedright\arraybackslash}p{4.6cm}}
 \toprule
 方法 & 如何处理 $\alpha_i$ & Stata & 标准误\\
 \midrule
-(a) LSDV & 作为 $N$ 个虚拟变量的系数一并估计 & \texttt{reg y x i.id} & 需配 \texttt{vce(cluster id)}\\
-(b) FE / WG & 组内变换消去 & \texttt{xtreg y x, fe} & 默认为经典标准误，应加 \texttt{vce(cluster id)}\\
-(c) RE / GLS & 并入复合误差，GLS & \texttt{xtreg y x, re} & 默认为经典标准误，应加 \texttt{vce(cluster id)}\\
+(a) LSDV & 作为 $N$ 个虚拟变量的系数一并估计 & \texttt{reg y x i.id} & 需配 \mbox{\texttt{vce(cluster id)}}\\
+(b) FE / WG & 组内变换消去 & \texttt{xtreg y x, fe} & 默认为经典标准误，应加 \mbox{\texttt{vce(cluster id)}}\\
+(c) RE / GLS & 并入复合误差，GLS & \texttt{xtreg y x, re} & 默认为经典标准误，应加 \mbox{\texttt{vce(cluster id)}}\\
 \bottomrule
 \end{tabularx}
-\captionof{table}{$\beta$ 的三种估计方法}
-\end{center}
+\end{minipage}\end{center}
 
 实务结论：三种估计都应报告\key{按个体聚类的稳健标准误}（理由见本章方差估计一节）。(a) 与 (b) 给出完全相同的 $\hat\beta$（本章 FWL 一节证明）。本章讲 (a)(b) 及其在双向效应下的推广，第 11 章讲 (c)。
 
@@ -437,3 +439,873 @@ GLS（RE 估计） & \key{不一致}（$\alpha_i$ 留在误差中且与 $x_{it}$
 The fixed effects (FE) model allows $\alpha_i$ to be arbitrarily correlated with $x_{it}$, i.e.\ $E(\alpha_i\mid x_{it})\neq0$, whereas the random effects (RE) model assumes $E(\alpha_i\mid x_{it})=0$; in both models $\alpha_i$ is random. FE estimation (LSDV or within-group) treats $\alpha_i$ as parameters to be estimated or eliminated, while RE estimation (GLS) treats $\alpha_i$ as part of the composite error $v_{it}=\alpha_i+u_{it}$. The within estimator is consistent under both models; GLS is consistent only under the RE model. The model must be specified first; the estimator is chosen second.
 \end{english}
 
+%======================================================================
+\section{最小二乘虚拟变量估计（LSDV）}\label{sec:U10a-lsdv}
+
+思路：$\alpha_i$ 看不见，但“这是第 $i$ 个个体”这件事是看得见的。为每个个体造一个虚拟变量，$\alpha_i$ 就变成了这个虚拟变量的回归系数，可以和 $\beta$ 一起用最小二乘估计。
+
+\subsection{用个体虚拟变量表示 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+\subsubsection{个体虚拟变量的定义}
+
+\begin{defn}[个体虚拟变量]\label{def:U10a-dummy}
+对 $j=1,\dots,N$，定义观测 $(i,t)$ 上的第 $j$ 个\term{个体虚拟变量}{individual dummy variable}
+\[
+d_{j,it}=\begin{cases}1, & i=j\ \text{（观测属于第 $j$ 个个体）},\\ 0, & \text{otherwise}.\end{cases}
+\]
+在不致混淆时简写为 $d_j$。
+\end{defn}
+
+\subsubsection{\texorpdfstring{$\alpha_i=\sum_j\alpha_jd_{j,it}$}{alpha\_i = sum alpha\_j d\_j}：\texorpdfstring{$\alpha_i$}{alpha\_i} 就是 \texorpdfstring{$d_i$}{d\_i} 的系数}
+
+基本想法是 $\alpha_i=\alpha_i\cdot 1=\alpha_i\cdot d_{i,it}$：$\alpha_i$ 是参数，“1”是数据。要证：对任一观测 $(i,t)$，$\sum_{j=1}^N\alpha_jd_{j,it}=\alpha_i$。
+\begin{align*}
+\sum_{j=1}^N\alpha_jd_{j,it}
+&= \underbrace{\alpha_1d_{1,it}+\cdots+\alpha_{i-1}d_{i-1,it}}_{=0}+\alpha_id_{i,it}+\underbrace{\alpha_{i+1}d_{i+1,it}+\cdots+\alpha_Nd_{N,it}}_{=0} \why{$j\neq i$ 时 $d_{j,it}=0$}\\
+&= \alpha_i\cdot 1=\alpha_i \why{$d_{i,it}=1$}
+\end{align*}
+例如对第 1 个个体的观测，$\alpha_1d_1+(\alpha_2d_2+\cdots+\alpha_Nd_N)=\alpha_1$，括号内为 0。所以 $\alpha_i$ 正是 $d_i$ 的系数。
+
+\subsubsection{LSDV 模型：对全部 \texorpdfstring{$NT$}{NT} 个观测做混合最小二乘}
+
+把上式代入 \eqref{eq:U10a-static}，得到\term{最小二乘虚拟变量模型}{least squares dummy variables model}（LSDV 模型）：
+\begin{equation}\label{eq:U10a-lsdv}
+y_{it}=\sum_{j=1}^N\alpha_j\,d_{j,it}+x_{it}\T\beta+u_{it}.
+\end{equation}
+这是一个普通的线性回归：回归元为 $(d_{1},\dots,d_{N},x_{it})$，共 $N+K$ 个。把全部 $(i,t)$ 堆在一起对 $NT$ 个观测做最小二乘（pooled LS），得到 $\hat\beta_{LSDV}$ 与 $\hat\alpha_1,\dots,\hat\alpha_N$。
+
+\subsection{数据表：虚拟变量如何排布（\texorpdfstring{$N=3$, $T=2$}{N=3, T=2}）}
+
+数据按“个体在外、时间在内”排列。列名上方的 $\alpha_j$ 表示该列的回归系数；最后两列年份虚拟变量在本章双向固定效应部分使用。
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{LSDV 数据表（$N=3$, $T=2$）}
+\begin{tabular}{cc|ccc|cc|cc}
+\toprule
+$i$ & $t$ & $d_1\ (\alpha_1)$ & $d_2\ (\alpha_2)$ & $d_3\ (\alpha_3)$ & $\text{year}_1$ & $\text{year}_2$ & $y$ & $x$\\
+\midrule
+1 & 1 & 1 & 0 & 0 & 1 & 0 & $y_{11}$ & $x_{11}$\\
+1 & 2 & 1 & 0 & 0 & 0 & 1 & $y_{12}$ & $x_{12}$\\
+2 & 1 & 0 & 1 & 0 & 1 & 0 & $y_{21}$ & $x_{21}$\\
+2 & 2 & 0 & 1 & 0 & 0 & 1 & $y_{22}$ & $x_{22}$\\
+3 & 1 & 0 & 0 & 1 & 1 & 0 & $y_{31}$ & $x_{31}$\\
+3 & 2 & 0 & 0 & 1 & 0 & 1 & $y_{32}$ & $x_{32}$\\
+\bottomrule
+\end{tabular}
+\end{minipage}\end{center}
+
+读表要点：
+\begin{enumerate}
+  \item 每一行恰有一个 $d_j=1$；
+  \item 同一个体的 $T$ 行，$d$ 列完全相同；
+  \item $d_1+d_2+d_3$ 每行都等于 1，正是常数列——这就是虚拟变量陷阱的来源；年份虚拟变量 $\text{year}_1+\text{year}_2$ 每行也等于 1。
+\end{enumerate}
+
+\subsection{矩阵写法：\texorpdfstring{$Y=(I_N\otimes\one_T)\alpha+X\beta+U$}{Y = (I\_N kron 1\_T) alpha + X beta + U}}
+
+目的：为 FWL 证明准备记号。
+
+\subsubsection{个体层面的堆叠：\texorpdfstring{$Y_i=\alpha_i\one_T+X_i\beta+U_i$}{Y\_i = alpha\_i 1 + X\_i beta + U\_i}}
+
+把个体 $i$ 的 $T$ 期竖着堆起来：$Y_i=(y_{i1},\dots,y_{iT})\T$（$T\times1$），$X_i=(x_{i1},\dots,x_{iT})\T$（$T\times K$），$U_i=(u_{i1},\dots,u_{iT})\T$（$T\times 1$）。$\alpha_i$ 在 $T$ 期相同，乘以 $\one_T$。于是 \eqref{eq:U10a-static} 写成
+\begin{equation}\label{eq:U10a-stacki}
+Y_i=\alpha_i\one_T+X_i\beta+U_i.
+\end{equation}
+
+\subsubsection{全样本堆叠与 \texorpdfstring{$D_\alpha=I_N\otimes\one_T$}{D = I\_N kron 1\_T}}
+
+再把 $N$ 个个体堆起来：$Y=(Y_1\T,\dots,Y_N\T)\T$（$NT\times1$），$X=(X_1\T,\dots,X_N\T)\T$（$NT\times K$），$U$ 同理，$\alpha=(\alpha_1,\dots,\alpha_N)\T$（$N\times1$）。则
+\begin{equation}\label{eq:U10a-stack}
+Y=D_\alpha\alpha+X\beta+U,\qquad
+D_\alpha=\begin{pmatrix}\one_T&0&\cdots&0\\0&\one_T&\cdots&0\\\vdots&&\ddots&\vdots\\0&0&\cdots&\one_T\end{pmatrix}=I_N\otimes\one_T\quad(NT\times N).
+\end{equation}
+理由：按 Kronecker 积的定义，$A\otimes B$ 是把 $A$ 的每个元素 $a_{jk}$ 换成块 $a_{jk}B$；$I_N$ 的对角元为 1、其余为 0，故 $I_N\otimes\one_T$ 是对角块为 $\one_T$ 的块对角矩阵。第 $i$ 个块行乘以 $\alpha$ 得 $\alpha_i\one_T$，正是 \eqref{eq:U10a-stacki} 中的项。$D_\alpha$ 的第 $j$ 列就是虚拟变量 $d_j$ 在全部 $NT$ 个观测上的取值。
+
+误差向量 $U$ 的同一个体分块 $U_i$ 内部通常存在自相关（autocorrelation），这一点在方差估计时很重要。
+
+\subsubsection{两种求解思路：同时估计 \texorpdfstring{$(\alpha,\beta)$}{(alpha, beta)}，或只求 \texorpdfstring{$\hat\beta$}{beta-hat}}
+
+\begin{itemize}
+  \item 思路一：对 \eqref{eq:U10a-stack} 直接做 OLS，回归元矩阵为 $[D_\alpha,X]$，同时得到 $\hat\alpha$ 与 $\hat\beta$；
+  \item 思路二：我们只要 $\hat\beta$，用分块回归（partitioned regression），即 FWL 定理，先把 $D_\alpha$“偏掉”。本章 FWL 一节将证明，这恰好就是组内变换。
+\end{itemize}
+
+\begin{prac}[写出 $D_\alpha$]\label{pr:U10a-Dalpha}
+写出 $N=3$, $T=2$ 时的 $D_\alpha=I_3\otimes\one_2$，并验证 $D_\alpha\T D_\alpha=2I_3$、$D_\alpha\one_3=\one_6$。
+\answer
+\[
+D_\alpha=\begin{pmatrix}1&0&0\\1&0&0\\0&1&0\\0&1&0\\0&0&1\\0&0&1\end{pmatrix},
+\]
+即上表 $d_1,d_2,d_3$ 三列。
+\begin{align*}
+D_\alpha\T D_\alpha &= (I_3\otimes\one_2)\T(I_3\otimes\one_2) \why{代入定义}\\
+&= (I_3\otimes\one_2\T)(I_3\otimes\one_2) \why{$(A\otimes B)'=A'\otimes B'$}\\
+&= (I_3I_3)\otimes(\one_2\T\one_2)=I_3\otimes 2=2I_3 \why{混合积 $(A\otimes B)(C\otimes D)=AC\otimes BD$}\\
+D_\alpha\one_3 &= (I_3\otimes\one_2)(\one_3\otimes 1) \why{$\one_3=\one_3\otimes1$}\\
+&= (I_3\one_3)\otimes(\one_2\cdot 1)=\one_3\otimes\one_2=\one_6 \why{混合积}
+\end{align*}
+$D_\alpha\one_3=\one_6$ 的含义：每行恰有一个 1，三列相加得常数列。
+\end{prac}
+
+\subsection{虚拟变量陷阱}
+
+上题结论对一般 $N,T$ 同样成立：
+\begin{align*}
+\sum_{j=1}^N d_j=D_\alpha\one_N &= (I_N\otimes\one_T)(\one_N\otimes1) \why{$\one_N=\one_N\otimes1$}\\
+&= \one_N\otimes\one_T=\one_{NT} \why{混合积}
+\end{align*}
+即 $N$ 个个体虚拟变量之和恰为常数列。因此 $\one_{NT}-D_\alpha\one_N=0$：常数列与 $N$ 个虚拟变量线性相关。
+\begin{itemize}
+  \item 若模型\key{含截距}，只能放 $N-1$ 个个体虚拟变量（去掉一个作为基准组）；否则回归元矩阵 $W=[\one_{NT},D_\alpha,X]$ 列不满秩，$W\T W$ 不可逆，OLS 无唯一解——这就是\term{虚拟变量陷阱}{dummy variable trap}；
+  \item 若模型\key{不含截距}，可放全部 $N$ 个。
+\end{itemize}
+两种写法的回归元列空间相同（截距 $=\sum_jd_j$），所以拟合值、残差与 $\hat\beta$ 完全一样，只是 $\hat\alpha_j$ 的含义不同。含截距 $c$ 与 $d_2,\dots,d_N$（系数 $\gamma_2,\dots,\gamma_N$）时，个体 1 的截距为 $c$，个体 $j$ 的截距为 $c+\gamma_j$，故
+\[
+c=\alpha_1,\qquad \gamma_j=\alpha_j-\alpha_1\quad(j=2,\dots,N),
+\]
+$\hat\gamma_j$ 是相对基准个体的差。加入年份虚拟变量后，$\sum_s\text{year}_s$ 也是常数列，同理还要再去掉一个：含截距时，个体虚拟变量与年份虚拟变量\key{各去掉一个}；不含截距时，保留全部 $N$ 个个体虚拟变量，年份虚拟变量仍须去掉一个（本章双向固定效应部分）。Stata 的因子变量 \texttt{i.id} 会自动去掉一个基准类别。
+
+\subsection{Stata 实现与计算负担}
+
+LSDV 就是带全套个体虚拟变量的 OLS：\texttt{i.id} 为每个个体生成虚拟变量，标准误按个体聚类。
+\begin{lstlisting}
+* LSDV: OLS with a full set of unit dummies, SE clustered by unit
+reg y x i.id, vce(cluster id)
+* report only the slope, suppress the N dummy coefficients (Hansen sec. 17.13)
+quietly reg y x i.id, vce(cluster id)
+estimates table, keep(x _cons) b se
+\end{lstlisting}
+LSDV 的缺点是计算量：平衡面板中 $D_\alpha$ 有 $NT\times N=TN^2$ 个元素。Hansen 第 17.11 节的例子：$T=10$、$N=10000$ 时 $D_\alpha$ 有 $10\times 10000^2=10^9$ 个元素。所以 $N$ 很大时应改用组内变换，二者给出\key{同一个} $\hat\beta$（本章 FWL 一节）。
+
+\subsection{哪些参数能一致估计：伴随参数问题}
+
+\subsubsection{\texorpdfstring{$\hat\beta_{LSDV}$}{beta\_LSDV} 一致，\texorpdfstring{$\hat\alpha_i$}{alpha\_i-hat} 不一致}
+
+结论：$N\to\infty$、$T$ 固定时，$\hat\beta_{LSDV}\pto\beta$（证明见组内变换一节，二者相等），但 $\hat\alpha_i\not\pto\alpha_i$——除非 $T$ 很大，个体效应的估计不一致。
+
+要证 $\hat\alpha_i$ 不一致。本章 FWL 一节将证明 $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta$（对 $\alpha_i$ 的 OLS 一阶条件：个体 $i$ 的残差之和为零）。对 \eqref{eq:U10a-static} 关于 $t$ 取平均得 $\bar y_{i\cdot}=\alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot}$，其中 $\bar u_{i\cdot}=\frac1T\sum_{t=1}^Tu_{it}$。于是
+\begin{align*}
+\hat\alpha_i-\alpha_i &= \bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta-\alpha_i \why{$\hat\alpha_i$ 的表达式}\\
+&= (\alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot})-\bar x_{i\cdot}\T\hat\beta-\alpha_i \why{代入 $\bar y_{i\cdot}$}\\
+&= \bar u_{i\cdot}-\bar x_{i\cdot}\T(\hat\beta-\beta) \why{整理}\\
+&= \bar u_{i\cdot}+o_p(1) \why{$N\to\infty$ 时 $\hat\beta\pto\beta$}
+\end{align*}
+误差 $\bar u_{i\cdot}$ 是 \key{$T$ 个}误差的平均，不随 $N$ 变小。若 $u_{it}$ 同方差、无序列相关：
+\begin{align*}
+\Var(\bar u_{i\cdot}) &= \frac1{T^2}\Var\Big(\sum_{t=1}^Tu_{it}\Big) \why{$\Var(cZ)=c^2\Var(Z)$}\\
+&= \frac1{T^2}\sum_{t=1}^T\Var(u_{it})=\frac{T\sigma_u^2}{T^2}=\frac{\sigma_u^2}{T} \why{无序列相关、同方差}
+\end{align*}
+$T$ 固定时 $\sigma_u^2/T>0$ 不消失，所以 $\hat\alpha_i$ 不一致；只有 $T\to\infty$ 才有 $\hat\alpha_i\pto\alpha_i$。直观上：增加个体数 $N$ 不会给某个特定的 $\alpha_i$ 带来任何新信息，每个 $\alpha_i$ 永远只有 $T$ 个观测。
+
+\subsubsection{伴随参数问题的定义}
+
+\begin{defn}[伴随参数问题]\label{def:U10a-incidental}
+当参数个数随样本量同步增长（此处 $N$ 个 $\alpha_i$ 随 $N$ 增长）时，这些参数无法被一致估计，称为\term{伴随参数问题}{incidental parameter problem}（Neyman \& Scott, 1948, \emph{Econometrica}）。
+\end{defn}
+
+\begin{itemize}
+  \item \key{线性面板}：不影响 $\hat\beta$ 的一致性，因为 $\alpha_i$ 可被组内变换精确消去；
+  \item \key{非线性面板}（如面板 logit / probit）：没有能精确消去 $\alpha_i$ 的变换，$\hat\alpha_i$ 的估计误差会污染 $\hat\beta$（第 11 章）。
+\end{itemize}
+多层效应模型中上层效应（如省份效应）的估计同样受此困扰：$T$ 固定时不一致（见本章多层效应一节）。
+
+\subsubsection{参数个数与样本量同速发散，\texorpdfstring{$\hat\beta$}{beta-hat} 仍有 \texorpdfstring{$\sqrt N$}{sqrt N} 渐近正态}
+
+Hansen 第 17.20 节特别指出：FE 实际估计了 $N+K$ 个参数，且 $N\to\infty$，参数个数与样本量同速发散，而 $\hat\beta$ 仍有常规的、均值为零的 $\sqrt N$ 渐近正态分布（夹心形式方差）。这在前面各章的理论中是“新而特别”的结果。
+
+\subsubsection{Neyman--Scott 例：\texorpdfstring{$\hat\sigma^2_{ML}$}{sigma2\_ML} 不一致}
+
+伴随参数问题的经典表现是误差方差。若用 LSDV 残差 $\hat u_{it}$ 按 MLE 的方式取
+\[
+\hat\sigma^2_{ML}=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^T\hat u_{it}^2,
+\]
+要证：$\hat\sigma^2_{ML}\pto\frac{T-1}{T}\sigma_u^2\neq\sigma_u^2$。为看清本质，先把 $\hat\beta$ 换成真值 $\beta$（$\hat\beta$ 一致，只影响 $K$ 个自由度）。此时 $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\beta=\alpha_i+\bar u_{i\cdot}$，
+\[
+\hat u_{it}=y_{it}-\hat\alpha_i-x_{it}\T\beta=(\alpha_i+u_{it})-(\alpha_i+\bar u_{i\cdot})=u_{it}-\bar u_{i\cdot},
+\]
+即 $\hat U_i=M_TU_i$。设 $\E(U_iU_i\T)=\sigma_u^2I_T$：
+\begin{align*}
+\E\Big[\sum_{t=1}^T\hat u_{it}^2\Big] &= \E\big[U_i\T M_T\T M_TU_i\big] \why{$\hat U_i=M_TU_i$}\\
+&= \E\big[U_i\T M_TU_i\big] \why{$M_T$ 对称幂等}\\
+&= \E\big[\tr(M_TU_iU_i\T)\big] \why{标量等于其迹；$\tr(AB)=\tr(BA)$}\\
+&= \tr\big(M_T\E(U_iU_i\T)\big) \why{迹与期望可交换}\\
+&= \sigma_u^2\tr(M_T) \why{$\E(U_iU_i')=\sigma_u^2I_T$}\\
+&= \sigma_u^2(T-1) \why{见下}
+\end{align*}
+其中 $\tr(M_T)=\tr(I_T)-\tr(P_T)=T-\frac1T\tr(\one_T\one_T\T)=T-\frac1T\one_T\T\one_T=T-1$。于是
+\begin{align*}
+\hat\sigma^2_{ML} &= \frac1T\cdot\frac1N\sum_{i=1}^N\Big(\sum_{t=1}^T\hat u_{it}^2\Big) \why{按个体分组求和}\\
+&\pto \frac1T\,\sigma_u^2(T-1)=\frac{T-1}{T}\sigma_u^2 \why{跨 $i$ 的 WLLN}
+\end{align*}
+$N\to\infty$、$T$ 固定时 $\hat\sigma^2_{ML}$ \key{不一致}；$T=2$ 时只估出一半。原因是每个个体用掉了一个自由度去估 $\alpha_i$。
+
+\subsubsection{正确的自由度：\texorpdfstring{$NT-N-K$}{NT-N-K}}
+
+正确做法是按 LSDV 的参数个数扣自由度：$NT$ 个观测、$N+K$ 个参数，
+\begin{equation}\label{eq:U10a-s2}
+\hat\sigma_u^2=\frac1{NT-N-K}\sum_{i=1}^N\sum_{t=1}^T\hat u_{it}^2 .
+\end{equation}
+在严格外生、同方差、无序列相关下它是 $\sigma_u^2$ 的无偏估计（Hansen 第 17.12 节）。上面的推导已说明分母中“$-N$”的来源：$\E\sum_i\sum_t\hat u_{it}^2=N(T-1)\sigma_u^2$（真值 $\beta$ 时），再估 $K$ 个斜率又减去 $K$。
+
+\begin{keypt}[LSDV 中哪些参数一致]
+“Which parameters in the LSDV regression are consistently estimated as $N\to\infty$ with $T$ fixed?”答：$\hat\beta$ 一致；$\hat\alpha_i$ 不一致（$\hat\alpha_i-\alpha_i=\bar u_{i\cdot}+o_p(1)$，方差 $\sigma_u^2/T$ 不消失），这是伴随参数问题；只有 $T\to\infty$ 时 $\hat\alpha_i$ 才一致。同理，$\hat\sigma^2_{ML}$ 不一致，须用自由度 $NT-N-K$。
+\end{keypt}
+
+\begin{english}
+In the LSDV regression $y_{it}=\sum_j\alpha_jd_{j,it}+x_{it}'\beta+u_{it}$, each $\alpha_i$ is the coefficient on the dummy for individual $i$. As $N\to\infty$ with $T$ fixed, $\hat\beta_{LSDV}$ is consistent, but $\hat\alpha_i=\bar y_i-\bar x_i'\hat\beta$ is not, because $\hat\alpha_i-\alpha_i=\bar u_i+o_p(1)$, whose variance $\sigma_u^2/T$ does not vanish. This is the incidental parameter problem: the number of parameters grows with $N$. For the same reason the error variance must be estimated with $NT-N-K$ degrees of freedom.
+\end{english}
+
+%======================================================================
+\section{组内（WG）变换与固定效应估计量}\label{sec:U10a-wg}
+
+\subsection{思路：对时间取平均再相减}
+
+$\alpha_i$ 不随 $t$ 变。把同一个体的 $T$ 期方程取平均，$\alpha_i$ 原样保留；再用原方程减去平均方程，$\alpha_i$ 就被减掉了。这就是\term{组内变换}{within-group transformation}（WG 变换，又称\term{去均值}{demeaning}）。FE / WG 估计就是基于组内变换的估计。
+
+\subsection{组内变换的推导（求和形式）}
+
+\subsubsection{第一步：对时间求平均，得到个体均值方程}
+
+把个体 $i$ 的 $T$ 个方程竖着写出，再取平均：
+\begin{align}
+y_{it} &= \alpha_i+x_{it}\T\beta+u_{it}, \tag{1}\\
+\bar y_{i\cdot} &= \alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot},\qquad
+\bar y_{i\cdot}=\frac1T\sum_{t=1}^Ty_{it},\ \ \bar x_{i\cdot}=\frac1T\sum_{t=1}^Tx_{it},\ \ \bar u_{i\cdot}=\frac1T\sum_{t=1}^Tu_{it}. \tag{2}
+\end{align}
+方程 (2) 由 (1) 对 $t$ 求平均得到：
+\begin{align*}
+\frac1T\sum_{t=1}^Ty_{it} &= \frac1T\sum_{t=1}^T\alpha_i+\frac1T\sum_{t=1}^Tx_{it}\T\beta+\frac1T\sum_{t=1}^Tu_{it} \why{(1) 两边求时间平均}\\
+&= \alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot} \why{$\alpha_i$ 不随 $t$ 变：$\frac1T\sum_t\alpha_i=\alpha_i$}
+\end{align*}
+(2) 本身是一个截面模型（只有下标 $i$），对它做 OLS 得到\term{组间估计量}{between estimator}（第 11 章）。
+
+\subsubsection{第二步：原方程减均值方程，\texorpdfstring{$\alpha_i$}{alpha\_i} 消失}
+
+(1) $-$ (2)：
+\begin{align*}
+y_{it}-\bar y_{i\cdot} &= (\alpha_i-\alpha_i)+(x_{it}-\bar x_{i\cdot})\T\beta+(u_{it}-\bar u_{i\cdot}) \why{(1) 减 (2)}\\
+&= (x_{it}-\bar x_{i\cdot})\T\beta+(u_{it}-\bar u_{i\cdot}) \why{$\alpha_i-\alpha_i=0$}
+\end{align*}
+记 $\dot y_{it}=y_{it}-\bar y_{i\cdot}$，$\dot x_{it}=x_{it}-\bar x_{i\cdot}$，$\dot u_{it}=u_{it}-\bar u_{i\cdot}$，组内变换后的方程为
+\begin{equation}\label{eq:U10a-within}
+\underbrace{y_{it}-\bar y_{i\cdot}}_{\dot y_{it}}=\underbrace{(x_{it}-\bar x_{i\cdot})\T}_{\dot x_{it}\T}\beta+\underbrace{u_{it}-\bar u_{i\cdot}}_{\dot u_{it}} .
+\end{equation}
+$\alpha_i$ 消失了，$\beta$ 原样保留。
+
+\subsubsection{去均值变量的个体内和为零}
+
+\begin{align*}
+\sum_{t=1}^T\dot y_{it} &= \sum_{t=1}^Ty_{it}-T\bar y_{i\cdot} \why{$\bar y_{i\cdot}$ 与 $t$ 无关}\\
+&= T\bar y_{i\cdot}-T\bar y_{i\cdot}=0 \why{$\bar y_{i\cdot}$ 的定义}
+\end{align*}
+同理 $\sum_t\dot x_{it}=0$，$\sum_t\dot u_{it}=0$。
+
+\subsection{WG / FE 估计量（求和形式）}
+
+\subsubsection{估计量公式}
+
+对 \eqref{eq:U10a-within} 的全部 $NT$ 个观测做 OLS，得到\term{组内估计量}{within-group estimator}（WG estimator），也叫\term{固定效应估计量}{fixed effects estimator}（FE estimator）：
+\begin{equation}\label{eq:U10a-fe-sum}
+\boxed{\ \hat\beta_{WG}=\hat\beta_{FE}=\Big(\sum_{i=1}^N\sum_{t=1}^T(x_{it}-\bar x_{i\cdot})(x_{it}-\bar x_{i\cdot})\T\Big)^{-1}\Big(\sum_{i=1}^N\sum_{t=1}^T(x_{it}-\bar x_{i\cdot})(y_{it}-\bar y_{i\cdot})\Big)\ }
+\end{equation}
+简记为 $\hat\beta_{FE}=\big(\sum_{i,t}\dot x_{it}\dot x_{it}\T\big)^{-1}\sum_{i,t}\dot x_{it}\dot y_{it}$。
+
+\subsubsection{分子中 \texorpdfstring{$y$}{y} 去不去均值都一样}
+
+\begin{align*}
+\sum_{t=1}^T\dot x_{it}\dot y_{it} &= \sum_{t=1}^T\dot x_{it}(y_{it}-\bar y_{i\cdot}) \why{$\dot y_{it}$ 的定义}\\
+&= \sum_{t=1}^T\dot x_{it}y_{it}-\bar y_{i\cdot}\sum_{t=1}^T\dot x_{it} \why{$\bar y_{i\cdot}$ 与 $t$ 无关}\\
+&= \sum_{t=1}^T\dot x_{it}y_{it} \why{$\sum_t\dot x_{it}=0$}
+\end{align*}
+所以分子中的 $y$ 去不去均值都一样，但 $x$ \key{必须}去均值。
+
+\subsubsection{例：手算 WG（\texorpdfstring{$N=2$, $T=3$}{N=2, T=3}）}
+
+\begin{exmp}[手算 WG]\label{ex:U10a-wg}
+单个回归元。个体 1：$x=(1,2,6)$，$y=(3,5,10)$；个体 2：$x=(3,6,6)$，$y=(6,13,14)$。求 $\hat\beta_{WG}$。
+
+\solution 第一步，求个体均值并去均值：
+\begin{center}
+\begin{tabular}{ccccccc}
+\toprule
+个体 & $\bar x_{i\cdot}$ & $\bar y_{i\cdot}$ & $\dot x_{it}$ & $\dot y_{it}$ & $\sum_t\dot x_{it}^2$ & $\sum_t\dot x_{it}\dot y_{it}$\\
+\midrule
+1 & 3 & 6 & $(-2,-1,3)$ & $(-3,-1,4)$ & $4+1+9=14$ & $6+1+12=19$\\
+2 & 5 & 11 & $(-2,1,1)$ & $(-5,2,3)$ & $4+1+1=6$ & $10+2+3=15$\\
+\bottomrule
+\end{tabular}
+\end{center}
+第二步，代入 \eqref{eq:U10a-fe-sum}：
+\begin{align*}
+\textstyle\sum_{i,t}\dot x_{it}^2 &= 14+6=20 \why{两个体相加}\\
+\textstyle\sum_{i,t}\dot x_{it}\dot y_{it} &= 19+15=34 \why{两个体相加}\\
+\hat\beta_{WG} &= 34/20=1.7 \why{WG 公式}
+\end{align*}
+检验上一小节的性质：个体 1 的 $\sum_t\dot x_{it}y_{it}=(-2)(3)+(-1)(5)+3\cdot10=19$，与 $\sum_t\dot x_{it}\dot y_{it}$ 相同。这组数据在本章双向固定效应的数值例中还会用到。
+\end{exmp}
+
+\subsection{矩阵形式：去均值矩阵 \texorpdfstring{$M_T$}{M\_T} 与 \texorpdfstring{$M_T\one_T=0$}{M\_T 1 = 0}}
+
+使用个体层面的堆叠 \eqref{eq:U10a-stacki}：$Y_i=\alpha_i\one_T+X_i\beta+U_i$，以及 $M_T=I_T-P_T=I_T-\one_T(\one_T\T\one_T)\inv\one_T\T$。
+
+\subsubsection{\texorpdfstring{$P_T$}{P\_T} 取个体均值，\texorpdfstring{$M_T$}{M\_T} 去均值}
+
+先确认 $M_T$ 就是“去均值”算子：
+\begin{align*}
+P_TY_i &= \one_T(\one_T\T\one_T)\inv\one_T\T Y_i \why{$P_T$ 的定义}\\
+&= \one_T\cdot\frac1T\sum_{t=1}^Ty_{it}=\one_T\,\bar y_{i\cdot} \why{$\one_T'\one_T=T$，$\one_T'Y_i=\sum_ty_{it}$}\\
+M_TY_i &= Y_i-P_TY_i=(y_{i1}-\bar y_{i\cdot},\dots,y_{iT}-\bar y_{i\cdot})\T=\dot Y_i \why{$M_T=I_T-P_T$}
+\end{align*}
+$P_TY_i$ 把每个元素都换成个体均值，$M_TY_i$ 是对个体均值的偏离。
+
+\subsubsection{\texorpdfstring{$M_T\one_T=0$}{M\_T 1\_T = 0}：左乘 \texorpdfstring{$M_T$}{M\_T} 消去 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+\begin{align*}
+M_T\one_T &= \one_T-\one_T(\one_T\T\one_T)\inv\one_T\T\one_T \why{展开 $M_T$}\\
+&= \one_T-\one_T=0 \why{$(\one_T'\one_T)\inv\one_T'\one_T=1$}
+\end{align*}
+对 \eqref{eq:U10a-stacki} 左乘 $M_T$：
+\begin{align*}
+M_TY_i &= \alpha_iM_T\one_T+M_TX_i\beta+M_TU_i \why{左乘 $M_T$}\\
+&= M_TX_i\beta+M_TU_i \why{$M_T\one_T=0$}
+\end{align*}
+这正是 \eqref{eq:U10a-within} 的矩阵写法：$\dot Y_i=\dot X_i\beta+\dot U_i$，其中 $\dot X_i=M_TX_i$（$T\times K$）。
+
+\subsubsection{矩阵形式的 \texorpdfstring{$\hat\beta_{FE}$}{beta\_FE}，与求和形式等价}
+
+对变换后的方程做 OLS（把 $N$ 个个体堆起来）：
+\begin{align*}
+\hat\beta_{FE} &= \Big(\sum_{i=1}^N(M_TX_i)\T(M_TX_i)\Big)^{-1}\sum_{i=1}^N(M_TX_i)\T(M_TY_i) \why{OLS 公式}\\
+&= \Big(\sum_{i=1}^NX_i\T M_TX_i\Big)^{-1}\Big(\sum_{i=1}^NX_i\T M_TY_i\Big) \why{$M_T'M_T=M_T$（对称幂等）}
+\end{align*}
+它与求和形式 \eqref{eq:U10a-fe-sum} 完全相同，因为
+\[
+X_i\T M_TX_i=(M_TX_i)\T(M_TX_i)=\dot X_i\T\dot X_i=\sum_{t=1}^T\dot x_{it}\dot x_{it}\T,
+\]
+最后一步是矩阵乘法按行展开：$\dot X_i$ 的第 $t$ 行为 $\dot x_{it}\T$。分子同理。
+
+\subsubsection{名称：去均值矩阵与组内算子}
+
+$M_T$ 称为\term{去均值矩阵}{demeaning matrix}，或\term{组内算子}{within operator}；$P_T$ 称为个体均值算子。
+
+\subsection{全样本矩阵：\texorpdfstring{$M_D=I_N\otimes M_T$}{M\_D = I\_N kron M\_T}}
+
+把 $N$ 个 $M_TY_i$ 堆起来：
+\[
+\begin{pmatrix}M_TY_1\\\vdots\\M_TY_N\end{pmatrix}
+=\begin{pmatrix}M_T&&\\&\ddots&\\&&M_T\end{pmatrix}\begin{pmatrix}Y_1\\\vdots\\Y_N\end{pmatrix}
+=(I_N\otimes M_T)\,Y\equiv M_DY .
+\]
+$M_D=I_N\otimes M_T$ 是 $NT\times NT$ 的块对角矩阵。由块对角结构，
+\begin{align*}
+X\T M_DX &= \begin{pmatrix}X_1\T&\cdots&X_N\T\end{pmatrix}\begin{pmatrix}M_TX_1\\\vdots\\M_TX_N\end{pmatrix} \why{分块乘法}\\
+&= \sum_{i=1}^NX_i\T M_TX_i \why{逐块相乘再相加}
+\end{align*}
+同理 $X\T M_DY=\sum_iX_i\T M_TY_i$，于是
+\begin{equation}\label{eq:U10a-fe-mat}
+\hat\beta_{FE}=\big(X\T M_DX\big)^{-1}X\T M_DY,\qquad M_D=I_N\otimes M_T .
+\end{equation}
+本章 FWL 一节将证明：$M_D$ 恰好是对个体虚拟变量矩阵 $D_\alpha$ 回归的残差生成矩阵——这正是 LSDV $=$ WG 的关键。
+
+\subsection{WG 估计量的一致性条件：秩条件、严格外生与 \texorpdfstring{$N\to\infty$}{N to infinity}}
+
+常说“只要 $N$ 大，$\hat\beta_{WG}$ 就一致且渐近正态”。但“$N$ 大”之外还需要两个条件：秩条件与严格外生。下面从估计误差的分解中把它们推出来。
+
+\subsubsection{估计误差的分解}
+
+\begin{align*}
+\hat\beta_{FE} &= \Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_T(X_i\beta+U_i) \why{代入 $M_TY_i=M_TX_i\beta+M_TU_i$}\\
+&= \beta+\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_TU_i \why{展开}\\
+\hat\beta_{FE}-\beta &= \Big(\frac1N\sum_{i=1}^NX_i\T M_TX_i\Big)^{-1}\Big(\frac1N\sum_{i=1}^NX_i\T M_TU_i\Big) \why{分子分母同乘 $1/N$}
+\end{align*}
+设 $(X_i,U_i)$ 跨 $i$ 独立同分布。由 WLLN，分母 $\pto Q_T\equiv\E(X_i\T M_TX_i)$，分子 $\pto\E(X_i\T M_TU_i)$；再由 CMT，
+\[
+\plim(\hat\beta_{FE}-\beta)=Q_T\inv\,\E(X_i\T M_TU_i).
+\]
+所以一致性需要：(i) $Q_T$ 可逆；(ii) $\E(X_i\T M_TU_i)=0$。
+
+\subsubsection{条件一：秩条件（回归元必须有个体内的时间变异）}
+
+\begin{equation}\label{eq:U10a-rank}
+Q_T=\E\Big(\sum_{t=1}^T\dot x_{it}\dot x_{it}\T\Big)>0 .
+\end{equation}
+即每个回归元都必须有个体内的时间变异，且这些变异之间不共线。不随时间变的变量（性别、出生地）去均值后恒为 0，违背此条件——它们的系数在 WG 下不可识别（第 11 章）。
+
+\subsubsection{条件二：严格外生}
+
+把分子的期望展开：
+\begin{align*}
+\E\big(X_i\T M_TU_i\big) &= \E\Big(\sum_{t=1}^T\dot x_{it}u_{it}\Big) \why{$X_i'M_TU_i=(M_TX_i)'U_i$}\\
+&= \sum_{t=1}^T\E(x_{it}u_{it})-\frac1T\sum_{t=1}^T\sum_{s=1}^T\E(x_{is}u_{it}) \why{$\dot x_{it}=x_{it}-\frac1T\sum_sx_{is}$}
+\end{align*}
+第二项含有所有 $s\neq t$ 的交叉矩 $\E(x_{is}u_{it})$。保证它为零的标准（充分）条件是\key{所有} $s,t$ 组合都有 $\E(x_{is}u_{it})=0$：
+
+\begin{defn}[严格外生]\label{def:U10a-strict}
+称 $x_{it}$ 对 $u_{it}$ \term{严格外生}{strict exogeneity}，若
+\[
+\E(x_{is}u_{it})=0,\qquad \forall\, s,t=1,\dots,T;
+\]
+其条件期望版本为 $\E(u_{it}\mid x_{i1},\dots,x_{iT},\alpha_i)=0$。
+\end{defn}
+
+\subsubsection{为什么同期外生不够}
+
+原因在于 $\bar x_{i\cdot}$ 与 $\bar u_{i\cdot}$ 包含了\key{所有期}的取值：$\dot x_{it}$ 与 $\dot u_{it}$ 中都出现了过去和未来的 $x$ 与 $u$。若只有\term{同期外生}{contemporaneous exogeneity} $\E(u_{it}\mid x_{it})=0$ 成立，交叉矩 $\E(x_{is}u_{it})$（$s\neq t$）不必为零，上式第二项一般不为零，$\hat\beta_{FE}$ 不一致。
+
+有限样本无偏性的要求同理。以全部回归元为条件取期望：
+\begin{align*}
+\E(\hat\beta_{FE}\mid X) &= \beta+\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_T\,\E(U_i\mid X) \why{提出已知量}\\
+&= \beta+\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_iX_i\T M_T\,\E(U_i\mid X_i) \why{跨 $i$ 独立}
+\end{align*}
+保证第二项为零（从而 $\hat\beta_{FE}$ 无偏）的条件是\term{严格均值独立}{strict mean independence} $\E(U_i\mid X_i)=0$，即 $\E(u_{it}\mid x_{i1},\dots,x_{iT})=0$ 对每个 $t$ 成立。仅有 $\E(u_{it}\mid x_{it})=0$ 不足以保证 $\hat\beta_{FE}$ 无偏，因为 $M_T$ 把各期混在一起：$\dot X_i\T U_i=\sum_t\dot x_{it}u_{it}$ 中的 $\dot x_{it}$ 含所有期的 $x_{is}$。
+
+\subsubsection{严格外生排除的两种情形：滞后因变量与反馈效应}
+
+\begin{enumerate}[label=(\alph*)]
+  \item 回归元中含 $y_{i,t-1}$（动态面板）：$y_{i,t}$ 含 $u_{it}$，而它是下一期的回归元，于是 $\E(x_{i,t+1}u_{it})\neq0$。这导致第 12 章的 Nickell 偏误。
+  \item \term{反馈效应}{feedback}：今天的冲击 $u_{it}$ 影响明天的 $x_{i,t+1}$，例如政策根据过去的绩效调整。
+\end{enumerate}
+
+\begin{prac}[严格外生何时失败]\label{pr:U10a-strict}
+设 $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$，$|\rho|<1$，$x_{it}=y_{i,t-1}$，$T=3$（$t=1,2,3$，$y_{i0}$ 已知）。设 $u_{it}$ 跨 $t$ 独立同分布、均值 0、方差 $\sigma_u^2$，且与 $\alpha_i,y_{i0}$ 不相关。说明为何 $\E(\dot x_{i2}\dot u_{i2})\neq0$，即使同期外生 $\E(u_{it}\mid y_{i,t-1})=0$ 成立。
+\answer 回归元为 $x_{i1}=y_{i0}$，$x_{i2}=y_{i1}$，$x_{i3}=y_{i2}$。去均值：
+\begin{align*}
+\dot x_{i2} &= y_{i1}-\tfrac13(y_{i0}+y_{i1}+y_{i2})=-\tfrac13y_{i0}+\tfrac23y_{i1}-\tfrac13y_{i2} \why{含 $y_{i2}$}\\
+\dot u_{i2} &= u_{i2}-\tfrac13(u_{i1}+u_{i2}+u_{i3})=-\tfrac13u_{i1}+\tfrac23u_{i2}-\tfrac13u_{i3} \why{含 $u_{i2}$}
+\end{align*}
+由 $y_{i1}=\alpha_i+\rho y_{i0}+u_{i1}$ 与 $y_{i2}=\alpha_i+\rho y_{i1}+u_{i2}$，非零的交叉矩只有
+\[
+\E(y_{i1}u_{i1})=\sigma_u^2,\qquad \E(y_{i2}u_{i1})=\rho\sigma_u^2,\qquad \E(y_{i2}u_{i2})=\sigma_u^2
+\]
+（$y_{i0}$ 与 $u_{i1},u_{i2},u_{i3}$ 不相关；$y_{i1}$ 与 $u_{i2},u_{i3}$ 不相关；$y_{i2}$ 与 $u_{i3}$ 不相关）。于是
+\begin{align*}
+\E(\dot x_{i2}\dot u_{i2}) &= \tfrac23\cdot(-\tfrac13)\E(y_{i1}u_{i1})+(-\tfrac13)(-\tfrac13)\E(y_{i2}u_{i1})+(-\tfrac13)\cdot\tfrac23\E(y_{i2}u_{i2}) \why{逐项相乘取期望}\\
+&= -\tfrac29\sigma_u^2+\tfrac{\rho}9\sigma_u^2-\tfrac29\sigma_u^2 \why{代入交叉矩}\\
+&= -\tfrac{4-\rho}{9}\sigma_u^2\neq0 \why{$|\rho|<1$}
+\end{align*}
+同期外生成立，但严格外生失败：$x_{i3}=y_{i2}$ 与 $u_{i2}$ 相关。这就是动态面板中 WG 不一致的根源（第 12 章）。
+\end{prac}
+
+\subsubsection{对 \texorpdfstring{$\alpha_i$}{alpha\_i} 没有任何要求}
+
+条件 (i)(ii) 都不涉及 $\alpha_i$。这是 FE 的最大优点：$\alpha_i$ 已被精确消去，它与 $x_{it}$ 怎样相关都无所谓。
+
+\subsection{FE 估计量的渐近正态性（Hansen 定理 17.2）}
+
+\begin{thm}[FE 估计量的渐近正态性]\label{thm:U10a-asym}
+设 (1) $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$，$T\ge2$ 固定；(2) $(X_i,U_i)$ 跨 $i$ 独立同分布；(3) 严格外生：$\E(x_{is}u_{it})=0$，$\forall s,t$；(4) 秩条件：$Q_T=\E(X_i\T M_TX_i)>0$；(5) $\E(u_{it}^4)<\infty$，$\E\|x_{it}\|^4<\infty$。则当 $N\to\infty$，
+\[
+\sqrt N\big(\hat\beta_{FE}-\beta\big)\dto N\big(0,\ Q_T\inv\Omega_TQ_T\inv\big),\qquad
+\Omega_T=\E\big(X_i\T M_TU_iU_i\T M_TX_i\big)=\E\big(\dot X_i\T U_iU_i\T\dot X_i\big).
+\]
+\end{thm}
+
+证明思路：$\sqrt N(\hat\beta-\beta)$ 写成“样本均值之逆 $\times$ 标准化的和”，分母用 WLLN，分子用 CLT，再合并。
+\begin{align*}
+\sqrt N(\hat\beta_{FE}-\beta) &= \Big(\frac1N\sum_{i=1}^NX_i\T M_TX_i\Big)^{-1}\Big(\frac1{\sqrt N}\sum_{i=1}^NX_i\T M_TU_i\Big) \why{误差分解乘 $\sqrt N$}\\
+\frac1N\sum_{i=1}^NX_i\T M_TX_i &\pto Q_T \why{WLLN}\\
+\E\big(X_i\T M_TU_i\big) &= 0 \why{严格外生（上一小节）}\\
+\frac1{\sqrt N}\sum_{i=1}^NX_i\T M_TU_i &\dto N(0,\Omega_T) \why{i.i.d.\ 零均值和的 CLT}\\
+\sqrt N(\hat\beta_{FE}-\beta) &\dto Q_T\inv N(0,\Omega_T)=N\big(0,Q_T\inv\Omega_TQ_T\inv\big) \why{Slutsky / CMT}
+\end{align*}
+四阶矩条件保证 $\Omega_T$ 有限。注意归一化是 $\sqrt N$ 而非 $\sqrt{NT}$：$T$ 固定，信息随个体数 $N$ 增长（用 $\sqrt{NT}$ 也可以，只差常数 $\sqrt T$）。
+
+\subsection{WG 只用组内变异：效率的代价}
+
+\subsubsection{丢弃的个体间变异：\texorpdfstring{$\sum_iX_i'X_i-\sum_iX_i'M_TX_i=T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}'$}{between variation}}
+
+WG 丢弃了全部个体间变异（$\bar x_{i\cdot}$ 的差别），只用个体内变异 $\dot x_{it}$。要证：$\sum_i\dot X_i\T\dot X_i\le\sum_iX_i\T X_i$（矩阵不等式，$A\le B$ 指 $B-A$ 半正定）。
+\begin{align*}
+\sum_iX_i\T X_i-\sum_iX_i\T M_TX_i &= \sum_iX_i\T(I_T-M_T)X_i=\sum_iX_i\T P_TX_i \why{$I_T-M_T=P_T$}\\
+&= \sum_i\frac1T(X_i\T\one_T)(\one_T\T X_i) \why{$P_T=\frac1T\one_T\one_T'$}\\
+&= \sum_i\frac1T\Big(\sum_tx_{it}\Big)\Big(\sum_tx_{it}\Big)\T=T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T\ \ge 0 \why{$X_i'\one_T=\sum_tx_{it}=T\bar x_{i\cdot}$}
+\end{align*}
+被丢掉的正是个体间变异 $T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T$。总体版本：若 $x_{it}$（标量，或取向量的任一分量）的均值 $\mu=\E(x_{it})$ 不随 $t$ 变，由恒等式 $\sum_t(x_{it}-\mu)^2=\sum_t\dot x_{it}^2+T(\bar x_{i\cdot}-\mu)^2$ 两边取期望得
+\[
+\sum_{t=1}^T\Var(\dot x_{it})=\sum_{t=1}^T\Var(x_{it})-T\,\Var(\bar x_{i\cdot})\le\sum_{t=1}^T\Var(x_{it})
+\]
+（用到交叉项 $2(\bar x_{i\cdot}-\mu)\sum_t\dot x_{it}=0$ 与 $\E\dot x_{it}=0$），即去均值后回归元的总变异变小。
+
+\subsubsection{无个体效应时 WG 方差大于混合 OLS}
+
+在“其实没有个体效应”（$\alpha_i=0$）、误差同方差且无序列相关的情形下（Hansen 第 17.9 节）：
+\begin{align*}
+\sum_i\dot X_i\T\dot X_i\le\sum_iX_i\T X_i\ &\Rightarrow\ \Big(\sum_i\dot X_i\T\dot X_i\Big)^{-1}\ge\Big(\sum_iX_i\T X_i\Big)^{-1} \why{$0<A\le B\Rightarrow A\inv\ge B\inv$}\\
+\Rightarrow\ V^0_{FE}=\sigma_u^2\Big(\sum_i\dot X_i\T\dot X_i\Big)^{-1} &\ge \sigma_u^2\Big(\sum_iX_i\T X_i\Big)^{-1}=V_{pool} \why{两边乘 $\sigma_u^2$}
+\end{align*}
+这是换取“对 $\alpha_i$ 稳健”所付的代价。若 $x$ 在个体内几乎不变（如行业、制度变量），$\sum_i\dot X_i\T\dot X_i$ 很小，WG 会很不精确。
+
+\subsection{另一种消去 \texorpdfstring{$\alpha_i$}{alpha\_i} 的变换：一阶差分}
+
+\subsubsection{一阶差分估计量}
+
+$\alpha_i$ 也可以通过相邻两期相减消去：
+\begin{align*}
+y_{it}-y_{i,t-1} &= (\alpha_i-\alpha_i)+(x_{it}-x_{i,t-1})\T\beta+(u_{it}-u_{i,t-1}) \why{第 $t$ 期减第 $t-1$ 期}\\
+\Delta y_{it} &= \Delta x_{it}\T\beta+\Delta u_{it},\qquad t=2,\dots,T \why{记 $\Delta z_{it}=z_{it}-z_{i,t-1}$}
+\end{align*}
+对差分方程做 OLS 得\term{一阶差分估计量}{first-difference estimator}（FD estimator，Hansen 第 17.10 节）：
+\[
+\hat\beta_\Delta=\Big(\sum_{i=1}^N\sum_{t=2}^T\Delta x_{it}\Delta x_{it}\T\Big)^{-1}\sum_{i=1}^N\sum_{t=2}^T\Delta x_{it}\Delta y_{it}.
+\]
+
+\subsubsection{\texorpdfstring{$T=2$}{T=2} 时 FD 与 FE 相等}
+
+要证：$T=2$ 时 $\hat\beta_\Delta=\hat\beta_{FE}$。思路：$T=2$ 时去均值变量恰是差分的 $\pm\frac12$ 倍。
+\begin{align*}
+\dot x_{i1} &= x_{i1}-\tfrac12(x_{i1}+x_{i2})=-\tfrac12\Delta x_{i2} \why{$\bar x_{i\cdot}=\frac12(x_{i1}+x_{i2})$}\\
+\dot x_{i2} &= x_{i2}-\tfrac12(x_{i1}+x_{i2})=\tfrac12\Delta x_{i2} \why{同上}\\
+\textstyle\sum_{t=1}^2\dot x_{it}\dot x_{it}\T &= \tfrac14\Delta x_{i2}\Delta x_{i2}\T+\tfrac14\Delta x_{i2}\Delta x_{i2}\T=\tfrac12\Delta x_{i2}\Delta x_{i2}\T \why{代入上两式}\\
+\textstyle\sum_{t=1}^2\dot x_{it}\dot y_{it} &= \tfrac12\Delta x_{i2}\Delta y_{i2} \why{$\dot y_{it}$ 同理}\\
+\hat\beta_{FE} &= \Big(\sum_i\tfrac12\Delta x_{i2}\Delta x_{i2}\T\Big)^{-1}\sum_i\tfrac12\Delta x_{i2}\Delta y_{i2} \why{代入 FE 公式}\\
+&= \Big(\sum_i\Delta x_{i2}\Delta x_{i2}\T\Big)^{-1}\sum_i\Delta x_{i2}\Delta y_{i2}=\hat\beta_\Delta \why{因子 $\frac12$ 约掉}
+\end{align*}
+最后一式就是 $T=2$（差分只有 $t=2$ 一期）时的 FD 估计量。
+
+\subsubsection{\texorpdfstring{$T>2$}{T>2} 时二者不同：误差 i.i.d.\ 时 FE 更有效}
+
+$T>2$ 时 $\hat\beta_\Delta\neq\hat\beta_{FE}$。若 $u_{it}$ i.i.d.，WG 更有效：对差分方程做 GLS 恰好得到 WG。
+
+\begin{extend}[对差分方程做 GLS 等于 FE]
+记 $D$ 为 $(T-1)\times T$ 差分矩阵（第 $t$ 行在第 $t$、$t+1$ 列为 $-1,1$，其余为 0），则 $\Delta Y_i=DY_i$，且 $D\one_T=0$。若 $u_{it}$ i.i.d.，$\Var(DU_i)=\sigma_u^2DD\T$（主对角为 2、次对角为 $-1$），差分误差存在负的一阶相关，OLS 不再有效。GLS 为
+\[
+\hat\beta=\Big(\sum_iX_i\T D\T(DD\T)\inv DX_i\Big)^{-1}\sum_iX_i\T D\T(DD\T)\inv DY_i .
+\]
+$D\T(DD\T)\inv D$ 是向 $D\T$ 的列空间的正交投影。该空间维数为 $\rank(D)=T-1$，且由 $D\one_T=0$ 与 $\one_T$ 正交，所以它恰为 $\one_T$ 的正交补，投影矩阵就是 $M_T$。于是差分 GLS $=\hat\beta_{FE}$。由 Gauss--Markov 定理，GLS 比差分 OLS 有效，故误差 i.i.d.\ 时 FE 比 FD 有效。同理，任何消去 $\alpha_i$ 的变换之后再做 GLS 都等于 FE：FE 在“消去个体效应”的估计量类中是 Gauss--Markov 有效的（Hansen 第 17.10 节）。
+\end{extend}
+
+\subsubsection{动态面板中情况反过来}
+
+在动态面板中，WG 不一致（严格外生失败，见上面的即时练习），必须用一阶差分加工具变量（第 12 章）。
+
+\subsection{非线性项的组内变换陷阱}
+
+\subsubsection{正确做法：先生成回归元，再逐个去均值}
+
+若模型含 $x_{it}^2$、交互项 $x_{1,it}x_{2,it}$ 等，例如 $y_{it}=\alpha_i+\beta_1x_{it}+\beta_2x_{it}^2+u_{it}$，组内变换必须作用在\key{生成好的}回归元上。对模型直接去均值：
+\begin{align*}
+\dot y_{it} &= \beta_1\dot x_{it}+\beta_2\big(x_{it}^2-\overline{x^2}_{i\cdot}\big)+\dot u_{it},\qquad \overline{x^2}_{i\cdot}=\frac1T\sum_{s=1}^Tx_{is}^2 \why{对每个回归元去均值}
+\end{align*}
+正确的第二个回归元是 $(x^2)^{\boldsymbol\cdot}_{it}=x_{it}^2-\overline{x^2}_{i\cdot}$，\key{不是} $(\dot x_{it})^2=(x_{it}-\bar x_{i\cdot})^2$。原则：\key{先构造全部回归元（平方、交互、对数等），再对每一个去均值}。\texttt{xtreg, fe} 自动这样做。
+
+\subsubsection{错误做法 \texorpdfstring{$(\dot x_{it})^2$}{(x-dot)\^{}2} 为何改变了模型}
+
+\begin{align*}
+(\dot x_{it})^2 &= x_{it}^2-2x_{it}\bar x_{i\cdot}+\bar x_{i\cdot}^2 \why{展开平方}\\
+(\dot x_{it})^2-\big(x_{it}^2-\overline{x^2}_{i\cdot}\big) &= -2x_{it}\bar x_{i\cdot}+\bar x_{i\cdot}^2+\overline{x^2}_{i\cdot} \why{两式相减}
+\end{align*}
+若用 $(\dot x_{it})^2$ 作回归元，相当于估计
+\[
+\dot y_{it}=\beta_1\dot x_{it}+\beta_2(\dot x_{it})^2+\underbrace{\beta_2\big(2x_{it}\bar x_{i\cdot}-\bar x_{i\cdot}^2-\overline{x^2}_{i\cdot}\big)+\dot u_{it}}_{\text{新误差}},
+\]
+新误差含 $x_{it}\bar x_{i\cdot}$ 等项，它们是回归元的函数，且含与 $\alpha_i$ 相关的 $\bar x_{i\cdot}$，与 $\dot x_{it}$、$(\dot x_{it})^2$ 相关，所以 $\hat\beta_2$（以及 $\hat\beta_1$）不一致——等于改变了模型。交互项同理：正确回归元是 $(x_1x_2)_{it}-\overline{(x_1x_2)}_{i\cdot}$，而不是 $\dot x_{1,it}\dot x_{2,it}$。
+
+\begin{english}
+Averaging $y_{it}=\alpha_i+x_{it}'\beta+u_{it}$ over $t$ gives $\bar y_i=\alpha_i+\bar x_i'\beta+\bar u_i$; subtracting yields the within-transformed equation $y_{it}-\bar y_i=(x_{it}-\bar x_i)'\beta+(u_{it}-\bar u_i)$, in which $\alpha_i$ is eliminated. In matrix form, $M_TY_i=M_TX_i\beta+M_TU_i$ since $M_T\mathbf 1_T=0$, so $\hat\beta_{FE}=(\sum_iX_i'M_TX_i)^{-1}\sum_iX_i'M_TY_i$. The FE estimator is consistent and asymptotically normal as $N\to\infty$ with $T$ fixed, provided the regressors are strictly exogenous, $E(x_{is}u_{it})=0$ for all $s,t$, and have within-individual variation; no assumption on $\alpha_i$ is required. Contemporaneous exogeneity is not sufficient. For $T=2$ the FE and first-difference estimators coincide.
+\end{english}
+
+%======================================================================
+\section{用 FWL 定理证明 LSDV \texorpdfstring{$=$}{=} WG}\label{sec:U10a-fwl}
+
+LSDV 一节留下了“思路二：只要 $\hat\beta$，用分块回归”。本节用 FWL 定理完成它，并证明结果恰好是组内估计量。
+
+\subsection{FWL 定理回顾}
+
+\begin{thm}[Frisch--Waugh--Lovell（第 3 章）]\label{thm:U10a-fwl}
+对 $Y=X_1\beta_1+X_2\beta_2+e$ 做 OLS，$\beta_1$ 的 OLS 估计等于“先把 $Y$ 和 $X_1$ 分别对 $X_2$ 回归取残差，再用残差对残差回归”：
+\[
+\hat\beta_1=(X_1\T M_2X_1)\inv X_1\T M_2Y,\qquad M_2=I-X_2(X_2\T X_2)\inv X_2\T,
+\]
+且两种做法的残差向量相同。$M_2$ 称为对 $X_2$ 的\term{残差生成矩阵}{residual maker}。\idx{Frisch--Waugh--Lovell theorem}{FWL 定理}
+\end{thm}
+
+\subsection{证明：个体虚拟变量的残差生成矩阵就是 \texorpdfstring{$I_N\otimes M_T$}{I\_N kron M\_T}}
+
+要证：在 LSDV 模型 $Y=D_\alpha\alpha+X\beta+U$ 中，$\beta$ 的 OLS 估计等于 WG 估计。思路：令 FWL 中的 $X_1=X$、$X_2=D_\alpha$，只需算出 $M_{D_\alpha}$，并证明它等于 $M_D=I_N\otimes M_T$。
+
+\subsubsection{第一步：\texorpdfstring{$D_\alpha'D_\alpha=TI_N$}{D'D = T I\_N}}
+
+\begin{align*}
+D_\alpha\T D_\alpha &= (I_N\otimes\one_T)\T(I_N\otimes\one_T)=(I_N\otimes\one_T\T)(I_N\otimes\one_T) \why{$(A\otimes B)'=A'\otimes B'$}\\
+&= (I_NI_N)\otimes(\one_T\T\one_T)=TI_N \why{混合积 $(A\otimes B)(C\otimes D)=AC\otimes BD$}\\
+(D_\alpha\T D_\alpha)\inv &= T\inv I_N \why{对角矩阵求逆}
+\end{align*}
+
+\subsubsection{第二步：投影矩阵 \texorpdfstring{$P_{D_\alpha}=I_N\otimes P_T$}{P\_D = I\_N kron P\_T}}
+
+\begin{align*}
+P_{D_\alpha} &= D_\alpha(D_\alpha\T D_\alpha)\inv D_\alpha\T=T\inv(I_N\otimes\one_T)(I_N\otimes\one_T\T) \why{投影矩阵定义}\\
+&= I_N\otimes\big(T\inv\one_T\one_T\T\big)=I_N\otimes P_T \why{混合积；$P_T=T^{-1}\one_T\one_T'$}
+\end{align*}
+
+\subsubsection{第三步：残差生成矩阵 \texorpdfstring{$M_{D_\alpha}=I_N\otimes M_T=M_D$}{M\_D = I\_N kron M\_T}}
+
+\begin{align*}
+M_{D_\alpha} &= I_{NT}-P_{D_\alpha}=I_N\otimes I_T-I_N\otimes P_T \why{$I_{NT}=I_N\otimes I_T$}\\
+&= I_N\otimes(I_T-P_T)=I_N\otimes M_T=M_D \why{Kronecker 积对加法的分配律}
+\end{align*}
+
+\subsubsection{第四步：代入 FWL 得 \texorpdfstring{$\hat\beta_{LSDV}=\hat\beta_{FE}$}{beta\_LSDV = beta\_FE}}
+
+\begin{align*}
+\hat\beta_{LSDV} &= (X\T M_{D_\alpha}X)\inv X\T M_{D_\alpha}Y \why{FWL，$X_2=D_\alpha$}\\
+&= \big(X\T(I_N\otimes M_T)X\big)^{-1}X\T(I_N\otimes M_T)Y \why{第三步}\\
+&= \Big(\sum_{i=1}^NX_i\T M_TX_i\Big)^{-1}\Big(\sum_{i=1}^NX_i\T M_TY_i\Big)=\hat\beta_{FE} \why{块对角：$X'(I_N\otimes M_T)X=\sum_iX_i'M_TX_i$}
+\end{align*}
+这说明：“加 $N$ 个个体虚拟变量做 OLS”与“对每个个体去均值再做 OLS”在数值上\key{完全相同}，不是近似。Hansen 第 17.11 节称这可能是 FWL 定理最重要的实际应用。
+
+\begin{thm}[LSDV $=$ WG（Hansen 定理 17.1）]\label{thm:U10a-lsdvwg}
+固定效应（组内）估计量与虚拟变量（LSDV）估计量在代数上相等，二者残差也相同：
+\[
+\hat\beta_{LSDV}=\hat\beta_{WG}=(X\T M_DX)\inv X\T M_DY,\qquad M_D=I_N\otimes M_T .
+\]
+个体效应的 LSDV 估计为 $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta_{WG}$。
+\end{thm}
+
+\subsection{推论：\texorpdfstring{$\hat\alpha_i$}{alpha\_i-hat}、残差与对 \texorpdfstring{$\alpha$}{alpha} 的不变性}
+
+\subsubsection{推论一：\texorpdfstring{$\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}'\hat\beta$}{alpha\_i = ybar - xbar' beta}}
+
+LSDV 的正规方程中对应 $\alpha$ 的一组为 $D_\alpha\T(Y-D_\alpha\hat\alpha-X\hat\beta)=0$。给定 $\hat\beta$ 解出 $\hat\alpha$：
+\begin{align*}
+\hat\alpha &= (D_\alpha\T D_\alpha)\inv D_\alpha\T(Y-X\hat\beta) \why{解正规方程}\\
+&= T\inv(I_N\otimes\one_T\T)(Y-X\hat\beta) \why{$(D_\alpha'D_\alpha)\inv=T\inv I_N$}\\
+&= T\inv\big(\one_T\T(Y_1-X_1\hat\beta),\dots,\one_T\T(Y_N-X_N\hat\beta)\big)\T \why{块对角逐块相乘}
+\end{align*}
+第 $i$ 个元素为
+\[
+\hat\alpha_i=\frac1T\sum_{t=1}^T(y_{it}-x_{it}\T\hat\beta)=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta
+\]
+（Hansen 第 17.17 节）。也就是“个体 $i$ 的残差之和为零”。所以得到 $\hat\alpha_i$ 并不需要真的跑含 $N+K$ 个回归元的回归。
+
+\subsubsection{推论二：LSDV 残差 \texorpdfstring{$=$}{=} WG 残差}
+
+\begin{align*}
+\hat U_{LSDV} &= Y-D_\alpha\hat\alpha-X\hat\beta=(Y-X\hat\beta)-P_{D_\alpha}(Y-X\hat\beta) \why{$D_\alpha\hat\alpha=P_{D_\alpha}(Y-X\hat\beta)$}\\
+&= M_{D_\alpha}(Y-X\hat\beta)=M_DY-M_DX\hat\beta=\dot Y-\dot X\hat\beta \why{$M_{D_\alpha}=M_D$}
+\end{align*}
+其中 $\dot Y=M_DY$、$\dot X=M_DX$ 是全样本去均值后的数据，所以这正是 WG 残差。因此两种做法的残差平方和相同，只是自由度的计算可能不同（见方差估计一节）。
+
+\subsubsection{推论三：\texorpdfstring{$\hat\beta_{FE}$}{beta\_FE} 对 \texorpdfstring{$\alpha$}{alpha} 不变}
+
+先证 $M_DD_\alpha=0$，再代入真实模型：
+\begin{align*}
+M_DD_\alpha &= (I_N\otimes M_T)(I_N\otimes\one_T)=I_N\otimes(M_T\one_T)=0 \why{混合积；$M_T\one_T=0$}\\
+\hat\beta_{FE} &= (X\T M_DX)\inv X\T M_D(D_\alpha\alpha+X\beta+U) \why{代入 $Y$}\\
+&= \beta+(X\T M_DX)\inv X\T M_DU \why{$M_DD_\alpha=0$}
+\end{align*}
+表达式里没有 $\alpha$：无论 $\alpha_i$ 取什么值、与 $X$ 怎样相关，$\hat\beta_{FE}$ 都不受影响（Hansen 第 17.11 节）。这是“FE 对 $\alpha_i$ 稳健”的代数根源。
+
+\subsubsection{“组内”名称的由来}
+
+$\hat\beta$ 只用对 $D_\alpha$ 回归后的残差，即每个个体“组内”对自身均值的偏离——故称组内（within-group）估计量。
+
+\subsection{例：LSDV 与 WG 的数值验证}
+
+\begin{exmp}[数值验证]\label{ex:U10a-lsdvnum}
+用组内变换一节手算 WG 的数据（$N=2$, $T=3$），对 $y$ 关于 $(x,d_1,d_2)$ 做 OLS（不含截距），软件给出 $\hat\beta=1.7$，$\hat\alpha_1=0.9$，$\hat\alpha_2=2.5$。验证它们与 WG 的关系，并比较两种残差。
+
+\solution (1) $\hat\beta=1.7$ 与 WG 的 $34/20$ 相同。(2) 由推论一：
+\begin{align*}
+\hat\alpha_1 &= \bar y_{1\cdot}-1.7\,\bar x_{1\cdot}=6-1.7\times3=0.9 \why{$\bar y_{1\cdot}=6$, $\bar x_{1\cdot}=3$}\\
+\hat\alpha_2 &= \bar y_{2\cdot}-1.7\,\bar x_{2\cdot}=11-1.7\times5=2.5 \why{$\bar y_{2\cdot}=11$, $\bar x_{2\cdot}=5$}
+\end{align*}
+(3) LSDV 残差 $y_{it}-\hat\alpha_i-1.7x_{it}$：个体 1 为 $(3-0.9-1.7,\ 5-0.9-3.4,\ 10-0.9-10.2)=(0.4,0.7,-1.1)$；个体 2 为 $(6-2.5-5.1,\ 13-2.5-10.2,\ 14-2.5-10.2)=(-1.6,0.3,1.3)$。WG 残差 $\dot y_{it}-1.7\dot x_{it}$：个体 1 为 $(-3+3.4,\ -1+1.7,\ 4-5.1)=(0.4,0.7,-1.1)$；个体 2 为 $(-5+3.4,\ 2-1.7,\ 3-1.7)=(-1.6,0.3,1.3)$。两者完全相同，与推论二一致。
+\end{exmp}
+
+\begin{prac}[$M_D$ 的性质与残差自由度]\label{pr:U10a-MD}
+证明：(a) $M_D=I_N\otimes M_T$ 对称且幂等；(b) $M_DD_\alpha=0$；(c) $\rank(M_D)=N(T-1)$，并由此说明 FE 回归的残差自由度为 $NT-N-K$。
+\answer
+\begin{align*}
+\text{(a)}\quad M_D\T &= I_N\T\otimes M_T\T=I_N\otimes M_T=M_D \why{$(A\otimes B)'=A'\otimes B'$；$M_T$ 对称}\\
+M_D^2 &= (I_N\otimes M_T)(I_N\otimes M_T)=I_N\otimes M_T^2=I_N\otimes M_T \why{混合积；$M_T$ 幂等}\\
+\text{(b)}\quad M_DD_\alpha &= (I_N\otimes M_T)(I_N\otimes\one_T)=I_N\otimes(M_T\one_T)=I_N\otimes0=0 \why{混合积}\\
+\text{(c)}\quad \rank(M_D) &= \tr(M_D)=\tr(I_N)\tr(M_T)=N(T-1) \why{幂等阵秩 $=$ 迹；$\tr(A\otimes B)=\tr A\tr B$}
+\end{align*}
+变换后的数据只“活在”$N(T-1)$ 维空间里，再估 $K$ 个斜率，残差自由度为 $N(T-1)-K=NT-N-K$，与 LSDV 中“$NT$ 个观测、$N+K$ 个参数”一致。
+\end{prac}
+
+\begin{english}
+By the Frisch--Waugh--Lovell theorem, the LSDV estimator of $\beta$ equals the OLS estimator from regressing the residuals of $Y$ on the dummy matrix $D=I_N\otimes\mathbf 1_T$ on the corresponding residuals of $X$. Since $D'D=TI_N$, the residual maker is $M_D=I_{NT}-D(D'D)^{-1}D'=I_N\otimes(I_T-P_T)=I_N\otimes M_T$, which is exactly the within transformation. Hence $\hat\beta_{LSDV}=(X'M_DX)^{-1}X'M_DY=\hat\beta_{WG}$, the two estimators have identical residuals, and $\hat\alpha_i=\bar y_i-\bar x_i'\hat\beta$. Because $M_DD=0$, $\hat\beta_{FE}-\beta=(X'M_DX)^{-1}X'M_DU$ does not depend on $\alpha$.
+\end{english}
+
+%======================================================================
+\section{固定效应估计量的方差估计}\label{sec:U10a-var}
+
+点估计 $\hat\beta_{FE}$ 已经确定，剩下的实际问题是标准误。面板误差有两个特点需要处理：(1) 误差结构——同一个体内的异方差与序列相关（HAC）；(2) 聚类结构——同一簇内的误差相关、不同簇之间不相关。
+
+\subsection{夹心形式}
+
+由估计误差的分解，
+\[
+\hat\beta_{FE}=\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\Big(\sum_iX_i\T M_TY_i\Big)=\beta+\Big(\sum_iX_i\T M_TX_i\Big)^{-1}\sum_{i=1}^NX_i\T M_TU_i,\qquad U_i=(u_{i1},\dots,u_{iT})\T .
+\]
+记 $A=\sum_iX_i\T M_TX_i=\sum_i\dot X_i\T\dot X_i$（$K\times K$），$\Sigma_i=\E(U_iU_i\T\mid X_i)$（$T\times T$，允许任意形式）。设个体之间独立，严格外生使 $\E(U_i\mid X)=0$：
+\begin{align*}
+\Var(\hat\beta_{FE}\mid X) &= A\inv\,\Var\Big(\sum_{i=1}^NX_i\T M_TU_i\ \Big|\ X\Big)\,A\inv \why{$\hat\beta-\beta=A\inv\sum_iX_i'M_TU_i$}\\
+&= A\inv\Big(\sum_{i=1}^N\Var(X_i\T M_TU_i\mid X)\Big)A\inv \why{跨 $i$ 独立，协方差项为 0}\\
+&= A\inv\Big(\sum_{i=1}^NX_i\T M_T\Sigma_iM_TX_i\Big)A\inv \why{$\Var(BU_i)=B\Sigma_iB'$，$B=X_i'M_T$}\\
+&= A\inv\Big(\sum_{i=1}^N\dot X_i\T\Sigma_i\dot X_i\Big)A\inv \why{$M_TX_i=\dot X_i$}
+\end{align*}
+这是\term{夹心形式}{sandwich form}：“面包”是 $A\inv$，“肉”是 $\sum_i\dot X_i\T\Sigma_i\dot X_i$（Hansen 第 17.9 节）。各种方差估计的区别只在于如何估计“肉”。
+
+\subsection{经典方差：同方差、无序列相关与自由度修正}
+
+\subsubsection{\texorpdfstring{$\Sigma_i=\sigma_u^2I_T$}{Sigma\_i = sigma\^{}2 I} 时夹心式化简}
+
+若误差同方差且个体内无序列相关，$\Sigma_i=\sigma_u^2I_T$：
+\begin{align*}
+\sum_i\dot X_i\T\Sigma_i\dot X_i &= \sigma_u^2\sum_iX_i\T M_TM_TX_i \why{代入 $\Sigma_i=\sigma_u^2I_T$}\\
+&= \sigma_u^2\sum_iX_i\T M_TX_i=\sigma_u^2A \why{$M_T$ 幂等}\\
+V^0_{FE} &= A\inv(\sigma_u^2A)A\inv=\sigma_u^2\Big(\sum_{i=1}^NX_i\T M_TX_i\Big)^{-1} \why{代入夹心式}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$\hat\sigma_u^2$}{sigma\_u\^{}2} 的自由度 \texorpdfstring{$NT-N-K$}{NT-N-K}}
+
+$\sigma_u^2$ 用 \eqref{eq:U10a-s2} 估计：$\hat\sigma_u^2=\frac1{NT-N-K}\sum_i\sum_t\hat u_{it}^2$，分母扣掉 $N$ 个 $\alpha_i$ 与 $K$ 个斜率（理由见 LSDV 一节的 Neyman--Scott 例与 FWL 一节的即时练习）。$\hat V^0_{FE}=\hat\sigma_u^2A\inv$ 是 \texttt{xtreg, fe} 的默认标准误。
+
+\subsubsection{手工去均值的自由度陷阱}
+
+若自己算出 $\dot y,\dot x$ 再用 \texttt{reg ydot xdot}，软件会用 $NT-K$ 作自由度，漏扣了 $N$ 个 $\alpha_i$。两种算法的残差平方和（SSR）相同，所以
+\begin{align*}
+\frac{\text{s.e.}_{\text{手工}}}{\text{s.e.}_{\text{正确}}} &= \sqrt{\frac{\text{SSR}/(NT-K)}{\text{SSR}/(NT-N-K)}} \why{两者只差 $\hat\sigma_u^2$}\\
+&= \sqrt{\frac{NT-N-K}{NT-K}}<1 \why{SSR 约掉}
+\end{align*}
+经典标准误被\key{低估}，需乘 $\sqrt{(NT-K)/(NT-N-K)}$ 修正。用 \texttt{xtreg, fe} 或 LSDV 则无此问题。
+
+\subsection{误差结构：个体内异方差与自相关（HAC）}
+
+面板中 $\Sigma_i=\sigma_u^2I_T$ 通常不可信：
+\begin{itemize}
+  \item \key{异方差}：大企业与小企业的冲击方差不同，$\Var(u_{it})$ 随 $i$、$t$ 变；
+  \item \key{个体内自相关}：同一企业今年和去年的冲击相关（误差向量 $U_i$ 内部相关）。
+\end{itemize}
+二者合称 HAC（heteroskedasticity and autocorrelation）。在时间序列中处理 HAC 需要 Newey--West 一类核估计并选择带宽；而在 $T$ 固定、$N\to\infty$ 的短面板里，可以把每个个体的 $T$ 期当作一个“簇”，\key{不对 $\Sigma_i$ 作任何参数化}，直接用残差外积估计“肉”。
+
+\subsection{按个体聚类的稳健方差（Arellano 1987）}
+
+\subsubsection{估计量}
+
+\begin{defn}[聚类稳健方差估计量]\label{def:U10a-cluster}
+\[
+\hat V^{\,cluster}_{FE}=\Big(\sum_{i=1}^N\dot X_i\T\dot X_i\Big)^{-1}\Big(\sum_{i=1}^N\dot X_i\T\hat U_i\hat U_i\T\dot X_i\Big)\Big(\sum_{i=1}^N\dot X_i\T\dot X_i\Big)^{-1},
+\]
+其中 $\hat U_i=\dot Y_i-\dot X_i\hat\beta_{FE}$ 为 FE 残差。它允许 $\Sigma_i$ 任意（任意异方差与个体内任意序列相关），只要求\key{个体间独立}；$N\to\infty$ 时一致。该\term{聚类稳健方差估计量}{cluster-robust variance estimator}由 Arellano (1987) 提出（Hansen 第 17.12 节），常乘以小样本调整因子，如 $N/(N-1)$。
+\end{defn}
+
+由于 $\hat U_i=M_T\hat U_i$（FE 残差本身已去均值），“肉”中写 $\dot X_i\T\hat U_i$ 与 $X_i\T M_T\hat U_i$ 等价。
+
+\subsubsection{为什么残差外积能估计“肉”}
+
+为看清本质，用真值 $\beta$ 构造残差：$\hat U_i=M_TU_i$。于是
+\begin{align*}
+\dot X_i\T\hat U_i &= X_i\T M_TM_TU_i=X_i\T M_TU_i=\dot X_i\T U_i \why{$M_T$ 对称幂等}\\
+\E\big(\dot X_i\T\hat U_i\hat U_i\T\dot X_i\mid X\big) &= \dot X_i\T\,\E(U_iU_i\T\mid X)\,\dot X_i=\dot X_i\T\Sigma_i\dot X_i \why{提出已知量}
+\end{align*}
+每一项都无偏地估计了“肉”中对应的 $\dot X_i\T\Sigma_i\dot X_i$；个体间独立，于是 $N\to\infty$ 时其平均满足大数定律。注意这里\key{无需}为 $N$ 个固定效应做自由度调整（Hansen 第 17.12 节）。
+
+\begin{extend}[聚类方差的小样本调整]
+Hansen 第 17.12 节比较了三种版本：不调整；乘 $\frac{N}{N-1}$（C. Hansen 2007 的建议，$N$ 大时几乎不变）；乘 $\frac{n-1}{n-N-K}\cdot\frac{N}{N-1}$（$n=NT$），其中前一个因子约为 $\frac{T}{T-1}$，$T$ 小时调整很大。按 Hansen 第 17.13 节，\texttt{xtreg} 报告的是不调整（或调整很小）的版本，\texttt{areg} 报告第三种。第三种缺乏理论依据，但标准误最大、最保守；Hansen 认为第二种最合适，且通常与不调整的版本很接近。
+\end{extend}
+
+\subsubsection{一般的聚类：以簇 \texorpdfstring{$g$}{g} 为单位的夹心式}
+
+聚类结构：同一簇内的误差可以相关，不同簇之间的误差不相关。把观测分成 $G$ 个簇，$\dot X_g$、$U_g$ 为簇 $g$ 内全部观测堆成的矩阵与向量（$\dot X_g$ 已做组内变换）：
+\[
+\Var_{cluster}(\hat\beta_{FE})=\Big(\sum_g\dot X_g\T\dot X_g\Big)^{-1}\Big[\sum_{g=1}^G\dot X_g\T\,\E(U_gU_g\T\mid X)\,\dot X_g\Big]\Big(\sum_g\dot X_g\T\dot X_g\Big)^{-1}.
+\]
+估计时把 $\E(U_gU_g\T\mid X)$ 换成 $\hat U_g\hat U_g\T$。当簇就是个体时 $g=i$、$G=N$、$\dot X_g=M_TX_i$，即上面的 Arellano 估计量。Stata：截面 OLS 用 \texttt{reg y x, vce(cluster cid)}；面板用 \texttt{xtreg y x, fe vce(cluster id)}。
+
+\subsection{为什么不能用 White 异方差稳健方差}
+
+在截面中我们用 White (1980) 异方差稳健方差。对 FE 照搬 White 形式
+\[
+\hat V=A\inv\Big(\sum_i\sum_t\dot x_{it}\dot x_{it}\T\hat u_{it}^2\Big)A\inv
+\]
+（再乘自由度因子），在 $T$ 固定时\key{不一致}（Stock \& Watson, 2008, \emph{Econometrica}；Hansen 第 17.22 节）。原因：FE 残差 $\hat u_{it}$ 含有 $\bar u_{i\cdot}$，其平方的期望不等于 $\sigma_{it}^2$。设误差无序列相关、$\E(u_{it}^2\mid X)=\sigma_{it}^2$，用真值 $\beta$ 时 $\hat u_{it}=u_{it}-\bar u_{i\cdot}$：
+\begin{align*}
+\E(\hat u_{it}^2\mid X) &= \E(u_{it}^2)-2\E(u_{it}\bar u_{i\cdot})+\E(\bar u_{i\cdot}^2) \why{展开平方}\\
+\E(u_{it}\bar u_{i\cdot}) &= \frac1T\sum_{s=1}^T\E(u_{it}u_{is})=\frac{\sigma_{it}^2}{T} \why{无序列相关}\\
+\E(\bar u_{i\cdot}^2) &= \frac1{T^2}\sum_{s=1}^T\sigma_{is}^2=\frac{\bar\sigma_i^2}{T},\quad \bar\sigma_i^2\equiv\frac1T\sum_{s=1}^T\sigma_{is}^2 \why{无序列相关}\\
+\Rightarrow\ \E(\hat u_{it}^2\mid X) &= \frac{T-2}{T}\sigma_{it}^2+\frac{\bar\sigma_i^2}{T} \why{合并}
+\end{align*}
+它不与 $\sigma_{it}^2$ 成比例，所以 White 型 $\hat V$ 的偏差为 $O(1/T)$，$N\to\infty$ 也不消失。$\hat V$ 只在两种情形下无偏：误差同方差（此时 $\E\hat u_{it}^2=\frac{T-1}{T}\sigma_u^2$，恰好被自由度因子修正），或 $T=2$。Stock 与 Watson (2008) 给出了偏差校正版本，但 Stata 未提供该选项。
+
+正因如此，Stata 的 \texttt{xtreg, fe vce(robust)} 实际输出的是\key{按个体聚类}的标准误；而 \texttt{areg, robust} 输出的是有偏的 White 型标准误，应改用 \texttt{areg y x, absorb(id) vce(cluster id)}。
+
+\subsection{聚类的层级与聚类个数}
+
+\begin{itemize}
+  \item \key{至少聚类到个体层级}：这样才允许个体内任意序列相关。
+  \item 若同一更高层级（如同一行业、同一省份）内不同个体的冲击也相关，应在\key{更高层级}聚类（个体须嵌套在簇内）；此时有效样本量是簇的个数 $G$。
+  \item 聚类稳健推断要求簇足够多，经验法则 $G\ge30$（第 5 章）；$G$ 很少时标准误不可靠。
+  \item 在截面回归中（\texttt{reg y x, vce(cluster id)}），聚类变量可以是任何分组变量；在面板中（\texttt{xtreg y x, fe vce(cluster id)}），聚类变量通常是个体 id，也可以是更高层级的分组变量。
+\end{itemize}
+
+\subsection{Stata 实现小结}
+
+\noindent\begin{minipage}{\linewidth}
+\begin{lstlisting}
+xtset id year                        // declare panel structure first
+xtreg y x, fe                        // WG, classical SE (dof NT-N-K)
+xtreg y x, fe vce(cluster id)        // WG, SE clustered by individual
+xtreg y x, fe vce(robust)            // for xtreg this is ALSO clustered by id
+areg  y x, absorb(id) vce(cluster id) // same beta; larger dof adjustment
+reg   y x i.id, vce(cluster id)      // LSDV; same beta as xtreg, fe
+\end{lstlisting}
+\end{minipage}
+三种命令的 $\hat\beta$ 完全相同（LSDV $=$ WG 结论）；区别在于：
+\begin{enumerate}[label=(\roman*)]
+  \item 聚类方差的小样本自由度调整不同：\texttt{areg} 与 LSDV 的调整更大、标准误更保守（Hansen 第 17.12--17.13 节）；
+  \item 报告的 $R^2$ 不同：\texttt{xtreg, fe} 报告 within / between / overall 三个 $R^2$（within $R^2$ 即对去均值变量回归的 $R^2$）；LSDV 与 \texttt{areg} 的 $R^2$ 包含了虚拟变量的解释力，通常大得多。引用 $R^2$ 时应说明口径。
+\end{enumerate}
+
+\subsection{例：三种标准误的数值比较}
+
+\begin{exmp}[三种标准误]\label{ex:U10a-se}
+继续 $N=2$, $T=3$ 的例子：$\hat\beta_{FE}=1.7$，FE 残差 $\hat U_1=(0.4,0.7,-1.1)\T$，$\hat U_2=(-1.6,0.3,1.3)\T$，$A=\sum\dot x^2=20$，$\dot X_1=(-2,-1,3)\T$，$\dot X_2=(-2,1,1)\T$。分别计算经典标准误（正确自由度）、手工去均值误用自由度的标准误、聚类标准误（不调整）。
+
+\solution 残差平方和：
+\begin{align*}
+\textstyle\sum\hat u^2 &= (0.16+0.49+1.21)+(2.56+0.09+1.69)=1.86+4.34=6.2 \why{逐项平方}
+\end{align*}
+(1) 经典，正确自由度 $NT-N-K=6-2-1=3$：
+\begin{align*}
+\hat\sigma_u^2 &= 6.2/3=2.067 \why{\eqref{eq:U10a-s2}}\\
+\widehat{\Var} &= 2.067/20=0.1033,\qquad \text{s.e.}=\sqrt{0.1033}=0.321 \why{$\hat\sigma_u^2A\inv$}
+\end{align*}
+(2) 手工去均值误用 $NT-K=5$：
+\begin{align*}
+\hat\sigma_u^2 &= 6.2/5=1.24,\qquad \text{s.e.}=\sqrt{1.24/20}=0.249 \why{漏扣 $N$}\\
+0.249/0.321 &\approx \sqrt{3/5}=0.775 \why{$\sqrt{(NT-N-K)/(NT-K)}$}
+\end{align*}
+标准误被低估。(3) 聚类（不作调整）：
+\begin{align*}
+\dot X_1\T\hat U_1 &= (-2)(0.4)+(-1)(0.7)+3(-1.1)=-4.8 \why{个体 1 的得分}\\
+\dot X_2\T\hat U_2 &= (-2)(-1.6)+(1)(0.3)+(1)(1.3)=4.8 \why{个体 2 的得分}\\
+\text{“肉”} &= (-4.8)^2+4.8^2=46.08 \why{$\sum_i(\dot X_i'\hat U_i)^2$}\\
+\widehat{\Var} &= 46.08/20^2=0.1152,\qquad \text{s.e.}=0.339 \why{$A\inv\cdot\text{肉}\cdot A\inv$}
+\end{align*}
+注意 $\sum_i\dot X_i\T\hat U_i=-4.8+4.8=0$，这正是 OLS 正规方程。此例只有 $G=2$ 个簇，聚类标准误在实践中完全不可信——仅作计算演示。
+\end{exmp}
+
+\begin{prac}[自由度修正]\label{pr:U10a-dof}
+某面板 $N=100$，$T=5$，$K=2$，WG 残差平方和为 360。(a) 求 $\hat\sigma_u^2$ 的正确估计；(b) 若研究者手工去均值后用 \texttt{reg ydot xdot} 估计，软件给出的经典标准误比正确值低多少？
+\answer
+\begin{align*}
+\text{(a)}\quad \hat\sigma_u^2 &= \frac{360}{NT-N-K}=\frac{360}{500-100-2}=\frac{360}{398}\approx0.905 \why{正确自由度}\\
+\text{(b)}\quad \hat\sigma^2_{\text{手工}} &= \frac{360}{NT-K}=\frac{360}{498}\approx0.723 \why{软件用 $NT-K$}\\
+\frac{\text{s.e.}_{\text{手工}}}{\text{s.e.}_{\text{正确}}} &= \sqrt{398/498}\approx0.894 \why{SSR 约掉}
+\end{align*}
+即低估约 10.6\%。$T$ 越小，漏扣的 $N$ 个自由度占比越大，低估越严重：$T=2$ 且 $N$ 大时比值约为 $\sqrt{(2N-N)/(2N)}=\sqrt{1/2}$，低估约 $1-\sqrt{1/2}\approx29\%$。
+\end{prac}
+
+\begin{keypt}[FE 标准误的标准答法]
+“How would you compute standard errors for the FE estimator?”标准答法：先写出 $\hat\beta_{FE}-\beta=(\sum_i\dot X_i\T\dot X_i)\inv\sum_i\dot X_i\T U_i$，得到夹心式；说明面板误差通常存在个体内序列相关和异方差，故用按个体聚类的稳健方差；条件是个体间独立、$N$（簇数）大；White 型稳健方差在 $T$ 固定时不一致；Stata 用 \texttt{vce(cluster id)}。
+\end{keypt}
+
+\begin{english}
+The FE estimator satisfies $\hat\beta_{FE}-\beta=(\sum_i\dot X_i'\dot X_i)^{-1}\sum_i\dot X_i'U_i$, so its variance has the sandwich form $A^{-1}(\sum_i\dot X_i'\Sigma_i\dot X_i)A^{-1}$. Under homoskedasticity and no serial correlation it reduces to $\sigma_u^2A^{-1}$, with $\sigma_u^2$ estimated using $NT-N-K$ degrees of freedom. Since panel errors are typically heteroskedastic and serially correlated within individuals, we use the cluster-robust variance estimator clustered at the individual level, $(\dot X'\dot X)^{-1}(\sum_i\dot X_i'\hat U_i\hat U_i'\dot X_i)(\dot X'\dot X)^{-1}$, which is consistent as $N\to\infty$ with $T$ fixed and requires only independence across individuals. The White heteroskedasticity-robust estimator is inconsistent for FE with fixed $T$. In Stata: \texttt{xtreg y x, fe vce(cluster id)}.
+\end{english}
+
+本章接下来把单向固定效应推广到多层（嵌套）个体效应，以及同时含个体效应 $\alpha_i$ 与时间效应 $\lambda_t$ 的双向固定效应（TWFE）。

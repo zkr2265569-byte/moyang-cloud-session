@@ -1,0 +1,1052 @@
+%======================================================================
+% U14b  第 14 章（后半）：变换估计法、截面相关检验、实证决策流程、
+%       与后续章节的联系、本章小结
+%======================================================================
+
+\section{变换估计法：找一个把因子“乘没”的变换}\label{sec:U14b-trans}
+
+前面两种方法处理潜在因子的方式不同：Bai (2009) \key{估计}因子，CCE 用截面平均\key{代理}因子。本节介绍第三种思路——\term{变换估计法}{transformed estimation}：既不估计因子，也不代理因子，而是找一个线性变换，把因子项整个“乘没”，再对变换后的方程做 OLS。最后会看到，它与 Bai 估计量其实是同一个估计量的两种写法。
+
+%----------------------------------------------------------------------
+\subsection{思路：左乘 \texorpdfstring{$w'$}{w'} 使 \texorpdfstring{$w'F=0$}{w'F = 0}}\label{sec:U14b-idea}
+
+\subsubsection{模型的个体堆叠形式 \texorpdfstring{$Y_i=X_i\beta+F\lambda_i+V_i$}{Y\_i = X\_i beta + F lambda\_i + V\_i}}
+
+考虑含潜在因子的面板模型（沿用本章记号，特质误差记为 $v_{it}$）：
+\[
+y_{it}=x_{it}\T\beta+\lambda_i\T f_t+v_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\]
+其中 $x_{it}$ 为 $K\times1$，$f_t$、$\lambda_i$ 为 $r\times1$。固定个体 $i$，把 $T$ 期按行叠放：
+\begin{equation}\label{eq:U14b-stack}
+\underbrace{Y_i}_{T\times1}=\underbrace{X_i}_{T\times K}\beta+\underbrace{F}_{T\times r}\,\underbrace{\lambda_i}_{r\times1}+\underbrace{V_i}_{T\times1},
+\end{equation}
+$X_i$ 的第 $t$ 行为 $x_{it}\T$，$F$ 的第 $t$ 行为 $f_t\T$。$F$ 对所有个体相同，$\lambda_i$ 因个体而异。个体效应 $\alpha_i$ 可以看作常数因子 $f_{1t}\equiv1$ 的载荷，把 $\one_T$ 并入 $F$ 即可（$r$ 加 1），下面不再单列。
+
+\subsubsection{左乘 \texorpdfstring{$w'$}{w'} 消去因子项}
+
+设 $w$ 为 $T\times1$ 的非零向量，满足
+\[
+w\T F=0\quad(1\times r\text{ 的零向量}),\qquad\text{等价地}\quad F\T w=0\quad(r\times1).
+\]
+要证：左乘 $w\T$ 后，无论 $\lambda_i$ 取什么值，因子项都消失。
+\begin{align*}
+Y_i-X_i\beta &= F\lambda_i+V_i \why{移项 \eqref{eq:U14b-stack}}\\
+w\T(Y_i-X_i\beta) &= w\T F\lambda_i+w\T V_i \why{两边左乘 $w\T$（$1\times T$）}\\
+&= 0\cdot\lambda_i+w\T V_i=w\T V_i \why{$w\T F=0$}\\
+\Rightarrow\quad w\T Y_i &= w\T X_i\beta+w\T V_i \why{移项}
+\end{align*}
+关键在第三行：$w\T F$ 是 $1\times r$ 的零向量，乘任何 $\lambda_i$ 都得 0。所以不需要知道（也不需要估计）$\lambda_i$。
+
+\subsubsection{变换后的回归可用 OLS 估计}
+
+$w\T Y_i=w\T X_i\beta+w\T V_i$ 是一个普通的截面回归（每个个体一个观测，被解释变量 $w\T Y_i$ 为标量，回归元 $X_i\T w$ 为 $K\times1$），误差 $w\T V_i$ 只含特质误差。对它做 OLS：
+\begin{align*}
+\hat\beta_w &= \Big(\sum_iX_i\T ww\T X_i\Big)\inv\sum_iX_i\T ww\T Y_i \why{OLS 公式}\\
+&= \beta+\Big(\frac1N\sum_iX_i\T ww\T X_i\Big)\inv\frac1N\sum_iX_i\T ww\T V_i \why{代入 $w\T Y_i=w\T X_i\beta+w\T V_i$}\\
+&\pto \beta+\big[\E(X_i\T ww\T X_i)\big]\inv\cdot 0=\beta \why{LLN；$V_i$ 对 $X_i$ 严格外生}
+\end{align*}
+条件是 $\E(X_i\T ww\T X_i)$ 可逆。因子 $F$ 与 $X_i$ 相关所造成的内生性已被变换消除，所以 OLS 一致。
+
+%----------------------------------------------------------------------
+\subsection{\texorpdfstring{$w$}{w} 的存在性与全部变换的利用}
+
+\subsubsection{\texorpdfstring{$w$}{w} 属于 \texorpdfstring{$F'$}{F'} 的零空间：\texorpdfstring{$T>r$}{T > r} 时有无穷多解}
+
+$F\T w=0$ 说明 $w$ 属于 $F\T$（$r\times T$）的\term{零空间}{null space}。设 $\rank(F)=r$。由秩--零度定理，
+\begin{align*}
+\dim\{w:F\T w=0\} &= T-\rank(F\T) \why{秩--零度定理}\\
+&= T-r \why{$\rank(F\T)=\rank(F)=r$}
+\end{align*}
+所以：
+\begin{itemize}
+  \item \key{只要 $T>r$，就存在非零的 $w$}；
+  \item 而且\key{有无穷多个}：零空间是 $T-r$ 维子空间，其中任意非零向量都满足要求（任意一个乘以非零常数仍满足）。
+\end{itemize}
+若 $T\le r$，零空间只有零向量，变换估计不可行。
+
+\subsubsection{用零空间的标准正交基 \texorpdfstring{$W$}{W} 一次用上 \texorpdfstring{$T-r$}{T-r} 个变换}
+
+只用一个 $w$ 会浪费信息。实践中把零空间的一组标准正交基排成矩阵
+\[
+W=(w_1,\dots,w_{T-r})\qquad(T\times(T-r)),\qquad W\T F=0,\quad W\T W=I_{T-r},
+\]
+一次性用上所有 $T-r$ 个变换：
+\begin{equation}\label{eq:U14b-transest}
+W\T Y_i=W\T X_i\beta+W\T V_i,\qquad
+\hat\beta=\Big(\sum_iX_i\T WW\T X_i\Big)\inv\sum_iX_i\T WW\T Y_i .
+\end{equation}
+后一式是把 $N$ 个 $(T-r)$ 维方程叠起来做混合 OLS 的结果。
+
+估计量只通过 $WW\T$ 依赖于 $W$。$WW\T$ 是到 $F$ 的正交补空间的正交投影矩阵：设 $\tilde F=F(F\T F)^{-1/2}$（$T\times r$，列标准正交），则 $(\tilde F,W)$ 是 $\R^T$ 的一组标准正交基，
+\begin{align*}
+I_T &= (\tilde F,W)(\tilde F,W)\T \why{正交矩阵 $QQ\T=I$}\\
+&= \tilde F\tilde F\T+WW\T \why{分块相乘}\\
+\Rightarrow\ WW\T &= I_T-F(F\T F)\inv F\T=M_F \why{$\tilde F\tilde F\T=F(F\T F)\inv F\T$}
+\end{align*}
+所以零空间的标准正交基怎么选都可以：不同的 $W$ 给出同一个 $WW\T=M_F$，从而同一个 $\hat\beta$。
+
+\subsubsection{例：一阶差分与组内变换是变换估计的特例}
+
+\begin{exmp}[一阶差分是变换估计的特例]\label{ex:U14b-fd}
+设 $T=3$、$r=1$、$f_t\equiv1$（即 $\lambda_if_t=\lambda_i$ 就是个体固定效应 $\alpha_i$），$F=\one_3=(1,1,1)\T$。(a) 写出满足 $w\T F=0$ 的向量，说明一阶差分估计是变换估计的特例。(b) 取零空间的标准正交基，说明得到的是组内估计量。
+\solution
+(a) $w\T F=w_1+w_2+w_3=0$：满足条件的就是各分量之和为 0 的向量，例如
+\[
+w_1=(-1,1,0)\T,\qquad w_2=(0,-1,1)\T .
+\]
+\begin{align*}
+w_1\T Y_i &= -y_{i1}+y_{i2}=\Delta y_{i2} \why{$w_1=(-1,1,0)\T$}\\
+w_2\T Y_i &= -y_{i2}+y_{i3}=\Delta y_{i3} \why{$w_2=(0,-1,1)\T$}
+\end{align*}
+对 $(w_1,w_2)$ 变换后的方程做混合 OLS，就是\key{一阶差分}（FD）估计（第 10 章）。
+
+(b) 取标准正交基 $\tilde w_1=\frac1{\sqrt2}(-1,1,0)\T$、$\tilde w_2=\frac1{\sqrt6}(1,1,-2)\T$（两者正交、长度为 1，各分量之和为 0），$W=(\tilde w_1,\tilde w_2)$：
+\begin{align*}
+WW\T &= \tilde w_1\tilde w_1\T+\tilde w_2\tilde w_2\T \why{分块相乘}\\
+&= \frac12\begin{pmatrix}1&-1&0\\-1&1&0\\0&0&0\end{pmatrix}+\frac16\begin{pmatrix}1&1&-2\\1&1&-2\\-2&-2&4\end{pmatrix} \why{外积}\\
+&= \begin{pmatrix}2/3&-1/3&-1/3\\-1/3&2/3&-1/3\\-1/3&-1/3&2/3\end{pmatrix}=I_3-\tfrac13\one\one\T \why{逐元相加}
+\end{align*}
+$I_3-\frac13\one\one\T$ 正是组内去均值矩阵，代入 \eqref{eq:U14b-transest} 得到的就是\key{组内估计量}（WG）。
+
+所以 FD 与 WG 都是“找 $w$ 使 $w\T F=0$”的特例：FD 用的是零空间的一组非正交基（$WW\T\neq M_F$，因此 $T>2$ 时 FD 与 WG 一般不同），WG 用的是标准正交基。区别在于：那里的因子 $f_t\equiv1$ 已知，$w$ 可以直接写出；本章的 $F$ 未知，$w$ 需要估计。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{用最小特征值的特征向量估计 \texorpdfstring{$w$}{w}}\label{sec:U14b-eig}
+
+\subsubsection{二阶矩矩阵 \texorpdfstring{$\Sigma(\beta)$}{Sigma(beta)} 的二次型分解}
+
+$F$ 未知时如何找 $w$？考虑 $T\times T$ 的二阶矩矩阵
+\[
+\Sigma(\beta)=\E\big[(Y_i-X_i\beta)(Y_i-X_i\beta)\T\big].
+\]
+假设：$F$ 视为非随机；$\lambda_i$ 与 $V_i$ 不相关，$\E V_i=0$；$\E(\lambda_i\lambda_i\T)$ 正定。思路：把 $w\T\Sigma(\beta)w$ 拆成“因子部分”与“噪声部分”，看哪一部分可以通过选 $w$ 变为零。
+\begin{align*}
+w\T\Sigma(\beta)w &= w\T\E\big[(F\lambda_i+V_i)(F\lambda_i+V_i)\T\big]w \why{$Y_i-X_i\beta=F\lambda_i+V_i$}\\
+&= w\T F\,\E(\lambda_i\lambda_i\T)F\T w+w\T F\,\E(\lambda_iV_i\T)w+w\T\E(V_i\lambda_i\T)F\T w+w\T\E(V_iV_i\T)w \why{展开，期望线性性}\\
+&= \underbrace{(F\T w)\T\E(\lambda_i\lambda_i\T)(F\T w)}_{\ge0\ \text{（半正定二次型）}}+w\T\E(V_iV_i\T)w \why{$\lambda_i$ 与 $V_i$ 不相关，交叉项为 0}\\
+&= w\T\E(V_iV_i\T)w\qquad\text{若 }w\T F=0 \why{第一项消失}
+\end{align*}
+第一项是 $\E(\lambda_i\lambda_i\T)$ 的二次型，因为 $\E(\lambda_i\lambda_i\T)$ 正定，它\key{非负，且只有在 $F\T w=0$ 时才为零}。所以，在 $w\T w=1$ 的约束下\key{最小化} $w\T\Sigma(\beta)w$，就会把 $w$“推”到与 $F$ 正交的方向。
+
+\subsubsection{约束最小化与瑞利商：\texorpdfstring{$w$}{w} 是最小特征值的特征向量}
+
+设 $\Sigma(\beta)$ 的谱分解为 $\Sigma(\beta)=\sum_{k=1}^T\mu_kq_kq_k\T$，$\mu_1\ge\dots\ge\mu_T$，$q_k$ 标准正交（第 1 章）。任意单位向量可写成 $w=\sum_kc_kq_k$，$\sum_kc_k^2=1$。
+\begin{align*}
+w\T\Sigma(\beta)w &= \sum_{k=1}^T\mu_kc_k^2 \why{代入谱分解，$q_k\T q_l=\mathbf{1}\{k=l\}$}\\
+&\ge \mu_T\sum_{k=1}^Tc_k^2=\mu_T \why{$\mu_k\ge\mu_T$；$\sum_kc_k^2=1$}
+\end{align*}
+等号在 $w=q_T$ 时成立。这就是瑞利商的结论：
+\begin{thm}[变换向量的估计原理]\label{thm:U14b-eig}
+$\min_{w\T w=1}w\T\Sigma(\beta)w$ 在 $\Sigma(\beta)$ 的\key{最小特征值}对应的特征向量处取得：
+\[
+w\ \text{是}\ \E\big[(Y_i-X_i\beta)(Y_i-X_i\beta)\T\big]\ \text{的最小特征值对应的特征向量}.
+\]
+同理，在 $W\T W=I_{T-r}$ 下最小化 $\tr(W\T\Sigma(\beta)W)$，解为 $T-r$ 个最小特征值对应的特征向量。
+\end{thm}
+
+\subsubsection{球形误差下的精确性：\texorpdfstring{$T-r$}{T-r} 个最小特征值都等于 \texorpdfstring{$\sigma^2$}{sigma\^{}2}}
+
+若 $\E(V_iV_i\T)=\sigma^2I_T$，则 $\Sigma(\beta)=F\E(\lambda_i\lambda_i\T)F\T+\sigma^2I_T$。要证：$T-r$ 个最小特征值对应的特征向量\key{恰好}张成 $\{w:w\T F=0\}$。
+\begin{itemize}
+  \item 对零空间中的 $w$（$F\T w=0$）：
+  \begin{align*}
+  \Sigma(\beta)w &= F\E(\lambda_i\lambda_i\T)(F\T w)+\sigma^2w \why{代入 $\Sigma(\beta)$}\\
+  &= \sigma^2w \why{$F\T w=0$}
+  \end{align*}
+  所以零空间（$T-r$ 维）上的特征值都等于 $\sigma^2$。
+  \item $F\E(\lambda_i\lambda_i\T)F\T$ 的秩为 $r$（$F$ 列满秩、$\E(\lambda_i\lambda_i\T)$ 正定），在 $F$ 的列空间上有 $r$ 个正特征值 $\nu_1,\dots,\nu_r>0$，相应 $\Sigma(\beta)$ 的特征值为 $\nu_k+\sigma^2>\sigma^2$。
+\end{itemize}
+所以 $\Sigma(\beta)$ 的 $T-r$ 个最小特征值都等于 $\sigma^2$，对应的特征向量恰好张成 $\{w:w\T F=0\}$；最大的 $r$ 个特征值对应的特征向量张成 $F$ 的列空间。若 $\E(V_iV_i\T)$ 不是 $\sigma^2I_T$，最小特征向量只是\key{近似}落在 $F\T$ 的零空间中；因子越强（$F\E(\lambda_i\lambda_i\T)F\T$ 的非零特征值相对 $\E(V_iV_i\T)$ 的特征值越大），近似越好。
+
+%----------------------------------------------------------------------
+\subsection{两步估计及其一致性}\label{sec:U14b-twostep}
+
+\begin{method}[变换估计的两步法]
+\begin{enumerate}[label=第 \arabic* 步：,leftmargin=4.2em]
+  \item \key{估计 $w$}。用一个初步估计 $\tilde\beta$（如忽略因子的 FE）构造
+  \[
+  \hat\Sigma=\frac1N\sum_{i=1}^N(Y_i-X_i\tilde\beta)(Y_i-X_i\tilde\beta)\T\qquad(T\times T),
+  \]
+  取其 $T-r$ 个最小特征值对应的标准正交特征向量，组成 $\hat W$（$T\times(T-r)$）。
+  \item \key{用 $\hat W$ 估计 $\beta$}。
+  \[
+  \hat\beta=\Big(\sum_iX_i\T\hat W\hat W\T X_i\Big)\inv\sum_iX_i\T\hat W\hat W\T Y_i .
+  \]
+  \item （可选）\key{迭代}。$\Sigma(\beta)$ 依赖 $\beta$，可用新的 $\hat\beta$ 代替 $\tilde\beta$ 回到第 1 步，直至 $\hat\beta$ 收敛。
+\end{enumerate}
+\end{method}
+
+\subsubsection{第一步：由初步估计构造 \texorpdfstring{$\hat\Sigma$}{Sigma-hat} 并取 \texorpdfstring{$\hat W$}{W-hat}}
+
+$\hat\Sigma$ 是 $\Sigma(\beta)$ 的样本对应：把期望换成对 $i$ 的平均，把未知的 $\beta$ 换成初步估计 $\tilde\beta$。由上一小节“变换向量的估计原理”，取最小的 $T-r$ 个特征值的特征向量；因子个数 $r$ 需要事先给定或用第 13 章的信息准则选择。
+
+\subsubsection{第二步：用 \texorpdfstring{$\hat W$}{W-hat} 变换后做混合 OLS，必要时迭代}
+
+第二步就是把 \eqref{eq:U14b-transest} 中的 $W$ 换成 $\hat W$。由于 $\hat\Sigma$ 依赖 $\tilde\beta$，而 $\tilde\beta$（如 FE）本身因忽略因子而不一致，一般需要迭代：$\hat\beta\to\hat\Sigma\to\hat W\to\hat\beta\to\cdots$。
+
+\subsubsection{一致性的条件：\texorpdfstring{$\hat\Sigma$}{Sigma-hat} 的精度与误差是否球形}
+
+常见的简略表述是：“$\hat\beta$ 在 $N$ 或 $T$ 大时一致”。准确地说，两步法成立依赖于两点：
+\begin{enumerate}
+  \item $\hat\Sigma$ 的估计精度：$N\to\infty$ 时 $\hat\Sigma\pto\Sigma(\beta)$（在 $\tilde\beta$ 迭代到真值附近的前提下），从而 $\hat W\hat W\T$ 收敛到 $\Sigma(\beta)$ 的最小 $T-r$ 维特征子空间的投影；
+  \item 该子空间是否就是 $F\T$ 的零空间：$\E(V_iV_i\T)=\sigma^2I_T$ 时精确成立；否则只是近似，需要因子足够强（$T$ 大时因子部分的特征值随 $T$ 增长而与噪声部分拉开）。
+\end{enumerate}
+作答时可写“两步估计量在 $N$（或 $T$）大时一致”，并补充上述两个条件。
+
+%----------------------------------------------------------------------
+\subsection{与 Bai 估计量的联系：三种方法的统一公式}\label{sec:U14b-bai}
+
+\subsubsection{完备性：\texorpdfstring{$\hat W\hat W'=I_T-\hat F\hat F'=M_{\hat F}$}{W W' = I - F F' = M\_F}}
+
+$\hat\Sigma$ 是 $T\times T$ 实对称矩阵，它的 $T$ 个标准正交特征向量构成 $\R^T$ 的一组标准正交基。把前 $r$ 个（最大特征值）记为 $\hat F$（$T\times r$，$\hat F\T\hat F=I_r$），其余 $T-r$ 个（最小特征值）记为 $\hat W$。注意 $\hat\Sigma=\frac1N\hat E\T\hat E$，其中 $\hat E$ 是 $N\times T$ 残差矩阵（第 $i$ 行为 $(Y_i-X_i\tilde\beta)\T$），所以 $\hat F$ \key{正是对残差做 PCA 得到的因子估计}（第 13 章，标准化 $F\T F=I_r$）。
+\begin{align*}
+I_T &= (\hat F,\hat W)(\hat F,\hat W)\T \why{正交矩阵 $QQ\T=I_T$}\\
+&= \hat F\hat F\T+\hat W\hat W\T \why{分块相乘}\\
+\Rightarrow\ \hat W\hat W\T &= I_T-\hat F\hat F\T \why{移项}\\
+&= I_T-\hat F(\hat F\T\hat F)\inv\hat F\T=M_{\hat F} \why{$\hat F\T\hat F=I_r$}
+\end{align*}
+$M_{\hat F}$ 只取决于 $\hat F$ 的列空间，所以无论 $\hat F$ 用 $\hat F\T\hat F=I_r$ 还是 $\hat F\T\hat F/T=I_r$ 标准化、是否旋转，结果都一样。
+
+\subsubsection{变换估计量就是 Bai 估计量“给定 \texorpdfstring{$F$}{F} 求 \texorpdfstring{$\beta$}{beta}”的一步}
+
+代入第二步的公式：
+\begin{align*}
+\hat\beta &= \Big(\sum_iX_i\T\hat W\hat W\T X_i\Big)\inv\sum_iX_i\T\hat W\hat W\T Y_i \why{两步法第二步}\\
+&= \Big(\sum_iX_i\T M_{\hat F}X_i\Big)\inv\sum_iX_i\T M_{\hat F}Y_i \why{$\hat W\hat W\T=M_{\hat F}$}
+\end{align*}
+这恰好就是 Bai 估计量“给定 $F$ 求 $\beta$”的那一步 $\hat\beta(\hat F)$（见本章 Bai 估计量一节）。所以\key{变换估计迭代到收敛，就是 Bai 的迭代 PCA 估计量}：每一轮都是“对残差做 PCA $\to$ 零化估计的因子空间 $\to$ 求 $\beta$”。两者的区别只在视角：Bai 估计因子空间 $\hat F$，变换估计估计它的正交补 $\hat W$。
+
+\subsubsection{统一公式：区别只在用什么矩阵零化因子空间}
+
+\begin{thm}[含潜在因子面板的统一估计公式]\label{thm:U14b-unified}
+本章的估计量（以及 WG）都可以写成
+\begin{equation}\label{eq:U14b-unified}
+\hat\beta=\Big(\sum_iX_i\T MX_i\Big)\inv\sum_iX_i\T MY_i,\qquad
+M=\begin{cases}
+M_{\hat F}=\hat W\hat W\T & \text{Bai PCA / 变换估计},\\[2pt]
+M_{\bar Z}=I_T-\bar Z(\bar Z\T\bar Z)\inv\bar Z\T & \text{CCE},\\[2pt]
+I_T-\frac1T\one_T\one_T\T & \text{WG（}f_t\equiv1\text{）}.
+\end{cases}
+\end{equation}
+\end{thm}
+区别只在于用什么矩阵 $M$ 去“零化”因子空间：Bai 与变换估计用估计的因子（或其正交补），CCE 用可观测的截面平均 $\bar Z$，WG 只零化常数这一个已知“因子”。
+
+%----------------------------------------------------------------------
+\subsection{练习：\texorpdfstring{$F=(1,2,3)'$}{F=(1,2,3)'} 时的变换向量与特征值}
+
+\begin{prac}[变换估计]\label{pr:U14b-trans}
+设 $T=3$，$r=1$，$F=(1,2,3)\T$。(a) 求一个满足 $w\T F=0$ 的非零 $w$，说明解的个数。(b) 设 $\E(\lambda_i^2)=1$，$\E(V_iV_i\T)=I_3$，写出 $\Sigma=F\E(\lambda_i^2)F\T+I_3$ 的特征值，并说明哪些特征向量满足 $w\T F=0$。
+\answer
+(a) $w=(w_1,w_2,w_3)\T$ 需满足 $w\T F=w_1+2w_2+3w_3=0$，例如
+\[
+w=(1,1,-1)\T\ \ (1+2-3=0)\qquad\text{或}\qquad w=(2,-1,0)\T\ \ (2-2+0=0).
+\]
+零空间维数为 $T-r=2$（一个过原点的平面），非零解有无穷多个。
+
+(b) $\Sigma=FF\T+I_3$。先求 $FF\T$ 的特征值：
+\begin{align*}
+(FF\T)F &= F(F\T F)=14F \why{结合律；$F\T F=1+4+9=14$}\\
+(FF\T)w &= F(F\T w)=0 \why{对任意 $w\perp F$}
+\end{align*}
+所以 $FF\T$ 的特征值为 $14$（特征向量 $F/\sqrt{14}$）和 $0$（二重，特征向量为与 $F$ 正交的任意向量）。加上 $I_3$ 使每个特征值加 1：$\Sigma$ 的特征值为 $15,1,1$。两个最小特征值 $1$ 对应的特征向量张成 $\{w:w\T F=0\}$，正是所需的变换（例如 (a) 中的两个向量）；最大特征值 $15$ 的特征向量 $F/\sqrt{14}$ 就是（标准化后的）因子。
+\end{prac}
+
+\begin{english}
+The transformed estimator removes the factor component by premultiplying $Y_i=X_i\beta+F\lambda_i+V_i$ by a vector $w$ with $w'F=0$, which exists (and is not unique) whenever $T>r$, because the null space of $F'$ has dimension $T-r$; then $w'Y_i=w'X_i\beta+w'V_i$ can be estimated by OLS. Since $w'\mathbb{E}[(Y_i-X_i\beta)(Y_i-X_i\beta)']w=w'F\mathbb{E}(\lambda_i\lambda_i')F'w+w'\mathbb{E}(V_iV_i')w$ and the first term vanishes only when $w'F=0$, $w$ can be estimated by the eigenvector(s) associated with the smallest eigenvalue(s) of the estimated second-moment matrix. With $\hat W$ collecting these $T-r$ eigenvectors, $\hat W\hat W'=I_T-\hat F\hat F'=M_{\hat F}$, so the estimator coincides with the profiled step of Bai's estimator. First differencing and the within transformation are special cases with the known factor $f_t\equiv1$.
+\end{english}
+
+%======================================================================
+\section{截面相关检验：在模型 1 与模型 2 之间选择}\label{sec:U14b-csd}
+
+本章有两个候选模型：模型 1 是单向固定效应模型 $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$（误差无因子结构），用 WG 估计；模型 2 是因子模型 $y_{it}=x_{it}\T\beta+\lambda_i\T f_t+v_{it}$，用 PCA（Bai）或 CCE 估计。本节讲如何用数据在两者之间做选择：检验模型 1 的误差是否存在\term{截面相关}{cross-sectional dependence, CSD}。
+
+%----------------------------------------------------------------------
+\subsection{为什么要检验截面相关}
+
+\subsubsection{因子结构必然带来截面相关}
+
+若误差含潜在因子，$u_{it}=\lambda_i\T f_t+v_{it}$（$v_{it}$ 截面不相关、与 $f_t$ 不相关），则对 $i\neq j$，
+\begin{align*}
+\E(u_{it}u_{jt}) &= \E\big[(\lambda_i\T f_t+v_{it})(\lambda_j\T f_t+v_{jt})\big] \why{代入因子结构}\\
+&= \lambda_i\T\E(f_tf_t\T)\lambda_j+\E(v_{it}v_{jt})+\text{交叉项} \why{展开}\\
+&= \lambda_i\T\E(f_tf_t\T)\lambda_j\neq0 \why{交叉项与 $\E(v_{it}v_{jt})$ 为 0}
+\end{align*}
+所以\key{因子结构 $\Rightarrow$ $\E(u_{it}u_{jt})\neq0$ $\Rightarrow$ 个体 $i$ 与 $j$ 相关 $\Rightarrow$ CSD}。反之，若 $\E(u_{it}u_{jt})=0$ 对一切 $i\neq j$ 成立，个体之间不相关，没有 CSD。
+
+\subsubsection{检验 CSD 就是在模型 1 与模型 2 之间选择}
+
+模型 1（单向 FE）假设误差截面不相关：\key{模型 1 $=$ 无 CSD}；若误差含因子（模型 2），就会出现 CSD：\key{模型 2 $=$ 有 CSD}。所以，\key{检验 FE 残差是否存在截面相关，就是在两个模型之间做选择}（Pesaran 2021）。
+
+\subsubsection{聚类标准误不能替代检验}
+
+能否不检验、直接用聚类稳健标准误？不能。按个体聚类的标准误允许\key{同一个体}跨时间任意相关，但假定\key{不同个体之间}独立；CSD 恰恰是同一时期不同个体之间的相关，聚类标准误处理不了（第 13 章）。更重要的是，若因子与 $x_{it}$ 相关，问题不只是标准误，而是 FE 本身不一致（内生性），任何标准误修正都无济于事。所以要先检验。
+
+%----------------------------------------------------------------------
+\subsection{原假设与备择假设}
+
+\subsubsection{用协方差表述}
+
+\begin{align*}
+H_0:&\ \ \E(u_{it}u_{jt})=0\quad\forall\,i\neq j &&(\text{no CSD，模型 1})\\
+\text{vs}\quad H_1:&\ \ \E(u_{it}u_{jt})\neq0\ \ \text{对某些 }i\neq j &&(\text{with CSD，如 }u_{it}=\lambda_i\T f_t+v_{it}\text{，模型 2})
+\end{align*}
+
+\subsubsection{用相关系数等价表述}
+
+定义 $u_{it}$ 与 $u_{jt}$ 的总体相关系数（也有教材记作 $r_{ij}$，注意不要与因子个数 $r$ 混淆）
+\[
+\rho_{ij}=\frac{\E(u_{it}u_{jt})}{\sqrt{\Var(u_{it})\Var(u_{jt})}} .
+\]
+分母为正，所以 $\rho_{ij}=0\iff\E(u_{it}u_{jt})=0$（$\E u_{it}=0$）。假设可等价地写成
+\begin{equation}\label{eq:U14b-H0}
+H_0:\ \rho_{ij}=0\quad\forall\,i\neq j,\ \ i,j=1,2,\dots,N\qquad\text{vs}\qquad H_1:\ \rho_{ij}\neq0\ \text{对某些 }i\neq j .
+\end{equation}
+
+%----------------------------------------------------------------------
+\subsection{用 WG 残差计算样本相关系数 \texorpdfstring{$\hat\rho_{ij}$}{rho-hat\_ij}}
+
+\subsubsection{可行化：用 \texorpdfstring{$\hat u_{it}$}{u-hat\_it} 代替不可观测的 \texorpdfstring{$u_{it}$}{u\_it}}
+
+$u_{it}$、$u_{jt}$ 不可观测，用模型 1 的 WG 残差代替，使检验\key{可行}（feasible）：
+\[
+\hat u_{it}=y_{it}-x_{it}\T\hat\beta_{WG}-\hat\alpha_i,\qquad \hat\alpha_i=\bar y_i-\bar x_i\T\hat\beta_{WG},
+\]
+其中 $\bar y_i=\frac1T\sum_ty_{it}$，$\bar x_i=\frac1T\sum_tx_{it}$。WG 残差对每个 $i$ 的时间均值为零：
+\begin{align*}
+\sum_{t=1}^T\hat u_{it} &= T\bar y_i-T\bar x_i\T\hat\beta_{WG}-T\hat\alpha_i \why{对 $t$ 求和}\\
+&= T\big(\bar y_i-\bar x_i\T\hat\beta_{WG}-\bar y_i+\bar x_i\T\hat\beta_{WG}\big)=0 \why{代入 $\hat\alpha_i$}
+\end{align*}
+所以计算相关系数时不必再去均值。
+
+\subsubsection{有无 \texorpdfstring{$1/T$}{1/T} 因子的两种写法相等}
+
+\begin{defn}[残差的样本相关系数]\label{def:U14b-rhohat}
+\begin{equation}\label{eq:U14b-rhohat}
+\hat\rho_{ij}=\frac{\frac1T\sum_{t=1}^T\hat u_{it}\hat u_{jt}}{\sqrt{\frac1T\sum_{t=1}^T\hat u_{it}^2\cdot\frac1T\sum_{t=1}^T\hat u_{jt}^2}}
+=\frac{\sum_t\hat u_{it}\hat u_{jt}}{\sqrt{\sum_t\hat u_{it}^2\,\sum_t\hat u_{jt}^2}} .
+\end{equation}
+\end{defn}
+两种写法相等：
+\begin{align*}
+\frac{\frac1T\sum_t\hat u_{it}\hat u_{jt}}{\sqrt{\frac1T\sum_t\hat u_{it}^2\cdot\frac1T\sum_t\hat u_{jt}^2}}
+&= \frac{\frac1T\sum_t\hat u_{it}\hat u_{jt}}{\frac1T\sqrt{\sum_t\hat u_{it}^2\sum_t\hat u_{jt}^2}} \why{$\sqrt{1/T^2}=1/T$ 提出根号}\\
+&= \frac{\sum_t\hat u_{it}\hat u_{jt}}{\sqrt{\sum_t\hat u_{it}^2\sum_t\hat u_{jt}^2}} \why{分子分母约去 $1/T$}
+\end{align*}
+带 $1/T$ 的写法便于看出“样本协方差 / 样本标准差之积”，也便于下面推导渐近分布。
+
+%----------------------------------------------------------------------
+\subsection{单对检验：\texorpdfstring{$\sqrt T\hat\rho_{ij}\to N(0,1)$}{sqrt(T) rho-hat\_ij -> N(0,1)}}
+
+\subsubsection{结论：\texorpdfstring{$H_0$}{H0} 下 \texorpdfstring{$\sqrt T\hat\rho_{ij}$}{sqrt(T) rho-hat\_ij} 渐近标准正态}
+
+\begin{thm}[单个相关系数的渐近分布]\label{thm:U14b-single}
+在 $H_0$ 下，并假设 $u_{it}$ 跨 $i$ 独立、跨 $t$ 独立同分布（均值 0、方差 $\sigma_i^2$），对每一对 $i\neq j$，当 $T\to\infty$：
+\[
+\sqrt T(\hat\rho_{ij}-\underbrace{\rho_{ij}}_{=0})=\sqrt T\hat\rho_{ij}\ \dto\ N(0,1).
+\]
+\end{thm}
+
+\subsubsection{推导：分子用 CLT，分母用 LLN，再用 Slutsky}
+
+为简单起见用真实误差 $u$（用 $\hat u$ 的差别是 $o_p(1)$，不影响极限分布）。思路：把 $\sqrt T\hat\rho_{ij}$ 写成“$\sqrt T\times$ 样本均值”除以“样本标准差之积”，分子、分母分别求极限。
+\begin{align*}
+\sqrt T\hat\rho_{ij} &= \frac{\frac1{\sqrt T}\sum_tu_{it}u_{jt}}{\sqrt{\frac1T\sum_tu_{it}^2\cdot\frac1T\sum_tu_{jt}^2}} \why{带 $1/T$ 的写法，分子分母同乘 $\sqrt T$}
+\end{align*}
+\textbf{分子。}$u_{it}u_{jt}$ 跨 $t$ 独立同分布，且
+\begin{align*}
+\E(u_{it}u_{jt}) &= \E(u_{it})\E(u_{jt})=0 \why{$H_0$：$i,j$ 独立}\\
+\Var(u_{it}u_{jt}) &= \E(u_{it}^2u_{jt}^2)=\E(u_{it}^2)\E(u_{jt}^2)=\sigma_i^2\sigma_j^2 \why{均值为 0；独立}\\
+\frac1{\sqrt T}\sum_tu_{it}u_{jt} &\dto N\big(0,\ \sigma_i^2\sigma_j^2\big) \why{CLT}
+\end{align*}
+\textbf{分母。}
+\begin{align*}
+\frac1T\sum_tu_{it}^2 &\pto\sigma_i^2,\qquad \frac1T\sum_tu_{jt}^2\pto\sigma_j^2 \why{LLN}\\
+\sqrt{\frac1T\sum_tu_{it}^2\cdot\frac1T\sum_tu_{jt}^2} &\pto\sqrt{\sigma_i^2\sigma_j^2}=\sigma_i\sigma_j \why{CMT}
+\end{align*}
+\textbf{合起来。}
+\begin{align*}
+\sqrt T\hat\rho_{ij} &\dto \frac{N(0,\sigma_i^2\sigma_j^2)}{\sigma_i\sigma_j}=N(0,1) \why{Slutsky 定理}
+\end{align*}
+相关系数是“无量纲”的，所以极限分布不含 $\sigma_i,\sigma_j$，可直接用于检验。
+
+%----------------------------------------------------------------------
+\subsection{平方后服从 \texorpdfstring{$\chi^2_1$}{chi2(1)}：\texorpdfstring{$T\hat\rho_{ij}^2\to\chi^2_1$}{T rho-hat\^{}2 -> chi2(1)}}
+
+标准正态的平方服从自由度为 1 的卡方分布，由连续映射定理（$g(z)=z^2$），在 $H_0$ 下
+\begin{align*}
+T\hat\rho_{ij}^2 &= \big(\sqrt T\hat\rho_{ij}\big)^2 \why{代数恒等}\\
+&\dto Z^2\sim\chi^2_1,\quad Z\sim N(0,1) \why{CMT}
+\end{align*}
+\key{单独检验一对}：$T\hat\rho_{ij}^2>3.84$（$\chi^2_1$ 的 5\% 临界值，$=1.96^2$）则拒绝“$i$ 与 $j$ 不相关”。但 $H_0$ 要求\key{所有的对}同时不相关，需要把所有的对合起来检验。
+
+%----------------------------------------------------------------------
+\subsection{Breusch--Pagan LM 检验：把所有的对加起来}\label{sec:U14b-lm}
+
+\subsubsection{只看严格上三角：共 \texorpdfstring{$N(N-1)/2$}{N(N-1)/2} 对}
+
+相关矩阵 $(\hat\rho_{ij})_{N\times N}$ 中，$\hat\rho_{ij}=\hat\rho_{ji}$（对称），对角线 $\rho_{ii}=1$ 不含信息，所以只需看\key{严格上三角}的元素。逐行计数：第 1 行先写出 $T(\hat\rho_{12}^2+\hat\rho_{13}^2+\dots+\hat\rho_{1N}^2)$，共 $N-1$ 项；第 2 行 $N-2$ 项；……；第 $N-1$ 行只有 $\rho_{N-1,N}$ 一项；第 $N$ 行 0 项。
+
+\begin{center}
+\begin{tikzpicture}[x=1.0cm,y=0.72cm,font=\small]
+  \fill[cdef!12] (1,0)--(6,0)--(6,-5)--(5,-5)--(5,-4)--(4,-4)--(4,-3)--(3,-3)--(3,-2)--(2,-2)--(2,-1)--(1,-1)--cycle;
+  \draw[gray!60] (0,-6) grid (6,0);
+  \draw[cdef,thick] (1,0)--(1,-1)--(2,-1)--(2,-2)--(3,-2)--(3,-3)--(4,-3)--(4,-4)--(5,-4)--(5,-5)--(6,-5);
+  \draw[black] (0,-6) rectangle (6,0);
+  % row 1
+  \node at (0.5,-0.5) {$\rho_{11}$}; \node at (1.5,-0.5) {$\rho_{12}$}; \node at (2.5,-0.5) {$\rho_{13}$};
+  \node at (3.5,-0.5) {$\cdots$}; \node at (4.5,-0.5) {$\cdots$}; \node at (5.5,-0.5) {$\rho_{1N}$};
+  % row 2
+  \node at (1.5,-1.5) {$\rho_{22}$}; \node at (2.5,-1.5) {$\rho_{23}$}; \node at (3.5,-1.5) {$\cdots$};
+  \node at (4.5,-1.5) {$\cdots$}; \node at (5.5,-1.5) {$\rho_{2N}$};
+  % rows 3-4
+  \node at (2.5,-2.5) {$\ddots$}; \node at (3.5,-2.5) {$\cdots$}; \node at (5.5,-2.5) {$\vdots$};
+  \node at (3.5,-3.5) {$\ddots$}; \node at (5.5,-3.5) {$\vdots$};
+  % row N-1, N
+  \node at (4.5,-4.5) {$\ddots$}; \node at (5.5,-4.5) {$\ast$};
+  \node at (5.5,-5.5) {$\rho_{NN}$};
+  % right labels
+  \node[anchor=west] at (6.2,-0.5) {第 1 行：$N-1$ 个};
+  \node[anchor=west] at (6.2,-1.5) {第 2 行：$N-2$ 个};
+  \node[anchor=west] at (6.2,-3.0) {$\vdots$};
+  \node[anchor=west] at (6.2,-4.5) {第 $N-1$ 行：1 个};
+  \node[anchor=west] at (6.2,-5.5) {第 $N$ 行：0 个};
+  \node[anchor=west] at (10.0,-3.0) {合计 $(N-1)+\dots+1=\dfrac{N(N-1)}2$};
+\end{tikzpicture}
+\captionof{figure}{相关矩阵的严格上三角（阴影部分；$\ast$ 表示 $\rho_{N-1,N}$）}
+\end{center}
+
+用等差数列求和：
+\begin{align*}
+K\equiv\sum_{i=1}^{N-1}(N-i) &= (N-1)+(N-2)+\dots+1 \why{逐行计数}\\
+&= \frac{N(N-1)}2 \why{等差数列求和}
+\end{align*}
+
+\subsubsection{不同对渐近独立}
+
+在 $H_0$ 下，不同对的 $\sqrt T\hat\rho_{ij}$ 渐近独立。以共用个体 1 的两对为例（$\sqrt T\hat\rho_{1j}\approx\frac1{\sqrt T}\sum_tu_{1t}u_{jt}/(\sigma_1\sigma_j)$）：
+\begin{align*}
+\Cov\big(\sqrt T\hat\rho_{12},\sqrt T\hat\rho_{13}\big)
+&\approx \frac1T\sum_t\sum_s\frac{\E(u_{1t}u_{2t}u_{1s}u_{3s})}{\sigma_1^2\sigma_2\sigma_3} \why{代入近似式}\\
+&= \frac1T\sum_t\frac{\E(u_{1t}^2u_{2t}u_{3t})}{\sigma_1^2\sigma_2\sigma_3} \why{$t\neq s$ 项含 $\E u_{2t}=0$}\\
+&= \frac{\E(u_{1}^2)\E(u_{2})\E(u_{3})}{\sigma_1^2\sigma_2\sigma_3}=0 \why{$H_0$：$u_1,u_2,u_3$ 独立}
+\end{align*}
+不共用个体的两对（如 $(1,2)$ 与 $(3,4)$）由独立性直接得协方差为 0。各 $\sqrt T\hat\rho_{ij}$ 渐近联合正态且两两不相关，因而渐近独立。$K$ 个独立的 $\chi^2_1$ 之和服从 $\chi^2_K$。
+
+\subsubsection{LM 统计量及其 \texorpdfstring{$\chi^2$}{chi2} 分布}
+
+\begin{thm}[Breusch--Pagan (1980) LM 检验]\label{thm:U14b-lm}
+$N$ 固定、$T\to\infty$ 时，在 $H_0$ 下
+\begin{equation}\label{eq:U14b-lm}
+LM=T\sum_{i<j}\hat\rho_{ij}^2=T\sum_{i=1}^{N-1}\sum_{j=i+1}^N\hat\rho_{ij}^2\ \dto\ \chi^2_{N(N-1)/2}.
+\end{equation}
+$LM$ 大于 $\chi^2_{N(N-1)/2}$ 的上 5\% 分位数时拒绝 $H_0$（右侧检验）。
+\end{thm}
+这就是 \term{Breusch--Pagan LM 检验}{Breusch-Pagan LM test}。例：$N=100$ 时自由度为
+\[
+\frac{100\times99}2=50\times99=4950,\qquad LM\ \dto\ \chi^2_{50\times99}=\chi^2_{4950}.
+\]
+
+\subsubsection{求和范围与命名的辨析}
+
+\begin{note}[求和只取上三角；平方和统计量的准确名称]
+\begin{enumerate}
+  \item \key{求和范围}。若写成 $\sum_{i=1}^N\sum_{j\neq i}T\hat\rho_{ij}^2$，每一对被算了两次（共 $N(N-1)$ 项），结果是 $2\times LM$，不服从 $\chi^2_{N(N-1)/2}$。要得到 $\chi^2_{N(N-1)/2}$，求和只能取上三角 $j>i$（即 $\sum_{i<j}$）。
+  \item \key{命名}。$T\sum_{i<j}\hat\rho_{ij}^2$ 是 \key{Breusch \& Pagan (1980) 的 LM 统计量}；它的标准化版本（下文的 $CD^*$）是 \key{Pesaran (2004) 的 scaled LM}（记作 $CD_{LM}$）；\key{Pesaran 的 CD 统计量}用的是\key{不平方}的 $\hat\rho_{ij}$。试题若把平方和统计量也叫作“CD 统计量”，按题意计算即可，作答时注明其准确名称是 Breusch--Pagan LM 统计量。
+\end{enumerate}
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{卡方分布的均值与方差}
+
+$LM$ 的自由度随 $N^2$ 增长。$N$ 大时直接查 $\chi^2$ 表不方便（表中没有这么大的自由度），渐近近似也不准确，需要把 $LM$ 标准化。这要用到卡方分布的均值与方差。
+
+\subsubsection{标准正态的二阶、四阶矩}
+
+$Z\sim N(0,1)$：$\E(Z^2)=1$，$\E(Z^4)=3$（正态分布的二阶、四阶矩，第 1 章）。
+
+\subsubsection{\texorpdfstring{$\chi^2_1$}{chi2(1)} 与 \texorpdfstring{$\chi^2_K$}{chi2(K)} 的均值与方差}
+
+\begin{align*}
+\chi^2_1=Z^2:\quad \E(\chi^2_1) &= \E(Z^2)=1 \why{二阶矩}\\
+\Var(\chi^2_1) &= \E Z^4-(\E Z^2)^2=3-1=2 \why{$\Var(X)=\E X^2-(\E X)^2$}\\
+\chi^2_K=\textstyle\sum_{k=1}^KZ_k^2:\quad \E(\chi^2_K) &= \textstyle\sum_{k=1}^K\E(Z_k^2)=K \why{期望线性性}\\
+\Var(\chi^2_K) &= \textstyle\sum_{k=1}^K\Var(Z_k^2)=2K \why{独立随机变量之和：方差相加}
+\end{align*}
+\begin{thm}[卡方分布的矩]\label{thm:U14b-chimom}
+$\E(\chi^2_K)=K$，$\Var(\chi^2_K)=2K$。由此 $\E\big[(\chi^2_K)^2\big]=\Var+(\E)^2=K^2+2K$；三阶中心矩为 $8K$。
+\end{thm}
+\begin{note}[记号陷阱]
+$\E(\chi^2_K)=K$ 中的上标“2”是分布名称的一部分，不表示平方；“均值 $K$、方差 $2K$”是标准写法。不要写成 $\E(\chi_K)=K$、$\E(\chi^2_K)=2K$ 之类——$\chi^2_K$ 的二阶原点矩是 $K^2+2K$，不是 $2K$。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{标准化 LM（scaled LM）：适用于大 \texorpdfstring{$N$}{N}}\label{sec:U14b-sclm}
+
+\subsubsection{标准化公式与两种等价写法}
+
+令 $K=\frac{N(N-1)}2$。由上一小节，$H_0$ 下 $LM$ 近似均值为 $K$、方差为 $2K=N(N-1)$。$K$ 很大时，$LM$ 是大量近似独立项之和，由中心极限定理，标准化后近似正态：
+
+\begin{thm}[标准化 LM（Pesaran 2004 的 scaled LM）]\label{thm:U14b-cdstar}
+先令 $T\to\infty$ 再令 $N\to\infty$，在 $H_0$ 下
+\begin{equation}\label{eq:U14b-cdstar}
+CD^*=\frac{LM-\frac{N(N-1)}2}{\sqrt{N(N-1)}}=\sqrt{\frac1{N(N-1)}}\sum_{i<j}\big(T\hat\rho_{ij}^2-1\big)\ \dto\ N(0,1).
+\end{equation}
+拒绝域在\key{右侧}：$CD^*>1.645$ 时在 5\% 水平拒绝。$CD^*$ 过大说明相关系数平方的总和超出了“无相关”时的期望。
+\end{thm}
+第二个等号的推导：
+\begin{align*}
+LM-K &= \sum_{i<j}T\hat\rho_{ij}^2-\sum_{i<j}1 \why{$K$ 恰为上三角的项数}\\
+&= \sum_{i<j}\big(T\hat\rho_{ij}^2-1\big) \why{合并同一求和}\\
+\frac{LM-K}{\sqrt{2K}} &= \frac1{\sqrt{N(N-1)}}\sum_{i<j}\big(T\hat\rho_{ij}^2-1\big) \why{$2K=N(N-1)$}
+\end{align*}
+第二种写法说明：每一项 $T\hat\rho_{ij}^2-1$ 在 $H_0$ 下均值近似为 0、方差近似为 2，$CD^*$ 是它们的标准化和。
+
+\subsubsection{分母是标准差 \texorpdfstring{$\sqrt{2K}$}{sqrt(2K)}，不是 \texorpdfstring{$\sqrt K$}{sqrt(K)}}
+
+标准化要除以\key{标准差}：
+\[
+\sqrt{\Var(\chi^2_K)}=\sqrt{2K}=\sqrt{N(N-1)},\qquad\text{而不是}\qquad \sqrt K=\sqrt{N(N-1)/2}.
+\]
+若误除以 $\sqrt K$，统计量会被放大 $\sqrt2$ 倍，导致过度拒绝。
+
+\subsubsection{有限 \texorpdfstring{$T$}{T} 下的水平扭曲与偏误校正 \tagext}
+
+\begin{extend}[scaled LM 的局限与改进]
+有限 $T$ 下，每个 $T\hat\rho_{ij}^2$ 的期望并不恰好等于 1（残差经过估计与去均值；在 $H_0$ 下约为 $T/(T-1)$，即每项多出约 $1/(T-1)$）。这一微小偏差在 $K=N(N-1)/2$ 对上累加：
+\[
+\E(CD^*)\approx\frac{K}{(T-1)\sqrt{N(N-1)}}=\frac{\sqrt{N(N-1)}}{2(T-1)}\approx\frac{N}{2(T-1)},
+\]
+当 $N$ 相对 $T$ 很大时不趋于 0，$CD^*$ 的水平严重失真（过度拒绝）。改进版本有 Pesaran, Ullah \& Yamagata (2008) 的偏误调整 LM 检验，以及 Baltagi, Feng \& Kao (2012) 的偏误校正 scaled LM：$LM_{BC}=CD^*-\frac{N}{2(T-1)}$（R：\texttt{pcdtest(..., test = "bcsclm")}）。
+\end{extend}
+
+%----------------------------------------------------------------------
+\subsection{Pesaran CD 检验}\label{sec:U14b-cd}
+
+\subsubsection{CD 统计量与双侧拒绝域}
+
+\begin{thm}[Pesaran (2004) CD 检验]\label{thm:U14b-cd}
+在 $H_0$ 下，$N\to\infty$（$T$ 可固定）时
+\begin{equation}\label{eq:U14b-cd}
+CD=\sqrt{\frac{2T}{N(N-1)}}\sum_{i=1}^{N-1}\sum_{j=i+1}^N\hat\rho_{ij}\ \dto\ N(0,1).
+\end{equation}
+\key{双侧检验}：$|CD|>1.96$ 则在 5\% 水平拒绝“无截面相关”。
+\end{thm}
+这就是 \term{Pesaran CD 检验}{Pesaran CD test}（CD 即 cross-sectional dependence）。
+
+\subsubsection{推导：\texorpdfstring{$K$}{K} 个近似独立 \texorpdfstring{$N(0,1)$}{N(0,1)} 之和除以 \texorpdfstring{$\sqrt K$}{sqrt(K)}}
+
+在 $H_0$ 下每个 $\sqrt T\hat\rho_{ij}$ 近似 $N(0,1)$ 且两两近似不相关，于是 $K=\frac{N(N-1)}2$ 项之和 $\sum_{i<j}\sqrt T\hat\rho_{ij}$ 近似 $N(0,K)$。除以标准差 $\sqrt K$：
+\begin{align*}
+\frac1{\sqrt K}\sum_{i<j}\sqrt T\hat\rho_{ij} &= \sqrt{\frac2{N(N-1)}}\,\sqrt T\sum_{i<j}\hat\rho_{ij} \why{$K=\frac{N(N-1)}2$，$\sqrt T$ 与 $i,j$ 无关}\\
+&= \sqrt{\frac{2T}{N(N-1)}}\sum_{i<j}\hat\rho_{ij}=CD \why{合并根号}
+\end{align*}
+注意 $CD$ 的分母是 $\sqrt K$（因为每项方差为 1），而 $CD^*$ 的分母是 $\sqrt{2K}$（因为每项 $T\hat\rho^2_{ij}$ 方差为 2）。
+
+\subsubsection{优点：不平方，小 \texorpdfstring{$T$}{T} 下没有偏误累加}
+
+$CD$ 用的是相关系数本身而非平方。在 $H_0$ 下每个 $\hat\rho_{ij}$ 的均值（近似）为 0，不存在 scaled LM 那种“$N^2$ 对小偏差累加”的问题，所以 \key{$N$ 大、$T$ 小时表现好}，是实证中最常用的 CSD 检验。
+
+\subsubsection{弱点：正负相关相互抵消}
+
+若相关系数有正有负、互相抵消（例如载荷均值为零：$\E(u_{it}u_{jt})=\lambda_i\lambda_j\sigma_f^2$ 的符号随 $i,j$ 变化，平均起来接近 0），$\sum_{i<j}\hat\rho_{ij}$ 可能接近 0，CD 检验\key{没有功效}（见下面的数值例）。
+
+\subsubsection{隐含原假设是弱截面相关}
+
+Pesaran (2015) 指出：CD 检验的隐含原假设实际上是\key{弱截面相关}（第 13 章的概念），而非“完全独立”——它主要检测\key{强（全局）相关}，例如强因子造成的相关。不拒绝 $H_0$ 只能说明没有强截面相关。
+
+\subsubsection{文献出处：Pesaran (2004/2021) 与 Pesaran (2015)}
+
+CD 检验最早见 Pesaran (2004) CESifo Working Paper No.~1229，正式发表为 Pesaran (2021), \textit{General diagnostic tests for cross-sectional dependence in panels}, \textit{Empirical Economics}；与“弱截面相关”原假设有关的是 Pesaran (2015), \textit{Testing weak cross-sectional dependence in large panels}, \textit{Econometric Reviews}。引用 CD 检验时写 Pesaran (2004) 或 Pesaran (2021) 均可。
+
+%----------------------------------------------------------------------
+\subsection{基于秩相关的检验：Friedman 与 Frees}
+
+Stata 的 \texttt{xtcsd} 还提供两个基于 Spearman \term{秩相关}{rank correlation} 的检验（De Hoyos \& Sarafidis 2006, \textit{Stata Journal}），都适用于 $N$ 大、$T$ 固定。记 $\hat r_{ij}$ 为 $\hat u_{it}$ 与 $\hat u_{jt}$（$t=1,\dots,T$）的 Spearman 秩相关系数。
+\begin{itemize}
+  \item \key{Friedman (1937)}：平均秩相关
+  \[
+  R_{ave}=\frac2{N(N-1)}\sum_{i<j}\hat r_{ij},\qquad FR=(T-1)\big[(N-1)R_{ave}+1\big]\ \dto\ \chi^2_{T-1}.
+  \]
+  与 CD 一样用不平方的相关系数，因而同样有正负抵消的问题。
+  \item \key{Frees (1995, \textit{Journal of Econometrics})}：用秩相关\key{平方}的平均
+  \[
+  R_{ave}^2=\frac2{N(N-1)}\sum_{i<j}\hat r_{ij}^2,
+  \]
+  与它在无相关时的期望（约为 $1/(T-1)$）比较，极限分布为 Frees 的 $Q$ 分布。由于用平方，正负相关不会抵消，可弥补 CD 与 Friedman 检验的弱点。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{软件实现：Stata 与 R}
+
+Stata 的核心命令是 \texttt{xtcsd}：先估计模型 1（FE），再检验残差的截面相关。\texttt{pesaran abs} 中的 \texttt{abs} 同时报告平均绝对相关系数；社区命令 \texttt{xtcd}（Eberhardt）可对变量或残差做 CD 检验；\texttt{xttest2} 做 Breusch--Pagan LM 检验，要求 $T$ 相对 $N$ 较大。
+\begin{lstlisting}
+* Stata: estimate Model 1 (FE), then test residuals for CSD
+xtset id year
+xtreg y x1 x2, fe
+xtcsd, pesaran abs      // Pesaran CD; abs: average absolute correlation
+xtcsd, friedman         // Friedman test
+xtcsd, frees            // Frees test
+* other commands
+predict ehat, e
+xtcd ehat               // CD test on residuals (Eberhardt)
+xttest2                 // Breusch-Pagan LM (T large relative to N)
+\end{lstlisting}
+R 的 \texttt{plm} 包用 \texttt{pcdtest()}，\texttt{test} 选项依次对应 CD、LM、scaled LM（即 $CD^*$）与偏误校正的 scaled LM：
+\begin{lstlisting}
+library(plm)
+fe <- plm(y ~ x1 + x2, data = pd, model = "within")
+pcdtest(fe, test = "cd")       # Pesaran CD
+pcdtest(fe, test = "lm")       # Breusch-Pagan LM
+pcdtest(fe, test = "sclm")     # scaled LM (CD*)
+pcdtest(fe, test = "bcsclm")   # bias-corrected scaled LM
+\end{lstlisting}
+
+%----------------------------------------------------------------------
+\subsection{数值例：LM、\texorpdfstring{$CD^*$}{CD*} 与 CD 的计算}\label{sec:U14b-numex}
+
+\subsubsection{手算三种统计量：\texorpdfstring{$N=3$}{N=3}、\texorpdfstring{$T=5$}{T=5}}
+
+\begin{exmp}[手算 LM、$CD^*$ 与 CD：$N=3$，$T=5$]\label{ex:U14b-hand}
+WG 残差（每行时间均值为 0）：
+\[
+\hat u_1=(1,-1,2,0,-2),\qquad \hat u_2=(2,0,1,-1,-2),\qquad \hat u_3=(0,1,-1,1,-1).
+\]
+计算 $\hat\rho_{12},\hat\rho_{13},\hat\rho_{23}$，以及 $LM$、$CD^*$、$CD$，并在 5\% 水平下作出判断。
+\solution
+平方和与交叉积：
+\begin{align*}
+\textstyle\sum_t\hat u_{1t}^2 &= 1+1+4+0+4=10,\qquad \textstyle\sum_t\hat u_{2t}^2=4+0+1+1+4=10 \why{逐项平方}\\
+\textstyle\sum_t\hat u_{3t}^2 &= 0+1+1+1+1=4 \why{逐项平方}\\
+\textstyle\sum_t\hat u_{1t}\hat u_{2t} &= 2+0+2+0+4=8 \why{逐项相乘}\\
+\textstyle\sum_t\hat u_{1t}\hat u_{3t} &= 0-1-2+0+2=-1 \why{逐项相乘}\\
+\textstyle\sum_t\hat u_{2t}\hat u_{3t} &= 0+0-1-1+2=0 \why{逐项相乘}
+\end{align*}
+相关系数与三个统计量（$K=3$，$N(N-1)=6$）：
+\begin{align*}
+\hat\rho_{12} &= \frac8{\sqrt{10\times10}}=0.800,\quad \hat\rho_{13}=\frac{-1}{\sqrt{10\times4}}=-0.158,\quad \hat\rho_{23}=0 \why{式 \eqref{eq:U14b-rhohat}}\\
+LM &= 5\,(0.64+0.025+0)=3.325<\chi^2_{3,0.95}=7.815 \why{$K=3$；不拒绝}\\
+CD^* &= \frac{3.325-3}{\sqrt6}=\frac{0.325}{2.449}=0.133<1.645 \why{$N(N-1)=6$；不拒绝}\\
+CD &= \sqrt{\frac{2\times5}6}\,(0.800-0.158+0)=1.291\times0.642=0.829<1.96 \why{不拒绝}
+\end{align*}
+三种检验都不拒绝 $H_0$。（$T=5$ 太小，渐近近似并不可靠，此处只演示计算。）
+\end{exmp}
+
+\subsubsection{大 \texorpdfstring{$N$}{N}：用标准化 LM 代替查 \texorpdfstring{$\chi^2$}{chi2} 表}
+
+\begin{exmp}[大 $N$：标准化 LM]\label{ex:U14b-bigN}
+$N=100$，算得 $LM=5200$。在 5\% 水平下检验无截面相关。
+\solution
+\begin{align*}
+K &= \frac{100\times99}2=4950 \why{上三角项数}\\
+\sqrt{N(N-1)} &= \sqrt{9900}=99.50 \why{$=\sqrt{2K}$}\\
+CD^* &= \frac{5200-4950}{99.50}=2.51>1.645 \why{右侧 5\% 临界值}
+\end{align*}
+拒绝无截面相关。若直接查 $\chi^2_{4950}$ 表，5\% 临界值约为 $5115$（$\approx K+1.645\sqrt{2K}=4950+163.7$），$5200>5115$，同样拒绝——两者一致，但标准化后只需正态表。
+\end{exmp}
+
+\subsubsection{CD 的抵消问题：CD 为 0 而 LM 强烈拒绝}
+
+\begin{exmp}[CD 的“抵消”问题]\label{ex:U14b-cancel}
+$N=3$，$T=50$，$\hat\rho_{12}=0.5$，$\hat\rho_{13}=-0.5$，$\hat\rho_{23}=0$。计算 CD 与 LM 并比较结论。
+\solution
+\begin{align*}
+CD &= \sqrt{\frac{2\times50}{3\times2}}\,(0.5-0.5+0)=\sqrt{100/6}\times0=0 \why{正负相关抵消}\\
+LM &= 50\times(0.25+0.25+0)=25>7.815\quad(p\approx0.00002) \why{平方不抵消}
+\end{align*}
+CD 完全不拒绝，LM 却强烈拒绝。原因：CD 把正负相关相加抵消了，而 LM 用平方不会抵消。实证中若怀疑存在正负混杂的相关，应同时报告 LM 型检验或 Frees 检验，或用 \texttt{xtcsd, pesaran abs} 查看平均绝对相关系数。
+\end{exmp}
+
+\subsubsection{完整作答示范：\texorpdfstring{$N=50$}{N=50}、\texorpdfstring{$T=30$}{T=30}}
+
+\begin{exmp}[Testing for cross-sectional dependence]\label{ex:U14b-full}
+A balanced panel has $N=50$ and $T=30$. From the within residuals, $\sum_{i<j}\hat\rho_{ij}^2=45.3$ and $\sum_{i<j}\hat\rho_{ij}=18.4$. (a) State the null and alternative hypotheses. (b) Compute the Breusch--Pagan LM statistic, its degrees of freedom, and the scaled statistic $CD^*$. (c) Compute Pesaran's CD statistic. (d) What do you conclude, and which model should be used?
+\solution
+(a) $H_0$：$\rho_{ij}=0$（等价于 $\E(u_{it}u_{jt})=0$）对一切 $i\neq j$（无 CSD，模型 1）；$H_1$：存在 $i\neq j$ 使 $\rho_{ij}\neq0$（CSD，如 $u_{it}=\lambda_i\T f_t+v_{it}$，模型 2）。
+
+(b)
+\begin{align*}
+K &= \frac{50\times49}2=1225 \why{自由度}\\
+LM &= 30\times45.3=1359\ \overset{a}{\sim}\ \chi^2_{1225} \why{式 \eqref{eq:U14b-lm}}\\
+\sqrt{N(N-1)} &= \sqrt{2450}=49.50 \why{$=\sqrt{2K}$}\\
+CD^* &= \frac{1359-1225}{49.50}=2.71 \why{式 \eqref{eq:U14b-cdstar}}
+\end{align*}
+(c)
+\begin{align*}
+CD &= \sqrt{\frac{2\times30}{2450}}\times18.4=\sqrt{0.02449}\times18.4=0.1565\times18.4=2.88 \why{式 \eqref{eq:U14b-cd}}
+\end{align*}
+(d) $CD^*=2.71>1.645$，$|CD|=2.88>1.96$，均在 5\% 水平拒绝 $H_0$（$LM=1359$ 也大于 $\chi^2_{1225}$ 的 5\% 临界值约 $1307.5$）：误差存在截面相关，应采用含潜在因子的模型 2（CCEP/CCEMG 或 Bai 交互固定效应），并对估计后的残差再做 CD 检验。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{决策规则与答题要点}
+
+\begin{summary}[决策规则]
+\begin{itemize}
+  \item 若 $H_0$ 不被拒绝：无 CSD $\Rightarrow$ 采用\key{模型 1}（单向 FE/WG）。
+  \item 若 $H_0$ 被拒绝：存在 CSD $\Rightarrow$ 采用\key{模型 2}（因子模型，用 PCA 或 CCE 估计）。
+\end{itemize}
+\end{summary}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{2.5cm}L}
+\toprule
+检验 & 统计量 & $H_0$ 下极限分布 & 适用情形与拒绝域\\
+\midrule
+Breusch--Pagan LM & $LM=T\sum_{i<j}\hat\rho_{ij}^2$ & $\chi^2_{N(N-1)/2}$ & $N$ 固定、$T\to\infty$；右侧\\
+scaled LM & $CD^*=\dfrac{LM-N(N-1)/2}{\sqrt{N(N-1)}}$ & $N(0,1)$ & 先 $T\to\infty$ 再 $N\to\infty$；右侧（1.645）；$N\gg T$ 时失真\\
+Pesaran CD & $CD=\sqrt{\dfrac{2T}{N(N-1)}}\sum_{i<j}\hat\rho_{ij}$ & $N(0,1)$ & $N\to\infty$，$T$ 可固定；双侧（1.96）；正负相关会抵消\\
+Friedman & $FR=(T-1)[(N-1)R_{ave}+1]$ & $\chi^2_{T-1}$ & $N$ 大、$T$ 固定；秩相关，不平方\\
+Frees & $R^2_{ave}=\frac2{N(N-1)}\sum_{i<j}\hat r_{ij}^2$ & Frees 的 $Q$ 分布 & $N$ 大、$T$ 固定；平方，不抵消\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{截面相关检验一览}\label{tab:U14b-tests}
+\end{center}
+
+\begin{keypt}[截面相关检验的答题要点]
+\begin{itemize}
+  \item 写出 $H_0:\rho_{ij}=0\ \forall\,i\neq j$；$\hat\rho_{ij}$ 用 WG 残差计算。
+  \item $\sqrt T\hat\rho_{ij}\dto N(0,1)\Rightarrow T\hat\rho_{ij}^2\dto\chi^2_1\Rightarrow LM=T\sum_{i<j}\hat\rho_{ij}^2\dto\chi^2_{N(N-1)/2}$；$N=100\Rightarrow$ 自由度 4950。
+  \item $\E\chi^2_K=K$、$\Var\chi^2_K=2K\Rightarrow CD^*=(LM-N(N-1)/2)/\sqrt{N(N-1)}\dto N(0,1)$。
+  \item Pesaran $CD=\sqrt{2T/(N(N-1))}\sum_{i<j}\hat\rho_{ij}\dto N(0,1)$；Stata \texttt{xtcsd, pesaran}。
+  \item 结论句：拒绝 $H_0$ $\Rightarrow$ 模型 2（PCA/CCE）；不拒绝 $\Rightarrow$ 模型 1（FE）。
+\end{itemize}
+\end{keypt}
+
+\begin{english}
+To choose between the one-way fixed effects model (no CSD) and the factor model (CSD), we test $H_0:\rho_{ij}=0$ for all $i\neq j$ using the pairwise correlations $\hat\rho_{ij}$ of the within residuals. Under $H_0$, $\sqrt T\hat\rho_{ij}\xrightarrow{d}N(0,1)$, so $T\hat\rho_{ij}^2\xrightarrow{d}\chi^2_1$ and the Breusch--Pagan LM statistic $T\sum_{i<j}\hat\rho_{ij}^2\xrightarrow{d}\chi^2_{N(N-1)/2}$ for fixed $N$. For large $N$, since a $\chi^2_K$ variable has mean $K$ and variance $2K$, the scaled statistic $(LM-N(N-1)/2)/\sqrt{N(N-1)}$ is approximately standard normal. Pesaran's CD statistic, $\sqrt{2T/(N(N-1))}\sum_{i<j}\hat\rho_{ij}$, is asymptotically $N(0,1)$ and performs well when $N$ is large and $T$ is small, but it may lack power when positive and negative correlations cancel out. If the null is rejected, we conclude that the errors are cross-sectionally dependent and use the factor model, estimated by PCA or CCE; otherwise the fixed effects model is adequate.
+\end{english}
+
+%======================================================================
+\section{实证决策流程：从 FE 到因子模型}\label{sec:U14b-flow}
+
+把本章的内容串成一套实证流程：先估计简单的模型 1，用截面相关检验判断是否需要因子模型，再在 Bai 的 PCA 与 Pesaran 的 CCE 之间选择。
+
+%----------------------------------------------------------------------
+\subsection{三件工具：PCA、CSD 检验与 CCEP/CCEMG}
+
+做决策需要三件工具：
+\begin{enumerate}[label=(\arabic*)]
+  \item \key{PCA（Bai 交互固定效应）}：用现成的软件包实现（R 的 \texttt{phtt}、Stata 的 \texttt{regife} 等，见本章 Bai 估计量一节）。
+  \item \key{CSD 检验}：Stata 用 \texttt{xtcsd}（上一节）。
+  \item \key{CCEP / CCEMG}：CCE 模型写成 $Y_i=X_i\beta+\bar Za_i+V_i$，其中 $\bar Z$ 为 $T\times(K+1)$ 截面平均矩阵，$M_{\bar Z}=I_T-\bar Z(\bar Z\T\bar Z)\inv\bar Z\T$：
+  \[
+  \hat\beta_{CCEP}=\Big(\sum_iX_i\T M_{\bar Z}X_i\Big)\inv\Big(\sum_iX_i\T M_{\bar Z}Y_i\Big);\qquad
+  \hat\beta_i=(X_i\T M_{\bar Z}X_i)\inv(X_i\T M_{\bar Z}Y_i),\quad \hat\beta_{CCEMG}=\frac1N\sum_i\hat\beta_i
+  \]
+  （后者为均值组估计量，mean group）。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{流程图：FE \texorpdfstring{$\to$}{->} CSD 检验 \texorpdfstring{$\to$}{->} PCA / CCEP / CCEMG}
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  box/.style={draw,rounded corners=2pt,align=flush center,inner sep=4pt,fill=white},
+  arr/.style={-{Stealth[length=2.2mm]},thick}]
+  \node[box,text width=5.6cm] (s1) at (0,0) {\textbf{第 1 步}：估计模型 1\\ $y_{it}=\alpha_i+x_{it}'\beta+u_{it}$（FE/WG）\\ 得残差 $\hat u_{it}$};
+  \node[box,text width=5.6cm,below=0.55cm of s1] (s2) {\textbf{第 2 步}：CSD 检验\\ Stata \texttt{xtcsd, pesaran}；\\ CD / LM / $CD^*$};
+  \node[draw,diamond,aspect=2.2,inner sep=1pt,fill=cdef!8,below=0.55cm of s2] (d) {拒绝 $H_0$？};
+  \node[box,text width=3.4cm,left=1.4cm of d] (m1) {\textbf{模型 1}\\ FE/WG\\（稳健/聚类 s.e.）};
+  \node[box,text width=6.4cm,below=0.6cm of d] (m2) {\textbf{第 3 步}：模型 2：$y_{it}=x_{it}'\beta+\lambda_i'f_t+v_{it}$\\ 选择估计方法};
+  \node[box,text width=4.3cm,below=1.0cm of m2] (b2) {\textbf{CCEP / PCCE}\\ $N$ 大；$x$ 对 $f$ 线性\\ 斜率同质};
+  \node[box,text width=4.3cm,left=0.35cm of b2] (b1) {\textbf{Bai (2009) PCA}\\ $N,T$ 都大；$x$ 与 $f$\\ 关系任意；需选 $r$};
+  \node[box,text width=4.3cm,right=0.35cm of b2] (b3) {\textbf{CCEMG}\\ 同左，但斜率异质\\ $\beta_i=\beta+\eta_i$};
+  \node[box,text width=10.5cm,below=0.7cm of b2] (s4) {\textbf{第 4 步}（建议）：对所选模型的残差再做 CSD 检验，\\ 确认剩余相关已降为弱相关};
+  \draw[arr] (s1)--(s2);
+  \draw[arr] (s2)--(d);
+  \draw[arr] (d)--node[above]{否}(m1);
+  \draw[arr] (d)--node[right]{是}(m2);
+  \coordinate (split) at ($(m2.south)+(0,-0.5)$);
+  \draw[thick] (m2.south)--(split);
+  \draw[arr] (split)-|(b1.north);
+  \draw[arr] (split)--(b2.north);
+  \draw[arr] (split)-|(b3.north);
+  \draw[arr] (b1.south)--(b1.south|-s4.north);
+  \draw[arr] (b2.south)--(s4.north);
+  \draw[arr] (b3.south)--(b3.south|-s4.north);
+\end{tikzpicture}
+\captionof{figure}{含潜在因子面板的实证决策流程}\label{fig:U14b-flow}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{决策说明：拒绝与不拒绝 \texorpdfstring{$H_0$}{H0} 之后怎么做}
+
+\subsubsection{不拒绝 \texorpdfstring{$H_0$}{H0}：保留模型 1}
+
+误差无（强）截面相关，模型 1 足够：用 FE 估计，并报告稳健（或按个体聚类）标准误。
+
+\subsubsection{拒绝 \texorpdfstring{$H_0$}{H0}：按模型 2 选择估计方法}
+
+误差存在 CSD，按模型 2 估计：
+\begin{itemize}
+  \item 若 $N,T$ 都较大，且不愿假设 $x_{it}$ 的因子结构：用 \key{Bai (2009)} 交互固定效应（需用信息准则选择 $r$）。
+  \item 若 $T$ 较小、$N$ 较大，且 $x_{it}$ 可视为由同一组因子线性驱动：用 \key{CCE}——斜率同质用 \key{CCEP}，斜率异质用 \key{CCEMG}。
+  \item 两者都可做。结果接近时结论更稳健；差异大时，检查 CCE 的线性与秩条件、Bai 估计的因子个数。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{两点提醒 \tagext}
+
+\subsubsection{拒绝 \texorpdfstring{$H_0$}{H0} 不等于因子结构，更不等于内生性}
+
+拒绝 $H_0$ 只说明\key{存在截面相关}，不能证明一定是因子结构（空间相关等也会导致拒绝），也不能说明因子一定与 $x_{it}$ 相关。若只有 CSD 而无内生性（因子与 $x$ 不相关），FE 仍一致，只需修正标准误（第 13 章）。
+
+\subsubsection{估计后对残差再做 CSD 检验}
+
+用 CCE 或 PCA 估计后，应对新残差再检验 CSD。常见做法是报告 CD 统计量，说明剩余相关已不显著（已降为弱相关）；若仍显著，可能因子个数不够（Bai）或截面平均不足以代理因子（CCE）。
+
+%----------------------------------------------------------------------
+\subsection{练习：完整的检验与决策（\texorpdfstring{$N=30$}{N=30}、\texorpdfstring{$T=20$}{T=20}）}
+
+\begin{prac}[完整的检验与决策]\label{pr:U14b-decision}
+某研究者用 $N=30$ 个省份、$T=20$ 年的面板估计 $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$，用 WG 残差算得 $\sum_{i<j}\hat\rho_{ij}=52.2$，$\sum_{i<j}\hat\rho_{ij}^2=40.5$。(a) 计算 $LM$、$CD^*$ 与 $CD$。(b) 在 5\% 水平下作出结论，并说明下一步应如何估计。
+\answer
+(a)
+\begin{align*}
+K &= \frac{30\times29}2=435,\qquad \sqrt{N(N-1)}=\sqrt{870}=29.50 \why{项数与标准差}\\
+LM &= T\textstyle\sum_{i<j}\hat\rho_{ij}^2=20\times40.5=810 \why{式 \eqref{eq:U14b-lm}}\\
+CD^* &= \frac{810-435}{29.50}=12.71 \why{式 \eqref{eq:U14b-cdstar}}\\
+CD &= \sqrt{\frac{2\times20}{870}}\times52.2=\sqrt{0.04598}\times52.2=0.2144\times52.2=11.19 \why{式 \eqref{eq:U14b-cd}}
+\end{align*}
+(b) $LM=810$ 远大于 $\chi^2_{435}$ 的 5\% 临界值（约 $484.6$；正态近似 $K+1.645\sqrt{2K}\approx483.5$），$CD^*=12.71>1.645$，$|CD|=11.19>1.96$，三者一致拒绝“无截面相关”，选择模型 2。$N=30$、$T=20$ 都不大：若 $x_{it}$ 可视为受共同冲击线性驱动，CCE（PCCE 或 CCEMG）只需 $N$ 大，较为合适；也可用 Bai (2009) 交互固定效应（需用信息准则选择 $r$）作稳健性检验，并对新残差再做 CD 检验。
+\end{prac}
+
+\begin{english}
+In practice, first estimate the one-way fixed effects model and test its residuals for cross-sectional dependence (e.g.\ \texttt{xtcsd, pesaran} in Stata). If the null of no CSD is not rejected, the fixed effects model is retained. If it is rejected, the error is modelled as $\lambda_i'f_t+v_{it}$: use Bai's interactive fixed effects estimator when both $N$ and $T$ are large, the pooled CCE estimator when $N$ is large and the slopes are homogeneous, and the CCE mean group estimator when the slopes are heterogeneous. Note that rejecting the null establishes cross-sectional dependence, not necessarily a factor structure correlated with the regressors. Finally, test the residuals of the chosen model again to verify that the remaining dependence is weak.
+\end{english}
+
+%======================================================================
+\section{与后续章节的联系}\label{sec:U14b-next}
+
+本章的因子模型是后续因果推断方法的共同基础。下面说明它与第 15、16 章的衔接。
+
+%----------------------------------------------------------------------
+\subsection{从因子模型到因果推断：DiD 与 TWFE}
+
+本章之后，全书转入面板数据的\key{因果推断}：双重差分（DiD）$\to$ Wooldridge 的 TWFE/DiD 框架 $\to$ Stata 社区命令 \texttt{wooldid} $\to$ 平均处理效应（ATT）。Wooldridge 的这篇文章以 2021 年工作论文形式流传、2025 年正式发表（同一篇），讨论在\key{同质处理、异质处理与交错处理}（homogeneous / heterogeneous / staggered treatment）下如何用 TWFE 估计处理效应。这些内容见第 15 章（DiD 与 TWFE）。
+
+%----------------------------------------------------------------------
+\subsection{合成控制、面板数据法与矩阵补全都基于因子模型}
+
+第 16 章的三种方法——合成控制（SCM）、面板数据法（PDA）、矩阵补全——研究\key{个体处理效应}及其推断。它们都假设\key{未处理}潜在结果服从因子模型
+\[
+y_{it}^0=\lambda_i\T f_t+u_{it},
+\]
+并用本章与第 13 章的工具构造反事实：用 PCA 估计 $\hat f_t$，用处理前数据估计 $\hat\lambda_i$，得
+\[
+\hat y_{it}^0=\hat\lambda_i\T\hat f_t,\qquad \hat\tau_{it}=y_{it}-\hat y_{it}^0\quad(\text{处理个体、处理后时期}),
+\]
+其中 $\tau_{it}=y_{it}^1-y_{it}^0$ 为个体 $i$ 在 $t$ 期的处理效应。
+
+%----------------------------------------------------------------------
+\subsection{平行趋势即载荷同质：因子模型是 DiD 的自然推广}
+
+本章说明了“双向 FE 是交互效应的特例”。从这个角度看 DiD 的平行趋势假设：取两期 $t>s$，未处理潜在结果的变化为
+\begin{align*}
+\E(y_{it}^0-y_{is}^0\mid\lambda_i) &= \lambda_i\T(f_t-f_s) \why{代入因子模型，$\E u=0$}
+\end{align*}
+\begin{itemize}
+  \item 双向 FE 情形：$\lambda_i=(\alpha_i,1)\T$，$f_t=(1,\delta_t)\T$，
+  \begin{align*}
+  \lambda_i\T(f_t-f_s) &= \alpha_i(1-1)+1\cdot(\delta_t-\delta_s) \why{逐项相乘}\\
+  &= \delta_t-\delta_s \why{与 $i$ 无关}
+  \end{align*}
+  所有个体（处理组与对照组）的趋势相同——这正是\key{平行趋势}。
+  \item 一般情形：$\lambda_i\T(f_t-f_s)$ 随 $i$ 变化。只要处理组与对照组在时变因子上的平均载荷不同，趋势就不平行，DiD 有偏。
+\end{itemize}
+所以，平行趋势相当于“时变因子上的载荷同质”。当平行趋势不成立（载荷异质）时，因子模型是 DiD 的自然推广。
+
+\begin{english}
+The factor structure studied in this chapter underlies the causal inference methods that follow. The untreated potential outcome is modelled as $y_{it}^0=\lambda_i'f_t+u_{it}$; the factors are estimated by principal components and the loadings of treated units from pre-treatment data, so the counterfactual is $\hat y_{it}^0=\hat\lambda_i'\hat f_t$. This is the common basis of synthetic control, the panel data approach and matrix completion. Since two-way fixed effects is the special case $\lambda_i=(\alpha_i,1)'$, $f_t=(1,\delta_t)'$, the parallel trends assumption of difference-in-differences amounts to homogeneous loadings on the time-varying factors; when it fails, the factor model is the natural generalization.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U14b-summary}
+
+一句话概括本章：误差中的潜在因子既造成\key{内生性}又造成\key{截面相关}；先用 CSD 检验判断是否需要因子模型，再用 Bai 的迭代 PCA（$N,T$ 都大）或 Pesaran 的 CCE（$N$ 大、$x$ 线性于因子）估计——它们（以及变换估计、WG）都可写成 $\hat\beta=(\sum_iX_i\T MX_i)\inv\sum_iX_i\T MY_i$，区别只在零化因子空间的矩阵 $M$。
+
+%----------------------------------------------------------------------
+\subsection{核心公式与结论}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.5cm}L}
+\toprule
+主题 & 公式 / 结论\\
+\midrule
+模型 & $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$，$u_{it}=\lambda_i\T f_t+v_{it}$；堆叠：$Y_i=\one_T\alpha_i+X_i\beta+F\lambda_i+V_i$\\
+后果一：内生性 & $f_t$ 与 $x_{it}$ 相关 $\Rightarrow$ FE 不一致；$x_{it}=\gamma_if_t+\varepsilon_{it}$ 时 $\plim\hat\beta_{WG}-\beta=\dfrac{\E(\gamma_i\lambda_i)s_f^2}{\E(\gamma_i^2)s_f^2+\bar\sigma^2_{\dot\varepsilon}}$\\
+后果二：CSD & $\E(u_{it}u_{jt})=\lambda_i\T\E(f_tf_t\T)\lambda_j\neq0$（$i\neq j$）；常规与聚类标准误失效\\
+双向 FE $\subset$ 交互 FE & $\lambda_i=(\alpha_i,1)\T$，$f_t=(1,\delta_t)\T\Rightarrow\lambda_i\T f_t=\alpha_i+\delta_t$\\
+Bai (2009) 迭代 & $\hat\beta^{(0)}=\hat\beta_{FE}$；对 $y-x\T\hat\beta$ 做 PCA 得 $(\hat\lambda_i,\hat f_t)$；$y-\hat\lambda_i\T\hat f_t$ 对 $x$ 做 OLS/FE 得 $\hat\beta$；迭代至 $\|\hat\beta^{(j)}-\hat\beta^{(j-1)}\|<0.0001$；收敛点 $\hat\beta=(\sum_iX_i\T M_{\hat F}X_i)\inv\sum_iX_i\T M_{\hat F}Y_i$\\
+Bai 的一致性 & $\hat\beta$：$(N,T)\to\infty$；$\hat f_t$：$N\to\infty$；$\hat\lambda_i$：$T\to\infty$；因子与载荷只识别到旋转\\
+CCE 推导 & $Az_{it}=B_if_t+\eta_{it}\Rightarrow A\bar z_t=\bar Bf_t+O_p(N^{-1/2})\Rightarrow f_t\approx C\bar z_t$，$C=(\bar B\T\bar B)\inv\bar B\T A$（秩条件 $\rank\bar B=r$，需 $r\le K+1$）$\Rightarrow y_{it}\approx x_{it}\T\beta+a_i\T\bar z_t+v_{it}$\\
+PCCE & $\hat\beta_{PCCE}=(\sum_iX_i\T M_{\bar Z}X_i)\inv\sum_iX_i\T M_{\bar Z}Y_i$，$M_{\bar Z}=I_T-\bar Z(\bar Z\T\bar Z)\inv\bar Z\T$；$N\to\infty$ 一致；不需知道 $r$；缺点：$x$ 须对 $f$ 线性；含 $\alpha_i$ 时用 $\bar H=(\one_T,\bar Z)$\\
+CCEMG & $\hat\beta_i=(X_i\T M_{\bar Z}X_i)\inv X_i\T M_{\bar Z}Y_i$，$\hat\beta_{MG}=\frac1N\sum_i\hat\beta_i$；$\beta_i=\beta+\eta_i$；$\widehat\Var(\hat\beta_{MG})=\frac1{N(N-1)}\sum_i(\hat\beta_i-\hat\beta_{MG})(\hat\beta_i-\hat\beta_{MG})\T$\\
+变换估计 & $w\T F=0$（$T>r$ 时有无穷多解，零空间 $T-r$ 维）；$\hat W=\hat\Sigma$ 的最小 $T-r$ 个特征值的特征向量；$\hat W\hat W\T=I_T-\hat F\hat F\T=M_{\hat F}$，与 Bai 的“给定 $F$ 求 $\beta$”一步相同\\
+统一公式 & $\hat\beta=(\sum_iX_i\T MX_i)\inv\sum_iX_i\T MY_i$，$M=M_{\hat F}$（Bai/变换）、$M_{\bar Z}$（CCE）、$I_T-\frac1T\one\one\T$（WG）\\
+CSD 检验的假设 & $H_0:\rho_{ij}=0\ \forall\,i\neq j$（模型 1）vs $H_1:\rho_{ij}\neq0$（模型 2）；$\hat\rho_{ij}=\sum_t\hat u_{it}\hat u_{jt}/\sqrt{\sum_t\hat u_{it}^2\sum_t\hat u_{jt}^2}$，$\hat u$ 为 WG 残差\\
+单对 & $\sqrt T\hat\rho_{ij}\dto N(0,1)$（CLT $+$ LLN $+$ Slutsky）；$T\hat\rho_{ij}^2\dto\chi^2_1$\\
+LM（Breusch--Pagan） & $LM=T\sum_{i<j}\hat\rho_{ij}^2\dto\chi^2_{N(N-1)/2}$（$N$ 固定，$T\to\infty$）；只取上三角\\
+卡方矩 & $\E\chi^2_K=K$，$\Var\chi^2_K=2K$\\
+scaled LM & $CD^*=\dfrac{LM-N(N-1)/2}{\sqrt{N(N-1)}}=\sqrt{\dfrac1{N(N-1)}}\sum_{i<j}(T\hat\rho_{ij}^2-1)\dto N(0,1)$；右侧检验\\
+Pesaran CD & $CD=\sqrt{\dfrac{2T}{N(N-1)}}\sum_{i<j}\hat\rho_{ij}\dto N(0,1)$（$T$ 可固定）；双侧检验；Stata \texttt{xtcsd, pesaran}\\
+决策 & 拒绝 $H_0$ $\Rightarrow$ 模型 2（PCA/CCE）；不拒绝 $\Rightarrow$ 模型 1（FE）；估计后对残差再检验\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 14 章核心公式与结论}\label{tab:U14b-core}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{方法对照与选择要点}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{3.7cm}>{\raggedright\arraybackslash}p{2.7cm}L}
+\toprule
+方法 & 如何处理因子（零化矩阵 $M$） & 一致性所需 & 前提与代价\\
+\midrule
+WG（模型 1） & 只去掉个体效应（$M=I_T-\frac1T\one\one\T$） & $N\to\infty$ & 误差无因子结构；若因子与 $x$ 相关则不一致\\
+Bai (2009) PCA & 估计因子（$M=M_{\hat F}$），迭代 & $(N,T)\to\infty$ & 不需 $x$ 的因子结构；需知道/估计 $r$；迭代可能局部最优\\
+变换估计 & 估计 $F$ 的正交补（$M=\hat W\hat W\T=M_{\hat F}$） & 同 Bai & 需 $T>r$；迭代到收敛即 Bai 估计量\\
+PCCE（CCEP） & 截面平均代理（$M=M_{\bar Z}$），一步 & $N\to\infty$，$T$ 可固定 & $x$ 对 $f$ 线性；秩条件 $r\le K+1$；不需知道 $r$；斜率同质\\
+CCEMG & 同上，逐个体估计后平均 & $N\to\infty$（对平均斜率） & 允许 $\beta_i=\beta+\eta_i$；单个 $\hat\beta_i$ 在 $T$ 固定时不一致\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 14 章估计方法对照}\label{tab:U14b-methods}
+\end{center}
+
+选择要点：
+\begin{enumerate}
+  \item \key{先检验，后建模}：FE 残差的 CSD 检验决定用模型 1 还是模型 2。$N$ 大、$T$ 小时首选 Pesaran CD；$N$ 固定、$T$ 大时可用 LM；担心正负相关抵消时补充 LM 型、Frees 检验或平均绝对相关系数。
+  \item \key{选估计方法看三件事}：$N,T$ 的相对大小（$T$ 小只能用 CCE）、$x_{it}$ 是否可视为对因子线性（否则用 Bai）、斜率是否异质（异质用 CCEMG）。
+  \item \key{两种方法都做}，结果接近时结论更稳健；最后对所选模型的残差再做 CD 检验。
+  \item \key{只有 CSD、没有内生性}时，FE 仍一致，只需修正标准误（第 13 章）。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item 认为组内变换能消去 $\lambda_i\T f_t$：它只能消去不随时间变化的部分（$\alpha_i$），随时间变化、因个体而异的 $\lambda_i\T f_t$ 仍留在误差中。
+  \item 认为聚类标准误可以处理因子：按个体聚类只允许个体内跨时相关，不处理同期跨个体相关，更不能纠正内生性导致的不一致。
+  \item 把 Bai 估计量各部分所需的维度弄反：$\hat f_t$ 需 $N\to\infty$，$\hat\lambda_i$ 需 $T\to\infty$，$\hat\beta$ 需二者同时趋于无穷。
+  \item 用 CCE 时忽略前提：$x_{it}$ 必须对 $f_t$ 线性，且秩条件 $\rank\bar B=r$（需 $r\le K+1$）成立。
+  \item 认为 $T$ 固定时逐个体 CCE 估计 $\hat\beta_i$ 一致：只有它们的平均 $\hat\beta_{MG}$ 对 $\beta$ 一致；均值组方差的分母是 $N(N-1)$，不是 $N$ 或 $N-1$。
+  \item 变换估计中取\key{最大}特征值的特征向量作 $\hat W$：那是因子 $\hat F$；$\hat W$ 应取最小的 $T-r$ 个。忘记 $w$ 存在需要 $T>r$。
+  \item LM 求和写成 $\sum_i\sum_{j\neq i}$：每对算两次，得到 $2LM$，与 $\chi^2_{N(N-1)/2}$ 不匹配。
+  \item 把 $T\sum_{i<j}\hat\rho_{ij}^2$ 称为 Pesaran 的 CD 统计量：它是 Breusch--Pagan LM；CD 用的是不平方的 $\hat\rho_{ij}$。
+  \item 标准化 LM 时除以 $\sqrt K=\sqrt{N(N-1)/2}$：应除以标准差 $\sqrt{2K}=\sqrt{N(N-1)}$。
+  \item 把卡方的矩写错：$\E\chi^2_K=K$、$\Var\chi^2_K=2K$；$\E[(\chi^2_K)^2]=K^2+2K$。
+  \item 拒绝域方向弄错：$LM$、$CD^*$ 是右侧检验（$CD^*$ 用 1.645），$CD$ 是双侧检验（$|CD|>1.96$）。
+  \item 用 $LM$ 或 $CD^*$ 检验 $N$ 远大于 $T$ 的面板：有限 $T$ 偏误累加，水平严重失真；应用 CD 或偏误校正版本。
+  \item $CD\approx0$ 就断言没有截面相关：正负相关可能相互抵消；CD 的原假设实际是弱相关。
+  \item 把“拒绝 $H_0$”解读为“误差一定是因子结构且与 $x$ 相关”：拒绝只说明存在截面相关。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{本章综合练习}
+
+\subsubsection{交互效应下组内估计量不一致，载荷同质时双向 FE 一致}
+
+\begin{prac}[Interactive effects and the within estimator]\label{pr:U14b-within}
+Consider $y_{it}=\alpha_i+\beta x_{it}+\lambda_if_t+v_{it}$ and $x_{it}=\gamma_if_t+\varepsilon_{it}$, where all variables are scalars, $(\lambda_i,\gamma_i)$ are i.i.d.\ across $i$, and $v_{it},\varepsilon_{it}$ are mean-zero errors independent of everything else. (a) Explain why the within estimator of $\beta$ is inconsistent as $N\to\infty$. (b) Under what condition on $(\lambda_i,\gamma_i)$ is it consistent? (c) Show that if $\lambda_i=\lambda$ for all $i$, the two-way fixed effects estimator is consistent.
+\answer
+记 $\dot a_{it}=a_{it}-\bar a_i$ 为个体内去均值，$\dot f_t=f_t-\bar f$，$s_f^2=\frac1T\sum_t\dot f_t^2$，$\bar\sigma^2_{\dot\varepsilon}=\frac1T\sum_t\E\dot\varepsilon_{it}^2$。
+
+(a) 组内变换后 $\dot y_{it}=\beta\dot x_{it}+\lambda_i\dot f_t+\dot v_{it}$，误差含 $\lambda_i\dot f_t$；而 $\dot x_{it}=\gamma_i\dot f_t+\dot\varepsilon_{it}$ 也含 $\dot f_t$。
+\begin{align*}
+\hat\beta_{WG}-\beta &= \frac{\frac1{NT}\sum_i\sum_t\dot x_{it}(\lambda_i\dot f_t+\dot v_{it})}{\frac1{NT}\sum_i\sum_t\dot x_{it}^2} \why{代入组内方程}\\
+\frac1{NT}\sum_i\sum_t\dot x_{it}\lambda_i\dot f_t &= \frac1N\sum_i\gamma_i\lambda_is_f^2+\frac1N\sum_i\lambda_i\frac1T\sum_t\dot\varepsilon_{it}\dot f_t\ \pto\ \E(\gamma_i\lambda_i)s_f^2 \why{代入 $\dot x_{it}$；LLN}\\
+\frac1{NT}\sum_i\sum_t\dot x_{it}\dot v_{it} &\pto 0,\qquad \frac1{NT}\sum_i\sum_t\dot x_{it}^2\pto\E(\gamma_i^2)s_f^2+\bar\sigma^2_{\dot\varepsilon} \why{$v$ 外生；LLN}\\
+\plim_{N\to\infty}\hat\beta_{WG}-\beta &= \frac{\E(\gamma_i\lambda_i)s_f^2}{\E(\gamma_i^2)s_f^2+\bar\sigma^2_{\dot\varepsilon}}\neq0 \why{CMT}
+\end{align*}
+组内变换消去了 $\alpha_i$，但消不掉随时间变化、因个体而异的 $\lambda_if_t$，它与 $x_{it}$ 通过共同的 $f_t$ 相关（内生性）。
+
+(b) 当 $\E(\gamma_i\lambda_i)=0$ 时一致（$s_f^2>0$），例如 $x$ 不受因子影响（$\gamma_i\equiv0$），或 $\gamma_i$、$\lambda_i$ 独立且至少一个均值为 0。此时误差仍有 CSD，标准误需要修正。
+
+(c) $\lambda_i=\lambda$ 时 $\lambda f_t\equiv\delta_t$ 是普通的时间效应。双向组内变换 $\ddot a_{it}=a_{it}-\bar a_{i\cdot}-\bar a_{\cdot t}+\bar a_{\cdot\cdot}$ 消去 $\alpha_i$ 与 $\delta_t$（Hansen §17.27）：
+\begin{align*}
+\ddot\alpha_i &= \alpha_i-\alpha_i-\bar\alpha+\bar\alpha=0,\qquad \ddot\delta_t=\delta_t-\bar\delta-\delta_t+\bar\delta=0 \why{各均值代入}\\
+\ddot y_{it} &= \beta\ddot x_{it}+\ddot v_{it} \why{双向变换后}
+\end{align*}
+回归元中的因子部分 $\gamma_if_t$ 的个体均值、时间均值、总均值分别为 $\gamma_i\bar f$、$\bar\gamma f_t$、$\bar\gamma\bar f$，双向变换后
+\begin{align*}
+\gamma_if_t-\gamma_i\bar f-\bar\gamma f_t+\bar\gamma\bar f &= (\gamma_i-\bar\gamma)(f_t-\bar f) \why{因式分解}
+\end{align*}
+$\ddot x_{it}=(\gamma_i-\bar\gamma)(f_t-\bar f)+\ddot\varepsilon_{it}$ 与 $\ddot v_{it}$ 无关（$v$ 独立于其他一切变量），误差中已无因子，所以双向 FE 一致。
+\end{prac}
+
+\subsubsection{Bai 迭代主成分估计：起点、两步、停止规则与一致性}
+
+\begin{prac}[Bai's estimator]\label{pr:U14b-bai}
+Describe the iterative principal components estimator of Bai (2009) for $y_{it}=x_{it}'\beta+\lambda_i'f_t+v_{it}$: the starting value, the two steps, and the stopping rule. State which dimension must diverge for $\hat\beta$, $\hat f_t$ and $\hat\lambda_i$ to be consistent, and explain why intuitively.
+\answer
+\begin{itemize}
+  \item \key{起点}：$\hat\beta^{(0)}=\hat\beta_{FE}$（忽略因子）。
+  \item \key{第 $j$ 轮第 (1) 步}：计算 $\hat u_{it}=y_{it}-x_{it}\T\hat\beta^{(j-1)}$，对 $N\times T$ 矩阵 $\hat U$ 做 PCA：$\hat F$ 为 $\hat U\T\hat U$ 前 $r$ 个特征向量乘以 $\sqrt T$（标准化 $\hat F\T\hat F/T=I_r$），$\hat\Lambda=\hat U\hat F/T$。
+  \item \key{第 (2) 步}：把 $y_{it}-\hat\lambda_i\T\hat f_t$ 对 $x_{it}$ 做 OLS（含 $\alpha_i$ 时用 FE），得 $\hat\beta^{(j)}$。
+  \item \key{停止规则}：重复直至 $\|\hat\beta^{(j)}-\hat\beta^{(j-1)}\|<0.0001$。
+  \item \key{一致性}：$\hat\beta$ 需 $(N,T)\to\infty$；$\hat f_t$ 需 $N\to\infty$（每个 $f_t$ 用第 $t$ 期的 $N$ 个截面观测估计）；$\hat\lambda_i$ 需 $T\to\infty$（每个 $\lambda_i$ 用个体 $i$ 的 $T$ 个时间观测估计）；$\hat\beta$ 的准确性依赖于共同部分 $\lambda_i\T f_t$ 被准确扣除，故两个维度都要大。因子与载荷只识别到旋转。
+\end{itemize}
+\end{prac}
+
+\subsubsection{CCE 的推导：截面平均代理因子与 FWL}
+
+\begin{prac}[CCE derivation]\label{pr:U14b-cce}
+In the model $y_{it}=x_{it}'\beta+\lambda_i'f_t+v_{it}$, $x_{it}=\Gamma_if_t+\varepsilon_{it}$, (a) show that $f_t$ can be approximated by a linear combination of $\bar z_t=(\bar y_t,\bar x_t')'$ as $N\to\infty$ and state the required rank condition; (b) derive the pooled CCE estimator using the Frisch--Waugh--Lovell theorem; (c) explain why the CCE estimator does not require knowledge of the number of factors; (d) state one disadvantage of CCE relative to Bai's PCA estimator.
+\answer
+(a) 令 $z_{it}=(y_{it},x_{it}\T)\T$（$(K+1)\times1$），
+\[
+A=\begin{pmatrix}1&-\beta\T\\0&I_K\end{pmatrix},\qquad B_i=\begin{pmatrix}\lambda_i\T\\\Gamma_i\end{pmatrix}\ ((K+1)\times r),\qquad \eta_{it}=\begin{pmatrix}v_{it}\\\varepsilon_{it}\end{pmatrix}.
+\]
+\begin{align*}
+Az_{it} &= \begin{pmatrix}y_{it}-x_{it}\T\beta\\x_{it}\end{pmatrix}=\begin{pmatrix}\lambda_i\T f_t+v_{it}\\\Gamma_if_t+\varepsilon_{it}\end{pmatrix}=B_if_t+\eta_{it} \why{代入两个方程}\\
+A\bar z_t &= \bar Bf_t+\bar\eta_t \why{对 $i$ 取平均，$A$ 与 $i$ 无关}\\
+\bar\eta_t &= O_p(N^{-1/2}) \why{弱截面相关}\\
+f_t &= (\bar B\T\bar B)\inv\bar B\T(A\bar z_t-\bar\eta_t)=C\bar z_t+O_p(N^{-1/2}) \why{左乘 $(\bar B\T\bar B)\inv\bar B\T$}
+\end{align*}
+其中 $C=(\bar B\T\bar B)\inv\bar B\T A$。需要秩条件 $\rank(\bar B)=r$（$\bar B$ 为 $(K+1)\times r$，故需 $r\le K+1$），使 $\bar B\T\bar B$ 可逆。
+
+(b) 代入得 $Y_i=X_i\beta+\bar Za_i+V_i+o_p(1)$，$a_i=C\T\lambda_i$（因 $\lambda_i\T f_t\approx\lambda_i\T C\bar z_t=\bar z_t\T C\T\lambda_i$）。对 $\beta,a_1,\dots,a_N$ 做最小二乘：
+\begin{align*}
+\hat a_i(\beta) &= (\bar Z\T\bar Z)\inv\bar Z\T(Y_i-X_i\beta) \why{给定 $\beta$ 对 $a_i$ 做 OLS}\\
+SSR(\beta) &= \sum_i(Y_i-X_i\beta)\T M_{\bar Z}(Y_i-X_i\beta) \why{集中化；$M_{\bar Z}$ 对称幂等}\\
+0 &= -2\sum_iX_i\T M_{\bar Z}(Y_i-X_i\beta) \why{一阶条件}\\
+\hat\beta_{PCCE} &= \Big(\sum_iX_i\T M_{\bar Z}X_i\Big)\inv\sum_iX_i\T M_{\bar Z}Y_i \why{整理}
+\end{align*}
+（等价地，由 FWL 定理：左乘 $M_{\bar Z}$ 消去 $\bar Za_i$，再做混合 OLS。）
+
+(c) 估计量只用到可观测的截面平均 $\bar Z$（固定的 $K+1$ 列）。无论 $r$ 是多少，只要 $f_t$ 落在 $\bar z_t$ 张成的空间里（秩条件），$M_{\bar Z}$ 就能零化 $F\lambda_i$；无需估计 $f_t$，也就无需选 $r$。
+
+(d) CCE 要求 $x_{it}$ 对 $f_t$ 线性（$x_{it}=\Gamma_if_t+\varepsilon_{it}$）且满足秩条件；Bai 的 PCA 不需要 $x$ 的因子结构，但需要 $N,T$ 都大并知道（或估计）$r$。
+\end{prac}
+
+\subsubsection{均值组估计量：一致性与数值计算}
+
+\begin{prac}[Mean group]\label{pr:U14b-mg}
+Suppose $\beta_i=\beta+\eta_i$ with $\E\eta_i=0$. (a) Explain why $\hat\beta_{i,CCE}$ is not consistent for $\beta_i$ when $T$ is fixed, while $\hat\beta_{MG}=N^{-1}\sum_i\hat\beta_{i,CCE}$ is consistent for $\beta$ as $N\to\infty$. (b) With $N=5$ and unit estimates $0.6,0.9,1.0,1.1,1.4$, compute $\hat\beta_{MG}$ and its standard error, and test $H_0:\beta=1$ at the 5\% level.
+\answer
+(a)
+\begin{align*}
+\hat\beta_{i,CCE} &= \beta_i+\xi_i+o_p(1),\qquad \xi_i=(X_i\T M_{\bar Z}X_i)\inv X_i\T M_{\bar Z}V_i \why{代入 $Y_i$，$M_{\bar Z}F\approx0$}\\
+\hat\beta_{MG} &= \frac1N\sum_i\beta_i+\frac1N\sum_i\xi_i+o_p(1)=\beta+\frac1N\sum_i\eta_i+\frac1N\sum_i\xi_i+o_p(1) \why{取平均；$\beta_i=\beta+\eta_i$}\\
+&\pto \beta \why{$\eta_i,\xi_i$ 均值 0、跨 $i$ 独立；LLN}
+\end{align*}
+$\xi_i$ 只依赖个体 $i$ 的 $T$ 个观测，$T$ 固定时不趋于 0，故 $\hat\beta_{i,CCE}$ 对 $\beta_i$ 不一致；但对 $i$ 平均后，$\frac1N\sum_i\eta_i$ 与 $\frac1N\sum_i\xi_i$ 都依概率收敛到 0。
+
+(b)
+\begin{align*}
+\hat\beta_{MG} &= (0.6+0.9+1.0+1.1+1.4)/5=1.0 \why{简单平均}\\
+\textstyle\sum_i(\hat\beta_i-\hat\beta_{MG})^2 &= 0.16+0.01+0+0.01+0.16=0.34 \why{离差 $-0.4,-0.1,0,0.1,0.4$}\\
+\widehat\Var(\hat\beta_{MG}) &= \frac{0.34}{5\times4}=0.017,\qquad se=\sqrt{0.017}=0.130 \why{$\frac1{N(N-1)}\sum(\cdot)^2$}\\
+t &= \frac{1.0-1}{0.130}=0<1.96 \why{$t=(\hat\beta-\beta_0)/se$}
+\end{align*}
+不拒绝 $H_0:\beta=1$。
+\end{prac}
+
+\begin{english}
+When the panel error contains latent factors, $u_{it}=\lambda_i'f_t+v_{it}$, two problems arise: if the regressors are correlated with the factors, the within estimator is inconsistent (endogeneity), and $\mathbb{E}(u_{it}u_{jt})=\lambda_i'\mathbb{E}(f_tf_t')\lambda_j\neq0$ invalidates conventional and clustered standard errors (cross-sectional dependence). Two-way fixed effects is the special case $\lambda_i=(\alpha_i,1)'$, $f_t=(1,\delta_t)'$. Bai's (2009) interactive fixed effects estimator alternates principal components and least squares and requires both $N$ and $T$ to be large; Pesaran's (2006) CCE estimator proxies the factors by cross-sectional averages of $y_{it}$ and $x_{it}$ and requires only $N$ to be large, at the cost of assuming that $x_{it}$ is linear in the factors and a rank condition; the CCE mean group estimator allows heterogeneous slopes. All of these estimators, including the transformed estimator and the within estimator, take the form $(\sum_iX_i'MX_i)^{-1}\sum_iX_i'MY_i$ for an annihilator $M$ of the factor space. In applied work, the within residuals are first tested for cross-sectional dependence with the LM, scaled LM or Pesaran CD statistic, and the factor model is used only if the null of no dependence is rejected.
+\end{english}

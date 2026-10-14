@@ -1,0 +1,1166 @@
+\chapter{工具变量与 GMM}
+\label{ch:U08a-ivgmm}
+
+第 7 章说明：回归元内生时 OLS 有偏且不一致，出路是借助\key{工具变量}。本章从“用样本矩替代总体矩”的矩估计思想出发，给出工具变量必须满足的三个条件（外生、相关、强），通过数 $K$（回归元个数）与 $L$（工具个数）讨论识别，导出恰好识别时的 IV 估计量 $(Z\T X)\inv Z\T Y$ 与过度识别时的 GMM 估计量 $(X\T ZWZ\T X)\inv X\T ZWZ\T Y$（两种推导），再推导 GMM 的一致性、渐近正态性与夹心方差；随后比较权重矩阵 $W$ 的四种选择（一步 GMM、2SLS、有效 GMM、两步 GMM），说明 IV、OLS、GLS 都是 GMM 的特例，并以拓展形式介绍弱工具、LIML 与 GMM 的推断（Wald 检验、约束 GMM、距离检验、非线性 GMM）。本章的估计量是第 9 章三大检验与第 12 章动态面板 GMM 的基础。对应教材：Hansen 第 12.5--12.18、12.35--12.41 节与第 13.1--13.20、13.25--13.27 节。
+
+\begin{keypt}[本章高频考点]
+\begin{enumerate}
+  \item 写出线性 IV 模型的矩条件 $\E[z_i(y_i-x_i\T\beta)]=0$，并逐项标出维度；
+  \item 工具变量的三个条件，以及“Is $z$ a valid instrument for $x$?”的论证；
+  \item 数 $K$ 与 $L$，判断不足识别、恰好识别、过度识别；
+  \item 用“左乘 $\E(x_iz_i\T)W$”与“最小化 $J(\beta)$”两种方法推导 GMM 估计量；
+  \item 推导 GMM 的渐近分布与夹心方差；
+  \item 权重矩阵的选择：2SLS 与有效 GMM（本章后半部分）。
+\end{enumerate}
+\end{keypt}
+
+%======================================================================
+\section{从矩估计到广义矩估计}\label{sec:U08a-mm}
+
+\subsection{本章记号}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.3cm}L}
+\toprule
+记号 & 含义\\
+\midrule
+$y_i=x_i\T\beta+u_i$ & 结构方程；$u_i$ 为结构误差，$\beta$ 为 $K\times1$ 结构参数\\
+$x_i$ & $K\times1$ 回归元向量（含常数项）；$K=\#(x)$ 即待估参数个数\\
+$z_i$ & $L\times1$ 工具向量（含常数项与外生回归元）；$L=\#(z)$ 即矩条件个数\\
+$Y,\ X,\ Z,\ u$ & 矩阵形式 $Y=X\beta+u$：$Y$、$u$ 为 $n\times1$，$X$ 为 $n\times K$（第 $i$ 行为 $x_i\T$），$Z$ 为 $n\times L$（第 $i$ 行为 $z_i\T$）\\
+$Q=\E(z_ix_i\T)$ & $L\times K$；相关性条件要求它列满秩\\
+$M=\E(z_iz_i\T)$ & $L\times L$，正定\\
+$\Omega=\E(z_iz_i\T u_i^2)$ & $L\times L$；在 $\E(z_iu_i)=0$ 下等于 $\Var(z_iu_i)$\\
+$\bar g_n(\beta)$ & 样本矩 $\frac1n\sum_{i=1}^n z_i(y_i-x_i\T\beta)=\frac1nZ\T(Y-X\beta)$，$L\times1$\\
+$W$ & GMM 权重矩阵，$L\times L$，对称正定\\
+$X\T Z,\ Z\T X$ & $X\T Z=\sum_i x_iz_i\T$（$K\times L$），$Z\T X=\sum_i z_ix_i\T$（$L\times K$），二者互为转置\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 8 章记号}
+\end{center}
+
+Hansen 用 $k,\ell$ 表示 $K,L$，用 $e$ 表示结构误差，并用大写 $Y_i,X_i,Z_i$ 表示第 $i$ 个观测。
+
+\subsection{矩估计原理：用样本矩替代总体矩}
+
+\subsubsection{总体矩用样本矩代替}
+
+\term{矩估计}{method of moments, MM}的出发点只有一句话：总体矩未知，就用对应的样本矩代替。例如总体 $k$ 阶矩
+\[
+\E(x^k)\ \longleftarrow\ \frac1n\sum_{i=1}^n x_i^k .
+\]
+由大数定律，样本矩依概率收敛到总体矩，所以这种替代在大样本下是合理的。若参数是“总体矩满足的方程”的解，就把方程中的总体矩换成样本矩，再解方程，得到参数的估计。
+
+\subsubsection{矩估计量的定义}
+
+\begin{defn}[矩估计量]\label{def:U08a-mm}
+设 $w_i$ 为第 $i$ 个观测的数据，参数 $\beta$（$K\times1$）满足 $K$ 个总体\term{矩条件}{moment condition}
+\[
+\E[g(w_i,\beta)]=0,
+\]
+其中 $g(\cdot)$ 是已知的 $K\times1$ 函数。\term{矩估计量}{method of moments estimator} $\hat\beta_{MM}$ 是使\key{样本矩条件}成立的解：
+\[
+\frac1n\sum_{i=1}^n g(w_i,\hat\beta_{MM})=0 .
+\]
+\end{defn}
+
+\subsubsection{例：均值、方差与 OLS 都是矩估计}
+
+前面各章熟悉的估计量都可以纳入矩估计的框架：先写出参数满足的总体矩条件，再解对应的样本矩条件。
+
+\begin{exmp}[熟悉的估计量都是矩估计]\label{ex:U08a-mm}
+分别写出下列参数的矩条件并求矩估计量：(1) 均值 $\mu=\E(y_i)$；(2) 均值与方差 $(\mu,\sigma^2)$；(3) 外生线性模型 $y_i=x_i\T\beta+u_i$、$\E(u_i\mid x_i)=0$ 中的 $\beta$。
+\solution
+(1) 矩条件 $\E(y_i-\mu)=0$（1 个方程，1 个未知数）。样本类比：
+\begin{align*}
+\frac1n\sum_{i=1}^n(y_i-\hat\mu)=0
+&\iff \frac1n\sum_{i=1}^n y_i-\hat\mu=0 \why{$\hat\mu$ 与 $i$ 无关}\\
+&\iff \hat\mu=\bar y. \why{移项}
+\end{align*}
+(2) 矩条件（2 个方程，2 个未知数）为
+\[
+\E\begin{pmatrix} y_i-\mu\\ (y_i-\mu)^2-\sigma^2\end{pmatrix}=0 .
+\]
+第一个分量同 (1)，给出 $\hat\mu=\bar y$；代入第二个分量的样本类比：
+\begin{align*}
+\frac1n\sum_{i=1}^n\bigl[(y_i-\bar y)^2-\hat\sigma^2\bigr]=0
+&\iff \hat\sigma^2=\frac1n\sum_{i=1}^n(y_i-\bar y)^2. \why{移项}
+\end{align*}
+矩估计给出的是除以 $n$ 的方差，而不是除以 $n-1$ 的无偏版本。
+
+(3) 由迭代期望律，$\E(x_iu_i)=\E[x_i\E(u_i\mid x_i)]=0$，即矩条件 $\E[x_i(y_i-x_i\T\beta)]=0$（$K$ 个方程，$K$ 个未知数）。样本类比：
+\begin{align*}
+\frac1n\sum_{i=1}^n x_i(y_i-x_i\T\hat\beta)=0
+&\iff \sum_{i=1}^n x_iy_i-\Bigl(\sum_{i=1}^n x_ix_i\T\Bigr)\hat\beta=0 \why{两边乘 $n$，展开}\\
+&\iff X\T Y-X\T X\hat\beta=0 \why{求和式化为矩阵式}\\
+&\iff \hat\beta=(X\T X)\inv X\T Y. \why{左乘 $(X\T X)\inv$}
+\end{align*}
+OLS 就是“\key{以 $x_i$ 自己为工具}”的矩估计。下文的 IV 估计量只是把矩条件中的 $x_i$ 换成工具 $z_i$。
+\end{exmp}
+
+\subsubsection{名称：广义矩估计（GMM）与“广义”的两层含义}
+
+GMM 的标准名称是\term{广义矩估计}{generalized method of moments, GMM}（Generalized，而不是 General），由 L.~Hansen (1982) 引入计量经济学。“广义”有两层意思：
+\begin{enumerate}
+  \item 允许\key{矩条件多于参数}（过度识别）。此时样本矩条件一般无解，只能“让样本矩尽量接近 0”；
+  \item 允许矩条件是参数的\key{非线性}函数。
+\end{enumerate}
+本章主体讨论第一层含义下的线性模型；非线性 GMM 在本章最后的推断与扩展部分简要介绍。
+
+\subsection{矩条件的一般形式 \texorpdfstring{$\E g(y_i,x_i,z_i,\beta)=0$}{E g(y, x, z, beta) = 0}}
+
+\subsubsection{总体矩条件与样本矩条件}
+
+一般地，记数据为 $(y_i,x_i,z_i)$，参数 $\beta$ 为 $K\times1$，$g(\cdot)$ 为已知的 $L\times1$ 函数：
+\begin{align}
+&\text{总体矩条件（m.c.）：}\quad \E\bigl[g(y_i,x_i,z_i,\beta)\bigr]=0, \label{eq:U08a-mc}\\
+&\text{样本矩条件（sample m.c.）：}\quad \frac1n\sum_{i=1}^n g(y_i,x_i,z_i,\hat\beta)=0. \label{eq:U08a-smc}
+\end{align}
+Hansen 第 13.2 节把由 \eqref{eq:U08a-mc} 刻画的模型称为\term{矩方程模型}{moment equation model}。它覆盖了前面各章的模型：均值、OLS、IV、2SLS 都对应某个 $g$。
+
+\subsubsection{线性 IV 模型中的 \texorpdfstring{$g$}{g} 函数}
+
+线性工具变量模型中
+\[
+g(y_i,x_i,z_i,\beta)=z_i(y_i-x_i\T\beta)\qquad(L\times1),
+\]
+它来自工具的外生性 $\E(z_iu_i)=0$（第~\ref{sec:U08a-ivmc} 节推导）。在矩方程框架下，“$\beta$ 可识别”的含义是：满足 \eqref{eq:U08a-mc} 的 $\beta$ 唯一。\eqref{eq:U08a-mc} 是 $L$ 个方程、$K$ 个未知数，所以唯一解要求 $L\ge K$。
+
+\subsection{思路：恰好识别解方程，过度识别让样本矩尽量接近 0}
+
+\subsubsection{\texorpdfstring{$L=K$}{L = K}：解方程，得到矩估计}
+
+当 $L=K$（方程个数 = 未知数个数）时，样本矩条件 $\bar g_n(\beta)=0$ 一般有唯一解，这就是矩估计。在线性 IV 模型中，它就是 IV 估计量（第~\ref{sec:U08a-ivmc} 节）。
+
+\subsubsection{\texorpdfstring{$L>K$}{L > K}：让样本矩“尽量接近 0”}
+
+当 $L>K$（方程多于未知数）时，$K$ 个参数无法同时把 $L$ 个样本矩都压到 0，样本矩条件 $\bar g_n(\beta)=0$ 一般\key{无解}。退而求其次：选 $\beta$ 使 $\bar g_n(\beta)$ “尽量接近 0”，用加权二次型 $\bar g_n(\beta)\T W\bar g_n(\beta)$ 度量它到 0 的距离——这就是 GMM（第~\ref{sec:U08a-gmm} 节）。恰好识别时这个二次型的最小值为 0，GMM 就是矩估计，所以 GMM 把矩估计作为特例包含在内。
+
+\begin{english}
+\textbf{Method of moments.} The method of moments replaces population moments by sample moments: a parameter defined by $\E[g(w_i,\beta)]=0$ is estimated by solving $\frac1n\sum_{i=1}^n g(w_i,\hat\beta)=0$. OLS is a method of moments estimator based on $\E[x_i(y_i-x_i'\beta)]=0$. When there are more moment conditions than parameters, the sample moment equations generally have no solution, and the generalized method of moments chooses $\beta$ to make the sample moments as close to zero as possible in a weighted quadratic metric.
+\end{english}
+
+%======================================================================
+\section{工具变量：定义与三个条件}\label{sec:U08a-iv}
+
+\subsection{IV 的直觉：只用 \texorpdfstring{$x$}{x} 中由 \texorpdfstring{$z$}{z} 引起的那部分变动}
+
+\subsubsection{因果图：\texorpdfstring{$z\to x\to y$}{z -> x -> y}，\texorpdfstring{$z$}{z} 与 \texorpdfstring{$u$}{u} 无关}
+
+\begin{center}
+\begin{tikzpicture}[>={Stealth[length=2mm]},font=\small,
+  var/.style={circle,draw,minimum size=8mm,inner sep=0pt}]
+\node[var] (z) at (0,0) {$z$};
+\node[var] (x) at (3.2,0) {$x$};
+\node[var] (y) at (6.4,0) {$y$};
+\node[var,dashed] (u) at (5.2,2.0) {$u$};
+\draw[->,thick] (z) -- node[below]{\textcircled{\scriptsize 2}相关} (x);
+\draw[->,thick] (x) -- node[below]{$\beta$} (y);
+\draw[->,dashed] (u) -- (x);
+\draw[->,dashed] (u) -- (y);
+\draw[dotted,thick,cthm] (z) to[bend left=22] node[pos=0.55]{$\times$} node[pos=0.45,above left,font=\footnotesize]{\textcircled{\scriptsize 1}外生：$z$ 与 $u$ 不相关} (u);
+\draw[->,cthm] (z) to[bend right=32] node[pos=0.5]{$\times$} node[pos=0.5,below=2pt,font=\footnotesize]{不能有直接路径（排他性）} (y);
+\end{tikzpicture}
+\captionof{figure}{工具变量的因果图：$z$ 推动 $x$，$x$ 影响 $y$；$z$ 与 $u$ 无关，且不直接影响 $y$}\label{fig:U08a-dag}
+\end{center}
+
+\subsubsection{\texorpdfstring{$x$}{x} 的“干净”变动与“不干净”变动}
+
+$x$ 的变动可分两部分：一部分与 $u$（能力等未观测因素）一起变动——这部分“不干净”，OLS 把它带来的 $y$ 的变化也算到 $x$ 头上，因而不一致；另一部分由外生的 $z$ 推动——这部分与 $u$ 无关。IV 只利用后一部分：看 $z$ 变动时 $y$ 变了多少（简约式），再除以 $z$ 变动时 $x$ 变了多少（第一阶段），比值就是 $x$ 对 $y$ 的因果效应（第~\ref{sec:U08a-wald} 小节的比值形式）。这要求 $z$ \key{只能通过 $x$} 影响 $y$。
+
+\subsection{工具变量的定义}
+
+\begin{defn}[工具变量]\label{def:U08a-iv}
+对结构方程 $y_i=x_i\T\beta+u_i$（$x_i$ 为 $K\times1$），称 $L\times1$ 随机向量 $z_i$ 为\term{工具变量}{instrumental variable, IV}，若
+\begin{itemize}
+  \item[\textcircled{\scriptsize 1}] \key{外生性}（exogenous）：$\E(u_i\mid z_i)=0$，从而 $\E(z_iu_i)=0$；
+  \item[\textcircled{\scriptsize 2}] \key{相关性}（relevant）：$\rank\E(z_ix_i\T)=K$；
+  \item[\textcircled{\scriptsize 3}] \key{强工具}（strong IV）：$z_i$ 与 $x_i$ 的相关性不能太弱。
+\end{itemize}
+另有一个技术性的规范化条件：$\E(z_iz_i\T)>0$（正定），用来排除线性冗余的工具。
+\end{defn}
+
+Hansen 定义 12.1 列出的是三条：$\E(z_iu_i)=0$、$\E(z_iz_i\T)>0$、$\rank\E(z_ix_i\T)=K$。条件 \textcircled{\scriptsize 3} 不是识别所必需的，但决定了估计量的有限样本表现和渐近近似是否可靠，实践中同样关键。下面逐条解释。
+
+\subsection{条件一（外生性）：\texorpdfstring{$\E(u\mid z)=0$}{E(u|z)=0} 与排他性约束}
+
+\subsubsection{外生性的两层含义}
+
+条件 \textcircled{\scriptsize 1} 称为\term{外生性条件}{exogeneity condition}，它包含两层意思：
+\begin{enumerate}[label=(\roman*)]
+  \item $z$ 与 $u$ 中的未观测因素无关，如同被随机分配（as good as randomly assigned）；
+  \item \term{排他性约束}{exclusion restriction}：$z$ 不出现在结构方程中，只通过 $x$ 影响 $y$。若 $z$ 对 $y$ 有直接作用，这一作用就被并入 $u$，导致 $\E(z_iu_i)\neq0$。
+\end{enumerate}
+
+\subsubsection{由 \texorpdfstring{$\E(u_i\mid z_i)=0$}{E(u|z)=0} 推出 \texorpdfstring{$\E(z_iu_i)=0$}{E(zu)=0}}
+
+GMM 实际使用的是不相关形式 $\E(z_iu_i)=0$。它由均值独立推出，证明与第 7 章相同：
+\begin{align*}
+\E(z_iu_i)&=\E\bigl[\E(z_iu_i\mid z_i)\bigr] \why{迭代期望律}\\
+&=\E\bigl[z_i\,\E(u_i\mid z_i)\bigr] \why{给定 $z_i$ 时提出 $z_i$}\\
+&=\E[z_i\cdot0]=0. \why{外生性}
+\end{align*}
+
+\subsubsection{好工具的来源：自然或制度给定的特征}
+
+好的工具往往是“\key{自然特征}”（natural characteristics）：由自然或制度给定、在所研究的经济模型之外决定的变量，如地理位置、天气、出生时间、政策规则。它们不受个体选择影响，较可能满足外生性；但排他性仍需逐条论证（见第~\ref{sec:U08a-cand} 小节的评析）。
+
+\subsection{条件二（相关性）：“\texorpdfstring{$\E(x\mid z)\neq0$}{E(x|z) != 0}”的准确含义}
+
+\subsubsection{简写“\texorpdfstring{$\E(x\mid z)\neq0$}{E(x|z) != 0}”为何不准确}
+
+相关性常被简写为 $\E(x\mid z)\neq0$。字面意思并不够：若 $\E(x\mid z)$ 是一个不随 $z$ 变化的非零常数（如 $\E(x\mid z)=5$），$z$ 对 $x$ 毫无解释力，工具是无用的。准确的含义是：\key{$x$ 与 $z$ 相关}，即 $\E(x\mid z)$ 随 $z$ 变化，并且这种变化能被 $z$ 的线性函数捕捉（协方差不为 0）。
+
+\subsubsection{准确表述：秩条件 \texorpdfstring{$\rank\E(z_ix_i\T)=K$}{rank E(zx') = K}}
+
+矩阵形式的\term{相关性条件}{relevance condition}为
+\begin{equation}\label{eq:U08a-rank}
+\rank\bigl[\E(z_ix_i\T)\bigr]=K\qquad(L\times K\ \text{矩阵列满秩}).
+\end{equation}
+它保证矩方程 $\E(z_ix_i\T)\beta=\E(z_iy_i)$ 有唯一解，也就是 $\beta$ \term{可识别}{identification}（第~\ref{sec:U08a-ident} 节）。秩条件的必要条件是 $L\ge K$（阶条件）。
+
+\subsubsection{一个内生变量、一个工具：\texorpdfstring{$\Cov(x,z)\neq0$}{Cov(x,z) != 0}}
+
+单个内生变量、单个工具（含截距）时，相关性条件就是 $\Cov(x,z)\neq0$。第一阶段检验的原假设可写成
+\[
+H_0:\ x_i=\delta_0+\eta_i\qquad(\text{$z_i$ 的系数为 0}),
+\]
+此时 $\E(x_i\mid z_i)=\delta_0$ 为常数，即 “$x_i$ is uncorrelated with $z_i$”——工具无关。所以 “$\E(x\mid z)\neq0$” 应读作 “$\E(x\mid z)$ 不是常数”。
+
+\subsubsection{有外生控制变量时：控制之后仍须相关}
+
+结构方程含外生控制变量 $x_2$ 时，要求的是\key{控制 $x_2$ 之后}，排除的工具 $z_1$ 与内生变量 $x_1$ 仍相关（Hansen 第 12.5 节）。准确地说：把 $z_1$、$x_1$ 分别对 $x_2$ 做线性投影，得到残差 $\tilde z_1$、$\tilde x_1$，秩条件等价于 $\E(\tilde z_1\tilde x_1\T)$ 的秩等于内生变量个数。只与控制变量相关、不提供额外变动的“工具”不满足秩条件。
+
+\subsection{条件三（强工具）：弱工具导致 GMM 的分布问题}
+
+即便 $\Cov(x,z)\neq0$，若它很小（$\Cov(x,z)\approx0$），称 $z$ 为\term{弱工具}{weak instrument}。弱工具下秩条件在数学上成立，但：
+\begin{itemize}
+  \item IV/GMM 估计量在有限样本中严重偏向 OLS；
+  \item 估计量的分布远离正态，渐近正态近似失效；
+  \item $t$ 检验的实际水平远超名义水平，置信区间失真。
+\end{itemize}
+这些统称为 GMM 的\key{分布问题}（GMM distribution issue）：第~\ref{sec:U08a-asy} 节推导的渐近分布在弱工具下不可靠。机制与对策见本章弱工具一节（拓展），检验方法见第 9 章（第一阶段 $F$ 检验）。第~\ref{sec:U08a-asy} 节末的即时练习“单工具 IV 的渐近方差”给出一个侧面：单工具 IV 的渐近方差与 $1/\rho_{zx}^2$ 成正比。
+
+\subsection{外生回归元自己当工具：\texorpdfstring{$Z=(z_1,x_2,x_3)$}{Z = (z1, x2, x3)}}
+
+\subsubsection{例：一个内生、两个外生回归元}
+
+设
+\[
+y=x_1\beta_1+x_2\beta_2+x_3\beta_3+u,\qquad \E(u\mid x_1)\neq0,\qquad \E(u\mid x_2,x_3)=0 .
+\]
+即使 $x_1$ 内生，$x_2,x_3$ 仍外生。内生的 $x_1$ 由外部工具 $z_1$（满足 $\E(u\mid z_1)=0$）替代，外生回归元给自己当工具：
+\[
+x_1\ \leadsto\ z_1,\qquad x_2\ \leadsto\ x_2,\qquad x_3\ \leadsto\ x_3
+\qquad\Longrightarrow\qquad Z=(z_1,x_2,x_3).
+\]
+外生回归元确实是合格的工具：
+\begin{align*}
+\E(x_2u)&=\E\bigl[\E(x_2u\mid x_2,x_3)\bigr] \why{迭代期望律}\\
+&=\E\bigl[x_2\,\E(u\mid x_2,x_3)\bigr]=0, \why{提出 $x_2$；外生性}
+\end{align*}
+同理 $\E(x_3u)=0$。因此外生回归元（以及常数项）\key{必须}放进工具向量；若把它们排除，就丢掉了有效的矩条件，还可能导致不足识别。
+
+\subsubsection{包含的外生变量与排除的工具}
+
+于是工具分两类（Hansen 第 12.5 节）：
+\begin{itemize}
+  \item \term{包含的外生变量}{included exogenous variables}：既在结构方程中、又当工具，如 $1,x_2,x_3$；
+  \item \term{排除的工具}{excluded instruments}：不在结构方程中、专门为内生变量引入，如 $z_1$。
+\end{itemize}
+文献中说的“工具变量”通常指后者。识别要求：\key{排除的工具个数 $\ge$ 内生回归元个数}（第~\ref{sec:U08a-countKL} 小节）。
+
+\subsection{教育回报中的候选工具逐一评析}\label{sec:U08a-cand}
+
+\subsubsection{背景：教育内生的工资方程}
+
+考虑教育回报
+\[
+\ln \text{wage}=\beta\,\text{educ}+u ,
+\]
+$u$ 含能力（ability）；能力高的人受教育更多，教育内生。需要一个“自然特征”$z$：影响教育，但与能力无关、不直接影响工资。常见候选有：降雨（rainfall）、到大学的距离或邮编（distance / zipcode）、出生季度（birth quarter）、兄弟姐妹数（\#siblings）、出生顺序（birth order）。每一个都要从“相关性”与“外生性/排他性”两方面论证。
+
+\subsubsection{五个候选工具的评析表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{1.7cm}LL>{\raggedright\arraybackslash}p{3.2cm}}
+\toprule
+候选工具 & 相关性逻辑 & 外生性/排他性的担忧 & 评价\\
+\midrule
+降雨 & 典型的“自然特征”；常作农业收入、经济增长的工具（如 Miguel, Satyanath \& Sergenti, 2004, \emph{JPE}，用降雨冲击作非洲经济增长的工具研究内战） & 降雨可能通过疾病、交通、基础设施等渠道直接影响结果；作为教育的工具，相关性存疑 & 外生性好，但排他性要逐条排除；与教育的关联较间接\\
+\addlinespace
+到大学的距离 / 邮编 & 离大学近 $\Rightarrow$ 上学成本低 $\Rightarrow$ 教育多（Card, 1995：是否在有四年制大学的县长大） & 住在大学附近的家庭可能更重视教育、更城市化，城市工资本来就高 $\Rightarrow$ 必须控制城市/地区；邮编虚拟变量很多 $\Rightarrow$ 多工具、弱工具 & 经典工具，结论依赖于控制变量\\
+\addlinespace
+出生季度 & 义务教育法允许达到法定年龄即辍学；年初出生者入学时年龄较大，辍学时受教育年限较少（Angrist \& Krueger, 1991） & 出生季节可能与家庭背景、健康、相对年龄效应相关 & 外生性较可信，但相关性很弱：30 个交互工具时第一阶段 $F=4.8$（Hansen 第 12.41 节），典型的弱工具案例\\
+\addlinespace
+兄弟姐妹数 & 家庭资源被稀释 $\Rightarrow$ 每个孩子的教育投入少 & 家庭规模与父母收入、偏好、社会经济地位相关，这些因素直接影响工资（如人脉、家教） & 排他性很难成立\\
+\addlinespace
+出生顺序 & 父母对不同孩次的投入不同 & 出生顺序可能影响性格、健康和家庭内其他投入，进而直接影响工资 & 外生性存疑\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{教育回报的候选工具评析}
+\end{center}
+
+\subsubsection{答题模板：“Is \texorpdfstring{$z$}{z} a valid instrument for \texorpdfstring{$x$}{x}?”}
+
+\begin{keypt}[论述题“Is $z$ a valid instrument for $x$?”的标准答法]
+\begin{enumerate}
+  \item \textbf{Relevance}：给出 $z$ 影响 $x$ 的经济机制，并说明可用第一阶段 $F$ 检验验证；
+  \item \textbf{Exogeneity / Exclusion}：说明 $z$ 与 $u$ 中的因素无关、不直接影响 $y$，并指出最可能的违背渠道；
+  \item 指出外生性无法直接检验，过度识别检验只能提供有限证据（第 9 章）。
+\end{enumerate}
+\end{keypt}
+
+\subsection{三个条件与第 9 章三大检验的对应}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.3cm}LL}
+\toprule
+条件 & 能否检验 & 对应检验（第 9 章）\\
+\midrule
+\textcircled{\scriptsize 2} 相关性、\textcircled{\scriptsize 3} 强工具 & 能，用第一阶段回归 & 第一阶段 $F$ 检验（经验法则 $F>10$）\\
+\textcircled{\scriptsize 1} 外生性 & 只能在 $L>K$ 时“相对地”检验 & 过度识别检验（Sargan / Hansen $J$）\\
+$x$ 是否真的内生 & 能（在工具有效的前提下） & 内生性检验（控制函数 $t$ 检验 / Hausman）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{工具的条件与检验}
+\end{center}
+
+\subsection{即时练习：评价一个工具}
+
+\begin{prac}[评价一个工具]\label{pr:U08a-eval}
+研究“城市互联网普及率 $x$ 对城市创业活跃度 $y$ 的影响”，某研究者用“1984 年该城市每百人固定电话数”作 $x$ 的工具。请从三个条件评价。
+\answer
+\textcircled{\scriptsize 2} \textbf{相关性}：历史电话网络是后来互联网的基础设施（拨号上网、宽带沿电话线铺设），与当前互联网普及率正相关——机制合理，需报告第一阶段 $F$。
+
+\textcircled{\scriptsize 1} \textbf{外生性/排他性}：1984 年的电话普及率反映当时的经济发展水平、城市规模与开放程度，这些因素可能持续影响今天的创业活动（不仅通过互联网），违背排他性；通常需要控制地区经济基础、城市规模等，或改用历史变量与随时间变化的变量交互构造工具。
+
+\textcircled{\scriptsize 3} \textbf{强度}：若只有一个工具且第一阶段 $F$ 低于 10，需警惕弱工具。
+
+结论：相关性可信，排他性需要额外论证与稳健性检验。
+\end{prac}
+
+\begin{english}
+\textbf{Instrument validity.} A valid instrument $z_i$ must satisfy (i) exogeneity, $\E(u_i\mid z_i)=0$, which implies the moment condition $\E(z_iu_i)=0$ and requires that $z_i$ affects $y_i$ only through $x_i$ (exclusion restriction); (ii) relevance, $\operatorname{rank}\E(z_ix_i')=K$, i.e.\ $z_i$ is correlated with the endogenous regressor after controlling for the included exogenous variables; and (iii) the correlation should not be weak. Included exogenous regressors serve as their own instruments, so $Z=(z_1,x_2,x_3)$. Relevance can be checked with the first-stage $F$-statistic, whereas exogeneity cannot be tested directly and must be argued on economic grounds.
+\end{english}
+
+%======================================================================
+\section{识别：\texorpdfstring{$K$}{K} 与 \texorpdfstring{$L$}{L} 的计数}\label{sec:U08a-ident}
+
+\subsection{计数规则（阶条件）与秩条件}
+
+\subsubsection{\texorpdfstring{$K$}{K} 个未知数、\texorpdfstring{$L$}{L} 个方程}
+
+记
+\[
+K=\#(x)\ \ (\text{待估参数个数：要解决的“问题”}),\qquad L=\#(z)\ \ (\text{工具个数：解决问题的“信息”}).
+\]
+由外生性，$\beta$ 满足 $L$ 个线性方程、$K$ 个未知数（推导见第~\ref{sec:U08a-ivmc} 节）：
+\begin{equation}\label{eq:U08a-popeq}
+\underbrace{\E(z_ix_i\T)}_{L\times K}\ \underbrace{\beta}_{K\times1}=\underbrace{\E(z_iy_i)}_{L\times1}.
+\end{equation}
+识别问题就是：这个线性方程组何时有唯一解？
+
+\subsubsection{阶条件（必要）与秩条件（充要）}
+
+\begin{thm}[识别的阶条件与秩条件]\label{thm:U08a-ident}
+在 \eqref{eq:U08a-popeq} 中：
+\begin{itemize}
+  \item \term{阶条件}{order condition}：$L\ge K$，是识别的\key{必要}条件；
+  \item \term{秩条件}{rank condition}：$\rank\E(z_ix_i\T)=K$，是识别的\key{充要}条件。
+\end{itemize}
+\end{thm}
+理由：模型正确时，真值 $\beta$ 满足 \eqref{eq:U08a-popeq}，方程组至少有一个解。若 $\beta$ 与 $\beta+a$（$a\neq0$）都是解，两式相减得 $\E(z_ix_i\T)a=0$；所以解唯一当且仅当 $\E(z_ix_i\T)a=0$ 只有零解，即 $\E(z_ix_i\T)$ 列满秩。$L\times K$ 矩阵的秩不超过 $\min(L,K)$，列满秩要求 $L\ge K$，这就是阶条件。
+
+\subsubsection{三种情形：不足识别、恰好识别、过度识别}
+
+\begin{itemize}
+  \item $K>L$：\term{不足识别}{under-identified}，问题无法解决（unsolved problem）；
+  \item $K=L$：\term{恰好识别}{just-identified}（exactly identified），唯一解；
+  \item $K<L$：\term{过度识别}{over-identified}，方程多于未知数，用 GMM 合成并可提高效率。
+\end{itemize}
+后两种情形都可以用 GMM 恢复 $\beta$。
+
+\subsection{情形一（\texorpdfstring{$K>L$}{K > L}，不足识别）：\texorpdfstring{$K=2$, $L=1$}{K=2, L=1} 的例子}
+
+设两个回归元 $x_{1i},x_{2i}$、一个工具 $z_i$，记 $a=\E(z_ix_{1i})$，$b=\E(z_ix_{2i})$，$c=\E(z_iy_i)$：
+\begin{align*}
+\E\bigl[z_i(x_{1i},x_{2i})\bigr]\begin{pmatrix}\beta_1\\ \beta_2\end{pmatrix}&=\E(z_iy_i) \why{矩方程 \eqref{eq:U08a-popeq}}\\
+\iff\ a\beta_1+b\beta_2&=c. \why{$1\times2$ 乘 $2\times1$，得标量}
+\end{align*}
+两边都是标量：一个方程、两个未知数，有无穷多解（infinite number of solutions）。例如 $a=1,b=2,c=4$ 时，$(\beta_1,\beta_2)=(4,0),(2,1),(0,2),\dots$ 都满足，解集是参数平面上的一整条直线 $\beta_2=(4-\beta_1)/2$。数据无法区分这条直线上的点：$\beta$ \key{不可识别}，任何估计方法都无能为力。
+
+\subsection{情形二（\texorpdfstring{$K=L$}{K = L}，恰好识别）：唯一解}
+
+此时 $\E(z_ix_i\T)$ 是 $K\times K$ 方阵，秩条件等价于它非奇异（常简写为“$\E(z_ix_i\T)\neq0$”，准确含义是 $\det\E(z_ix_i\T)\neq0$）。\eqref{eq:U08a-popeq} 两边左乘其逆，得唯一解
+\[
+\beta=\bigl[\E(z_ix_i\T)\bigr]\inv\E(z_iy_i).
+\]
+用样本矩替代总体矩，就得到 IV 估计量（第~\ref{sec:U08a-ivmc} 节）。
+
+\subsection{情形三（\texorpdfstring{$K<L$}{K < L}，过度识别）：\texorpdfstring{$K=1$, $L=2$}{K=1, L=2} 的例子}\label{sec:U08a-case3}
+
+\subsubsection{总体中两个方程相容，样本中几乎总是矛盾}
+
+一个回归元 $x_i$、两个工具 $z_{1i},z_{2i}$，记 $a=\E(z_{1i}x_i)$，$b=\E(z_{2i}x_i)$，$c=\E(z_{1i}y_i)$，$d=\E(z_{2i}y_i)$：
+\begin{align*}
+\E\left[\begin{pmatrix}z_{1i}\\ z_{2i}\end{pmatrix}x_i\right]\beta&=\E\left[\begin{pmatrix}z_{1i}\\ z_{2i}\end{pmatrix}y_i\right] \why{矩方程，$2\times1$}\\
+\iff\ \begin{pmatrix}a\\ b\end{pmatrix}\beta&=\begin{pmatrix}c\\ d\end{pmatrix}. \why{逐分量取期望}
+\end{align*}
+两个方程 $a\beta=c$、$b\beta=d$，一个未知数。在总体中，若两个工具都有效，二者给出同一个 $\beta$（$c/a=d/b$）；但在样本中用样本矩代替后，两式几乎总是矛盾的。例如样本中 $a=2,b=1,c=4,d=3$：第一个方程给 $\beta=2$，第二个给 $\beta=3$，没有 $\beta$ 能同时满足（no solution）。
+
+\subsubsection{把两个方程加权合成一个方程：GMM 的雏形}
+
+办法是把两个方程\key{加权合成一个方程}：第一个方程两边乘 $w_1a$，第二个乘 $w_2b$（$w_1,w_2>0$），再相加：
+\begin{align*}
+w_1a\cdot a\beta+w_2b\cdot b\beta&=w_1a\cdot c+w_2b\cdot d \why{两式分别乘 $w_1a$、$w_2b$ 后相加}\\
+\iff\ \beta&=\frac{w_1ac+w_2bd}{w_1a^2+w_2b^2}. \why{$w_1a^2+w_2b^2>0$}
+\end{align*}
+这正是 GMM：用 $1\times2$ 的矩阵 $(a,\,b)\diag(w_1,w_2)$ 左乘 2 个方程，压缩成 1 个（一般推导见第~\ref{sec:U08a-deriv1} 小节，数值续见第~\ref{sec:U08a-gmmnum} 小节）。
+
+\subsubsection{过度识别的好处与代价：效率与可检验性}
+
+多余的有效工具提供了额外信息：多个方程互相“印证”，加权合成后估计更精确——GMM 可以\key{提高效率}（Hansen 第 12.17 节证明：同方差下增加有效工具会降低 2SLS 的渐近方差）。同时，多余的方程使我们有机会检验“它们是否相互一致”——这就是过度识别检验（第 9 章）。代价是：工具过多时有限样本偏误增大（本章弱工具一节）。
+
+\subsection{三种情形对照表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.0cm}LLL}
+\toprule
+ & 不足识别 & 恰好识别 & 过度识别\\
+\midrule
+计数 & $K>L$ & $K=L$ & $K<L$\\
+本节例子 & $K=2,\ L=1$ & — & $K=1,\ L=2$\\
+$\E(z_ix_i\T)$ & 不可能列满秩 & 方阵，非奇异 & 列满秩的“瘦高”矩阵\\
+总体方程的解 & 无穷多 & 唯一 & 唯一（方程相容）\\
+样本方程的解 & 无穷多 & 唯一 & 一般无解 $\Rightarrow$ GMM\\
+估计量 & 无法估计 & IV：$(Z\T X)\inv Z\T Y$ & GMM：$(X\T ZWZ\T X)\inv X\T ZWZ\T Y$\\
+特点 & — & 无法检验工具外生性 & GMM 提高效率；可做过度识别检验\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{识别的三种情形}
+\end{center}
+
+不同资料对三种情形的编号顺序不同：有的按 $K>L$、$K=L$、$K<L$ 依次编为 Case 1、2、3，有的先列恰好识别（$L=K$）、再列 $L<K$、最后列 $L>K$。作答时应写出情形的名称与条件（如 “over-identified, $L>K$”），不要只写编号。
+
+\subsection{含外生控制变量时如何数 \texorpdfstring{$K$}{K} 与 \texorpdfstring{$L$}{L}}\label{sec:U08a-countKL}
+
+\subsubsection{\texorpdfstring{$L-K$}{L - K} 等于排除的工具个数减内生回归元个数}
+
+$K$ 数\key{全部}回归元（含常数项和外生控制变量），$L$ 数\key{全部}工具（含常数项和外生控制变量本身）。记包含的外生变量（含常数项）有 $K_1$ 个、内生回归元有 $K_2$ 个、排除的工具有 $L_2$ 个，则 $K=K_1+K_2$，$L=K_1+L_2$：
+\begin{align*}
+L-K&=(K_1+L_2)-(K_1+K_2) \why{分别计数}\\
+&=L_2-K_2 \why{外生变量两边各计一次，相消}\\
+&=\text{排除的工具个数}-\text{内生回归元个数}. \why{记号含义}
+\end{align*}
+所以阶条件 $L\ge K$ 等价于 $L_2\ge K_2$。$L-K$ 称为\term{过度识别约束}{over-identifying restrictions}的个数，也是第 9 章过度识别检验 $J$ 统计量的自由度。
+
+\subsubsection{例：数 \texorpdfstring{$K$}{K} 与 \texorpdfstring{$L$}{L}}
+
+\begin{exmp}[数 $K$ 与 $L$]\label{ex:U08a-count}
+$y=\beta_0+\beta_1x_1+\beta_2x_2+u$，$x_1$ 内生，$x_2$ 外生，排除的工具为 $z_1,z_2$。判断识别情形。
+\solution
+回归元 $(1,x_1,x_2)$：$K=3$。工具 $(1,z_1,z_2,x_2)$：$L=4$。$L-K=1$：过度识别，有 1 个过度识别约束。用排除工具计数验证：$L_2-K_2=2-1=1$。对应的 Stata 命令为
+\begin{lstlisting}
+ivregress 2sls y (x1 = z1 z2) x2
+\end{lstlisting}
+括号内左边是内生回归元，右边是排除的工具；括号外的 \texttt{x2} 是包含的外生变量，自动同时进入回归元与工具。
+\end{exmp}
+
+\subsection{简约式与识别}
+
+\subsubsection{第一阶段：内生变量对全部工具的线性投影}
+
+把 $x_i$ 对全部工具 $z_i$ 做线性投影，得到\term{简约式}{reduced form}方程，也称\term{第一阶段}{first stage}：
+\[
+x_i=\Gamma\T z_i+v_i,\qquad \Gamma=\bigl[\E(z_iz_i\T)\bigr]\inv\E(z_ix_i\T)=M\inv Q\quad(L\times K),
+\]
+投影误差满足 $\E(z_iv_i\T)=0$。外生回归元对自己的投影没有误差，对应的 $v_i$ 分量为 0。
+
+\subsubsection{\texorpdfstring{$y$}{y} 的简约式：\texorpdfstring{$\lambda=\Gamma\beta$}{lambda = Gamma beta}}
+
+把第一阶段代入结构方程：
+\begin{align*}
+y_i&=x_i\T\beta+u_i \why{结构方程}\\
+&=(\Gamma\T z_i+v_i)\T\beta+u_i \why{代入第一阶段}\\
+&=z_i\T\Gamma\beta+(v_i\T\beta+u_i) \why{$(\Gamma\T z_i)\T=z_i\T\Gamma$}\\
+&\equiv z_i\T\lambda+\epsilon_i,\qquad \lambda\equiv\Gamma\beta,\ \ \epsilon_i\equiv v_i\T\beta+u_i. \why{定义}
+\end{align*}
+新误差与工具不相关：
+\begin{align*}
+\E(z_i\epsilon_i)&=\E(z_iv_i\T)\beta+\E(z_iu_i) \why{期望的线性}\\
+&=0+0=0, \why{投影误差性质；外生性}
+\end{align*}
+所以 $\lambda$ 正是 $y_i$ 对 $z_i$ 的线性投影系数，且
+\begin{equation}\label{eq:U08a-lamgam}
+\lambda=\Gamma\beta\qquad(L\ \text{个方程},\ K\ \text{个未知数}).
+\end{equation}
+
+\subsubsection{识别等价于 \texorpdfstring{$\rank\Gamma=K$}{rank Gamma = K}}
+
+$\lambda$ 与 $\Gamma$ 都是投影系数，都可由 OLS 一致估计：$\hat\lambda=(Z\T Z)\inv Z\T Y$，$\hat\Gamma=(Z\T Z)\inv Z\T X$。由 \eqref{eq:U08a-lamgam}，$\beta$ 可识别当且仅当 $\rank\Gamma=K$。这与秩条件等价：$\Gamma=M\inv Q$，左乘可逆矩阵 $M\inv$ 不改变秩，故 $\rank\Gamma=\rank Q$。
+
+\subsubsection{间接最小二乘（ILS）等于 IV 估计量}
+
+恰好识别时 $\Gamma$ 为 $K\times K$ 可逆方阵，$\beta=\Gamma\inv\lambda$。代入两个 OLS 估计，得\term{间接最小二乘}{indirect least squares, ILS}：
+\begin{align*}
+\hat\beta_{ILS}&=\hat\Gamma\inv\hat\lambda \why{样本类比}\\
+&=\bigl[(Z\T Z)\inv Z\T X\bigr]\inv(Z\T Z)\inv Z\T Y \why{代入两个 OLS 估计}\\
+&=(Z\T X)\inv(Z\T Z)(Z\T Z)\inv Z\T Y \why{$(AB)\inv=B\inv A\inv$（方阵）}\\
+&=(Z\T X)\inv Z\T Y. \why{$(Z\T Z)(Z\T Z)\inv=I_L$}
+\end{align*}
+即 ILS 与 IV 估计量（第~\ref{sec:U08a-ivmc} 节）完全相同。
+
+\subsection{即时练习：识别计数}
+
+\begin{prac}[识别计数]\label{pr:U08a-count}
+对下列设定判断识别情形，并给出过度识别约束个数：
+(a) $y=\beta_0+\beta_1x_1+\beta_2x_2+\beta_3x_3+u$，$x_1,x_2$ 内生，$x_3$ 外生，排除的工具为 $z_1$；
+(b) 同 (a)，但排除的工具为 $z_1,z_2,z_3$；
+(c) $y=\beta_0+\beta_1x_1+u$，$x_1$ 内生，工具 $z_1,z_2$，但 $z_2=2z_1$。
+\answer
+(a) 回归元 $(1,x_1,x_2,x_3)$，$K=4$；工具 $\{1,x_3,z_1\}$，$L=3<K$：不足识别（1 个排除工具对 2 个内生变量），无法估计。
+
+(b) 工具 $\{1,x_3,z_1,z_2,z_3\}$，$L=5$，$L-K=1$：过度识别，1 个过度识别约束。
+
+(c) 看似 $L=3>K=2$，但 $z_2$ 与 $z_1$ 完全共线，$\E(z_iz_i\T)$ 奇异，违反规范化条件。有效工具只有 $(1,z_1)$，$L=2=K$：恰好识别，无法做过度识别检验。Hansen 第 12.12 节有同类例子：college = public + private，三者不能同时作工具。
+\end{prac}
+
+\begin{english}
+\textbf{Identification.} The moment condition implies $L$ linear equations $\E(z_ix_i')\beta=\E(z_iy_i)$ in $K$ unknowns. A necessary (order) condition for identification is $L\ge K$, and the necessary and sufficient (rank) condition is $\operatorname{rank}\E(z_ix_i')=K$. The model is under-identified if $K>L$ (infinitely many solutions), just-identified if $K=L$ (unique solution), and over-identified if $K<L$. In the over-identified case the sample moment equations generally have no exact solution, so we combine them with a weighting matrix, which leads to GMM. The number of over-identifying restrictions is $L-K$, the number of excluded instruments minus the number of endogenous regressors.
+\end{english}
+
+%======================================================================
+\section{线性 IV 的矩条件与 IV 估计量}\label{sec:U08a-ivmc}
+
+\subsection{模型设定：\texorpdfstring{$x$}{x} 内生，\texorpdfstring{$z$}{z} 外生}
+
+GMM 的出发点（GMM setup）是
+\[
+y=x\T\beta+u,\qquad
+\underbrace{\E(u\mid x)\neq0}_{\text{$x$ 内生（endogenous）}},\qquad
+\underbrace{\E(u\mid z)=0}_{\text{$z$ 是工具（IV）}},
+\]
+其中 $x$ 含 $K$ 个变量，$z$ 含 $L$ 个变量。问题是：如何估计 $\beta$？
+
+\subsection{线性 IV 的矩条件 \texorpdfstring{$\E[z_i(y_i-x_i\T\beta)]=0$}{E[z(y - x'beta)] = 0}}
+
+\subsubsection{由工具外生性导出矩条件}
+
+工具的外生性给出
+\begin{align*}
+\E(u_i\mid z_i)=0
+&\ \Longrightarrow\ \E(z_iu_i)=0 \why{迭代期望律}\\
+&\ \Longrightarrow\ \E\bigl[z_i(y_i-x_i\T\beta)\bigr]=0. \why{代入 $u_i=y_i-x_i\T\beta$}
+\end{align*}
+\begin{equation}\label{eq:U08a-ivmc}
+\boxed{\ \E\bigl[z_i(y_i-x_i\T\beta)\bigr]=0\ }\qquad\text{（线性 IV 的矩条件）}
+\end{equation}
+对应一般形式中的 $g(y_i,x_i,z_i,\beta)=z_i(y_i-x_i\T\beta)$。
+
+\subsubsection{每个工具一个方程：\texorpdfstring{$L=2$}{L = 2} 的展开}
+
+\eqref{eq:U08a-ivmc} 是 $L$ 个方程，每个工具贡献一个。例如 $\#(z_i)=L=2$：
+\[
+\E\left[\begin{pmatrix}z_{1i}\\ z_{2i}\end{pmatrix}(y_i-x_i\T\beta)\right]=0
+\iff
+\begin{cases}
+\E\bigl[z_{1i}(y_i-x_i\T\beta)\bigr]=0,\\[2pt]
+\E\bigl[z_{2i}(y_i-x_i\T\beta)\bigr]=0.
+\end{cases}
+\]
+
+\subsection{总体矩方程及其维度}
+
+展开 \eqref{eq:U08a-ivmc}：
+\begin{align*}
+0&=\E\bigl[z_i(y_i-x_i\T\beta)\bigr] \why{矩条件}\\
+&=\E(z_iy_i)-\E(z_ix_i\T)\beta \why{期望的线性；$\beta$ 非随机}
+\end{align*}
+\begin{equation}\label{eq:U08a-dim}
+\iff\quad
+\underbrace{\E(\underbrace{z_i}_{L\times1}\underbrace{x_i\T}_{1\times K})}_{L\times K}\
+\underbrace{\beta}_{K\times1}
+=\underbrace{\E(\underbrace{z_i}_{L\times1}\underbrace{y_i}_{1\times1})}_{L\times1}
+\qquad(L\ \text{个方程},\ K\ \text{个未知数}).
+\end{equation}
+秩条件 $\rank\E(z_ix_i\T)=K$ 成立时，这 $L$ 个线性方程唯一确定 $\beta$（identify $\beta$ uniquely）。
+
+\begin{keypt}[“Write down the moment condition and state the dimensions”]
+按 \eqref{eq:U08a-ivmc}--\eqref{eq:U08a-dim} 作答：先写 $\E[z_i(y_i-x_i\T\beta)]=0$，再写 $\E(z_ix_i\T)\beta=\E(z_iy_i)$，逐项标出 $z_i$ 为 $L\times1$、$x_i\T$ 为 $1\times K$、$\E(z_ix_i\T)$ 为 $L\times K$、$\beta$ 为 $K\times1$、$\E(z_iy_i)$ 为 $L\times1$，最后说明“$L$ equations in $K$ unknowns; identified if $\operatorname{rank}\E(z_ix_i')=K$”。
+\end{keypt}
+
+\subsection{IV 估计量 \texorpdfstring{$(Z\T X)\inv Z\T Y$}{(Z'X)\^{}(-1) Z'Y} 的推导}
+
+\subsubsection{总体解与样本类比}
+
+恰好识别（$K=L$）时 $\E(z_ix_i\T)$ 为 $K\times K$ 可逆矩阵：
+\begin{align*}
+\beta&=\bigl[\E(z_ix_i\T)\bigr]\inv\E(z_iy_i) \why{\eqref{eq:U08a-dim} 两边左乘逆矩阵}\\
+\hat\beta_{MM}&=\Bigl[\frac1n\sum_{i=1}^n z_ix_i\T\Bigr]\inv\Bigl[\frac1n\sum_{i=1}^n z_iy_i\Bigr] \why{矩估计：样本矩替代总体矩}\\
+&=\Bigl[\sum_{i=1}^n z_ix_i\T\Bigr]\inv\Bigl[\sum_{i=1}^n z_iy_i\Bigr] \why{$(A/n)\inv(b/n)=A\inv b$}\\
+&=(Z\T X)\inv Z\T Y\equiv\hat\beta_{IV}. \why{$\sum_i z_ix_i\T=Z\T X$，$\sum_i z_iy_i=Z\T Y$}
+\end{align*}
+
+\subsubsection{IV 估计量的性质：残差与全部工具正交}
+
+\begin{thm}[IV 估计量]\label{thm:U08a-iv}
+恰好识别时，\term{工具变量估计量}{IV estimator}为
+\[
+\hat\beta_{IV}=(Z\T X)\inv Z\T Y .
+\]
+它满足样本矩条件 $Z\T\hat u=Z\T(Y-X\hat\beta_{IV})=0$：IV 残差与全部工具正交；因 $Z$ 含常数项，残差之和为 0。它也等于间接最小二乘估计量。
+\end{thm}
+验证样本矩条件：
+\begin{align*}
+Z\T(Y-X\hat\beta_{IV})&=Z\T Y-Z\T X(Z\T X)\inv Z\T Y \why{代入 $\hat\beta_{IV}$}\\
+&=Z\T Y-Z\T Y=0. \why{$Z\T X(Z\T X)\inv=I_K$}
+\end{align*}
+
+\subsection{IV 的一致性}
+
+要证 $\hat\beta_{IV}\pto\beta$。思路：代入真实模型，把抽样误差写成“样本矩之比”，再用大数定律。
+\begin{align*}
+\hat\beta_{IV}&=(Z\T X)\inv Z\T(X\beta+u) \why{代入 $Y=X\beta+u$}\\
+&=\beta+(Z\T X)\inv Z\T u \why{$(Z\T X)\inv Z\T X=I_K$}\\
+&=\beta+\Bigl(\frac1nZ\T X\Bigr)\inv\frac1nZ\T u \why{分子分母各乘 $1/n$}\\
+&\pto\beta+Q\inv\E(z_iu_i) \why{WLLN；$Q$ 可逆（相关性）；CMT}\\
+&=\beta. \why{外生性 $\E(z_iu_i)=0$}
+\end{align*}
+相关性保证 $Q\inv$ 存在，外生性保证 $\E(z_iu_i)=0$——两个条件缺一不可。
+
+\subsection{单工具的比值形式与 Wald 估计量}\label{sec:U08a-wald}
+
+\subsubsection{去均值表示：简约式斜率除以第一阶段斜率}
+
+考虑一个内生变量、一个工具、含截距的模型 $y_i=\alpha+\beta x_i+u_i$，工具为 $(1,z_i)$（Hansen 第 12.10 节）。样本矩条件 $Z\T\hat u=0$ 是两个方程：
+\[
+\sum_{i=1}^n(y_i-\hat\alpha-\hat\beta x_i)=0,\qquad
+\sum_{i=1}^n z_i(y_i-\hat\alpha-\hat\beta x_i)=0 .
+\]
+第一个方程给出 $\hat\alpha=\bar y-\hat\beta\bar x$。代入第二个：
+\begin{align*}
+\sum_i z_i\bigl[(y_i-\bar y)-\hat\beta(x_i-\bar x)\bigr]=0
+&\iff \hat\beta=\frac{\sum_i z_i(y_i-\bar y)}{\sum_i z_i(x_i-\bar x)} \why{代入 $\hat\alpha$ 后移项}\\
+&\iff \hat\beta=\frac{\sum_i (z_i-\bar z)(y_i-\bar y)}{\sum_i (z_i-\bar z)(x_i-\bar x)}. \why{$\sum_i\bar z(y_i-\bar y)=0$，分母同理}
+\end{align*}
+于是
+\begin{equation}\label{eq:U08a-ratio}
+\hat\beta_{IV}=\frac{\widehat{\Cov}(z,y)}{\widehat{\Cov}(z,x)}
+=\frac{\widehat{\Cov}(z,y)/\widehat{\Var}(z)}{\widehat{\Cov}(z,x)/\widehat{\Var}(z)}
+=\frac{\text{简约式斜率}}{\text{第一阶段斜率}} .
+\end{equation}
+分子是 $y$ 对 $z$ 回归的斜率（$z$ 变动时 $y$ 变多少），分母是 $x$ 对 $z$ 回归的斜率（$z$ 变动时 $x$ 变多少）。
+
+\subsubsection{二值工具：Wald 估计量}
+
+若 $z$ 是二值变量，对结构方程分别取 $z=1$、$z=0$ 的条件期望：
+\begin{align*}
+\E(y\mid z)&=\alpha+\beta\,\E(x\mid z)+\E(u\mid z) \why{条件期望的线性}\\
+&=\alpha+\beta\,\E(x\mid z), \why{外生性 $\E(u\mid z)=0$}\\
+\E(y\mid z=1)-\E(y\mid z=0)&=\beta\bigl[\E(x\mid z=1)-\E(x\mid z=0)\bigr]. \why{两式相减，$\alpha$ 消去}
+\end{align*}
+相关性保证方括号不为 0，于是
+\[
+\beta=\frac{\E(y\mid z=1)-\E(y\mid z=0)}{\E(x\mid z=1)-\E(x\mid z=0)}
+\quad\Longrightarrow\quad
+\hat\beta_{Wald}=\frac{\bar y_1-\bar y_0}{\bar x_1-\bar x_0},
+\]
+其中 $\bar y_1,\bar x_1$（$\bar y_0,\bar x_0$）是 $z=1$（$z=0$）组的样本均值。它称为\term{Wald 估计量}{Wald estimator}（Wald, 1940）。
+
+\subsubsection{Wald 估计量与 IV 估计量数值相等}
+
+记 $n_1=\sum_iz_i$ 为 $z=1$ 组的样本量，$\bar z=n_1/n$。全样本均值是两组均值的加权平均：$\bar y=\bar z\,\bar y_1+(1-\bar z)\,\bar y_0$，从而
+\[
+\bar y_1-\bar y=(1-\bar z)(\bar y_1-\bar y_0),\qquad \bar x_1-\bar x=(1-\bar z)(\bar x_1-\bar x_0).
+\]
+于是
+\begin{align*}
+\hat\beta_{IV}&=\frac{\sum_i z_i(y_i-\bar y)}{\sum_i z_i(x_i-\bar x)} \why{比值形式}\\
+&=\frac{n_1(\bar y_1-\bar y)}{n_1(\bar x_1-\bar x)} \why{$\sum_iz_iy_i=n_1\bar y_1$，$\sum_iz_i=n_1$}\\
+&=\frac{(1-\bar z)(\bar y_1-\bar y_0)}{(1-\bar z)(\bar x_1-\bar x_0)} \why{上面的加权平均关系}\\
+&=\frac{\bar y_1-\bar y_0}{\bar x_1-\bar x_0}=\hat\beta_{Wald}. \why{约去 $1-\bar z$}
+\end{align*}
+
+\subsubsection{例：Card (1995) 大学距离的 Wald 估计}
+
+Card (1995) 用“是否在有四年制大学的县长大”作教育的二值工具，Hansen 第 12.11 节用这组数据演示 Wald 估计量。
+
+\begin{exmp}[Card (1995) 大学距离：Wald 估计（Hansen 第 12.11 节）]\label{ex:U08a-card}
+按是否在有四年制大学的县长大分组：附近组平均 $\ln\text{wage}=6.311$、平均教育 13.527 年；非附近组为 6.156、12.698 年。求教育回报的 Wald 估计。
+\solution
+\begin{align*}
+\hat\beta_{Wald}&=\frac{\bar y_1-\bar y_0}{\bar x_1-\bar x_0} \why{Wald 估计量}\\
+&=\frac{6.311-6.156}{13.527-12.698}=\frac{0.155}{0.829}\approx0.187. \why{代入组均值}
+\end{align*}
+即每多受一年教育，工资约高 19\%（无控制变量），与同一数据的简单 IV 估计 0.19 相同。
+\end{exmp}
+
+\subsection{手算例：一个 6 个观测的小数据集}
+
+\subsubsection{例：IV 与 OLS 的手算对比}
+
+用一个只有 6 个观测、工具为二值变量的小数据集，把比值形式与 Wald 形式各算一遍，并与 OLS 对照。
+
+\begin{exmp}[IV 与 OLS 的手算对比]\label{ex:U08a-hand}
+数据如下，求含截距的 IV 估计（工具 $(1,z)$）与 OLS 估计，并用 Wald 形式验证。
+\begin{center}
+\begin{tabular}{c|cccccc}
+$i$ & 1 & 2 & 3 & 4 & 5 & 6\\
+\hline
+$z_i$ & 0 & 0 & 0 & 1 & 1 & 1\\
+$x_i$ & 1 & 2 & 3 & 3 & 4 & 5\\
+$y_i$ & 2 & 4 & 3 & 5 & 7 & 6
+\end{tabular}
+\end{center}
+\solution
+均值：$\bar z=0.5$，$\bar x=18/6=3$，$\bar y=27/6=4.5$。离差：
+\begin{gather*}
+z-\bar z=(-0.5,-0.5,-0.5,0.5,0.5,0.5),\qquad x-\bar x=(-2,-1,0,0,1,2),\\
+y-\bar y=(-2.5,-0.5,-1.5,0.5,2.5,1.5).
+\end{gather*}
+离差乘积和：
+\begin{align*}
+\textstyle\sum(z_i-\bar z)(y_i-\bar y)&=-0.5(2+4+3)+0.5(5+7+6)=-4.5+9=4.5, \why{$\sum(z_i-\bar z)\bar y=0$}\\
+\textstyle\sum(z_i-\bar z)(x_i-\bar x)&=-0.5(1+2+3)+0.5(3+4+5)=-3+6=3, \why{同理}\\
+\textstyle\sum(x_i-\bar x)(y_i-\bar y)&=5+0.5+0+0+2.5+3=11, \why{逐项相乘}\\
+\textstyle\sum(x_i-\bar x)^2&=4+1+0+0+1+4=10. \why{逐项平方}
+\end{align*}
+估计值：
+\begin{align*}
+\hat\beta_{IV}&=\frac{4.5}{3}=1.5,\qquad \hat\beta_{0,IV}=\bar y-1.5\bar x=4.5-4.5=0; \why{比值形式 \eqref{eq:U08a-ratio}}\\
+\hat\beta_{OLS}&=\frac{11}{10}=1.1,\qquad \hat\beta_{0,OLS}=4.5-1.1\times3=1.2. \why{OLS 斜率与截距}
+\end{align*}
+Wald 形式验证：$\bar y_1=(5+7+6)/3=6$，$\bar y_0=(2+4+3)/3=3$，$\bar x_1=(3+4+5)/3=4$，$\bar x_0=(1+2+3)/3=2$，
+\[
+\hat\beta_{Wald}=\frac{6-3}{4-2}=1.5=\hat\beta_{IV}.
+\]
+\end{exmp}
+
+\subsubsection{即时练习：手算 IV 与 OLS}
+
+\begin{prac}[手算 IV 与 OLS]\label{pr:U08a-hand}
+数据 $z=(1,2,3,4)$，$x=(2,3,5,6)$，$y=(3,5,6,10)$。求含截距的 IV 估计（工具 $(1,z)$）与 OLS 估计。
+\answer
+均值 $\bar z=2.5$，$\bar x=4$，$\bar y=6$。离差：$z-\bar z=(-1.5,-0.5,0.5,1.5)$，$x-\bar x=(-2,-1,1,2)$，$y-\bar y=(-3,-1,0,4)$。
+\begin{align*}
+\textstyle\sum(z-\bar z)(x-\bar x)&=3+0.5+0.5+3=7, \why{逐项相乘}\\
+\textstyle\sum(z-\bar z)(y-\bar y)&=4.5+0.5+0+6=11, \why{逐项相乘}\\
+\hat\beta_{IV}&=11/7\approx1.571,\quad \hat\beta_{0,IV}=6-\tfrac{11}{7}\times4=-\tfrac27\approx-0.286. \why{比值形式}
+\end{align*}
+\begin{align*}
+\textstyle\sum(x-\bar x)^2&=4+1+1+4=10,\qquad \textstyle\sum(x-\bar x)(y-\bar y)=6+1+0+8=15, \why{逐项计算}\\
+\hat\beta_{OLS}&=15/10=1.5,\quad \hat\beta_{0,OLS}=6-1.5\times4=0. \why{OLS 斜率与截距}
+\end{align*}
+\end{prac}
+
+\begin{english}
+\textbf{The IV estimator.} Exogeneity implies the population moment condition $\E[z_i(y_i-x_i'\beta)]=0$, i.e.\ $\E(z_ix_i')\beta=\E(z_iy_i)$, a system of $L$ equations in $K$ unknowns. In the just-identified case $L=K$ and $\E(z_ix_i')$ is invertible, so $\beta=[\E(z_ix_i')]^{-1}\E(z_iy_i)$. Replacing population moments by sample moments yields the IV estimator $\hat\beta_{IV}=(Z'X)^{-1}Z'Y$, which is consistent because $\frac1nZ'u\pto\E(z_iu_i)=0$ and $\frac1nZ'X\pto Q$ is invertible. With a single binary instrument it equals the Wald estimator, the ratio of the reduced-form difference in means to the first-stage difference in means.
+\end{english}
+
+%======================================================================
+\section{GMM 估计量：两种推导}\label{sec:U08a-gmm}
+
+\subsection{过度识别时为何不能直接求逆}
+
+$L>K$ 时，$\E(z_ix_i\T)$ 是 $L\times K$ 的“瘦高”矩阵，不是方阵，没有逆矩阵，\eqref{eq:U08a-dim} 不能两边左乘逆矩阵。样本矩方程
+\[
+\frac1nZ\T(Y-X\beta)=0
+\]
+是 $L$ 个方程、$K$ 个未知数，一般无解（no solution $\Rightarrow$ no $\hat\beta$）。下面给出两条出路，它们得到同一个估计量。
+
+\subsection{推导一：左乘 \texorpdfstring{$\E(x_iz_i\T)W$}{E(xz')W} 化为 \texorpdfstring{$K\times K$}{K x K} 方程}\label{sec:U08a-deriv1}
+
+\subsubsection{思路：用 \texorpdfstring{$K\times L$}{K x L} 矩阵把 \texorpdfstring{$L$}{L} 个方程压缩成 \texorpdfstring{$K$}{K} 个}
+
+在 $L\times K$ 系统两边同时左乘一个 $K\times L$ 矩阵，把它压缩成 $K$ 个方程。自然的选择是先取 $Q=\E(z_ix_i\T)$ 的\key{转置} $Q\T=\E(x_iz_i\T)$（$K\times L$），中间再插入一个 $L\times L$ 对称正定的\term{权重矩阵}{weighting matrix} $W$（记作 $W>0$）：左乘 $\E(x_iz_i\T)W$。
+
+\subsubsection{逐步推导与维度检查}
+
+\begin{align*}
+\underbrace{\E(z_ix_i\T)}_{L\times K}\beta&=\underbrace{\E(z_iy_i)}_{L\times1} \why{总体矩方程，$L>K$}\\
+\underbrace{\underbrace{\E(x_iz_i\T)}_{K\times L}\underbrace{W}_{L\times L}\underbrace{\E(z_ix_i\T)}_{L\times K}}_{K\times K\ \text{满秩}}\beta
+&=\underbrace{\underbrace{\E(x_iz_i\T)}_{K\times L}\underbrace{W}_{L\times L}\underbrace{\E(z_iy_i)}_{L\times1}}_{K\times1} \why{两边左乘 $\E(x_iz_i\T)W$}\\
+\beta&=\bigl[\E(x_iz_i\T)W\E(z_ix_i\T)\bigr]\inv\bigl[\E(x_iz_i\T)W\E(z_iy_i)\bigr]. \why{$Q\T WQ$ 可逆，左乘其逆}
+\end{align*}
+以 $K=2$、$L=3$ 为例：$(2\times3)(3\times3)(3\times2)$ 相乘得 $2\times2$ 方阵。用记号写成
+\begin{equation}\label{eq:U08a-popgmm}
+\beta=(Q\T WQ)\inv Q\T W\,\E(z_iy_i).
+\end{equation}
+
+\subsubsection{\texorpdfstring{$Q\T WQ$}{Q'WQ} 可逆的证明}
+
+要证 $K\times K$ 矩阵 $Q\T WQ$ 正定（从而可逆）。对任意 $a\in\R^K$，$a\neq0$：
+\begin{align*}
+Qa&\neq0 \why{$Q$ 列满秩（秩条件）}\\
+a\T Q\T WQa&=(Qa)\T W(Qa) \why{转置性质 $(Qa)\T=a\T Q\T$}\\
+&>0. \why{$W$ 正定，$Qa\neq0$}
+\end{align*}
+所以 $Q\T WQ$ 正定，必可逆。这里两个条件都用到了：秩条件（相关性）与 $W>0$。
+
+\subsubsection{样本类比得到 GMM 估计量}
+
+用样本矩替代 \eqref{eq:U08a-popgmm} 中的总体矩：
+\begin{align*}
+\hat\beta_{GMM}&=\Bigl[\tfrac1n\textstyle\sum_i x_iz_i\T\,W\,\tfrac1n\sum_i z_ix_i\T\Bigr]\inv\Bigl[\tfrac1n\sum_i x_iz_i\T\,W\,\tfrac1n\sum_i z_iy_i\Bigr] \why{样本矩替代总体矩}\\
+&=\Bigl[\tfrac{1}{n^2}X\T ZWZ\T X\Bigr]\inv\Bigl[\tfrac{1}{n^2}X\T ZWZ\T Y\Bigr] \why{求和式化为矩阵式}\\
+&=(X\T ZWZ\T X)\inv X\T ZWZ\T Y. \why{$(A/n^2)\inv(b/n^2)=A\inv b$}
+\end{align*}
+
+\begin{keypt}[左乘推导必会]
+这条“左乘 $\E(x_iz_i\T)W$”的矩阵推导（matrix solution）是考试必会内容：写出 $L\times K$ 系统，左乘 $K\times L$ 矩阵 $\E(x_iz_i\T)W$，标出每个因子的维度，说明 $Q\T WQ$ 可逆的理由，最后用样本矩替代。
+\end{keypt}
+
+\subsection{推导二：最小距离与二次型目标函数 \texorpdfstring{$J(\beta)$}{J(beta)}}
+
+\subsubsection{最小距离思想：让样本矩尽量接近 0}
+
+\term{最小距离}{minimum distance, MD}的思路是：样本矩条件 $\frac1n\sum_iz_i(y_i-x_i\T\beta)=0$ 在 $K<L$ 时无解，那就退而求其次，要求
+\[
+\frac1n\sum_{i=1}^n z_i(y_i-x_i\T\beta)\approx0 .
+\]
+“一个向量接近 0”需要一个标量尺度来衡量。以两个分量为例，
+\[
+\begin{pmatrix}a\\ b\end{pmatrix}\approx0\quad\Longleftrightarrow\quad a^2+b^2\approx0,
+\]
+所以用平方和（更一般地，正定二次型）把向量“到 0 的距离”变成一个标量，再最小化它：
+\[
+J(\beta)=\Bigl(\frac1n\sum_iz_i(y_i-x_i\T\beta)-0\Bigr)\T W\Bigl(\frac1n\sum_iz_i(y_i-x_i\T\beta)-0\Bigr)\ \ge0 .
+\]
+式中“$-0$”强调这是到 0 的距离；左边的因子必须带转置，二次型才是标量。
+
+\subsubsection{GMM 估计量的定义}
+
+把“到 0 的加权平方距离”记作 $J(\beta)$，GMM 估计量就是它的最小值点。
+
+\begin{defn}[GMM 估计量]\label{def:U08a-gmm}
+给定 $L\times L$ 对称正定权重矩阵 $W$，GMM 目标函数，又称\term{准则函数}{criterion function}，为
+\[
+J(\beta)=\bar g_n(\beta)\T\,W\,\bar g_n(\beta),\qquad \bar g_n(\beta)=\frac1n\sum_{i=1}^n z_i(y_i-x_i\T\beta)\quad(L\times1).
+\]
+\term{GMM 估计量}{GMM estimator}为
+\[
+\hat\beta_{GMM}=\argmin_\beta J(\beta).
+\]
+\end{defn}
+注意估计量是使 $J$ 最小的\key{参数值} $\arg\min_\beta J(\beta)$，而不是最小值 $\min J$ 本身。Hansen 定义 $J(\beta)=n\,\bar g_n(\beta)\T W\bar g_n(\beta)$（多乘一个 $n$），不影响估计量，但在检验中方便（第 9 章的 $J$ 检验）。
+
+\subsubsection{为什么用正定二次型}
+
+$W=I_L$ 时 $J=\|\bar g_n\|^2=\sum_{j=1}^L\bar g_{nj}^2$，就是各矩条件偏离 0 的平方和（即上面的 $a^2+b^2$）；一般的 $W$ 允许给不同矩条件不同权重，并考虑它们之间的相关。$W$ 正定保证 $J\ge0$，且 $J=0$ 当且仅当 $\bar g_n=0$。
+
+\subsection{一阶条件的逐步求导与闭式解}
+
+\subsubsection{把 \texorpdfstring{$J$}{J} 展开成 \texorpdfstring{$\beta$}{beta} 的二次函数}
+
+要证 $\argmin_\beta J(\beta)=(X\T ZWZ\T X)\inv X\T ZWZ\T Y$。先把 $J$ 写成矩阵形式并展开。为简洁，记 $a=Z\T Y$（$L\times1$），$G=Z\T X$（$L\times K$）：
+\begin{align*}
+J(\beta)&=\tfrac{1}{n^2}(Z\T Y-Z\T X\beta)\T W(Z\T Y-Z\T X\beta) \why{$\bar g_n=\frac1nZ\T(Y-X\beta)$}\\
+&=\tfrac{1}{n^2}(a-G\beta)\T W(a-G\beta) \why{记号}\\
+&=\tfrac{1}{n^2}\bigl[a\T Wa-a\T WG\beta-\beta\T G\T Wa+\beta\T G\T WG\beta\bigr] \why{乘开}\\
+&=\tfrac{1}{n^2}\bigl[a\T Wa-2\beta\T G\T Wa+\beta\T G\T WG\beta\bigr]. \why{标量 $a\T WG\beta=\beta\T G\T Wa$（$W$ 对称）}
+\end{align*}
+
+\subsubsection{向量求导与一阶条件}
+
+用向量求导法则 $\partial(\beta\T c)/\partial\beta=c$、$\partial(\beta\T A\beta)/\partial\beta=2A\beta$（$A$ 对称；这里 $A=G\T WG$ 对称）：
+\begin{align*}
+\frac{\partial J}{\partial\beta}&=\tfrac{1}{n^2}\bigl[-2G\T Wa+2G\T WG\beta\bigr]=0 \why{一阶条件（FOC）}\\
+\Longrightarrow\quad G\T WG\,\hat\beta&=G\T Wa \why{整理}\\
+\Longrightarrow\quad \hat\beta_{GMM}&=(G\T WG)\inv G\T Wa \why{$G\T WG$ 可逆}\\
+&=(X\T ZWZ\T X)\inv X\T ZWZ\T Y. \why{代回 $G=Z\T X$，$G\T=X\T Z$}
+\end{align*}
+
+\subsubsection{二阶条件与“加权正交”条件}
+
+二阶条件：
+\[
+\frac{\partial^2J}{\partial\beta\,\partial\beta\T}=\frac{2}{n^2}X\T ZWZ\T X ,
+\]
+在 $Z\T X$ 列满秩、$W>0$ 时正定（证明同 $Q\T WQ$），所以驻点是最小值点。一阶条件也可写成
+\[
+X\T ZWZ\T\hat u=0,\qquad \hat u=Y-X\hat\beta_{GMM}:
+\]
+GMM 残差只满足 $K$ 个“加权”正交条件，而不是全部 $L$ 个 $Z\T\hat u=0$（后者在 $L>K$ 时一般做不到）。
+
+\begin{thm}[GMM 估计量的闭式解（Hansen 定理 13.1）]\label{thm:U08a-gmm}
+线性 IV 模型中，对任意对称正定权重矩阵 $W$，
+\begin{equation}\label{eq:U08a-gmm}
+\boxed{\ \hat\beta_{GMM}=(X\T ZWZ\T X)\inv(X\T ZWZ\T Y)\ }
+\end{equation}
+两种推导（左乘 $\E(x_iz_i\T)W$；最小化 $J$）得到同一公式。
+\end{thm}
+
+\subsection{\texorpdfstring{$W$}{W} 只在相差常数倍的意义上起作用}
+
+若把 $W$ 换成 $cW$（$c>0$ 为常数）：
+\begin{align*}
+(X\T Z\,cW\,Z\T X)\inv X\T Z\,cW\,Z\T Y
+&=c\inv(X\T ZWZ\T X)\inv\cdot c\,X\T ZWZ\T Y \why{$(cA)\inv=c\inv A\inv$}\\
+&=\hat\beta_{GMM}. \why{$c\inv c=1$}
+\end{align*}
+所以 $W=(Z\T Z)\inv$ 与 $W=(\frac1nZ\T Z)\inv$、$W=\hat\Omega\inv$ 与 $W=(n\hat\Omega)\inv$ 给出同一估计量。$\Omega$ 采用不同标度（第~\ref{sec:U08a-scale} 小节）对 $\hat\beta$ 没有影响，只影响方差公式的写法。
+
+\subsection{另一视角：对矩方程做加权最小二乘}
+
+记 $\mu=Z\T Y$（$L\times1$）、$G=Z\T X$（$L\times K$）、$\eta=\mu-G\beta$，则样本矩方程可以看作一个“有 $L$ 个观测、$K$ 个回归元”的回归（Hansen 第 13.4 节）：
+\[
+\mu=G\beta+\eta .
+\]
+目标是让“误差”$\eta$ 尽量小：
+\begin{itemize}
+  \item $W=I$ 时，GMM 就是对它做 OLS：最小化 $\eta\T\eta$，解为 $(G\T G)\inv G\T\mu$；
+  \item 一般 $W$ 时，GMM 是加权最小二乘：最小化 $\eta\T W\eta$，解为 $(G\T WG)\inv G\T W\mu=(X\T ZWZ\T X)\inv X\T ZWZ\T Y$。
+\end{itemize}
+和 GLS 的思想一样，权重应当与“误差”的方差成反比。这就引出有效 GMM：$W=\Omega\inv$（本章权重矩阵一节）。
+
+\subsection{数值例：\texorpdfstring{$K=1$、$L=2$}{K=1, L=2} 的 GMM}\label{sec:U08a-gmmnum}
+
+\subsubsection{例：等权与对角权重下的 GMM 估计}
+
+回到第~\ref{sec:U08a-case3} 小节两个方程互相矛盾的例子，用目标函数 $J(\beta)$ 求 GMM 估计，并观察权重的作用。
+
+\begin{exmp}[过度识别的 GMM 是单工具估计的加权平均]\label{ex:U08a-gmmnum}
+延续第~\ref{sec:U08a-case3} 小节：样本矩 $a=\frac1n\sum z_{1i}x_i=2$，$b=\frac1n\sum z_{2i}x_i=1$，$c=\frac1n\sum z_{1i}y_i=4$，$d=\frac1n\sum z_{2i}y_i=3$。求 (1) $W=I_2$ 与 (2) 一般对角 $W=\diag(w_1,w_2)$ 下的 GMM 估计。
+\solution
+样本矩向量为
+\[
+\bar g_n(\beta)=\begin{pmatrix}c-a\beta\\ d-b\beta\end{pmatrix}=\begin{pmatrix}4-2\beta\\ 3-\beta\end{pmatrix}.
+\]
+(1) $W=I_2$：
+\begin{align*}
+J(\beta)&=(4-2\beta)^2+(3-\beta)^2 \why{$J=\bar g_n\T\bar g_n$}\\
+&=(16-16\beta+4\beta^2)+(9-6\beta+\beta^2)=5\beta^2-22\beta+25, \why{展开合并}\\
+J'(\beta)&=10\beta-22=0\ \Rightarrow\ \hat\beta=2.2, \why{一阶条件}\\
+J(2.2)&=(4-4.4)^2+(3-2.2)^2=0.16+0.64=0.8>0. \why{代入}
+\end{align*}
+最小值大于 0：两个矩条件无法同时满足。
+
+(2) $W=\diag(w_1,w_2)$：$J(\beta)=w_1(c-a\beta)^2+w_2(d-b\beta)^2$。
+\begin{align*}
+J'(\beta)&=-2w_1a(c-a\beta)-2w_2b(d-b\beta)=0 \why{一阶条件}\\
+\Longrightarrow\ \hat\beta&=\frac{w_1ac+w_2bd}{w_1a^2+w_2b^2} \why{移项}\\
+&=\frac{w_1a^2}{w_1a^2+w_2b^2}\cdot\underbrace{\frac{c}{a}}_{=2}+\frac{w_2b^2}{w_1a^2+w_2b^2}\cdot\underbrace{\frac{d}{b}}_{=3}. \why{$ac=a^2\cdot\frac ca$，$bd=b^2\cdot\frac db$}
+\end{align*}
+这与第~\ref{sec:U08a-case3} 小节“加权合成一个方程”的结果相同。$W=I$ 时权重为 $4/5$ 与 $1/5$，$\hat\beta=0.8\times2+0.2\times3=2.2$；$W=\diag(1,\frac12)$ 时权重为 $4/4.5$ 与 $0.5/4.5$，$\hat\beta=(8+1.5)/4.5=9.5/4.5\approx2.11$。
+
+结论：GMM 估计量总落在两个单工具 IV 估计（2 和 3）之间，是它们的加权平均，权重由 $W$ 和工具强度（$a^2,b^2$）决定。
+\end{exmp}
+
+\begin{center}
+\begin{tikzpicture}[x=3cm,y=0.5cm,>={Stealth[length=2mm]},font=\footnotesize]
+\draw[->] (1.1,0) -- (3.75,0) node[right]{$\beta$};
+\draw[->] (1.1,-2.7) -- (1.1,6.8);
+\foreach \t in {1.5,2,2.5,3,3.5} \draw (\t,0.15) -- (\t,-0.15) node[below]{$\t$};
+\foreach \v in {-2,2,4,6} \draw (1.12,\v) -- (1.08,\v) node[left]{$\v$};
+\draw[cdef,thick,domain=1.2:3.3] plot (\x,{4-2*\x});
+\draw[cex,thick,dashed,domain=1.2:3.6] plot (\x,{3-\x});
+\draw[cthm,very thick,domain=1.25:3.15,samples=60] plot (\x,{5*\x*\x-22*\x+25});
+\fill (2.2,0.8) circle (1.6pt) node[above=3pt]{$\hat\beta_{GMM}=2.2$};
+\fill (2,0) circle (1.3pt); \fill (3,0) circle (1.3pt);
+\draw[cdef,thick] (1.72,6.2) -- (1.86,6.2) node[right,black]{$\bar g_{n1}(\beta)=4-2\beta$};
+\draw[cex,thick,dashed] (1.72,5.3) -- (1.86,5.3) node[right,black]{$\bar g_{n2}(\beta)=3-\beta$};
+\draw[cthm,very thick] (1.72,4.4) -- (1.86,4.4) node[right,black]{$J(\beta)$，$W=I_2$};
+\end{tikzpicture}
+\captionof{figure}{$K=1$、$L=2$ 的 GMM：两条样本矩分别在 $\beta=2$、$\beta=3$ 处为 0，$J$ 在两者之间的 $2.2$ 处取最小值 $0.8$}\label{fig:U08a-gmmnum}
+\end{center}
+
+\subsubsection{即时练习：一般 \texorpdfstring{$W$}{W} 下 \texorpdfstring{$K=1$}{K=1} 的公式}
+
+\begin{prac}[一般 $W$ 下 $K=1$ 的公式]\label{pr:U08a-k1}
+$K=1$、$L$ 任意时，记 $g=\frac1nZ\T X$（$L\times1$）、$m=\frac1nZ\T Y$（$L\times1$）。(1) 证明 $\hat\beta_{GMM}=g\T Wm/g\T Wg$；(2) 证明当 $W$ 为对角阵时，$\hat\beta_{GMM}$ 是 $L$ 个单工具 IV 估计 $m_j/g_j$ 的加权平均，权重非负且和为 1。
+\answer
+(1) $K=1$ 时 $X\T Z=n\,g\T$，$Z\T X=n\,g$，$Z\T Y=n\,m$：
+\begin{align*}
+X\T ZWZ\T X&=n^2\,g\T Wg\ \ (\text{标量}),\qquad X\T ZWZ\T Y=n^2\,g\T Wm, \why{代入}\\
+\hat\beta_{GMM}&=\frac{n^2\,g\T Wm}{n^2\,g\T Wg}=\frac{g\T Wm}{g\T Wg}. \why{闭式解 \eqref{eq:U08a-gmm}}
+\end{align*}
+(2) $W=\diag(w_1,\dots,w_L)$，$w_j>0$，设 $g_j\neq0$：
+\begin{align*}
+\hat\beta&=\frac{\sum_j w_jg_jm_j}{\sum_j w_jg_j^2} \why{对角阵的二次型}\\
+&=\sum_j\underbrace{\frac{w_jg_j^2}{\sum_k w_kg_k^2}}_{\omega_j}\cdot\frac{m_j}{g_j}. \why{$g_jm_j=g_j^2\cdot\frac{m_j}{g_j}$}
+\end{align*}
+显然 $\omega_j\ge0$ 且 $\sum_j\omega_j=1$。工具越强（$|g_j|$ 越大）、权重 $w_j$ 越大，对应的单工具估计 $m_j/g_j$ 占比越高。
+\end{prac}
+
+\begin{english}
+\textbf{Deriving the GMM estimator.} When $L>K$, the $L\times K$ matrix $\E(z_ix_i')$ is not invertible. Premultiplying the moment equation by $\E(x_iz_i')W$, where $W$ is an $L\times L$ positive definite weighting matrix, yields $K$ equations with the unique solution $\beta=(Q'WQ)^{-1}Q'W\E(z_iy_i)$. Equivalently, the GMM estimator minimizes the quadratic form $J(\beta)=\bar g_n(\beta)'W\bar g_n(\beta)$, where $\bar g_n(\beta)=\frac1nZ'(Y-X\beta)$. The first-order condition $-2X'ZW(Z'Y-Z'X\beta)=0$ gives $\hat\beta_{GMM}=(X'ZWZ'X)^{-1}X'ZWZ'Y$. The estimator is invariant to rescaling $W$ by a positive constant.
+\end{english}
+
+%======================================================================
+\section{GMM 的大样本性质}\label{sec:U08a-asy}
+
+\subsection{一致性}
+
+\subsubsection{抽样误差的表达式}
+
+要证 $\hat\beta_{GMM}\pto\beta$。思路与 IV 一致性相同：代入真实模型，把抽样误差写成样本矩的函数，再取概率极限。
+\begin{align*}
+\hat\beta_{GMM}&=(X\T ZWZ\T X)\inv X\T ZWZ\T(X\beta+u) \why{代入 $Y=X\beta+u$}\\
+&=(X\T ZWZ\T X)\inv X\T ZWZ\T X\beta+(X\T ZWZ\T X)\inv X\T ZWZ\T u \why{分配律}\\
+&=\beta+(X\T ZWZ\T X)\inv X\T ZWZ\T u \why{$(X\T ZWZ\T X)\inv X\T ZWZ\T X=I_K$}\\
+&=\beta+\Bigl[\bigl(\tfrac1nX\T Z\bigr)W\bigl(\tfrac1nZ\T X\bigr)\Bigr]\inv\bigl(\tfrac1nX\T Z\bigr)W\bigl(\tfrac1nZ\T u\bigr). \why{每个样本矩乘 $1/n$，$n^2$ 相消}
+\end{align*}
+
+\subsubsection{取概率极限}
+
+由 WLLN，$\frac1nZ\T X=\frac1n\sum_iz_ix_i\T\pto Q$，$\frac1nX\T Z\pto Q\T$，$\frac1nZ\T u=\frac1n\sum_iz_iu_i\pto\E(z_iu_i)$。于是
+\begin{align*}
+\hat\beta_{GMM}&\pto\beta+(Q\T WQ)\inv Q\T W\,\E(z_iu_i) \why{WLLN 与 CMT；$Q\T WQ$ 可逆}\\
+&=\beta. \why{外生性 $\E(z_iu_i)=0$}
+\end{align*}
+
+\subsubsection{随机权重矩阵：\texorpdfstring{$\hat W\pto W>0$}{W-hat -> W > 0} 时结论不变}
+
+若权重矩阵是数据的函数 $\hat W$（如 $(\frac1nZ\T Z)\inv$），只要 $\hat W\pto W>0$，上面最后两步照样成立（CMT），结论不变。
+
+\subsection{渐近正态性与夹心方差}
+
+\subsubsection{思路：LLN 处理“分母”，CLT 处理“分子”}
+
+把抽样误差乘以 $\sqrt n$，把 $1/n$ 与 $1/\sqrt n$ 分配给各因子：$\frac1nX\T Z$、$\frac1nZ\T X$ 用 LLN 处理；“分子” $\frac{1}{\sqrt n}Z\T u$ 用 CLT 处理。
+
+\subsubsection{分子的中心极限定理}
+
+由一致性推导的最后一个等式，两边乘 $\sqrt n$：
+\begin{align*}
+\sqrt n(\hat\beta_{GMM}-\beta)
+&=\Bigl[\bigl(\tfrac1nX\T Z\bigr)W\bigl(\tfrac1nZ\T X\bigr)\Bigr]\inv\bigl(\tfrac1nX\T Z\bigr)W\Bigl(\tfrac{1}{\sqrt n}\textstyle\sum_{i=1}^n z_iu_i\Bigr). \why{$\sqrt n\cdot\frac1n=\frac1{\sqrt n}$}
+\end{align*}
+$z_iu_i$ 是 i.i.d.\ 的 $L\times1$ 随机向量，均值与方差为
+\begin{align*}
+\E(z_iu_i)&=0, \why{外生性}\\
+\Var(z_iu_i)&=\E\bigl[(z_iu_i)(z_iu_i)\T\bigr]-\E(z_iu_i)\E(z_iu_i)\T \why{方差定义}\\
+&=\E(z_iz_i\T u_i^2)\equiv\Omega. \why{$u_i$ 为标量；均值为 0}
+\end{align*}
+因此由 CLT，
+\[
+\frac{1}{\sqrt n}\sum_{i=1}^n z_iu_i\dto\xi\sim N(0,\Omega).
+\]
+
+\subsubsection{Slutsky 定理合成夹心方差}
+
+记 $A=(Q\T WQ)\inv Q\T W$（$K\times L$）。
+\begin{align*}
+\sqrt n(\hat\beta_{GMM}-\beta)&\dto(Q\T WQ)\inv Q\T W\,\xi=A\xi \why{WLLN 与 Slutsky 定理}\\
+&\sim N\bigl(0,\ A\Omega A\T\bigr). \why{$\Var(A\xi)=A\Var(\xi)A\T$}
+\end{align*}
+再求 $A\T$：
+\begin{align*}
+A\T&=W\T Q\bigl[(Q\T WQ)\inv\bigr]\T \why{$(BC)\T=C\T B\T$}\\
+&=WQ(Q\T WQ)\inv, \why{$W$、$Q\T WQ$ 对称}
+\end{align*}
+所以
+\[
+A\Omega A\T=(Q\T WQ)\inv Q\T W\,\Omega\,WQ(Q\T WQ)\inv .
+\]
+
+\begin{thm}[GMM 的渐近分布（Hansen 定理 13.3）]\label{thm:U08a-asy}
+设 $(y_i,x_i,z_i)$ i.i.d.，$\E(z_iu_i)=0$，$\rank\E(z_ix_i\T)=K$，$\E(z_iz_i\T)>0$，$\Omega>0$，$\E y_i^4<\infty$、$\E\|z_i\|^4<\infty$、$\E\|x_i\|^2<\infty$（Hansen 假设 12.2），$W>0$（或 $\hat W\pto W>0$）。则
+\begin{equation}\label{eq:U08a-asy}
+\sqrt n(\hat\beta_{GMM}-\beta)\dto N(0,V_W),\qquad
+\boxed{\ V_W=(Q\T WQ)\inv\,Q\T W\Omega WQ\,(Q\T WQ)\inv\ }
+\end{equation}
+其中 $Q=\E(z_ix_i\T)$，$\Omega=\E(z_iz_i\T u_i^2)$。
+\end{thm}
+
+\subsubsection{夹心结构：“面包”与“肉”}
+
+$V_W$ 是\term{夹心形式}{sandwich form}：两片“面包”是 $(Q\T WQ)\inv$，中间的“肉”是 $Q\T W\Omega WQ$。“肉”中的 $\Omega$ 来自 CLT（分子的方差），“面包”来自 LLN（分母的极限）。$V_W$ 依赖于 $W$；使 $V_W$ 最小的 $W$ 是本章权重矩阵一节的主题。
+
+\subsection{有限样本夹心公式与 \texorpdfstring{$\Omega$}{Omega} 的两种标度}\label{sec:U08a-scale}
+
+\subsubsection{有限样本近似：\texorpdfstring{$\Var(\hat\beta_{GMM})$}{Var(beta-hat)} 的夹心写法}
+
+从一致性推导的第三行出发，抽样误差为
+\[
+\hat\beta_{GMM}-\beta=A_n\,Z\T u,\qquad A_n=(X\T ZWZ\T X)\inv X\T ZW\quad(K\times L).
+\]
+把 $A_n$ 当作常数矩阵近似处理（严格论证就是上面的渐近推导），由 $\Var(A_nZ\T u)=A_n\Var(Z\T u)A_n\T$ 与 $A_n\T=WZ\T X(X\T ZWZ\T X)\inv$，得
+\[
+\Var(\hat\beta_{GMM})\approx(X\T ZWZ\T X)\inv X\T ZW\,\Var(Z\T u)\,WZ\T X\,(X\T ZWZ\T X)\inv,
+\]
+同样是夹心形式（sandwich form）。
+
+\subsubsection{加总标度与单观测标度}
+
+“$\Omega$”在文献中有两种标度，必须分清：
+\begin{itemize}
+  \item \key{加总标度}：$\Omega_n\equiv\Var(Z\T u)=\sum_{i=1}^n\Var(z_iu_i)=n\Omega$（$n$ 个独立观测加总，随 $n$ 增大）。于是有限样本近似为
+  \[
+  \Var(\hat\beta)\approx(X\T ZWZ\T X)\inv X\T ZW\Omega_nWZ\T X(X\T ZWZ\T X)\inv .
+  \]
+  取 $W=\Omega_n\inv$（有效 GMM）时，“肉”$X\T Z\Omega_n\inv\Omega_n\Omega_n\inv Z\T X=X\T Z\Omega_n\inv Z\T X$ 与一片“面包”相消，化为 $(X\T Z\Omega_n\inv Z\T X)\inv$。
+  \item \key{单观测标度}（Hansen 采用）：$\Omega=\Var(z_iu_i)=\E(z_iz_i\T u_i^2)$。渐近方差为 $V_W$，有效 GMM 时为 $(Q\T\Omega\inv Q)\inv$，有限样本近似 $\Var(\hat\beta)\approx V/n$。
+\end{itemize}
+两种写法一致。以有效 GMM 为例，记 $\hat Q=\frac1nZ\T X$：
+\begin{align*}
+\bigl(X\T Z(n\Omega)\inv Z\T X\bigr)\inv
+&=\bigl(n\hat Q\T\cdot\tfrac1n\Omega\inv\cdot n\hat Q\bigr)\inv \why{$X\T Z=n\hat Q\T$，$Z\T X=n\hat Q$}\\
+&=\bigl(n\,\hat Q\T\Omega\inv\hat Q\bigr)\inv \why{约去一个 $n$}\\
+&=\tfrac1n(\hat Q\T\Omega\inv\hat Q)\inv. \why{$(cA)\inv=c\inv A\inv$}
+\end{align*}
+所以写成“$\Var(\hat\beta_{EGMM})=(X\T Z\Omega\inv Z\T X)\inv$”时，其中的 $\Omega$ 应理解为加总版本 $\Omega_n$；若 $\Omega$ 指单观测版本，就要写成 $(X\T Z(n\Omega)\inv Z\T X)\inv$。由于 $W$ 只在相差常数倍的意义上起作用，标度不影响 $\hat\beta$ 本身。
+
+\subsection{方差估计与稳健标准误}
+
+\subsubsection{插入估计量 \texorpdfstring{$\hat V_W$}{V-hat}}
+
+把总体矩换成样本矩：
+\[
+\hat V_W=(\hat Q\T W\hat Q)\inv\hat Q\T W\hat\Omega W\hat Q(\hat Q\T W\hat Q)\inv,\qquad
+\hat Q=\frac1nZ\T X,\quad \hat\Omega=\frac1n\sum_{i=1}^n z_iz_i\T\hat u_i^2,\quad \hat u_i=y_i-x_i\T\hat\beta_{GMM}.
+\]
+由 WLLN 与 $\hat\beta_{GMM}\pto\beta$ 可得 $\hat Q\pto Q$，$\hat\Omega\pto\Omega$，故 $\hat V_W\pto V_W$。
+
+\subsubsection{标准误 \texorpdfstring{$\sqrt{[\hat V_W]_{jj}/n}$}{sqrt(V\_jj/n)} 及其矩阵写法}
+
+第 $j$ 个系数的标准误为 $s(\hat\beta_j)=\sqrt{[\hat V_W]_{jj}/n}$。把 $\hat V_W/n$ 写成数据矩阵形式：
+\begin{align*}
+\frac1n\hat V_W
+&=\frac1n\bigl(\tfrac{1}{n^2}X\T ZWZ\T X\bigr)\inv\Bigl(\tfrac{1}{n^3}X\T ZW\textstyle\sum_iz_iz_i\T\hat u_i^2\,WZ\T X\Bigr)\bigl(\tfrac{1}{n^2}X\T ZWZ\T X\bigr)\inv \why{代入 $\hat Q$、$\hat\Omega$}\\
+&=\frac{n^2\cdot n^2}{n\cdot n^3}(X\T ZWZ\T X)\inv X\T ZW\Bigl(\textstyle\sum_iz_iz_i\T\hat u_i^2\Bigr)WZ\T X(X\T ZWZ\T X)\inv \why{提出 $n$ 的幂}\\
+&=(X\T ZWZ\T X)\inv X\T ZW\Bigl(\textstyle\sum_iz_iz_i\T\hat u_i^2\Bigr)WZ\T X(X\T ZWZ\T X)\inv. \why{$n^4/n^4=1$}
+\end{align*}
+这正是有限样本夹心公式中把 $\Var(Z\T u)$ 换成 $\sum_iz_iz_i\T\hat u_i^2$ 的结果。
+
+\subsubsection{异方差稳健与聚类稳健}
+
+$\hat\Omega$ 不假设 $\E(u_i^2\mid z_i)$ 为常数，允许任意形式的异方差，所以 $\hat V_W$ 是\term{异方差稳健}{heteroskedasticity-robust}的（与第 5 章 HC 方差的思想相同）。聚类数据时把“肉”中的 $\hat\Omega$ 换成
+\[
+\hat S=\frac1n\sum_{g=1}^G Z_g\T\hat u_g\hat u_g\T Z_g ,
+\]
+其中 $Z_g$ 为第 $g$ 个聚类的 $n_g\times L$ 工具矩阵，$\hat u_g$ 为其 $n_g\times1$ 残差向量（第 5 章 CRVE；Hansen 第 13.13 节）。
+
+\begin{note}[残差必须用原始的 $x_i$ 计算]
+$\hat u_i=y_i-x_i\T\hat\beta_{GMM}$ 中用的是\key{原始回归元} $x_i$，不是第一阶段的拟合值 $\hat x_i$。用 $\hat x_i$ 算出的残差估计的是另一个误差，标准误不一致。手工做两阶段回归时这是常见错误，本章 2SLS 一节还会讨论。
+\end{note}
+
+\subsection{即时练习：单工具 IV 的渐近方差}
+
+\begin{prac}[单工具 IV 的渐近方差]\label{pr:U08a-avar}
+$K=L=1$，$y_i=x_i\beta+u_i$，工具 $z_i$，各变量均值为 0。(1) 由 GMM 的渐近分布 \eqref{eq:U08a-asy} 写出 $\hat\beta_{IV}$ 的渐近方差；(2) 在同方差 $\E(u_i^2\mid z_i)=\sigma^2$ 下化简，并与 OLS 的渐近方差 $\sigma^2/\Var(x)$ 比较。
+\answer
+(1) $Q=\E(z_ix_i)$、$\Omega=\E(z_i^2u_i^2)$、$W$ 都是标量，$W$ 相消：
+\begin{align*}
+V&=(QWQ)\inv QW\Omega WQ(QWQ)\inv \why{式 \eqref{eq:U08a-asy}}\\
+&=\frac{W^2Q^2\,\Omega}{W^2Q^4}=\frac{\Omega}{Q^2}=\frac{\E(z_i^2u_i^2)}{[\E(z_ix_i)]^2}. \why{标量运算}
+\end{align*}
+(2) 同方差下：
+\begin{align*}
+\Omega&=\E\bigl[z_i^2\E(u_i^2\mid z_i)\bigr]=\sigma^2\E(z_i^2)=\sigma^2\Var(z), \why{迭代期望律；均值为 0}\\
+[\E(z_ix_i)]^2&=[\Cov(z,x)]^2=\rho_{zx}^2\Var(z)\Var(x), \why{相关系数定义}\\
+V&=\frac{\sigma^2\Var(z)}{\rho_{zx}^2\Var(z)\Var(x)}=\frac{1}{\rho_{zx}^2}\times\frac{\sigma^2}{\Var(x)}. \why{约去 $\Var(z)$}
+\end{align*}
+IV 的渐近方差是 OLS 的 $1/\rho_{zx}^2$ 倍：工具与 $x$ 的相关系数越小，IV 越不精确（$\rho_{zx}=0.2$ 时方差放大 25 倍）。这是“IV 只用了 $x$ 中由 $z$ 驱动的那部分变动”的数学表达，也是弱工具问题的一个侧面。
+\end{prac}
+
+\begin{english}
+\textbf{Asymptotic distribution of GMM.} Substituting $Y=X\beta+u$ gives $\sqrt n(\hat\beta-\beta)=[(\frac1nX'Z)W(\frac1nZ'X)]^{-1}(\frac1nX'Z)W\frac{1}{\sqrt n}Z'u$. By the WLLN $\frac1nZ'X\pto Q$, and by the CLT $\frac{1}{\sqrt n}Z'u\dto N(0,\Omega)$ with $\Omega=\E(z_iz_i'u_i^2)$, since $z_iu_i$ is i.i.d.\ with mean zero under exogeneity. Hence $\sqrt n(\hat\beta-\beta)\dto N(0,V)$ with the sandwich variance $V=(Q'WQ)^{-1}Q'W\Omega WQ(Q'WQ)^{-1}$, which is estimated by replacing $Q$ and $\Omega$ with $\frac1nZ'X$ and $\frac1n\sum z_iz_i'\hat u_i^2$. The resulting standard errors are heteroskedasticity-robust.
+\end{english}
+
+GMM 估计量的公式与渐近方差都依赖于 $W$。如何选择 $W$——一步 GMM、2SLS、有效 GMM、两步 GMM——是本章下一部分的主题。

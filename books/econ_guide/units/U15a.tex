@@ -1,0 +1,1364 @@
+% ===================================================================
+% U15a  第 15 章（前半）：方法地图与记号、潜在结果、2x2 DiD、识别假设、
+%        TWFE 与 DiD 的精确等价、协变量、处理组很少时的推断
+% ===================================================================
+\chapter{处理效应、双重差分与双向固定效应}
+\label{ch:U15a-did}
+
+本章用面板数据评估一项政策（处理）的效果。核心困难是处理组在处理后的未处理潜在结果 $y_{it}(0)$ 观测不到，必须插补：\term{双重差分}{difference in differences, DiD}用控制组的变化来插补，\term{双向固定效应}{two-way fixed effects, TWFE}回归是 DiD 的回归实现。学习路线：方法地图与记号 → 潜在结果与 ATT → $2\times2$ DiD → 识别假设 → TWFE 与 DiD 的精确等价 → 协变量 → 处理组很少 → 异质效应与事件研究 → 交错处理与异质稳健估计量。TWFE 的估计理论见第 10 章，聚类标准误见第 5 章；第 16 章讲个体处理效应（SCM、PDA、矩阵补全）。对应 Hansen 第 18 章；2025 年真题第 2 题的逐步作答见第 17 章。
+
+%======================================================================
+\section{因果推断方法地图与记号统一}\label{sec:U15a-map}
+
+\subsection{四类政策评估方法}
+
+\subsubsection{以平均处理效应为目标：DiD \texorpdfstring{$\to$}{->} TWFE \texorpdfstring{$\to$}{->} 扩展 TWFE \texorpdfstring{$\to$}{->} ATT}
+
+用面板数据做政策评估的方法分两条路线。第一条以\key{平均}处理效应为目标：
+\[
+\underbrace{\text{DiD}\ \longrightarrow\ \text{TWFE 回归}\ \longrightarrow\ \text{Wooldridge 扩展 TWFE}\ \longrightarrow\ \texttt{jwdid}/\texttt{wooldid}\ \longrightarrow\ \text{ATT}}_{\text{目标：平均处理效应}}
+\]
+DiD 是思想（两次差分），TWFE 回归是它的计算工具；Wooldridge 把 TWFE 依次推广到三种情形：\key{同质处理效应}（homogeneous treatment）、\key{异质处理效应}（heterogeneous treatment）、\key{交错处理}（staggered treatment）。最终目标是处理组的平均处理效应 ATT（定义见下一节）。
+
+\subsubsection{以个体处理效应为目标：SCM、PDA \texorpdfstring{$\to$}{->} 个体效应 \texorpdfstring{$\to$}{->} 推断}
+
+第二条以\key{个体}处理效应为目标，适用于只有一个或极少数处理单位的情形：
+\[
+\underbrace{\left.\begin{array}{l}\text{SCM}\\ \text{PDA (RCM)}\end{array}\right\}\ \longrightarrow\ \text{individual TE}\ \longrightarrow\ \text{inference}}_{\text{目标：个体处理效应及其推断}}
+\]
+\term{合成控制法}{synthetic control method, SCM}与\term{面板数据法}{panel data approach, PDA}（又称回归控制法 RCM）估计单个处理单位逐期的效应 $\Delta_t$，难点在推断。
+
+\subsubsection{第三类：矩阵补全}
+
+第三类是\term{矩阵补全}{matrix completion, MC}：把 $N\times T$ 的未处理结果矩阵看成低秩矩阵，用因子结构补全缺失的格子，从而得到每个处理单元格 $(i,t)$ 的效应 $\Delta_{it}$。于是处理效应方法可列为：(1) DiD；(2) SCM / PDA / RCM；(3) 矩阵补全。
+
+\subsubsection{统一视角：四种方法都在插补缺失的 \texorpdfstring{$y_{it}(0)$}{y\_it(0)}}
+
+四类方法可以用一句话统一：
+\begin{center}
+\fbox{\ DiD、SCM、PDA、MC $\Longrightarrow$ \key{缺失数据插补}（imputation of missing data）\ }
+\end{center}
+它们的区别只在于“用什么来插补处理单位在处理后的 $y_{it}(0)$”：
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.0cm}LLp{2.1cm}@{}}
+\toprule
+方法 & 估计目标 & 用什么插补缺失的 $y_{it}(0)$ & 位置\\
+\midrule
+DiD / TWFE & 平均处理效应 ATT（及按时期、按 cohort 的分解） & 处理组处理前水平 $+$ 控制组的变化（平行趋势） & 本章\\
+SCM & 单个处理单位的逐期效应 $\Delta_t$ & 控制单位的凸组合（权重非负、和为 1） & 第 16 章\\
+PDA / RCM & 同上 & 控制单位的无约束线性组合（OLS） & 第 16 章\\
+矩阵补全 MC & 每个处理单元格 $(i,t)$ 的效应 $\Delta_{it}$ & 因子模型拟合值 $\hat\lambda_i\T\hat f_t$ & 第 16 章\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\begin{note}[文献与软件]
+Wooldridge 的论文“Two-Way Fixed Effects, the Two-Way Mundlak Regression, and Difference-in-Differences Estimators”2021 年起以工作论文形式流传，2025 年正式发表于 \textit{Empirical Economics}；文献中写“Wooldridge (2021)”或“Wooldridge (2025)”指的是同一篇。Stata 中实现扩展 TWFE 的用户命令有 \texttt{jwdid}（SSC，Rios-Avila）与 \texttt{wooldid}。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{本书统一记号}
+
+\subsubsection{基本记号：\texorpdfstring{$d_i$、$w_t$、$D_{it}=d_iw_t$}{d\_i, w\_t, D\_it = d\_i w\_t}}
+
+全章使用如下记号（答题时也建议使用，并先写一句定义）：
+\begin{itemize}
+  \item $d_i=1$：单位 $i$ 属于处理组（treated）；$d_i=0$：属于控制组（control）。
+  \item $w_t=1$：第 $t$ 期政策已生效（effective / post）；$w_t=0$：处理前。
+  \item $D_{it}=d_iw_t$：处理指示，等于 1 当且仅当“处理组且处理后”。
+  \item $N_0$、$N_1$：控制单位数、处理单位数，$N=N_0+N_1$；处理组、控制组的单位集合记作 $\mathcal T$、$\mathcal C$。
+  \item $1,\dots,T_0$ 为处理前期，$T_0+1,\dots,T$ 为处理后期，处理后期数 $T_1=T-T_0$。
+  \item $\alpha_i$、$\lambda_t$：个体固定效应、时间固定效应；$\beta$：DiD 系数；$\delta$：协变量斜率。
+\end{itemize}
+
+\subsubsection{记号对照表：本书、Hansen 第 18 章、2025 真题与其他写法}
+
+不同教材、论文的记号冲突很大。下表列出本书记号与常见写法的对应：
+
+{\small\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{@{}>{\raggedright\arraybackslash}p{2.0cm}>{\raggedright\arraybackslash}p{3.1cm}>{\raggedright\arraybackslash}p{2.4cm}>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{4.9cm}@{}}
+\toprule
+含义 & 本书 & Hansen 第 18 章 & 2025 真题 & 其他常见写法\\
+\midrule
+\endfirsthead
+\toprule
+含义 & 本书 & Hansen 第 18 章 & 2025 真题 & 其他常见写法\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+处理组虚拟变量 & $d_i$ & $\mathit{State}_i$ & “$\alpha_i=1$” & —\\
+处理后（生效）虚拟变量 & $w_t$ & $\mathit{Time}_t$ & “$\lambda_t=1$” & $d_t$；$f_t$\\
+处理指示 & $D_{it}=d_iw_t$ & $D_{it}$ & $D_{it}$ & $w_{it}=d_id_t$；$d_if_t$\\
+DiD 系数 & $\beta$ & $\theta$ & $\beta$ & $\alpha$\\
+个体 / 时间效应 & $\alpha_i$ / $\lambda_t$ & $u_i$ / $v_t$ & $\alpha_i$ / $\lambda_t$ & 时间效应也写 $\gamma_t$、$f_t$\\
+潜在结果 & $y_{it}(1)$，$y_{it}(0)$（简写 $y^1_{it}$，$y^0_{it}$） & $Y=h(D,X,e)$ & — & $y^g_p$：上标为\key{组别}、下标为时期\\
+四格样本均值 & $\bar y_{dw}$：第一下标组别，第二下标时期 & — & $\bar Y_{C,0}$，$\bar Y_{C,1}$，$\bar Y_{T,0}$，$\bar Y_{T,1}$ & 格 A、B、C、D；$y^0_0,y^0_1,y^1_0,y^1_1$\\
+控制 / 处理单位数 & $N_0$ / $N_1$ & $N_1$ 控制、$N_2$ 处理（含义\key{相反}） & $i=2$ 控制、$i=1$ 处理 & —\\
+处理前 / 后期 & $1,\dots,T_0$ / $T_0+1,\dots,T$ & — & $t=0$ / $t=1$ & 事件研究中有时用 $T_0$ 指生效期\\
+时变效应 & $\tau_s$（$s>T_0$） & — & — & $\beta_3,\beta_4,\beta_5$ 等\\
+交错处理 & 首次处理期 $G_i=r$；$\tau_{rs}$ & — & — & $\tau_{3,3},\dots$；$TE_t(r)$（$t$ 指 cohort 还是日历期因作者而异）\\
+协变量斜率 & $\delta$ & $\beta$ & — & $\gamma$；也有写 $\beta$ 的（与 DiD 系数撞名）\\
+\end{longtable}}
+
+\subsubsection{四格对照：A、B、C、D}
+
+$2\times2$ 设计的四个格子是全章的基本单位，务必记牢，答题时画出来：
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+ & 处理前 $w_t=0$ & 处理后 $w_t=1$\\
+\midrule
+处理组 $d_i=1$ & \textbf{C}：$\bar y_{10}$（另写 $y^1_0$；真题 $\bar Y_{T,0}$） & \textbf{D}：$\bar y_{11}$（另写 $y^1_1$；真题 $\bar Y_{T,1}$）\\
+控制组 $d_i=0$ & \textbf{A}：$\bar y_{00}$（另写 $y^0_0$；真题 $\bar Y_{C,0}$） & \textbf{B}：$\bar y_{01}$（另写 $y^0_1$；真题 $\bar Y_{C,1}$）\\
+\bottomrule
+\end{tabular}
+\end{center}
+记法：A、B 是控制组的“前、后”，C、D 是处理组的“前、后”；只有 D 格受处理。
+
+\subsubsection{最危险的冲突：上标表示潜在结果还是组别}
+
+本书的上标（$y^1_{it}$、$y^0_{it}$）表示\key{潜在结果}。另一种常见写法 $y^g_p$ 用上标表示\key{组别}（1 为处理组、0 为控制组）、下标表示\key{时期}（0 为处理前、1 为处理后）。同一个 $y^1_1$，在前一种写法中是“处理后的潜在结果”，在后一种写法中是“处理组处理后的观测均值”。读题、读文献时先确认上标的含义。
+
+\subsubsection{区分本章的 \texorpdfstring{$\lambda_t$}{lambda\_t} 与第 16 章的 \texorpdfstring{$\lambda_i$}{lambda\_i}}
+
+本章 $\lambda_t$（下标 $t$，标量）是时间固定效应，与 2025 真题一致；第 16 章的 $\lambda_i$（下标 $i$，$r\times1$ 向量）是因子载荷，与第 13、14 章一致。看下标即可区分。“政策生效”虚拟变量也常写作 $f_t$，与因子 $f_t$ 撞名，本书一律用 $w_t$。
+
+\begin{english}
+Let $d_i=1$ if unit $i$ belongs to the treated group and $w_t=1$ in post-treatment periods, so the treatment indicator is $D_{it}=d_iw_t$. Denote the potential outcomes by $y_{it}(1)$ and $y_{it}(0)$; only one of them is observed for each $(i,t)$. Program evaluation methods (DiD, SCM, PDA and matrix completion) can all be viewed as different ways of imputing the missing untreated outcomes $y_{it}(0)$ of treated units after treatment. DiD and TWFE target the average treatment effect on the treated, while SCM and PDA target the individual treatment effect of a single treated unit.
+\end{english}
+
+%======================================================================
+\section{潜在结果框架：TE、ATE、ATT 与“处理效应 \texorpdfstring{$=$}{=} 缺失数据插补”}\label{sec:U15a-po}
+
+\subsection{潜在结果与个体处理效应}
+
+\subsubsection{直觉：政策评估问的是反事实}
+
+政策评估要回答：“这项政策对 $y$ 有没有影响？”（Is there any impact of the policy intervention on $y$?）换句话说，“如果没有这项政策，结果会怎样？”同一个单位在同一时期只能处于“受处理”或“未受处理”之一，另一种状态下的结果永远看不到。这个看不到的结果称为\term{反事实}{counterfactual}。
+
+\subsubsection{定义：潜在结果与观测方程}
+
+\begin{defn}[潜在结果与个体处理效应]\label{def:U15a-po}
+对单位 $i$、时期 $t$，定义两个\term{潜在结果}{potential outcomes}：
+\begin{itemize}
+  \item $y_{it}(1)$（简写 $y^1_{it}$）：受处理时的结果；
+  \item $y_{it}(0)$（简写 $y^0_{it}$）：未受处理时的结果。
+\end{itemize}
+观测到的结果为
+\begin{equation}\label{eq:U15a-obs}
+y_{it}=D_{it}\,y_{it}(1)+(1-D_{it})\,y_{it}(0).
+\end{equation}
+\term{个体处理效应}{individual treatment effect, TE}定义为 $\Delta_{it}=y_{it}(1)-y_{it}(0)$。
+\end{defn}
+
+观测方程 \eqref{eq:U15a-obs} 的含义：$D_{it}=1$ 时 $y_{it}=y_{it}(1)$，$D_{it}=0$ 时 $y_{it}=y_{it}(0)$。每个 $(i,t)$ 只揭示一个潜在结果。
+
+\subsubsection{个体处理效应 \texorpdfstring{$=$}{=} 观测值 \texorpdfstring{$-$}{-} 反事实}
+
+对处理组的处理后观测，$y_{it}(1)$ 就是观测值，$y_{it}(0)$ 是反事实，所以
+\[
+\text{treatment effect}=\underbrace{y_{it}(1)}_{\text{观测值}}-\underbrace{y_{it}(0)}_{\text{if no policy（反事实）}}.
+\]
+用“上标为组别”的写法，这句话写成 treatment effect $=y^1_1-y^1_1(\text{if no policy})$，或写成总体形式
+\[
+\Delta=\E\bigl(y^1_1\mid d=1\bigr)-\E\bigl(y^1_1\mid d=0\bigr),
+\]
+其中 $y^1_1$ 是处理组处理后的结果，“$d=1$”表示政策实施，“$d=0$”表示\key{假如政策没有实施}。换成本书记号，第二项就是反事实 $\E[y_{i1}(0)\mid d_i=1]$，即
+\[
+\Delta=\E[y_{i1}(1)\mid d_i=1]-\E[y_{i1}(0)\mid d_i=1].
+\]
+注意“$d=0$”在这里不是“控制组”，而是“处理组假如没有被处理”。
+
+%----------------------------------------------------------------------
+\subsection{ATE 与 ATT}
+
+\subsubsection{定义}
+
+\begin{defn}[ATE 与 ATT]\label{def:U15a-att}
+\term{平均处理效应}{average treatment effect, ATE}：对全体单位平均，
+\[
+\mathrm{ATE}=\E\bigl[y_{it}(1)-y_{it}(0)\bigr].
+\]
+\term{处理组平均处理效应}{average treatment effect on the treated, ATT}：只对处理组平均（处理后时期），
+\[
+\mathrm{ATT}=\E\bigl[y_{it}(1)-y_{it}(0)\mid d_i=1\bigr].
+\]
+\end{defn}
+
+\subsubsection{DiD 估计的是 ATT，不是 ATE}
+
+DiD 只为处理组插补反事实 $y(0)$，从不需要控制组的 $y(1)$；所以它识别的是 ATT。若要 ATE，还必须知道控制组“假如被处理”会怎样，DiD 不提供这一信息。
+
+\subsubsection{随机分配时 ATT \texorpdfstring{$=$}{=} ATE}
+
+若处理随机分配，即 $d_i$ 与潜在结果 $(y_{it}(1),y_{it}(0))$ 独立，则
+\begin{align*}
+\mathrm{ATT}&=\E\bigl[y_{it}(1)-y_{it}(0)\mid d_i=1\bigr] \why{定义}\\
+&=\E\bigl[y_{it}(1)-y_{it}(0)\bigr] \why{$d_i$ 与潜在结果独立}\\
+&=\mathrm{ATE}. \why{定义}
+\end{align*}
+政策评估中处理通常不是随机分配的（处理组往往是“效应大”或“情况特殊”的单位），二者一般不同。
+
+\subsubsection{同质处理效应：ATT \texorpdfstring{$=$}{=} ATE \texorpdfstring{$=\beta$}{= beta}}
+
+若所有单位的效应都相同，$\Delta_{it}\equiv\beta$（\term{同质处理效应}{homogeneous treatment effect}），则对任何子总体求平均都得 $\beta$：
+\[
+\Delta_1=\Delta_2=\dots=\Delta_{N_1}=\beta\quad\Longrightarrow\quad \mathrm{ATT}=\mathrm{ATE}=\beta.
+\]
+本章前半部分（到“处理组很少”一节为止）都在同质效应下讨论，单一系数 $\beta$ 就是 ATT；异质效应见本章“异质处理效应”一节。
+
+%----------------------------------------------------------------------
+\subsection{因果推断的根本问题：处理后 \texorpdfstring{$y_{it}(0)$}{y\_it(0)} 缺失}
+
+\subsubsection{ATT \texorpdfstring{$=$}{=} 可观测项 \texorpdfstring{$-$}{-} 缺失项}
+
+把 ATT 拆成两项：
+\begin{align*}
+\mathrm{ATT}&=\E\bigl[y_{it}(1)-y_{it}(0)\mid d_i=1\bigr] \why{定义}\\
+&=\underbrace{\E\bigl[y_{it}(1)\mid d_i=1\bigr]}_{\text{observed（可观测）}}-\underbrace{\E\bigl[y_{it}(0)\mid d_i=1\bigr]}_{\text{missing（缺失）}}. \why{期望的线性性}
+\end{align*}
+在处理后时期，处理组的 $y_{it}(1)$ 是观测到的数据（data under treatment $\to$ observed）；$y_{it}(0)$ 是未处理时的数据（data without treatment $\to$ missing）。第一项用处理组处理后的样本均值 $\frac1{N_1}\sum_{i:\,d_i=1}y_{it}$ 估计即可；第二项是“处理组如果没有被处理会怎样”，数据中不存在，必须\term{插补}{imputation}。各种方法的区别仅在于\key{如何插补} $\E[y_{it}(0)\mid d_i=1]$。这就是\term{因果推断的根本问题}{fundamental problem of causal inference}。
+
+\subsubsection{朴素组间比较 \texorpdfstring{$=$}{=} ATT \texorpdfstring{$+$}{+} 选择偏差}
+
+最朴素的插补是用控制组的均值代替缺失项。它的偏差可以精确写出：
+\begin{align*}
+\E[y_{it}\mid d_i=1]-\E[y_{it}\mid d_i=0]
+&=\E[y_{it}(1)\mid d_i=1]-\E[y_{it}(0)\mid d_i=0] \why{观测方程 \eqref{eq:U15a-obs}}\\
+&=\bigl\{\E[y_{it}(1)\mid d_i=1]-\E[y_{it}(0)\mid d_i=1]\bigr\}\\
+&\quad+\bigl\{\E[y_{it}(0)\mid d_i=1]-\E[y_{it}(0)\mid d_i=0]\bigr\} \why{加一项减一项}\\
+&=\mathrm{ATT}+\underbrace{\bigl\{\E[y_{it}(0)\mid d_i=1]-\E[y_{it}(0)\mid d_i=0]\bigr\}}_{\text{选择偏差}}. \why{ATT 的定义}
+\end{align*}
+第二项称为\term{选择偏差}{selection bias}：两组即使都不受处理，水平也可能不同；这部分差异被误算成处理效应。DiD 用处理前的数据把这类不随时间变化的差异差分掉（下一节）。
+
+%----------------------------------------------------------------------
+\subsection{倾向得分匹配（PSM）插补}
+
+\subsubsection{三步：可观测项、匹配插补缺失项、按倾向得分定义“相似”}
+
+第一种常见的插补方式是\term{倾向得分匹配}{propensity score matching, PSM}：
+\begin{enumerate}
+  \item 可观测项：$\hat\E[y_{it}(1)\mid d_i=1]=\dfrac1{N_1}\sum_{i:\,d_i=1}y_{it}(1)$。
+  \item 缺失项：为每个处理单位 $i$ 在控制组中找“相似”的单位（match），用它们的未处理结果插补：
+  \[
+  \hat\E[y_{it}(0)\mid d_i=1]=\frac1{N_1}\sum_{i:\,d_i=1}\tilde y_{it}(0),
+  \]
+  其中 $\tilde y_{it}(0)$ 是与 $i$ 匹配的控制单位的结果（多个匹配时取其平均）。注意：插补的是匹配控制单位的\key{未处理}结果 $\tilde y(0)$，并且是对 $N_1$ 个\key{处理单位}（各自的匹配值）求平均。
+  \item “相似”按\term{倾向得分}{propensity score} $p(x)=\Pr(d_i=1\mid x_i)$ 衡量。Rosenbaum \& Rubin (1983) 证明：给定 $p(x)$ 匹配即可平衡 $x$，于是多维匹配降为一维匹配。
+\end{enumerate}
+
+\subsubsection{所需假设：条件独立与重叠}
+
+\begin{itemize}
+  \item \term{条件独立}{unconfoundedness}：$y(0)\indep d\mid x$。给定 $x$，处理组与控制组的未处理结果分布相同，控制单位的 $y(0)$ 才能代替处理单位的 $y(0)$。
+  \item \term{重叠}{overlap}：$p(x)<1$。每个处理单位的 $x$ 处都有控制单位可供匹配。
+\end{itemize}
+
+\subsubsection{PSM 与 DiD 可以结合}
+
+条件独立要求“$x$ 解释了全部选择”，往往过强。PSM 可以与 DiD 结合：先按处理前特征匹配，再对匹配后的样本做 DiD，用差分去掉不随时间变化的不可观测差异。
+
+\begin{prac}[ATT 与 ATE]\label{prac:U15a-att}
+设处理组 2 个单位、控制组 2 个单位，处理后某期的潜在结果为：单位 1（处理）$y(1)=9,\ y(0)=5$；单位 2（处理）$y(1)=8,\ y(0)=6$；单位 3（控制）$y(1)=4,\ y(0)=3$；单位 4（控制）$y(1)=7,\ y(0)=7$。(a) 求 ATT 与 ATE。(b) 研究者实际能观测到哪些数？用观测值做朴素比较会有多大偏差？
+\answer
+(a) 按定义直接平均个体效应：
+\begin{align*}
+\mathrm{ATT}&=\tfrac12\bigl[(9-5)+(8-6)\bigr]=\tfrac12(4+2)=3, \why{只对处理组平均}\\
+\mathrm{ATE}&=\tfrac14\bigl[(9-5)+(8-6)+(4-3)+(7-7)\bigr]=\tfrac74=1.75. \why{对全体平均}
+\end{align*}
+二者不同，因为处理组恰好是效应大的单位（选择性）。
+
+(b) 只能观测 $y_1=9,\ y_2=8$（处理组的 $y(1)$）和 $y_3=3,\ y_4=7$（控制组的 $y(0)$）；处理组的 $y(0)$ 与控制组的 $y(1)$ 都缺失。朴素比较为
+\begin{align*}
+\tfrac{9+8}{2}-\tfrac{3+7}{2}&=8.5-5=3.5, \why{组间均值差}\\
+3.5-\mathrm{ATT}&=\tfrac{5+6}{2}-\tfrac{3+7}{2}=5.5-5=0.5. \why{选择偏差}
+\end{align*}
+偏差 0.5 来自两组 $y(0)$ 水平不同，正是上文“朴素组间比较 $=$ ATT $+$ 选择偏差”中的第二项；DiD 要用“处理前”数据消掉的就是它。
+\end{prac}
+
+\begin{english}
+The fundamental problem of causal inference is that $y_{it}(0)$ is never observed for treated units after treatment. The parameter of interest is the ATT, $E[y_{it}(1)-y_{it}(0)\mid d_i=1]$. The first term, $E[y_{it}(1)\mid d_i=1]$, is estimated by the sample mean of treated outcomes, while the second term, $E[y_{it}(0)\mid d_i=1]$, is a counterfactual that must be imputed. A naive comparison of treated and control means equals the ATT plus a selection bias, $E[y(0)\mid d=1]-E[y(0)\mid d=0]$. DiD, SCM, PDA and matrix completion differ only in how they impute the missing untreated potential outcomes.
+\end{english}
+
+%======================================================================
+\section{模型无关的 \texorpdfstring{$2\times2$}{2x2} 双重差分}\label{sec:U15a-2x2}
+
+\subsection{\texorpdfstring{$2\times2$}{2x2} 设定}
+
+\subsubsection{\texorpdfstring{$N_0$}{N0} 个控制单位、\texorpdfstring{$N_1$}{N1} 个处理单位，政策在 \texorpdfstring{$T_0$}{T0} 之后生效}
+
+\begin{defn}[DiD 设定]\label{def:U15a-setup}
+$N$ 个单位分为 $N_0$ 个\key{控制单位}（unaffected，$d_i=0$）与 $N_1$ 个\key{处理单位}（affected，$d_i=1$），$N_0+N_1=N$。$T$ 期中前 $T_0$ 期为\key{处理前}（pre-treated），政策在 $T_0$ 之后生效（policy intervention）。最简单的 \term{$2\times2$ 设计}{2x2 design}：两组 $\times$ 两期，$t=0$ 为处理前，$t=1$ 为处理后。
+\end{defn}
+
+最理想的情形是政策被随机分配给处理组；DiD 实际需要的只是比随机分配弱的平行趋势（见“DiD 的识别假设”一节）。
+
+\subsubsection{四格图：只有 D 格是 \texorpdfstring{$y(1)$}{y(1)}}
+
+\begin{center}
+\begin{tikzpicture}[font=\small]
+\fill[gray!18] (4.2,1.6) rectangle (8.4,3.2);
+\draw[thick] (0,0) rectangle (8.4,3.2);
+\draw[thick] (4.2,0) -- (4.2,3.2);
+\draw[thick] (0,1.6) -- (8.4,1.6);
+\node[align=center] at (2.1,2.4) {\textbf{C}：处理组·处理前\\ observed：$\bar y_{10}$};
+\node[align=center] at (6.3,2.4) {\textbf{D}：处理组·处理后\\ observed \emph{including}\\ \emph{policy}：$\bar y_{11}$};
+\node[align=center] at (2.1,0.8) {\textbf{A}：控制组·处理前\\ observed：$\bar y_{00}$};
+\node[align=center] at (6.3,0.8) {\textbf{B}：控制组·处理后\\ observed：$\bar y_{01}$};
+\node[left,align=right] at (0,2.4) {$N_1$：treated\\ $d_i=1$};
+\node[left,align=right] at (0,0.8) {$N_0$：control\\ $d_i=0$};
+\node[below] at (2.1,0) {pre（$w_t=0$）};
+\node[below] at (6.3,0) {post（$w_t=1$）};
+\node[above] at (4.2,3.2) {$T_0$：policy effective};
+\end{tikzpicture}
+\captionof{figure}{$2\times2$ 设计的四个格子}\label{fig:U15a-cells}
+\end{center}
+
+D 格的观测值“包含了政策的作用”（observed including policy intervention），是 $y(1)$；其余三格都是 $y(0)$。要估计的是 D 格的反事实 $\E[y(0)\mid d=1,\text{post}]$。
+
+%----------------------------------------------------------------------
+\subsection{两种单差估计量及其问题}
+
+\subsubsection{处理组前后差：把同期的一切变化都归于政策}
+
+最朴素的做法是只看处理组的前后之差 $\bar y_{11}-\bar y_{10}$，Hansen 称之为\term{单差估计量}{difference estimator}。问题：处理前后之间还有很多其他因素在变（经济周期、季节、物价等），单差把这些“其他效应”也算作政策效应。它没有提供任何关于反事实的证据。
+
+\subsubsection{处理后组间差：把两组固有的水平差归于政策}
+
+另一种单差是处理后两组之差 $\bar y_{11}-\bar y_{01}$。它把两组本来就存在的水平差（上一节的选择偏差）算作政策效应。
+
+DiD 用两次差分同时去掉这两类混杂：组内前后差分去掉组间固有水平差，再减去控制组的变化去掉共同的时间变化。
+
+%----------------------------------------------------------------------
+\subsection{DiD 估计量：用控制组的变化插补反事实}
+
+\subsubsection{定义：\texorpdfstring{$\hat y_{11}(0)=\bar y_{10}+(\bar y_{01}-\bar y_{00})$}{y11(0) hat = y10 + (y01 - y00)}}
+
+\begin{defn}[模型无关的 DiD]\label{def:U15a-did}
+\term{模型无关}{model-free}的 DiD 估计量是“观测值减插补的反事实”，反事实用“处理组处理前水平 $+$ 控制组的变化”插补：
+\begin{align*}
+\hat\Delta&=\bar y_{11}-\hat y_{11}(0) \why{TE $=$ 观测值 $-$ 反事实}\\
+\hat y_{11}(0)&=\bar y_{10}+(\bar y_{01}-\bar y_{00}) \why{处理前水平 $+$ 控制组变化}\\
+\Rightarrow\ \hat\Delta_{\mathrm{DiD}}&=\bar y_{11}-\bigl[\bar y_{10}+(\bar y_{01}-\bar y_{00})\bigr] \why{代入}\\
+&=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00}) \why{重新组合}\\
+&=(\mathrm D-\mathrm C)-(\mathrm B-\mathrm A). \why{四格记号}
+\end{align*}
+\end{defn}
+
+“模型无关”指它只用四个均值，不需要任何回归模型或函数形式；回归只是计算它的一种方式（见“TWFE 回归与 $2\times2$ DiD 的精确等价”一节）。
+
+\subsubsection{先组间差后时期差与先时期差后组间差相同}
+
+2025 真题把 DiD 写成 $\Delta Y=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})$：先在同一时期做组间差，再做时期差。它与“先时期差后组间差”代数上完全相同：
+\begin{align*}
+(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})&=\bar Y_{T,1}-\bar Y_{C,1}-\bar Y_{T,0}+\bar Y_{C,0} \why{去括号}\\
+&=(\bar Y_{T,1}-\bar Y_{T,0})-(\bar Y_{C,1}-\bar Y_{C,0}). \why{重新组合}
+\end{align*}
+
+\subsubsection{同一估计量的其他写法}
+
+\begin{itemize}
+  \item 上标为组别、下标为时期：$\hat\Delta_{\mathrm{DiD}}=y^1_1-\bigl[y^1_0+(y^0_1-y^0_0)\bigr]=(y^1_1-y^1_0)-(y^0_1-y^0_0)$。
+  \item 插补形式：$\hat\Delta=\hat\E(y^1_1\mid d=1)-\hat\E(y^1_1\mid d=0)$，其中“$d=0$”表示假如没有政策，第二项就是插补的反事实 $\bar y_{10}+(\bar y_{01}-\bar y_{00})$。
+  \item 前后组均值形式：$\mathrm{DID}=(\bar y^1_{\mathit{after}}-\bar y^1_{\mathit{before}})-(\bar y^0_{\mathit{after}}-\bar y^0_{\mathit{before}})$，其中 $\bar y^1_{\mathit{after}}=\frac1{N_1}\sum_{i\in\mathcal T}y_{it}$（处理后）等为组均值。
+\end{itemize}
+这些写法都是同一个数。答题时选定一种，先写一句记号定义。
+
+%----------------------------------------------------------------------
+\subsection{分解：处理组的变化 \texorpdfstring{$=$}{=} TE \texorpdfstring{$+$}{+} 其他效应，控制组的变化 \texorpdfstring{$=$}{=} 其他效应}
+
+把两组的前后变化拆开看：
+\[
+\underbrace{\bar y_{11}-\bar y_{10}}_{\text{处理组的变化}}=\underbrace{\text{政策效应 TE}}_{\text{effects from policy}}+\underbrace{\text{政策以外的其他效应}}_{\text{other effects except policy}},\qquad
+\underbrace{\bar y_{01}-\bar y_{00}}_{\text{控制组的变化}}=\underbrace{\text{其他效应}}_{\text{no impact from policy}}.
+\]
+两式相减：
+\begin{align*}
+\hat\Delta_{\mathrm{DiD}}&=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00}) \why{定义}\\
+&=\mathrm{TE}+(\text{其他效应}_{T}-\text{其他效应}_{C}) \why{代入两式}\\
+&=\mathrm{TE}. \why{若其他效应两组相同}
+\end{align*}
+“其他效应在两组相同”正是\key{平行趋势}（下一节）。在回归形式中，控制组的变化由系数 $\beta_2$ 表示，它“来自政策以外的其他因素”（coming from other factors except policy）。
+
+%----------------------------------------------------------------------
+\subsection{数值例}
+
+\subsubsection{Card--Krueger 最低工资（Hansen §18.2）}
+
+\begin{exmp}[Card \& Krueger (1994) 最低工资]\label{ex:U15a-ck}
+1992 年新泽西（NJ）把最低时薪从 \$4.25 提到 \$5.05，宾夕法尼亚东部（PA）保持 \$4.25 不变。Card 与 Krueger 在提高前（1992 年 2--3 月）和提高后（同年 11--12 月）两次调查了 NJ 的 331 家与 PA 的 79 家快餐店。快餐店平均全职等效雇员数如下：
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+ & NJ（处理） & PA（控制） & 差（NJ$-$PA）\\
+\midrule
+提高前 & 20.43 & 23.38 & $-2.95$\\
+提高后 & 20.90 & 21.10 & $-0.20$\\
+变化 & $+0.47$ & $-2.28$ & $\mathbf{2.75}$\\
+\bottomrule
+\end{tabular}
+\end{center}
+求 DiD 估计值，并用插补视角解释。
+\solution
+\begin{align*}
+\hat\Delta_{\mathrm{DiD}}&=(20.90-20.43)-(21.10-23.38) \why{处理组变化 $-$ 控制组变化}\\
+&=0.47-(-2.28)=2.75. \why{计算}\\
+\hat y_{11}(0)&=20.43+(-2.28)=18.15 \why{NJ 处理前 $+$ PA 的变化}\\
+\hat\Delta&=20.90-18.15=2.75. \why{观测值 $-$ 反事实}
+\end{align*}
+若不提高最低工资，NJ 提高后的雇员数应为 18.15；实际为 20.90，效应为每家店多 2.75 人。按餐馆聚类的标准误为 1.34，$t$ 值略大于 2（渐近 $p$ 值约 0.04）。这一结论与“提高最低工资减少就业”的教科书预测相反；多数经济学家把它解读为“小幅提高最低工资对就业的影响很小”。
+\end{exmp}
+
+\subsubsection{可手算的四格例（本章反复使用）}
+
+\begin{exmp}[可手算的四格例]\label{ex:U15a-four}
+4 个单位、2 期，括号内为（处理前，处理后）：处理单位 1：$(10,15)$；处理单位 2：$(12,19)$；控制单位 3：$(8,10)$；控制单位 4：$(6,10)$。求四格均值、DiD 估计值与插补的反事实。
+\solution 四格均值：
+\begin{align*}
+\mathrm A&=\bar y_{00}=(8+6)/2=7, & \mathrm B&=\bar y_{01}=(10+10)/2=10,\\
+\mathrm C&=\bar y_{10}=(10+12)/2=11, & \mathrm D&=\bar y_{11}=(15+19)/2=17.
+\end{align*}
+\begin{align*}
+\hat\Delta_{\mathrm{DiD}}&=(17-11)-(10-7)=6-3=3, \why{处理组变化 6 $=$ TE 3 $+$ 其他效应 3}\\
+\hat y_{11}(0)&=11+(10-7)=14,\qquad 17-14=3. \why{插补视角，结果相同}
+\end{align*}
+\end{exmp}
+
+\begin{prac}[两种单差与 DiD]\label{prac:U15a-single}
+用上文“可手算的四格例”的数据，分别计算 (a) 处理组前后单差；(b) 处理后组间单差；(c) DiD。说明 (a)(b) 各自混入了什么。
+\answer
+(a) $17-11=6=3\,(\text{TE})+3\,(\text{其他效应，即控制组变化 }10-7)$：混入了共同的时间趋势。
+
+(b) $17-10=7=3\,(\text{TE})+4\,(\text{处理前两组水平差 }11-7)$：混入了组间固有差异（选择偏差）。
+
+(c) $\mathrm{DiD}=6-3=3$：组内前后差分消去了两组固有的水平差，再减去控制组变化消去了共同的时间趋势。
+\end{prac}
+
+\begin{english}
+Consider a $2\times2$ design with treated and control groups observed before and after the policy. The DiD estimator is $(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00})$, i.e., the change in the treated group minus the change in the control group. Equivalently, it imputes the missing counterfactual $E[y(0)\mid d=1,\text{post}]$ by the treated pre-treatment mean plus the control-group change. The control-group change captures all other factors except the policy, so differencing removes them under the parallel trends assumption. The before--after difference attributes all contemporaneous changes to the policy, while the post-period treated--control difference confounds the effect with permanent level differences.
+\end{english}
+
+%======================================================================
+\section{DiD 的识别假设}\label{sec:U15a-ident}
+
+DiD 能把“两次差分”解释为因果效应，靠的是三条假设：(1) SUTVA，即无溢出（no spillover）；(2) 无预期（no anticipation），与处理外生（exogenous treatment）密切相关；(3) 平行趋势（parallel trends, PT）。
+
+\subsection{SUTVA 与无溢出}
+
+\begin{defn}[SUTVA]\label{def:U15a-sutva}
+\term{稳定单位处理值假设}{stable unit treatment value assumption, SUTVA}：
+(i) \key{无干扰 / 无溢出}——单位 $i$ 的潜在结果只取决于它自己是否被处理，与其他单位是否被处理无关；
+(ii) 处理只有一个版本。
+于是 $y_{it}(1)$、$y_{it}(0)$ 有良好定义。
+\end{defn}
+
+若政策从处理组“溢出”到控制组，即存在\term{溢出效应}{spillover effect}，控制组的变化就不再只是“其他效应”，DiD 被污染。设溢出使控制组处理后的均值改变 $S$，则 $\mathrm{DiD}=\mathrm{TE}-S$（定量分析见本章“DiD 方法总结”一节）。
+
+%----------------------------------------------------------------------
+\subsection{无预期}
+
+\subsubsection{定义：处理前的处理效应为 0}
+
+\begin{defn}[无预期]\label{def:U15a-noant}
+\term{无预期}{no anticipation}：处理组在政策生效前不因预期政策而改变行为，
+\[
+\E\bigl[y_t(1)-y_t(0)\mid d=1\bigr]=0,\qquad t=1,\dots,T_0\ \text{（所有处理前时期）}.
+\]
+\end{defn}
+
+这里 $y_t(1)$ 指“将要受处理”这一处理路径下第 $t$ 期的结果。无预期即处理前的效应为 0（例如 $T_0=2$ 时，“TE $=0$ for $t=1,2$”），从而处理组在处理前观测到的 $y$ 确实是 $y(0)$。
+
+\subsubsection{与处理外生性的关系：政策时间不能受结果影响}
+
+无预期常与“处理外生 / 随机分配”（exogenous treatment / random assigned）一起表述：政策是否实施、何时实施不能由结果变量决定，结果也不能因预期政策而提前变化。
+
+Hansen 用 Card--Krueger 的例子说明这两点：(i) 最低工资法案在生效\key{两年前}通过，通过时经济处于扩张、生效时已陷入衰退，因此 1990 年的立法决定不太可能受 1992 年就业水平的影响；(ii) 衰退中曾有撤销该法案的严肃讨论，第一轮调查时政策是否会实施并不确定，因此餐馆不太可能提前调整雇佣。
+
+%----------------------------------------------------------------------
+\subsection{平行趋势假设}
+
+\subsubsection{两期形式}
+
+\begin{defn}[平行趋势]\label{def:U15a-pt}
+\term{平行趋势假设}{parallel trends assumption, PT}：在没有处理的情况下，处理组与控制组的未处理潜在结果有相同的平均变化。
+\begin{align*}
+\text{两期：}\quad&\E\bigl[y_{i1}(0)-y_{i0}(0)\mid d_i=1\bigr]=\E\bigl[y_{i1}(0)-y_{i0}(0)\mid d_i=0\bigr];\\
+\text{多期：}\quad&\E\bigl[y_t(0)-y_{t-1}(0)\mid d\bigr]=\E\bigl[y_t(0)-y_{t-1}(0)\bigr],\qquad t=2,\dots,T.
+\end{align*}
+\end{defn}
+
+\subsubsection{多期形式：未处理结果的逐期变化与组别无关}
+
+多期形式说：未处理结果的逐期变化不依赖于组别 $d$，即与总体平均相同。它与“两组相等”的写法等价。记 $m_d=\E[y_t(0)-y_{t-1}(0)\mid d]$，$q=\Pr(d=1)$：
+\begin{align*}
+\E\bigl[y_t(0)-y_{t-1}(0)\bigr]&=q\,m_1+(1-q)\,m_0 \why{迭代期望律}\\
+&=m_1=m_0 \why{若 $m_1=m_0$}
+\end{align*}
+所以 $m_1=m_0$ 时两组都等于总体平均；反过来，若 $m_1$、$m_0$ 都等于总体平均，自然 $m_1=m_0$。英文表述：“In the absence of treatment, treated and control units share the same trend (pattern).”
+
+\subsubsection{另一种写法的读法：条件“\texorpdfstring{$d=0$}{d=0}”表示“假如没有政策”}
+
+文献中也见到如下写法（上标表示组别）：
+\[
+\E\bigl(y^{(1)}_1-y^{(1)}_0\mid d=0\bigr)=\E\bigl(y^0_1-y^0_0\mid d=0\bigr)=\E\bigl(y^0_1-y^0_0\bigr),
+\]
+其中上标 $(1)$ 表示处理组，条件“$d=0$”表示“假如没有政策”。换成本书记号就是两期形式：处理组假如未受处理时的变化等于控制组的变化。不要把它读成“处理组在 $d=0$ 条件下”这种自相矛盾的条件期望。另外，关键短语是“in the absence of \emph{treatment}”，不是“in the absence of trend”。
+
+%----------------------------------------------------------------------
+\subsection{平行趋势图：TE、其他效应与反事实路径}
+
+\begin{center}
+\begin{tikzpicture}[x=1.25cm,y=0.42cm,font=\small,>={Stealth[length=2mm]}]
+\draw[->] (0,5) -- (6.6,5) node[right] {time};
+\draw[->] (0,5) -- (0,19.5) node[above] {$y$};
+\draw[dashed,gray] (2.5,5) -- (2.5,18.5);
+\foreach \x/\l in {0/{$t=0$},2.5/{$T_0$},5/{$t=1$}} {\draw (\x,5.15) -- (\x,4.85); \node[below] at (\x,4.85) {\l};}
+% helper horizontals
+\draw[gray!60] (0,11) -- (5,11);
+\draw[gray!60] (0,7) -- (5,7);
+% lines
+\draw[very thick,blue!70!black] (0,11) -- (5,17);
+\draw[very thick,blue!70!black,dashed] (0,11) -- (5,14);
+\draw[very thick,red!70!black] (0,7) -- (5,10);
+\fill[blue!70!black] (0,11) circle (2pt) (5,17) circle (2pt);
+\draw[blue!70!black,fill=white] (5,14) circle (2pt);
+\fill[red!70!black] (0,7) circle (2pt) (5,10) circle (2pt);
+% other effects arrows
+\draw[<->] (4.4,11) -- (4.4,14) node[midway,left,font=\footnotesize] {其他效应 3};
+\draw[<->] (4.4,7) -- (4.4,10) node[midway,left,font=\footnotesize] {其他效应 3};
+% TE brace
+\draw[decorate,decoration={brace,amplitude=4pt}] (5.12,17) -- (5.12,14) node[midway,right=4pt] {TE $=3$};
+% labels
+\node[left] at (0,11) {$\bar y_{10}=11$};
+\node[left] at (0,7) {$\bar y_{00}=7$};
+\node[above right] at (5,17) {$\bar y_{11}=17$（观测，含政策）};
+\node[below right] at (5,14) {反事实 $\bar y_{10}+(\bar y_{01}-\bar y_{00})=14$};
+\node[right] at (5,10) {$\bar y_{01}=10$};
+\node[blue!70!black] at (1.3,15.2) {处理组（treated）};
+\node[red!70!black] at (1.6,6.0) {控制组（control）};
+\node at (3.1,10.6) {PT};
+\end{tikzpicture}
+\captionof{figure}{平行趋势图（数据取自“可手算的四格例”）}\label{fig:U15a-pt}
+\end{center}
+
+读图要点：
+\begin{itemize}
+  \item 处理组从 $\bar y_{10}=11$ 升到 $\bar y_{11}=17$，总升幅 6 $=$ “TE $+$ other effects”；控制组从 $\bar y_{00}=7$ 升到 $\bar y_{01}=10$，升幅 3 $=$ “other effects”。
+  \item 两处“其他效应”相等：同样的非政策变化被假定同时作用于两组。
+  \item 从处理组起点画一条与控制组平行的虚线到反事实点 14，这条虚线就是处理组的\key{反事实路径}；它与控制组实线平行，即 PT。
+  \item 观测点 17 与反事实点 14 的竖直距离就是 TE $=3$。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{平行趋势的含义}
+
+\subsubsection{只约束变化，不约束水平}
+
+两组处理前的水平可以不同（例中 $11\neq7$），水平差被第一次差分（组内前后差分）消掉。
+
+\subsubsection{比随机分配弱：允许按不随时间变化的特征选择}
+
+随机分配蕴含 PT；但处理可以按“不随时间变化的不可观测特征”选择（例如 $\alpha_i$ 高的单位更可能被处理），PT 仍可成立。这正是 TWFE 中 $\alpha_i$ 的作用：它吸收了任意与处理相关的不变特征。
+
+\subsubsection{不能直接检验：只能检验处理前趋势}
+
+PT 涉及处理组处理后的反事实，不能直接检验。能检验的是\key{处理前}两组的趋势是否平行（事件研究，见本章“事件研究”一节）；处理前平行是 PT 的旁证，不是证明。
+
+\subsubsection{依赖结果的函数形式：水平与对数不能同时平行}
+
+\tagext\ PT 是对某个具体结果变量的假设。一般而言，水平上平行与对数上平行不能同时成立（Roth \& Sant'Anna 2023, \textit{Econometrica}）。例如处理组未处理结果从 10 变到 20、控制组从 20 变到 30：水平变化都是 10，水平上平行；但对数变化分别为 $\ln2\approx0.69$ 与 $\ln1.5\approx0.41$，对数上不平行。因此选择 $y$ 还是 $\log y$ 本身是识别假设的一部分。
+
+%----------------------------------------------------------------------
+\subsection{识别定理：SUTVA \texorpdfstring{$+$}{+} 无预期 \texorpdfstring{$+$}{+} PT \texorpdfstring{$\Rightarrow$}{=>} DiD \texorpdfstring{$=$}{=} ATT}
+
+\begin{thm}[$2\times2$ DiD 的识别]\label{thm:U15a-ident}
+记总体四格均值 $\mu_{dw}=\E(y_{it}\mid d_i=d,\ t=w)$，$d,w\in\{0,1\}$。在 SUTVA、无预期与平行趋势下，
+\[
+\mathrm{ATT}\equiv\E\bigl[y_{i1}(1)-y_{i1}(0)\mid d_i=1\bigr]=(\mu_{11}-\mu_{10})-(\mu_{01}-\mu_{00}).
+\]
+\end{thm}
+
+思路：把四个可观测均值写成潜在结果，再用 PT 替换掉唯一缺失的项。
+\begin{align*}
+\mu_{11}&=\E[y_{i1}(1)\mid d_i=1] \why{处理组处理后受处理；SUTVA}\\
+\mu_{10}&=\E[y_{i0}(0)\mid d_i=1] \why{无预期：处理前观测值 $=y(0)$}\\
+\mu_{01}-\mu_{00}&=\E[y_{i1}(0)-y_{i0}(0)\mid d_i=0] \why{控制组始终未处理}\\
+&=\E[y_{i1}(0)-y_{i0}(0)\mid d_i=1] \why{平行趋势}\\
+\mu_{10}+(\mu_{01}-\mu_{00})&=\E[y_{i1}(0)\mid d_i=1] \why{相加：恰为缺失的反事实}\\
+\mathrm{DiD}&=\mu_{11}-\bigl[\mu_{10}+(\mu_{01}-\mu_{00})\bigr] \why{重新组合}\\
+&=\E[y_{i1}(1)-y_{i1}(0)\mid d_i=1]=\mathrm{ATT}. \why{代入第 1 行与上一行}
+\end{align*}
+这说明：DiD 的因果解释完全来自 PT（加上无预期、SUTVA），与是否跑回归无关；回归只是计算工具（下一节）。
+
+%----------------------------------------------------------------------
+\subsection{条件平行趋势}
+
+\subsubsection{定义与重叠条件}
+
+若两组的协变量 $x$ 分布不同、且 $x$ 影响结果的\key{趋势}，无条件 PT 可能不成立，但给定 $x$ 后可能成立。
+
+\begin{defn}[条件平行趋势]\label{def:U15a-cpt}
+\term{条件平行趋势}{conditional parallel trends}：
+\[
+\E\bigl[y_{i1}(0)-y_{i0}(0)\mid x_i,d_i=1\bigr]=\E\bigl[y_{i1}(0)-y_{i0}(0)\mid x_i,d_i=0\bigr],
+\]
+并要求重叠：$\Pr(d_i=1\mid x_i)<1$。
+\end{defn}
+
+\subsubsection{条件 PT 下的 ATT：先在每个 \texorpdfstring{$x$}{x} 上做 DiD，再按处理组的 \texorpdfstring{$x$}{x} 分布平均}
+
+记 $\Delta y_i=y_{i1}-y_{i0}$（观测结果的前后差）。要证 ATT 可由可观测量表示。思路：加减 $y_{i0}(0)$，再在给定 $x$ 的层面上用条件 PT 替换缺失项。
+\begin{align*}
+\mathrm{ATT}&=\E[y_{i1}(1)-y_{i1}(0)\mid d_i=1] \why{定义}\\
+&=\E[y_{i1}(1)-y_{i0}(0)\mid d_i=1]-\E[y_{i1}(0)-y_{i0}(0)\mid d_i=1] \why{加减 $y_{i0}(0)$}\\
+&=\E[\Delta y_i\mid d_i=1]-\E[y_{i1}(0)-y_{i0}(0)\mid d_i=1] \why{观测方程与无预期}\\
+&=\E[\Delta y_i\mid d_i=1]-\E\bigl\{\E[y_{i1}(0)-y_{i0}(0)\mid x_i,d_i=1]\bigm| d_i=1\bigr\} \why{迭代期望律}\\
+&=\E[\Delta y_i\mid d_i=1]-\E\bigl\{\E[y_{i1}(0)-y_{i0}(0)\mid x_i,d_i=0]\bigm| d_i=1\bigr\} \why{条件平行趋势}\\
+&=\E[\Delta y_i\mid d_i=1]-\E\bigl\{\E[\Delta y_i\mid x_i,d_i=0]\bigm| d_i=1\bigr\} \why{控制组始终未处理}\\
+&=\E\bigl\{\E[\Delta y_i\mid x_i,d_i=1]-\E[\Delta y_i\mid x_i,d_i=0]\bigm| d_i=1\bigr\}. \why{迭代期望律}
+\end{align*}
+即先在每个 $x$ 上做 DiD，再按\key{处理组}的 $x$ 分布平均。重叠条件保证处理组出现的每个 $x$ 处都有控制单位，$\E[\Delta y_i\mid x_i,d_i=0]$ 才有定义。
+
+\subsubsection{加不加协变量对应不同的平行趋势假设}
+
+是否加入协变量不是“控制得越多越好”的问题，而是在两个不同的识别假设之间选择：不加 $x$ 对应无条件 PT，加 $x$ 对应一个\key{新的} PT（条件 PT）。在每个 $x$ 上做 DiD 还要求处理单位足够多（$N_1\to\infty$）。回归中直接加入 $x_{it}$ 能否实现条件 PT 下的 ATT，见“协变量：DiD 与 $x_{it}$”一节（答案：要谨慎）。
+
+%----------------------------------------------------------------------
+\subsection{Hansen 定理 18.1：TWFE 系数为因果效应的条件}
+
+\subsubsection{四个条件}
+
+Hansen §18.3 从回归角度给出等价的识别条件。考虑
+\[
+Y_{it}=\theta D_{it}+X_{it}\T\beta+u_i+v_t+\varepsilon_{it}
+\]
+（Hansen 记号：$\theta$ 为 DiD 系数，$u_i$、$v_t$ 为个体、时间效应）。若
+\begin{enumerate}
+  \item 结果方程就是这个线性、可加可分的模型；
+  \item 双向去均值后的回归元 $(\ddot D_{it},\ddot X_{it}\T)\T$ 的设计矩阵满秩，即 $D$、$X$ 的每个分量在个体和时间两个维度上都有变化；
+  \item $\E[X_{it}\varepsilon_{is}]=0$，$\forall t,s$（固定效应模型的标准外生性）；
+  \item 给定 $X_{i1},\dots,X_{iT}$，$D_{it}$ 与 $\varepsilon_{is}$ 统计独立，$\forall t,s$（条件独立）；
+\end{enumerate}
+则 $\theta$ 是给定 $X$ 时 $D$ 对 $Y$ 的平均因果效应。
+
+\subsubsection{条件 (4) 的两层含义：同期其他事件与无预期}
+
+条件 (4) 要求把 $D$ 理解为“处理本身”，而不只是“州 $\times$ 时间”的交互虚拟变量。误差 $\varepsilon_{it}$ 包含模型外的一切因素，于是：
+\begin{itemize}
+  \item 与政策\key{同时发生}、只影响处理组的其他事件（\term{同期事件}{coincident events}）都被假定不影响结果。这是 Card--Krueger 识别论证的最大弱点：1992 年 NJ 或 PA 是否有其他差别性冲击，原文没有讨论。
+  \item $D$ 与 $\varepsilon$ 互不影响：政策不因结果而制定，结果也不因预期政策而提前变化（即无预期）。
+\end{itemize}
+$D$ 的外生性类似 IV 回归中工具变量的外生性，需要有说服力的结构性论证。
+
+\subsubsection{条件 (1)：\texorpdfstring{$2\times2$}{2x2} 时自动成立，多组多期时需仔细设定}
+
+条件 (1) 要求“所有趋势与交互都已包含”。$2\times2$ 的基本设定是虚拟变量的\key{饱和模型}，必然等于条件均值，所以自动成立；多组多期时则不然，模型设定（趋势、交互）需要仔细考虑。
+
+\begin{keypt}[英文试卷常见问法]
+“State the identifying assumptions of DiD.”标准答案三条：SUTVA / no spillovers，no anticipation，parallel trends。每条都写出数学式，并在 PT 中写明“in the absence of treatment”。能画平行趋势图并标出 TE、counterfactual、other effects，是送分点。
+\end{keypt}
+
+\begin{prac}[判断违背了哪条假设]\label{prac:U15a-viol}
+以 Card--Krueger 为背景，判断下列情形分别违背了哪条识别假设，并说明 DiD 估计的偏差方向：(a) 法案通过后，NJ 餐馆在生效前半年就开始减少雇佣；(b) NJ 提高最低工资后，部分 PA 工人跨州到 NJ 工作，PA 餐馆被迫加薪并减少雇佣；(c) 1992 年 NJ 恰好另有一项刺激餐饮业的地方补贴开始实施。
+\answer
+(a) 违背\key{无预期}：处理前观测值 $\bar y_{10}$ 已被政策压低，处理组的“前后变化”被高估，DiD 偏高（若政策真实效应为负，其负向幅度会被低估）。
+
+(b) 违背 \key{SUTVA}（溢出）：控制组变化 $\bar y_{01}-\bar y_{00}$ 中混入了政策溢出造成的雇佣下降 $S<0$，$\mathrm{DiD}=\mathrm{TE}-S$；溢出为负时 DiD 偏高。
+
+(c) 违背\key{平行趋势}（Hansen 所说的同期事件）：没有政策时 NJ 的雇佣也会因补贴而上升，处理组的“其他效应”大于控制组，DiD 把补贴效应算进了政策效应，偏高。
+\end{prac}
+
+\begin{english}
+The DiD estimand identifies the ATT under three assumptions. (i) SUTVA: there are no spillovers, so each unit's potential outcomes depend only on its own treatment status. (ii) No anticipation: treatment has no effect before it is implemented, i.e., $E[y_t(1)-y_t(0)\mid d=1]=0$ for all pre-treatment periods. (iii) Parallel trends: in the absence of treatment, the average outcome of the treated group would have changed by the same amount as that of the control group, $E[y_1(0)-y_0(0)\mid d=1]=E[y_1(0)-y_0(0)\mid d=0]$. Parallel trends restricts changes, not levels, so permanent level differences between groups are allowed. Under these assumptions $(\mu_{11}-\mu_{10})-(\mu_{01}-\mu_{00})=E[y_1(1)-y_1(0)\mid d=1]$.
+\end{english}
+
+%======================================================================
+\section{TWFE 回归与 \texorpdfstring{$2\times2$}{2x2} DiD 的精确等价}\label{sec:U15a-twfe}
+
+本节说明：DiD 回归中交互项的系数恰好等于四格均值的双重差分——总体上如此，OLS 样本上也\key{数值相等}；进一步，在平衡面板、共同处理时点下，个体 $+$ 时间固定效应（TWFE）回归给出同一个数。
+
+\subsection{回归设定}
+
+\subsubsection{定义：\texorpdfstring{$y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta d_iw_t+u_{it}$}{y = b0 + b1 d + b2 w + b d w + u}}
+
+\begin{defn}[$2\times2$ DiD 回归]\label{def:U15a-reg}
+\[
+y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta\cdot\underbrace{d_iw_t}_{D_{it}}+u_{it},\qquad \E(u_{it}\mid d_i,w_t)=0,
+\]
+$d_i=1$ 表示处理组（treated），$w_t=1$ 表示政策生效期（effective / post），交互项 $D_{it}=d_iw_t=1$ 当且仅当“处理组且处理后”。这一回归常被称为 TWFE 回归。
+\end{defn}
+
+\subsubsection{常见的等价写法}
+
+\begin{itemize}
+  \item $y_{it}=\beta_0+\beta_1d_i+\beta_2f_t+\alpha\,d_if_t+u_{it}$，$f_t$ 为生效虚拟变量，“$\alpha=$ DiD”；
+  \item $y_{it}=\alpha_0+\alpha_1d_i+\alpha_2d_t+\alpha\,w_{it}+u_{it}$，$w_{it}=d_i\cdot d_t$；
+  \item Hansen：$Y_{it}=\beta_0+\beta_1\mathit{State}_i+\beta_2\mathit{Time}_t+\theta D_{it}+\varepsilon_{it}$。
+\end{itemize}
+三者只是换了字母，交互项系数都是 DiD。
+
+%----------------------------------------------------------------------
+\subsection{A--D 四格条件均值的逐格推导}
+
+\subsubsection{逐格代入回归式}
+
+思路：在每一格中 $d_i,w_t$ 是常数，代入回归式并用 $\E(u\mid d,w)=0$。
+\begin{align*}
+\mathrm A:\ \E(y_{it}\mid d_i=0,w_t=0)&=\beta_0+\beta_1\cdot0+\beta_2\cdot0+\beta\cdot0=\beta_0 \why{$d=w=0$，交互为 0}\\
+\mathrm B:\ \E(y_{it}\mid d_i=0,w_t=1)&=\beta_0+\beta_2 \why{$d=0\Rightarrow dw=0$}\\
+\mathrm C:\ \E(y_{it}\mid d_i=1,w_t=0)&=\beta_0+\beta_1 \why{$w=0\Rightarrow dw=0$}\\
+\mathrm D:\ \E(y_{it}\mid d_i=1,w_t=1)&=\beta_0+\beta_1+\beta_2+\beta \why{$d=w=1\Rightarrow dw=1$}
+\end{align*}
+
+\subsubsection{四格系数表与各系数的含义}
+
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+ & 处理前 $w_t=0$ & 处理后 $w_t=1$ & 前后之差\\
+\midrule
+处理组 $d_i=1$ & C：$\beta_0+\beta_1$ & D：$\beta_0+\beta_1+\beta_2+\beta$ & $\beta_2+\beta$\\
+控制组 $d_i=0$ & A：$\beta_0$ & B：$\beta_0+\beta_2$ & $\beta_2$\\
+组间之差 & $\beta_1$ & $\beta_1+\beta$ & \fbox{$\beta$}\\
+\bottomrule
+\end{tabular}
+\end{center}
+
+各系数的含义（Hansen §18.2）：
+\begin{itemize}
+  \item $\beta_0$：控制组处理前均值；
+  \item $\beta_1$：处理前两组的水平差（政策前“处理组 vs 控制组”的单差）；
+  \item $\beta_2$：控制组的时间变化，即“其他效应”；
+  \item $\beta$：双重差分。
+\end{itemize}
+
+%----------------------------------------------------------------------
+\subsection{\texorpdfstring{$\beta=$}{beta =} DiD：处理组变化 \texorpdfstring{$\beta_2+\beta$}{b2 + b} 减控制组变化 \texorpdfstring{$\beta_2$}{b2}}
+
+\subsubsection{推导}
+
+\begin{align*}
+d_i=1:\ \E(y\mid d=1,w=1)-\E(y\mid d=1,w=0)&=(\beta_0+\beta_1+\beta_2+\beta)-(\beta_0+\beta_1) \why{D $-$ C}\\
+&=\beta_2+\beta \why{约去}\\
+d_i=0:\ \E(y\mid d=0,w=1)-\E(y\mid d=0,w=0)&=(\beta_0+\beta_2)-\beta_0=\beta_2 \why{B $-$ A}\\
+\Rightarrow\ \beta&=\bigl[\mathrm D-\mathrm C\bigr]-\bigl[\mathrm B-\mathrm A\bigr]=\mathrm{DiD}. \why{两式相减}
+\end{align*}
+组别差异 $\beta_1$ 被组内前后差分消去，共同时间变化 $\beta_2$ 被组间差分消去。
+
+\subsubsection{\texorpdfstring{$\beta_2$}{beta2} 的含义：回归语言下的平行趋势}
+
+$\beta_2$ 来自政策以外的其他因素（coming from other factors except policy）。平行趋势用回归语言说就是：“In the absence of treatment, the change for the treated group ($d_i=1$) would also be $\beta_2$.”——如果没有政策，处理组的变化也应是 $\beta_2$。
+
+%----------------------------------------------------------------------
+\subsection{\texorpdfstring{$\beta$}{beta} 与 ATT：缺失项 \texorpdfstring{$=$}{=} C \texorpdfstring{$+$}{+}（B \texorpdfstring{$-$}{-} A）}
+
+\subsubsection{把 \texorpdfstring{$\beta$}{beta} 写成“观测值 \texorpdfstring{$-$}{-} 反事实”}
+
+把上面的推导重新组合：
+\[
+\beta=\underbrace{\E(y\mid d=1,w=1)}_{\Rightarrow\ \E(y^1_{it}\mid d_i=1)}-\underbrace{\Bigl\{\E(y\mid d=1,w=0)+\bigl[\E(y\mid d=0,w=1)-\E(y\mid d=0,w=0)\bigr]\Bigr\}}_{\Rightarrow\ \E(y^0_{it}\mid d_i=1)\ \text{counterfactual}}.
+\]
+大括号内是“处理组处理前均值 $+$ 控制组的变化”，后者是 change from control units, not from policy。对照处理效应的定义
+\[
+\mathrm{TE}=\E(y\mid d=1,w=1)-\E\bigl(y_{it}(0)\mid d=1,w=1\bigr),
+\]
+可见“$\beta=\mathrm{TE}$”当且仅当缺失项 $\E(y_{it}(0)\mid d=1,w=1)$ 恰好等于大括号，这就是上一节的平行趋势。用系数核对：
+\begin{align*}
+\beta&=(\beta_0+\beta_1+\beta_2+\beta)-\bigl\{(\beta_0+\beta_1)+\beta_2\bigr\} \why{代入四格}\\
+&=\beta. \why{约去}
+\end{align*}
+
+\subsubsection{饱和回归：\texorpdfstring{$\E(u\mid d,w)=0$}{E(u|d,w)=0} 不含因果内容}
+
+\begin{note}[“饱和”回归的含义]
+四个参数对应四个格子，回归式是 $(d,w)$ 的\term{饱和模型}{saturated model}，因此 $\E(u\mid d,w)=0$ 是\key{定义上}成立的，没有任何因果内容（Hansen：饱和虚拟变量模型“necessarily a conditional mean”）。$\beta$ 能被解释为 ATT 的全部理由是 PT（加 SUTVA、无预期）。英文作答时不要写“$\beta$ is causal because $E(u\mid d,w)=0$”，而应写“$\beta$ equals the ATT under parallel trends”。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{OLS 样本版：\texorpdfstring{$\hat\beta$}{beta hat} 恰为四格样本均值的双重差分}
+
+\subsubsection{结论}
+
+\begin{thm}[$2\times2$ 中 OLS 与四格均值的数值等价]\label{thm:U15a-ols}
+对任意样本（平衡与否均可，只要四个格子都有观测），上述回归的 OLS 估计满足
+\[
+\hat\beta_0=\bar y_{00},\quad \hat\beta_0+\hat\beta_2=\bar y_{01},\quad \hat\beta_0+\hat\beta_1=\bar y_{10},\quad \hat\beta_0+\hat\beta_1+\hat\beta_2+\hat\beta=\bar y_{11},
+\]
+从而
+\[
+\hat\beta=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00}).
+\]
+\end{thm}
+
+\subsubsection{证明：回归元是格子虚拟变量的可逆线性变换}
+
+思路：四个回归元 $(1,d,w,dw)$ 与四个格子虚拟变量张成同一列空间；对格子虚拟变量回归得到的就是各格均值。
+
+记样本量为 $n$，格子指示变量 $\mathbf 1_A,\mathbf 1_B,\mathbf 1_C,\mathbf 1_D$（互斥且和为 1），$Z=[\mathbf 1_A,\mathbf 1_B,\mathbf 1_C,\mathbf 1_D]$ 为 $n\times4$，$X=[\one,d,w,dw]$ 为 $n\times4$，各格观测数为 $n_A,n_B,n_C,n_D$。每个回归元都是格子指示变量的线性组合：
+\begin{align*}
+X&=ZM,\qquad M=\begin{pmatrix}1&0&0&0\\1&0&1&0\\1&1&0&0\\1&1&1&1\end{pmatrix} \why{各行依次为 A、B、C、D 格的 $(1,d,w,dw)$}\\
+\det M&=-1\neq0 \why{交换第 2、3 行得下三角阵}
+\end{align*}
+令 $\hat b=(\hat\beta_0,\hat\beta_1,\hat\beta_2,\hat\beta)\T$。则
+\begin{align*}
+\hat b&=(X\T X)\inv X\T y \why{OLS}\\
+&=(M\T Z\T ZM)\inv M\T Z\T y \why{$X=ZM$}\\
+&=M\inv(Z\T Z)\inv(M\T)\inv M\T Z\T y \why{$(ABC)\inv=C\inv B\inv A\inv$}\\
+&=M\inv(Z\T Z)\inv Z\T y \why{$(M\T)\inv M\T=I$}\\
+&=M\inv\diag(n_A,n_B,n_C,n_D)\inv\Bigl(\textstyle\sum_{A}y,\sum_{B}y,\sum_{C}y,\sum_{D}y\Bigr)\T \why{格子互斥}\\
+&=M\inv(\bar y_{00},\bar y_{01},\bar y_{10},\bar y_{11})\T. \why{各格样本均值}
+\end{align*}
+于是 $M\hat b=(\bar y_{00},\bar y_{01},\bar y_{10},\bar y_{11})\T$，逐行写出就是结论中的四个等式。由此解出
+\begin{align*}
+\hat\beta&=\bar y_{11}-(\hat\beta_0+\hat\beta_1)-\hat\beta_2 \why{第 4 式}\\
+&=\bar y_{11}-\bar y_{10}-(\bar y_{01}-\bar y_{00}). \why{第 3 式与第 2 式减第 1 式}
+\end{align*}
+等价的说法：$X$ 与 $Z$ 张成同一列空间，投影相同，拟合值都是各格样本均值（对互斥虚拟变量回归 $\Rightarrow$ 组均值，第 3 章）；而用 $X$ 表示的拟合值在 A 格为 $\hat\beta_0$、在 B 格为 $\hat\beta_0+\hat\beta_2$……逐格等同即得结论。$\blacksquare$
+
+\subsubsection{数值核对：四格例与 Card--Krueger 回归}
+
+\begin{exmp}[回归系数与四格均值的对应]\label{ex:U15a-regnum}
+(1) 用“可手算的四格例”（$\bar y_{00}=7,\ \bar y_{01}=10,\ \bar y_{10}=11,\ \bar y_{11}=17$）写出 OLS 系数。(2) 用 Card--Krueger 的四格均值写出回归式。
+\solution
+(1) 由上面的结论：
+\begin{align*}
+\hat\beta_0&=\bar y_{00}=7, \why{A 格}\\
+\hat\beta_1&=\bar y_{10}-\bar y_{00}=11-7=4, \why{C $-$ A}\\
+\hat\beta_2&=\bar y_{01}-\bar y_{00}=10-7=3, \why{B $-$ A}\\
+\hat\beta&=17-11-10+7=3. \why{D $-$ C $-$ B $+$ A}
+\end{align*}
+(2) $\hat\beta_0=23.38$（PA 提高前），$\hat\beta_1=20.43-23.38=-2.95$，$\hat\beta_2=21.10-23.38=-2.28$，$\hat\beta=2.75$。Hansen 报告的结果（括号内为按餐馆聚类的标准误）：
+\[
+\hat Y_{it}=\underset{(1.4)}{23.4}-\underset{(1.5)}{2.9}\,\mathit{State}_i-\underset{(1.2)}{2.3}\,\mathit{Time}_t+\underset{(1.34)}{2.75}\,D_{it}.
+\]
+改用餐馆固定效应加时间虚拟变量，得 $\hat Y_{it}=2.75\,D_{it}-2.3\,\mathit{Time}_t+\hat u_i$，系数完全相同（原因见下一小节）。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{加入 \texorpdfstring{$d_i$、$w_t$}{d\_i, w\_t} 与 \texorpdfstring{$\alpha_i$、$\lambda_t$}{alpha\_i, lambda\_t} 完全共线}
+
+\subsubsection{两种写法给出相同的 \texorpdfstring{$\hat\beta$}{beta hat}}
+
+双向固定效应模型
+\[
+\text{(1)}\quad y_{it}=\alpha_i+\lambda_t+x_{it}\T\beta+u_{it}
+\]
+中若再加入 $d_i$（$=1$ 表示 treated）与 $w_t$（$=1$ 表示 effective）：
+\[
+\text{(2)}\quad y_{it}=\alpha_i+d_i+\lambda_t+w_t+x_{it}\T\beta+u_{it},
+\]
+则 (1) 与 (2) 给出\key{完全相同}的 $\hat\beta$。同理，$y_{it}=\beta_0+\beta_1d_i+\alpha_i+\beta_2w_t+\lambda_t+\beta d_iw_t+u_{it}$（$\alpha_i$ 为个体固定效应，$\lambda_t$ 为时间效应）与不含 $d_i$、$w_t$ 的写法给出相同的 $\hat\beta$。
+
+\subsubsection{证明：\texorpdfstring{$d_i$}{d\_i} 是个体虚拟变量之和，\texorpdfstring{$w_t$}{w\_t} 是时期虚拟变量之和}
+
+设 $e_j(i)=\mathbf 1\{i=j\}$ 为个体 $j$ 的虚拟变量，$\varphi_s(t)=\mathbf 1\{t=s\}$ 为时期 $s$ 的虚拟变量，则
+\begin{align*}
+d_i&=\sum_{j\in\mathcal T}e_j(i) \why{$d_i$ 不随时间变 $\Rightarrow$ 个体虚拟变量之和}\\
+w_t&=\sum_{s>T_0}\varphi_s(t) \why{$w_t$ 对所有个体相同 $\Rightarrow$ 时期虚拟变量之和}
+\end{align*}
+所以 $d_i$ 落在 $\{\alpha_i\}$ 的列空间、$w_t$ 落在 $\{\lambda_t\}$ 的列空间，完全共线。在回归元中加入已在列空间内的变量不改变列空间，从而不改变投影（FWL，第 3 章），$\hat\beta$ 不变；$d_i$、$w_t$ 自身的系数不可识别（Stata 报告“omitted because of collinearity”）。
+
+\subsubsection{基本 DiD 模型：\texorpdfstring{$y_{it}=\alpha_i+\lambda_t+\beta D_{it}+u_{it}$}{y = alpha\_i + lambda\_t + beta D + u}}
+
+因此 DiD 回归可以等价地写成 Hansen 所说的\term{基本双重差分模型}{basic difference-in-difference model}：
+\begin{equation}\label{eq:U15a-twfe}
+y_{it}=\alpha_i+\lambda_t+\beta D_{it}+u_{it}\qquad\text{（TWFE 形式；即 2025 真题的设定）}.
+\end{equation}
+它是 $y_{it}$ 对二元政策变量 $D_{it}$ 的双向固定效应回归，最简单的实现是“个体固定效应 $+$ 时间虚拟变量”。这一写法便于推广到多组、多期、其他趋势设定与连续处理变量。
+
+\subsubsection{可观测的个体层面、时间层面变量被固定效应吸收}
+
+模型中还可以写入可观测的个体层面变量 $z_i$ 与时间层面变量 $g_t$：
+\[
+y_{it}=\alpha_i+z_i\T\gamma+\lambda_t+g_t\T\eta+\beta D_{it}+u_{it}.
+\]
+但 $z_i$ 被 $\alpha_i$ 吸收、$g_t$ 被 $\lambda_t$ 吸收（道理同上），$\gamma$、$\eta$ 不可识别（时不变变量的识别见第 11 章）；$\hat\beta$ 不受影响。
+
+\subsubsection{用组固定效应还是个体固定效应：平衡面板中 \texorpdfstring{$\hat\beta$}{beta hat} 相同}
+
+Hansen 指出：Card--Krueger 中用州（组）固定效应还是餐馆（个体）固定效应，$\hat\theta$ 相同，因为在平衡面板中，个体固定效应与任何“按组去均值”的变量正交。简要证明如下。记 $g(i)$ 为单位 $i$ 所在的组，$N_g$ 为组 $g$ 的单位数；回归 (G) 用组虚拟变量 $+$ 时间虚拟变量，回归 (U) 用个体虚拟变量 $+$ 时间虚拟变量。由 FWL，两者的 $\hat\beta$ 都等于 $\sum\tilde D_{it}y_{it}/\sum\tilde D_{it}^2$，$\tilde D$ 为 $D$ 对相应虚拟变量回归的残差。平衡面板中：
+\begin{align*}
+\tilde D^{U}_{it}&=D_{it}-\bar D_i-\bar D_t+\bar D \why{个体 $+$ 时间双向去均值（第 10 章）}\\
+\tilde D^{G}_{it}&=D_{it}-\bar D_{g(i)}-\bar D_t+\bar D \why{组 $+$ 时间双向去均值，各组每期观测数相同}\\
+\bar D_i&=d_i\tfrac{T_1}{T}=\bar D_{g(i)} \why{同组单位的 $D$ 路径相同}\\
+\Rightarrow\ \tilde D^{U}_{it}&=\tilde D^{G}_{it}\ \Rightarrow\ \hat\beta^{U}=\hat\beta^{G}. \why{FWL 公式相同}
+\end{align*}
+第二行可直接验证：$r_{it}=D_{it}-\bar D_{g(i)}-\bar D_t+\bar D$ 对每个组求和为 $N_gT\bar D_g-N_gT\bar D_g-N_gT\bar D+N_gT\bar D=0$，对每期求和为 $N\bar D_t-N\bar D-N\bar D_t+N\bar D=0$，所以与全部组、时间虚拟变量正交。非平衡面板中 $\bar D_i=d_i\times$（单位 $i$ 的处理后期数占比）可能因单位而异，等价性一般不成立。下一小节给出 TWFE $=$ DiD 的一般证明。
+
+%----------------------------------------------------------------------
+\subsection{真题记号：\texorpdfstring{$Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$}{Y = alpha\_i + lambda\_t + beta D + e} 中“\texorpdfstring{$\alpha_i=1$、$\lambda_t=1$}{alpha\_i = 1, lambda\_t = 1}”的含义}
+
+\subsubsection{条件记号的读法}
+
+2025 年真题设 $i=1$（处理）、$i=2$（控制），$t=0$（处理前）、$t=1$（处理后），并说“$\alpha_i=1$ implies the units are treated and $\lambda_t=1$ implies the post-treatment periods”，提示比较 $\E(Y_{it}\mid\alpha_i=1,\lambda_t=1)$ 等。这里“$\alpha_i=1$”是\key{条件记号}，意思是“个体效应取处理组那一个值”，即 $d_i=1$；“$\lambda_t=1$”即 $w_t=1$。它不是说固定效应的数值等于 1。
+
+\subsubsection{逐格写出四个条件期望并双重差分}
+
+设 $\E\epsilon_{it}=0$（给定组别与时期）。
+\begin{align*}
+\E(Y_{it}\mid\text{treated, post})&=\alpha_1+\lambda_1+\beta \why{$D_{11}=1$}\\
+\E(Y_{it}\mid\text{treated, pre})&=\alpha_1+\lambda_0 \why{$D_{10}=0$}\\
+\E(Y_{it}\mid\text{control, post})&=\alpha_2+\lambda_1 \why{$D_{21}=0$}\\
+\E(Y_{it}\mid\text{control, pre})&=\alpha_2+\lambda_0 \why{$D_{20}=0$}\\
+\Rightarrow\ \mathrm{DiD}&=\bigl[(\alpha_1+\lambda_1+\beta)-(\alpha_1+\lambda_0)\bigr] \why{处理组前后差}\\
+&\quad-\bigl[(\alpha_2+\lambda_1)-(\alpha_2+\lambda_0)\bigr] \why{减控制组前后差}\\
+&=(\lambda_1-\lambda_0+\beta)-(\lambda_1-\lambda_0)=\beta. \why{$\alpha_i$ 被时间差分消去}
+\end{align*}
+个体效应 $\alpha_i$ 在组内前后差分中消去，时间效应 $\lambda_t$ 在组间差分中消去。
+
+\subsubsection{与 \texorpdfstring{$2\times2$}{2x2} 回归系数的对应}
+
+逐格比较两种写法的四个均值：
+\begin{align*}
+\beta_0&=\alpha_2+\lambda_0 \why{A 格：控制组处理前}\\
+\beta_1&=(\alpha_1+\lambda_0)-(\alpha_2+\lambda_0)=\alpha_1-\alpha_2 \why{C $-$ A}\\
+\beta_2&=(\alpha_2+\lambda_1)-(\alpha_2+\lambda_0)=\lambda_1-\lambda_0 \why{B $-$ A}
+\end{align*}
+交互项系数在两种写法中都是 $\beta$。
+
+\subsubsection{\texorpdfstring{$N=T=2$}{N = T = 2}：恰好识别，无法计算标准误}
+
+样本上，$N=T=2$ 时只有 4 个观测，自由参数也是 4 个（$\alpha_1,\alpha_2,\lambda_1,\beta$；$\lambda_0$ 标准化为 0）。模型恰好识别、拟合无残差，$\hat\beta$ 就是 4 个数的双重差分 $\Delta Y$；但残差自由度为 0，无法计算标准误。推断需要更多单位或时期（Hansen §18.9：只有两个州时无法按州聚类）。完整作答见第 17 章。
+
+%----------------------------------------------------------------------
+\subsection{一般证明：平衡面板、共同处理时点下 \texorpdfstring{$\hat\beta_{FE}=\hat\beta_{DiD}$}{beta FE = beta DiD}}
+
+\subsubsection{结论}
+
+多期时，TWFE 估计量等价于对双向去均值后的变量做 OLS：
+\[
+(y_{it}-\bar y_i-\bar y_t+\bar y)=(D_{it}-\bar D_i-\bar D_t+\bar D)\,\beta+\cdots,\qquad \bar D=\frac1{NT}\sum_i\sum_tD_{it}=\frac{N_1T_1}{NT}.
+\]
+它与 DiD 的关系如下（无协变量时成立：“$\hat\beta_{FE}=\hat\beta_{DiD}$ without $x_{it}$”）。
+
+\begin{thm}[平衡面板、共同处理时点下 TWFE $=$ DiD]\label{thm:U15a-fe-did}
+平衡面板，$N_1$ 个处理单位、$N_0$ 个控制单位，前 $T_0$ 期未处理、后 $T_1=T-T_0$ 期处理，$D_{it}=d_iw_t$。令 $q=N_1/N$，$p=T_1/T$。则模型 \eqref{eq:U15a-twfe}（个体 FE $+$ 时间 FE）的估计量
+\[
+\hat\beta_{FE}=\bigl(\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}}\bigr)-\bigl(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}\bigr)=\hat\beta_{DiD},
+\]
+其中 $\bar y_{T,\mathrm{post}}=\frac1{N_1T_1}\sum_{i\in\mathcal T}\sum_{t>T_0}y_{it}$ 为处理组在处理后各期的平均，其余类推。
+\end{thm}
+
+思路：TWFE 估计量是 $y$ 对双向去均值后的 $D$ 的回归系数（第 10 章）；关键是发现去均值后的 $D$ 可以分解成“组别部分 $\times$ 时期部分”。
+
+\subsubsection{第一步：FWL 把 \texorpdfstring{$\hat\beta_{FE}$}{beta FE} 写成比值}
+
+\begin{align*}
+\hat\beta_{FE}&=\frac{\sum_i\sum_t\tilde D_{it}\tilde y_{it}}{\sum_i\sum_t\tilde D_{it}^2} \why{FWL，双向去均值（第 10 章）}\\
+&=\frac{\sum_i\sum_t\tilde D_{it}y_{it}}{\sum_i\sum_t\tilde D_{it}^2}, \why{$\textstyle\sum_t\tilde D_{it}=\sum_i\tilde D_{it}=0$}
+\end{align*}
+其中 $\tilde D_{it}=D_{it}-\bar D_i-\bar D_t+\bar D$，$\tilde y_{it}$ 同理。第二行成立是因为 $\tilde y_{it}=y_{it}-\bar y_i-\bar y_t+\bar y$ 中后三项分别只依赖 $i$、只依赖 $t$、是常数，与 $\tilde D$ 相乘求和都为 0。
+
+\subsubsection{第二步：双向去均值后的 \texorpdfstring{$D$}{D} 可因式分解，\texorpdfstring{$\tilde D_{it}=(d_i-q)(w_t-p)$}{D tilde = (d - q)(w - p)}}
+
+\begin{align*}
+\bar D_i&=\frac1T\sum_td_iw_t=d_i\frac{T_1}{T}=d_ip \why{处理单位有 $T_1$ 期 $D=1$}\\
+\bar D_t&=\frac1N\sum_id_iw_t=w_t\frac{N_1}{N}=w_tq \why{生效期有 $N_1$ 个单位 $D=1$}\\
+\bar D&=\frac{N_1T_1}{NT}=qp \why{总平均}\\
+\tilde D_{it}&=d_iw_t-d_ip-w_tq+qp \why{代入定义}\\
+&=(d_i-q)(w_t-p). \why{因式分解}
+\end{align*}
+
+\subsubsection{第三步：分母 \texorpdfstring{$\sum\tilde D_{it}^2=Nq(1-q)\cdot Tp(1-p)$}{sum D tilde squared = Nq(1-q) Tp(1-p)}}
+
+\begin{align*}
+\sum_i\sum_t\tilde D_{it}^2&=\sum_i(d_i-q)^2\cdot\sum_t(w_t-p)^2 \why{乘积可分离}\\
+\sum_i(d_i-q)^2&=N_1(1-q)^2+N_0q^2 \why{处理单位 $d_i=1$，控制单位 $d_i=0$}\\
+&=qN(1-q)^2+(1-q)Nq^2=Nq(1-q) \why{$N_1=qN$，$N_0=(1-q)N$}\\
+\sum_t(w_t-p)^2&=T_1(1-p)^2+T_0p^2=Tp(1-p) \why{同理，$T_1=pT$，$T_0=(1-p)T$}\\
+\Rightarrow\ \sum_i\sum_t\tilde D_{it}^2&=Nq(1-q)\cdot Tp(1-p). \why{相乘}
+\end{align*}
+
+\subsubsection{第四步：分子与约分}
+
+先对 $t$ 求和（固定 $i$），记 $\bar y_{i,\mathrm{post}}$、$\bar y_{i,\mathrm{pre}}$ 为单位 $i$ 处理后、处理前的时间平均，$\Delta_i=\bar y_{i,\mathrm{post}}-\bar y_{i,\mathrm{pre}}$：
+\begin{align*}
+\sum_t(w_t-p)y_{it}&=(1-p)\,T_1\bar y_{i,\mathrm{post}}-p\,T_0\bar y_{i,\mathrm{pre}} \why{生效期 $w_t-p=1-p$，处理前 $=-p$}\\
+&=Tp(1-p)\bigl(\bar y_{i,\mathrm{post}}-\bar y_{i,\mathrm{pre}}\bigr)\equiv Tp(1-p)\,\Delta_i. \why{$T_1=pT$，$T_0=(1-p)T$}
+\end{align*}
+再对 $i$ 求和，记 $\bar\Delta_T$、$\bar\Delta_C$ 为两组 $\Delta_i$ 的平均：
+\begin{align*}
+\sum_i(d_i-q)\Delta_i&=(1-q)N_1\bar\Delta_T-qN_0\bar\Delta_C \why{按组拆开}\\
+&=Nq(1-q)\bigl(\bar\Delta_T-\bar\Delta_C\bigr) \why{$N_1=qN$，$N_0=(1-q)N$}\\
+\Rightarrow\ \hat\beta_{FE}&=\frac{Tp(1-p)\,Nq(1-q)\,(\bar\Delta_T-\bar\Delta_C)}{Nq(1-q)\,Tp(1-p)} \why{分子 $=\sum_i(d_i-q)\sum_t(w_t-p)y_{it}$}\\
+&=\bar\Delta_T-\bar\Delta_C. \why{约分}
+\end{align*}
+平衡面板中 $\bar\Delta_T=\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}}$（组内先平均再差分与先差分再平均相同），$\bar\Delta_C$ 同理，定理得证。$\blacksquare$
+
+\subsubsection{结论的四点含义}
+
+\begin{enumerate}
+  \item 无协变量时 TWFE 与 DiD \key{数值上}完全相等，不只是渐近相等。
+  \item $T=2$ 时就是 $2\times2$ 的结论。
+  \item 多期时，“处理前”“处理后”分别取时间平均。
+  \item 结论需要\key{平衡面板}与\key{共同处理时点}。交错处理时 $\tilde D_{it}$ 不再能因式分解，问题随之而来（见本章“普通 TWFE 在‘交错 $+$ 异质’下为何失效”一节）。
+\end{enumerate}
+
+%----------------------------------------------------------------------
+\subsection{Mundlak 视角：TWFE \texorpdfstring{$=$}{=} 对 \texorpdfstring{$(D_{it},\bar D_i,\bar D_t)$}{(D, D bar i, D bar t)} 的混合 OLS}
+
+\subsubsection{双向 Mundlak 回归}
+
+Wooldridge 证明了\term{双向 Mundlak 回归}{two-way Mundlak regression}的等价性：在平衡面板中，TWFE 对 $D_{it}$ 的系数等于混合 OLS（POLS）
+\[
+y_{it}\ \text{对}\ (1,\ D_{it},\ \bar D_i,\ \bar D_t)\ \text{回归中}\ D_{it}\ \text{的系数}.
+\]
+
+\subsubsection{证明：\texorpdfstring{$D_{it}$}{D} 对 \texorpdfstring{$(1,\bar D_i,\bar D_t)$}{(1, D bar i, D bar t)} 回归的残差就是 \texorpdfstring{$\tilde D_{it}$}{D tilde}}
+
+由 FWL，POLS 中 $D_{it}$ 的系数等于 $y$ 对“$D_{it}$ 对 $(1,\bar D_i,\bar D_t)$ 回归的残差”的回归系数。候选残差 $\tilde D_{it}=D_{it}-(\bar D_i+\bar D_t-\bar D)$ 中，括号内是 $(1,\bar D_i,\bar D_t)$ 的线性组合；只需验证 $\tilde D$ 与三者正交：
+\begin{align*}
+\textstyle\sum_i\sum_t\tilde D_{it}\cdot1&=0, \why{$\textstyle\sum_t\tilde D_{it}=0$}\\
+\textstyle\sum_i\sum_t\tilde D_{it}\bar D_i&=\textstyle\sum_i\bar D_i\sum_t\tilde D_{it}=0, \why{$\bar D_i$ 与 $t$ 无关}\\
+\textstyle\sum_i\sum_t\tilde D_{it}\bar D_t&=\textstyle\sum_t\bar D_t\sum_i\tilde D_{it}=0. \why{$\bar D_t$ 与 $i$ 无关}
+\end{align*}
+所以残差恰为 $\tilde D_{it}$，POLS 系数 $=\sum\tilde D_{it}y_{it}/\sum\tilde D_{it}^2=\hat\beta_{FE}$（单因素 Mundlak 见第 10、11 章）。
+
+\subsubsection{共同处理时点下即 \texorpdfstring{$2\times2$}{2x2} DiD 回归}
+
+共同处理时点下 $\bar D_i=p\,d_i$、$\bar D_t=q\,w_t$，所以 $(1,D_{it},\bar D_i,\bar D_t)$ 与 $(1,D_{it},d_i,w_t)$ 张成同一列空间，POLS 等价于 $y$ 对 $(1,D_{it},d_i,w_t)$ 回归——这正是 $2\times2$ DiD 回归。这给出“TWFE $=$ 经典 DiD 回归”的第二种证明，也是 Wooldridge 扩展 TWFE 的出发点（见本章“交错处理”一节）。
+
+%----------------------------------------------------------------------
+\subsection{Stata 实现}
+
+\begin{lstlisting}
+* 2x2 DiD regression: y on d, w and d#w (cluster by unit)
+reg y i.d##i.w, vce(cluster id)
+* TWFE with unit FE and year dummies (traditional estimation)
+xtset id year
+xtreg y D i.year, fe vce(cluster id)        // D = d*w
+* same estimate with high-dimensional FE (SSC: reghdfe)
+reghdfe y D, absorb(id year) vce(cluster id)
+\end{lstlisting}
+传统写法是 \texttt{xtreg y D i.year, robust fe}；在 \texttt{xtreg, fe} 中 \texttt{robust} 自动按个体聚类。
+
+\begin{keypt}[2025 年真题第 2(a) 题]
+\tagexam\ 必须会三件事：(1) 逐格写出四个条件期望并相减得到 $\beta$；(2) 说明它等于组均值的双重差分 $\Delta Y=(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})$，且 OLS 样本版数值相等（饱和回归 / 双向去均值证明）；(3) 说明 $\beta$ 为何是 ATT——平行趋势：$\beta_2$（$=\lambda_1-\lambda_0$）是“没有政策时处理组也会发生的变化”。
+\end{keypt}
+
+\begin{prac}[由四格均值反推回归系数]\label{prac:U15a-coef}
+某 DiD 研究的四格样本均值为：控制组处理前 50，控制组处理后 56，处理组处理前 45，处理组处理后 58。(a) 求 $\hat\beta_0,\hat\beta_1,\hat\beta_2,\hat\beta$；(b) 给出处理组处理后的反事实均值；(c) 若改用 $y_{it}=\alpha_i+\lambda_t+\beta D_{it}+u_{it}$（平衡面板），$\hat\beta$ 是多少？
+\answer
+(a) 由“OLS 与四格均值的数值等价”：
+\begin{align*}
+\hat\beta_0&=\bar y_{00}=50, \why{A 格}\\
+\hat\beta_1&=\bar y_{10}-\bar y_{00}=45-50=-5, \why{C $-$ A}\\
+\hat\beta_2&=\bar y_{01}-\bar y_{00}=56-50=6, \why{B $-$ A}\\
+\hat\beta&=(58-45)-(56-50)=13-6=7. \why{(D $-$ C) $-$ (B $-$ A)}
+\end{align*}
+(b) $\hat y_{11}(0)=45+6=51$，故效应 $58-51=7$。
+
+(c) 由“平衡面板、共同处理时点下 TWFE $=$ DiD”，无协变量时二者数值相等，$\hat\beta=7$。
+\end{prac}
+
+\begin{prac}[多期平衡面板的双向去均值手算]\label{prac:U15a-3x3}
+3 个单位、3 期（前 2 期为处理前，第 3 期处理后）。处理单位：$(4,6,11)$；控制单位：$(2,3,5)$ 与 $(1,3,4)$。(a) 用 $\tilde D_{it}=(d_i-q)(w_t-p)$ 计算 TWFE 估计量；(b) 用“处理前取平均”的 DiD 公式验证。
+\answer
+(a) $q=N_1/N=1/3$，$p=T_1/T=1/3$。$\tilde D$ 的取值：处理单位处理后 $\frac23\cdot\frac23=\frac49$，处理前 $\frac23\cdot(-\frac13)=-\frac29$；控制单位处理后 $-\frac13\cdot\frac23=-\frac29$，处理前 $(-\frac13)(-\frac13)=\frac19$。
+\begin{align*}
+\textstyle\sum\tilde D^2&=Nq(1-q)\cdot Tp(1-p)=3\cdot\tfrac29\cdot3\cdot\tfrac29=\tfrac49, \why{逐项相加亦得 $\tfrac{36}{81}$}\\
+\textstyle\sum\tilde Dy&=\bigl[\tfrac49\cdot11-\tfrac29(4+6)\bigr]+\bigl[-\tfrac29\cdot5+\tfrac19(2+3)\bigr]+\bigl[-\tfrac29\cdot4+\tfrac19(1+3)\bigr] \why{按单位分组}\\
+&=\tfrac{24}9-\tfrac59-\tfrac49=\tfrac{15}9, \why{计算}\\
+\hat\beta_{FE}&=\frac{15/9}{4/9}=3.75. \why{FWL 比值}
+\end{align*}
+(b) 处理组：处理前均值 $(4+6)/2=5$，处理后 11，变化 6；控制组：$\bar y_{C,\mathrm{pre}}=(2+3+1+3)/4=2.25$，$\bar y_{C,\mathrm{post}}=(5+4)/2=4.5$，变化 2.25。$\mathrm{DiD}=6-2.25=3.75$，与 (a) 一致。
+\end{prac}
+
+\begin{english}
+In the $2\times2$ design, the TWFE regression $y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta d_iw_t+u_{it}$ is saturated, so the four cell means are $\beta_0$, $\beta_0+\beta_2$, $\beta_0+\beta_1$ and $\beta_0+\beta_1+\beta_2+\beta$. The change for the treated group is $\beta_2+\beta$ and the change for the control group is $\beta_2$; hence $\beta=[E(y\mid1,1)-E(y\mid1,0)]-[E(y\mid0,1)-E(y\mid0,0)]$, the difference in differences. The OLS estimate $\hat\beta$ is numerically identical to the difference in sample means $(\bar Y_{T,1}-\bar Y_{T,0})-(\bar Y_{C,1}-\bar Y_{C,0})$. Under parallel trends, $\beta_2$ is the counterfactual change of the treated group, so $\beta$ equals the ATT. Adding $d_i$ and $w_t$ to a model with unit and time fixed effects changes nothing because they are perfectly collinear with the fixed effects; with a balanced panel and a common treatment date, the TWFE estimator equals the DiD of pre- and post-period averages.
+\end{english}
+
+%======================================================================
+\section{协变量：DiD 与 \texorpdfstring{$x_{it}$}{x\_it}}\label{sec:U15a-cov}
+
+本节回答两个问题：在 DiD 回归中加入协变量 $x_{it}$ 之后，交互项系数还等于四格均值的 DiD 吗？还等于 ATT 吗？结论是：一般都不等于，所以要\key{谨慎}使用。
+
+\subsection{加入协变量的 TWFE 回归}
+
+\subsubsection{模型：\texorpdfstring{$y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta D_{it}+x_{it}'\delta+u_{it}$}{y = b0 + b1 d + b2 w + b D + x'delta + u}}
+
+在 $2\times2$ 回归中加入 $K\times1$ 的协变量 $x_{it}$：
+\begin{equation}\label{eq:U15a-cov}
+y_{it}=\beta_0+\beta_1d_i+\beta_2w_t+\beta D_{it}+x_{it}\T\delta+u_{it},\qquad \E(u_{it}\mid d_i,w_t,x_{it})=0.
+\end{equation}
+TWFE 写法为 $y_{it}=\alpha_i+\lambda_t+\beta D_{it}+x_{it}\T\delta+u_{it}$；也有人把组别与时期效应简写为 $y_{it}=d_i+w_t+\beta d_iw_t+x_{it}\T\delta+u_{it}$。协变量斜率本书记作 $\delta$，不要与 DiD 系数 $\beta$ 撞名。
+
+\subsubsection{问题的提出：TWFE 与 DiD 的等价不再成立}
+
+无协变量时“TWFE $=$ DiD”；加入 $x_{it}$ 后这一等价不再成立（TWFE $\to$ DiD $\nrightarrow x_{it}$），回归给出的 $\hat\beta_{FE}$ 一般不等于原始的 $\hat\beta_{DiD}$。实证论文常同时报告“不加控制变量”和“加控制变量”两种结果。例如 Hansen §18.2 在 Card--Krueger 回归中加入营业时长 hoursopen（每天营业小时数）：
+\[
+\hat Y_{it}=\underset{(1.31)}{2.84}\,D_{it}-\underset{(1.2)}{2.2}\,\mathit{Time}_t+\underset{(0.4)}{1.2}\,\mathit{hoursopen}_{it}+\hat u_i,
+\]
+每多营业 1 小时多雇 1.2 人且显著；处理效应从 2.75 变为 2.84，变化不大。文献上，Wooldridge 的扩展 TWFE 不直接放入时变的 $x_{it}$；Caetano \& Callaway 专门研究了时变协变量下的 DiD。结论是：use DiD and $x_{it}$ with caution（目标仍是 ATT）。
+
+%----------------------------------------------------------------------
+\subsection{四格推导：DiD \texorpdfstring{$=\beta+[(x_{11}-x_{10})-(x_{01}-x_{00})]'\delta$}{= beta + [(x11 - x10) - (x01 - x00)]'delta}}
+
+\subsubsection{逐格取条件期望}
+
+记 $x_{dw}=\E(x_{it}\mid d_i=d,w_t=w)$（第一下标组别、第二下标时期：A 格 $x_{00}$，B 格 $x_{01}$，C 格 $x_{10}$，D 格 $x_{11}$）。对 \eqref{eq:U15a-cov} 逐格取条件期望：
+\begin{align*}
+\mathrm A:\ \E(y\mid d=0,w=0)&=\beta_0+x_{00}\T\delta \why{$d=w=0$}\\
+\mathrm B:\ \E(y\mid d=0,w=1)&=\beta_0+\beta_2+x_{01}\T\delta \why{$d=0,\ w=1$}\\
+\mathrm B-\mathrm A&=\beta_2+(x_{01}-x_{00})\T\delta \why{控制组的变化多了 $\Delta x\T\delta$}\\
+\mathrm C:\ \E(y\mid d=1,w=0)&=\beta_0+\beta_1+x_{10}\T\delta \why{$d=1,\ w=0$}\\
+\mathrm D:\ \E(y\mid d=1,w=1)&=\beta_0+\beta_1+\beta_2+\beta+x_{11}\T\delta \why{$d=w=1$}\\
+\mathrm D-\mathrm C&=\beta_2+\beta+(x_{11}-x_{10})\T\delta \why{处理组的变化多了 $\Delta x\T\delta$}\\
+\mathrm{DiD}=(\mathrm D-\mathrm C)-(\mathrm B-\mathrm A)&=\beta+\bigl\{\underbrace{(x_{11}-x_{10})}_{\text{treat}}-\underbrace{(x_{01}-x_{00})}_{\text{control}}\bigr\}\T\delta. \why{两式相减}
+\end{align*}
+
+\subsubsection{等于 \texorpdfstring{$\beta$}{beta} 的条件：两组协变量的变化相同}
+
+控制组的变化不再是 $\beta_2$，而是 $\beta_2+(x_{01}-x_{00})\T\delta$；处理组同理。所以“四格均值的 DiD”等于 $\beta$ 当且仅当大括号乘 $\delta$ 为零。一个充分条件是两组协变量的变化相同：
+\[
+x_{11}-x_{10}=x_{01}-x_{00}.
+\]
+
+%----------------------------------------------------------------------
+\subsection{样本版：回归调整的 DiD}
+
+\subsubsection{结论：\texorpdfstring{$\hat\beta=\widehat{\mathrm{DiD}}(\bar y)-\widehat{\mathrm{DiD}}(\bar x)'\hat\delta$}{beta hat = DiD(y bar) - DiD(x bar)' delta hat}}
+
+对任一变量 $z$（标量或向量），记其四格样本均值的双重差分为 $\widehat{\mathrm{DiD}}(\bar z)=(\bar z_{11}-\bar z_{10})-(\bar z_{01}-\bar z_{00})$。
+
+\begin{thm}[回归调整的 DiD]\label{thm:U15a-ra}
+在 $2\times2$ 回归中加入 $x_{it}$，OLS 给出
+\[
+\hat\beta=\bigl[(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00})\bigr]-\bigl[(\bar x_{11}-\bar x_{10})-(\bar x_{01}-\bar x_{00})\bigr]\T\hat\delta
+=\widehat{\mathrm{DiD}}(\bar y)-\widehat{\mathrm{DiD}}(\bar x)\T\hat\delta.
+\]
+\end{thm}
+
+\subsubsection{证明：给定 \texorpdfstring{$\hat\delta$}{delta hat}，格子系数是 \texorpdfstring{$y-x'\hat\delta$}{y - x'delta hat} 的格子均值}
+
+记 $R=[\one,d,w,dw]$ 为 $n\times4$，$\mathcal X$ 为 $n\times K$（各行为 $x_{it}\T$），$\hat b=(\hat\beta_0,\hat\beta_1,\hat\beta_2,\hat\beta)\T$。
+\begin{align*}
+&R\T\bigl(y-R\hat b-\mathcal X\hat\delta\bigr)=0 \why{对 $R$ 的正规方程}\\
+\Rightarrow\ &\hat b=(R\T R)\inv R\T\bigl(y-\mathcal X\hat\delta\bigr) \why{$R\T R$ 可逆}\\
+\Rightarrow\ &\hat b=\text{以 }y-\mathcal X\hat\delta\text{ 为被解释变量的 }2\times2\text{ 回归系数} \why{形式与无协变量时相同}\\
+\Rightarrow\ &\hat\beta=\widehat{\mathrm{DiD}}\bigl(\overline{y-x\T\hat\delta}\bigr) \why{OLS 与四格均值的数值等价}\\
+&\phantom{\hat\beta}=\widehat{\mathrm{DiD}}(\bar y)-\widehat{\mathrm{DiD}}(\bar x)\T\hat\delta. \why{格子均值与 DiD 都是线性运算}
+\end{align*}
+因此，只要样本中两组协变量的变化不同（$\widehat{\mathrm{DiD}}(\bar x)\neq0$）且 $\hat\delta\neq0$，加协变量的 TWFE 系数 $\hat\beta_{FE}$ 就不等于原始 DiD $\hat\beta_{DiD}$——这就是“加入 $x_{it}$ 后 $\hat\beta_{FE}\neq\hat\beta_{DiD}$”的精确含义。
+
+\subsubsection{例：加协变量前后的手算}
+
+\begin{exmp}[加协变量前后的手算]\label{ex:U15a-cov}
+沿用“可手算的四格例”：$\bar y_{00}=7,\ \bar y_{01}=10,\ \bar y_{10}=11,\ \bar y_{11}=17$，原始 DiD $=3$。设协变量（例如每天营业小时数，单位已标准化）的四格均值为 $\bar x_{00}=1,\ \bar x_{01}=2,\ \bar x_{10}=1,\ \bar x_{11}=3$，回归得 $\hat\delta=0.5$。求回归调整后的 $\hat\beta$。
+\solution
+\begin{align*}
+\widehat{\mathrm{DiD}}(\bar x)&=(3-1)-(2-1)=1, \why{处理组 $x$ 多增加了 1}\\
+\hat\beta&=3-1\times0.5=2.5. \why{回归调整}
+\end{align*}
+原始 DiD 3 中有 0.5 被归因于“处理组营业时间增加更多”。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{哪个才是 ATT：前定协变量与坏控制}
+
+两个估计量 $\widehat{\mathrm{DiD}}(\bar y)$ 与 $\hat\beta$ 谁对，取决于 $x$ 的性质。
+
+\subsubsection{\texorpdfstring{$x$}{x} 是不受处理影响的混杂因素：回归调整后的 \texorpdfstring{$\beta$}{beta} 是 ATT}
+
+若 $x$ 不受处理影响（例如外生的地区经济冲击），条件平行趋势成立，且 $x$ 的作用线性、同质（即 $y_{it}(0)$ 中含 $x_{it}\T\delta$ 一项），则 $\beta$ 是 ATT；由四格推导，原始 DiD 有偏，偏差为 $\mathrm{DiD}(x)\T\delta$。
+
+\subsubsection{\texorpdfstring{$x$}{x} 受处理影响（坏控制）：原始 DiD 才是 ATT}
+
+若 $x$ 受处理影响，就是\term{坏控制}{bad control}（中介变量）。例如最低工资上涨后餐馆缩短营业时间。此时 $\widehat{\mathrm{DiD}}(\bar x)$ 本身就是处理的结果，回归把这部分效应“控制掉了”，$\hat\beta$ 只剩“直接效应”，不再是 ATT；若无条件 PT 成立，原始 DiD 反而是对的。上例中若营业时间是被政策改变的，总效应 $3=$ 直接效应 $2.5+$ 经由营业时间的间接效应 $0.5$，正确答案是 3 而不是 2.5。这就是“use DiD and $x_{it}$ with caution”的原因。
+
+%----------------------------------------------------------------------
+\subsection{时变协变量的问题（Caetano \& Callaway 2024）}
+
+\subsubsection{等价成立的条件：两组协变量的变化相同}
+
+Caetano \& Callaway 的讨论题为“DiD with time-varying covariates”。与上面的四格推导一致：只有当处理组与控制组协变量的变化（$\Delta x_{it}\mid$ treated 与 $\Delta x_{it}\mid$ untreated）相同时，才有 $\hat\beta_{FE}=\hat\beta_{DiD}$。
+
+\subsubsection{TWFE 加 \texorpdfstring{$x_{it}'\delta$}{x'delta} 的四个问题}
+
+\begin{enumerate}
+  \item TWFE 加 $x_{it}\T\delta$ 隐含的假设是：平行趋势只依赖于 $x$ 的\key{变化} $\Delta x_{it}$，且作用是线性、跨组跨期同质的。若真实的 PT 依赖于 $x$ 的\key{水平}（例如“初始规模相同的企业趋势相同”），时不变的水平信息被 $\alpha_i$ 吸收，TWFE 用不上，产生偏误。
+  \item 若 $x$ 对 $y$ 的影响在两组或各期不同（异质、非线性），线性 TWFE 的设定有误；由此产生的偏误常称为“隐含线性偏误”（hidden linearity bias）。
+  \item 若 $x_{it}$ 受处理影响，就是上一小节的坏控制问题。
+  \item 只有在两组协变量变化分布相同等特殊条件下，加不加 $x_{it}$ 的 TWFE 才一致；一般而言，加了 $x_{it}$ 的 TWFE 在条件 PT 下也不能恢复 ATT。
+\end{enumerate}
+
+\subsubsection{更稳妥的做法：处理前协变量与 RA、IPW、DR 估计}
+
+\begin{extend}[条件平行趋势下的估计]
+更稳妥的做法是只用处理前（或时不变）的协变量 $x_{i,\mathrm{pre}}$，并在条件 PT 下用\term{回归调整}{regression adjustment, RA}、\term{逆概率加权}{inverse probability weighting, IPW}或\term{双重稳健}{doubly robust, DR}估计：Sant'Anna \& Zhao (2020, \textit{Journal of Econometrics}) 给出 $2\times2$ 情形的 DR DiD，Callaway \& Sant'Anna (2021) 把它推广到交错处理。它们直接实现“先在每个 $x$ 上做 DiD，再按处理组的 $x$ 分布平均”的识别结果（见“条件平行趋势”一小节）。相关文献：Caetano \& Callaway (2024) “Difference-in-Differences when Parallel Trends Holds Conditional on Covariates”（工作论文）；Caetano, Callaway, Payne \& Rodrigues (2022) “Difference in Differences with Time-Varying Covariates”。
+\end{extend}
+
+\subsubsection{Wooldridge 扩展 TWFE 中的协变量：只用时不变协变量}
+
+Wooldridge 的扩展 TWFE 并非完全不允许协变量：它只纳入时不变（处理前）的协变量 $x_i$，先按 cohort 中心化，再与 cohort、时间虚拟变量交互；不直接放入时变的 $x_{it}$。所以常说“there is no $x_{it}$ in the paper”。
+
+%----------------------------------------------------------------------
+\subsection{实践清单：谨慎使用 DiD \texorpdfstring{$+\,x_{it}$}{+ x\_it}}
+
+\subsubsection{四条要点}
+
+\begin{method}[DiD 中使用协变量的实践清单]
+\begin{enumerate}
+  \item 同时报告不加 / 加协变量的结果；二者接近说明协变量的组间变化差异小（$\widehat{\mathrm{DiD}}(\bar x)\approx0$）。
+  \item 优先使用处理前取值或时不变的协变量；不要控制可能被政策改变的变量。
+  \item 加协变量意味着把识别假设改成条件 PT（new PT $\to$ conditional PT），要在文中说明为什么条件 PT 更可信。
+  \item 回归形式 $x_{it}\T\delta$ 额外施加了线性与同质性；必要时用 RA / IPW / DR 估计（拓展）。
+\end{enumerate}
+\end{method}
+
+\subsubsection{Stata：交互项的正确写法，d.f 是差分算子}
+
+常见的错误写法是 \texttt{xtreg y d f d.f x}：Stata 中 \texttt{d.f} 是 \texttt{f} 的一阶差分（D. 算子），\key{不是}交互项！交互应写 \texttt{i.d\#i.f}（或 \texttt{c.d\#c.f}）。
+\begin{lstlisting}
+* TWFE with a time-varying covariate (use with caution)
+xtreg y D x i.year, fe vce(cluster id)
+* correct syntax for the interaction (NOT d.f, which is a difference operator)
+reg y i.d##i.post x, vce(cluster id)
+xtreg y i.d##i.f x, fe vce(cluster id)   // d is absorbed by unit FE and dropped
+\end{lstlisting}
+
+\begin{prac}[协变量与坏控制]\label{prac:U15a-badctrl}
+某研究评估职业培训（处理）对工资 $y$ 的影响。四格样本均值：$\bar y_{00}=20,\ \bar y_{01}=22,\ \bar y_{10}=18,\ \bar y_{11}=25$；“职位等级”$x$ 的四格均值：$\bar x_{00}=2,\ \bar x_{01}=2.2,\ \bar x_{10}=2,\ \bar x_{11}=3.2$；加入 $x$ 的回归给出 $\hat\delta=2$。(a) 求原始 DiD 与回归调整后的 $\hat\beta$。(b) 职位等级很可能因培训而提高。哪个估计更接近 ATT？
+\answer
+(a)
+\begin{align*}
+\widehat{\mathrm{DiD}}(\bar y)&=(25-18)-(22-20)=7-2=5, \why{原始 DiD}\\
+\widehat{\mathrm{DiD}}(\bar x)&=(3.2-2)-(2.2-2)=1.2-0.2=1, \why{协变量的 DiD}\\
+\hat\beta&=5-1\times2=3. \why{回归调整}
+\end{align*}
+(b) 职位等级是培训的结果（坏控制 / 中介变量）：培训通过提升职位使工资上涨，这部分也是培训的效应。回归调整把 $1\times2=2$ 的间接效应剔除，只剩直接效应 3。若无条件平行趋势可信，ATT 的合理估计是原始 DiD $=5$。
+\end{prac}
+
+\begin{english}
+Adding time-varying covariates to the TWFE regression changes the estimand. The four-cell calculation gives $\text{DiD}=\beta+[(x_{11}-x_{10})-(x_{01}-x_{00})]'\delta$, so the regression coefficient equals the raw difference in differences only if covariates evolve identically in the treated and control groups; in the sample, $\hat\beta=\widehat{\text{DiD}}(\bar y)-\widehat{\text{DiD}}(\bar x)'\hat\delta$. If the covariates are themselves affected by the treatment, controlling for them removes part of the treatment effect (bad controls). Moreover, as emphasized by Caetano and Callaway (2024), TWFE with $x_{it}$ generally does not recover the ATT under conditional parallel trends. Hence DiD with time-varying covariates should be used with caution, preferably with pre-treatment covariates.
+\end{english}
+
+%======================================================================
+\section{处理组很少时的估计与推断}\label{sec:U15a-few}
+
+许多政策只在少数地区实施，处理单位数 $N_1$ 很小（如 $N_1=2$ 或 5），控制单位却很多。本节说明：此时 $\hat\beta$ 仍无偏，但不一致；常规的聚类标准误不可靠；推断要改用置换、自助法或 Conley--Taber 方法；只有一个处理单位时应转向合成控制。
+
+\subsection{\texorpdfstring{$N_1$}{N1} 很小：\texorpdfstring{$\hat\beta$}{beta hat} 无偏但不一致}
+
+\subsubsection{误差分解：固定效应被差分消去，只剩误差的 DiD}
+
+考虑同质效应模型 $y_{it}=\alpha_i+\lambda_t+\beta D_{it}+u_{it}$，共同处理时点、平衡面板。由“平衡面板、共同处理时点下 TWFE $=$ DiD”，$\hat\beta$ 是均值的 DiD；把 $y$ 代进去，固定效应全部被差分消掉，只剩误差的 DiD。记 $\bar\alpha_T$ 为处理组 $\alpha_i$ 的平均，$\bar\lambda_{\mathrm{post}}$、$\bar\lambda_{\mathrm{pre}}$ 为处理后、处理前 $\lambda_t$ 的平均，$\bar u_{T,\mathrm{post}}$ 等为相应格子的平均误差。
+\begin{align*}
+\hat\beta&=(\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}) \why{TWFE $=$ DiD}\\
+\bar y_{T,\mathrm{post}}&=\bar\alpha_T+\bar\lambda_{\mathrm{post}}+\beta+\bar u_{T,\mathrm{post}} \why{处理组处理后 $D=1$}\\
+\bar y_{T,\mathrm{pre}}&=\bar\alpha_T+\bar\lambda_{\mathrm{pre}}+\bar u_{T,\mathrm{pre}} \why{处理组处理前 $D=0$}\\
+\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+\beta+(\bar u_{T,\mathrm{post}}-\bar u_{T,\mathrm{pre}}) \why{$\alpha_i$ 前后相同被消去}\\
+\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}}) \why{控制组无处理}\\
+\Rightarrow\ \hat\beta&=\beta+\underbrace{(\bar u_{T,\mathrm{post}}-\bar u_{T,\mathrm{pre}})}_{\text{处理组 }N_1\text{ 个单位的平均误差}}-\underbrace{(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}})}_{\text{控制组 }N_0\text{ 个单位}}. \why{相减，$\lambda_t$ 被消去}
+\end{align*}
+
+\subsubsection{无偏：严格外生下 \texorpdfstring{$\E\hat\beta=\beta$}{E beta hat = beta}}
+
+在严格外生 $\E(u_{it}\mid D)=0$ 下，两项误差平均的期望都为 0，故 $\E\hat\beta=\beta$。可以简写为 $\hat\beta=\beta+\bar u$，$\E(\bar u)=0$，其中 $\bar u$ 主要是处理单位的平均误差。
+
+\subsubsection{不一致：\texorpdfstring{$N_0\to\infty$}{N0 -> infinity} 而 \texorpdfstring{$N_1$}{N1} 固定}
+
+令 $N_0\to\infty$ 而 $N_1$ 固定（如 5）。控制组项由大数定律依概率收敛到 0；处理组项是 $N_1$ 个单位误差的平均，不随样本增大而消失：
+\[
+\hat\beta\pto\beta+\frac1{N_1}\sum_{j\in\mathcal T}\bigl(\bar u_{j,\mathrm{post}}-\bar u_{j,\mathrm{pre}}\bigr)\neq\beta,
+\]
+其中 $\bar u_{j,\mathrm{post}}$、$\bar u_{j,\mathrm{pre}}$ 为单位 $j$ 处理后、处理前的平均误差。极限是一个随机变量，不是 $\beta$。
+
+\subsubsection{方差：处理组那一项不随 \texorpdfstring{$N_0$}{N0} 增大而消失}
+
+设 $u_{it}$ 独立同分布、方差 $\sigma^2$。四个格子的平均误差分别是 $N_1T_1$、$N_1T_0$、$N_0T_1$、$N_0T_0$ 个误差的平均，且彼此独立：
+\begin{align*}
+\Var(\hat\beta)&=\Var(\bar u_{T,\mathrm{post}})+\Var(\bar u_{T,\mathrm{pre}})+\Var(\bar u_{C,\mathrm{post}})+\Var(\bar u_{C,\mathrm{pre}}) \why{四项独立}\\
+&=\frac{\sigma^2}{N_1T_1}+\frac{\sigma^2}{N_1T_0}+\frac{\sigma^2}{N_0T_1}+\frac{\sigma^2}{N_0T_0} \why{i.i.d.\ 均值的方差}\\
+&=\sigma^2\Bigl(\frac1{N_1}+\frac1{N_0}\Bigr)\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr) \why{因式分解}\\
+&\to\frac{\sigma^2}{N_1}\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)>0\qquad(N_0\to\infty). \why{控制组项消失}
+\end{align*}
+所以一致性需要 $N_1\to\infty$（单一 $\beta$ 作为 ATT 的估计，要求处理单位足够多），或处理前后期数 $T_0,T_1\to\infty$。
+
+%----------------------------------------------------------------------
+\subsection{聚类标准误为何失效（Hansen §18.9）}
+
+\subsubsection{Moulton 因子：组内相关放大方差}
+
+设组 $g$ 中个体 $i$ 的误差 $e_{ig}$ 与回归元独立、方差为 $\sigma^2$、组内相关系数为 $\rho$，每组有 $N$ 个个体。则 OLS 的精确方差为（Moulton 1990）
+\[
+V_{\hat\beta}=(X\T X)\inv\sigma^2\bigl(1+\rho(N-1)\bigr),
+\]
+即常规方差被放大 $1+\rho(N-1)$ 倍。即使 $\rho$ 很小，$N$ 很大时放大倍数也可能很大。
+
+\subsubsection{在州一级聚类：Bertrand、Duflo 与 Mullainathan (2004)}
+
+Bertrand, Duflo \& Mullainathan (2004) 在 CPS 数据中加入随机生成的“政策”变量，发现不聚类的标准误过小，研究者会错误地认为随机变量显著；按州聚类可消除这种错误拒绝。此后实证中普遍在州（高聚合层级）一级聚类。
+
+\subsubsection{聚类方差实际上只用“聚类个数”个观测}
+
+聚类稳健方差（第 5 章）不对组内相关施加结构，稳健但不精确：它实际上是用“聚类个数”个观测在估计方差。以美国各州为聚类，最多只有 51 个“观测”；若待估系数超过 51 个，方差矩阵估计量不满秩。
+
+\subsubsection{只有两个州：无法按州聚类}
+
+Card--Krueger 只有两个州（NJ、PA）。按州聚类只剩 2 个有效观测，不可行。若不能排除组内相关、又因州太少而无法聚类，报告的标准误就不可信。
+
+\subsubsection{只有一个处理单位：方差矩阵奇异，标准误严重偏向 0}
+
+处理只施加于极少数单位时，问题在代数上与“稀疏虚拟变量下的稳健方差估计”（Hansen §4.17）相同。最极端的情形是只有一个处理单位：聚类方差矩阵奇异，该子组均值的标准误在代数上为 0（尽管它是估计得最不精确的系数）；处理效应的标准误虽不为 0，但严重偏向 0，$t$ 检验过度拒绝。原因是该子组的方差只由一个单位估计。
+
+%----------------------------------------------------------------------
+\subsection{少数处理单位时的推断方法}
+
+\subsubsection{置换（随机化）推断}
+
+\begin{method}[置换推断的步骤]
+\term{置换推断}{permutation inference}（随机化推断）检验 $H_0:\beta=0$：
+\begin{enumerate}
+  \item 用真实的处理分配计算 $\hat\beta$。
+  \item 把“处理”轮流（或随机）分配给控制单位（保持处理时点不变），每次重新计算 $\hat\beta^{(p)}$，得到\key{安慰剂分布}。
+  \item 实际 $\hat\beta$ 在安慰剂分布中的排名给出 $p$ 值（例如 $|\hat\beta|$ 超过多少比例的 $|\hat\beta^{(p)}|$）。
+\end{enumerate}
+思想与 SCM 的安慰剂检验相同（第 16 章）。
+\end{method}
+
+\subsubsection{Conley--Taber 方法：用控制组残差估计处理组误差的分布}
+
+Conley \& Taber (2011, \textit{Review of Economics and Statistics})“Inference with ‘Difference in Differences’ with a Small Number of Policy Changes”：$N_1$ 小、$N_0$ 大时，用大量控制单位的残差估计“处理组平均误差” $\bar u_{T,\mathrm{post}}-\bar u_{T,\mathrm{pre}}$ 的分布，据此构造 $\hat\beta$ 的置信区间。它直接针对上文误差分解中不消失的那一项。Hansen 也推荐此文。
+
+\tagext\ Ferman \& Pinto (2019, \textit{Review of Economics and Statistics}) 把这一思路推广到处理组少且存在异方差（例如各组规模不同）的情形。
+
+\subsubsection{野聚类自助法}
+
+\term{野聚类自助法}{wild cluster bootstrap}（Cameron, Gelbach \& Miller 2008, \textit{Review of Economics and Statistics}）在聚类较少时改进推断；但处理聚类极少时它仍可能失效（MacKinnon 与 Webb 的研究）。
+
+%----------------------------------------------------------------------
+\subsection{只有极少处理单位：转向 SCM/PDA 估计个体效应}
+
+当 $N_1=1$ 或很小时（如 $N_1=2$、5），“对处理组求平均”的 ATT 失去意义，也无法一致估计。此时应转向第 16 章的合成控制法（及 PDA）：直接估计该处理单位的逐期效应 $\Delta_t$，并用安慰剂检验做推断。概括为：$\beta=\mathrm{ATT}$ 需要 $N_1\to\infty$；$N_1=2,5\ \to$ SCM。
+
+\begin{prac}[一个处理单位时 $\hat\beta$ 的方差]\label{prac:U15a-onetreated}
+$N_1=1$，$N_0$ 个控制单位，$T_0=T_1=1$（两期），$u_{it}\sim\iid(0,\sigma^2)$。(a) 写出 $\hat\beta-\beta$；(b) 求 $\Var(\hat\beta)$，并说明 $N_0\to\infty$ 时的极限；(c) 由此解释“无偏但不一致”。
+\answer
+(a) 由误差分解（处理单位记为 1，期 0、1 分别为处理前、后）：
+\[
+\hat\beta-\beta=(u_{1,1}-u_{1,0})-\frac1{N_0}\sum_{j\in\mathcal C}(u_{j,1}-u_{j,0}).
+\]
+(b) 两项独立：
+\begin{align*}
+\Var(u_{1,1}-u_{1,0})&=2\sigma^2, \why{两个独立误差之差}\\
+\Var\Bigl(\frac1{N_0}\sum_{j}(u_{j1}-u_{j0})\Bigr)&=\frac{2\sigma^2}{N_0}, \why{$N_0$ 个独立项的均值}\\
+\Var(\hat\beta)&=2\sigma^2\Bigl(1+\frac1{N_0}\Bigr)\to2\sigma^2>0. \why{$N_0\to\infty$}
+\end{align*}
+这与一般公式 $\sigma^2(1/N_1+1/N_0)(1/T_1+1/T_0)$ 在 $N_1=T_0=T_1=1$ 时一致。
+
+(c) $\E(\hat\beta-\beta)=0$，无偏；但方差不趋于 0，$\hat\beta$ 不依概率收敛到 $\beta$，不一致。增加控制单位只能消除第二项，处理单位自身的冲击 $u_{1,1}-u_{1,0}$ 永远留在估计量里。
+\end{prac}
+
+\begin{english}
+With only a few treated units, the DiD estimator is $\hat\beta=\beta+(\bar u_{T,post}-\bar u_{T,pre})-(\bar u_{C,post}-\bar u_{C,pre})$. It is unbiased under strict exogeneity, but it is inconsistent as $N_0\to\infty$ with $N_1$ fixed, because the average error of the treated units does not vanish; its variance converges to $\sigma^2(1/T_1+1/T_0)/N_1>0$. Cluster-robust standard errors are unreliable when the number of treated clusters is small, and with a single treated unit they are severely biased toward zero. Inference should instead rely on permutation (placebo) methods or on the approach of Conley and Taber (2011). When there is a single treated unit, synthetic control methods are more appropriate.
+\end{english}
+
+以上各节都假定处理效应同质（单一 $\beta$）且处理时点相同。下一节起依次放松这两点：先允许效应随时间和个体变化，再讨论事件研究与交错处理。

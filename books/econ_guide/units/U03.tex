@@ -1,0 +1,1096 @@
+\chapter{OLS 的代数与几何}
+\label{ch:U03-ols}
+
+第 2 章在总体层面定义了线性投影系数 $\beta=[\E(x_ix_i')]^{-1}\E(x_iy_i)$。本章转到样本：用样本矩代替总体矩，得到普通最小二乘（OLS）估计量 $\hat\beta=(X'X)^{-1}X'Y$，并研究它的纯代数与几何性质。这些性质\key{不依赖任何统计假设}，对任何数据都成立。学习路线：矩估计与损失函数（为什么用 OLS）$\to$ 推导与正规方程 $\to$ 识别与多重共线性 $\to$ 残差正交性 $\to$ 投影矩阵 $P$、$M$ 与几何图像 $\to$ 平方和分解与 $R^2$ $\to$ FWL 定理（第 10 章 LSDV $=$ 组内估计、第 15 章 TWFE 的代数基础）$\to$ 对参数线性 $\to$ 离群点与杠杆。统计性质（无偏、方差、有效性）在第 4 章，大样本性质在第 5 章。对应 Hansen 第 3 章（The Algebra of Least Squares）与 §4.21（Multicollinearity）。
+
+%======================================================================
+\section{从总体矩到样本矩：矩估计思想}\label{sec:U03-mm}
+
+\subsection{类比原则：用样本平均代替期望}
+
+\subsubsection{矩估计的原则与最简单的例子 \texorpdfstring{$\hat\mu=\bar y$}{mu-hat = y-bar}}
+
+\term{矩估计}{method of moments, MM}的原则，又称\term{类比原则}{analogy principle}：总体参数若能写成总体矩（期望）的函数，就把其中的期望 $\E(\cdot)$ 换成对应的样本平均 $\frac1n\sum_{i=1}^n(\cdot)$。这种“代入法”常简记为 M.M.，第 5 章构造方差估计量时反复使用。最简单的例子是总体均值：
+\begin{align*}
+\mu &= \E(y_i) \why{参数是一个总体矩}\\
+\hat\mu &= \frac1n\sum_{i=1}^n y_i=\bar y. \why{期望换成样本平均}
+\end{align*}
+
+\subsubsection{用于线性投影系数：得到 OLS 公式}
+
+设 $y_i$ 为标量，$x_i$ 为 $K\times1$ 回归元向量（通常第一个元素为常数 1），样本为 $\{(y_i,x_i)\}_{i=1}^n$。把类比原则用于第 2 章的线性投影系数：
+\begin{align*}
+\beta &= \big[\E(x_ix_i')\big]^{-1}\E(x_iy_i) \why{第 2 章线性投影系数}\\
+\hat\beta &= \Big(\frac1n\sum_{i=1}^n x_ix_i'\Big)^{-1}\Big(\frac1n\sum_{i=1}^n x_iy_i\Big) \why{两个期望换成样本平均}\\
+&= \Big(\sum_{i=1}^n x_ix_i'\Big)^{-1}\sum_{i=1}^n x_iy_i. \why{$(cA)^{-1}=c^{-1}A^{-1}$，$\tfrac1n$ 约去}
+\end{align*}
+下两节将看到，这恰好就是“最小化残差平方和”得到的 OLS 估计量：OLS 既是矩估计量，也是最小二乘估计量。
+
+\subsection{矩条件的写法}
+
+\subsubsection{一般形式：总体矩条件与样本矩条件}
+
+更一般地，记第 $i$ 个观测为 $w_i$（例如 $w_i=(y_i,x_i)$），参数 $\theta$ 由\term{矩条件}{moment condition}
+\begin{equation}\label{eq:U03-mc}
+\E\big[g(w_i,\theta)\big]=0
+\end{equation}
+定义，其中 $g$ 是已知的向量函数。矩条件个数等于参数个数时（恰好识别），矩估计量 $\hat\theta$ 解\key{样本矩条件}
+\[
+\frac1n\sum_{i=1}^n g(w_i,\hat\theta)=0 .
+\]
+矩条件个数多于参数个数时，样本矩条件一般无法同时为零，需要加权使其“尽量接近零”，这就是第 8 章的 GMM。
+
+\subsubsection{线性投影的矩条件 \texorpdfstring{$\E[x_i(y_i-x_i'\beta)]=0$}{E[x(y-x'beta)]=0}}
+
+线性投影的矩条件是 $g(w_i,\beta)=x_i(y_i-x_i'\beta)$，共 $K$ 个方程。它与上面的投影系数公式等价：
+\begin{align*}
+0=\E\big[x_i(y_i-x_i'\beta)\big] &= \E(x_iy_i)-\E(x_ix_i')\beta \why{期望的线性性}\\
+\beta &= \big[\E(x_ix_i')\big]^{-1}\E(x_iy_i). \why{$\E(x_ix_i')$ 可逆}
+\end{align*}
+其样本版本 $\frac1n\sum_ix_i(y_i-x_i'\hat\beta)=0$ 就是 OLS 的正规方程（见 \ref{ss:U03-normal} 小节）。
+
+\subsubsection{例：均值与方差的矩估计}
+
+\begin{exmp}[均值与方差的矩估计]
+设 $\mu=\E(y)$，$\sigma^2=\Var(y)$，令
+\[
+g(y,\mu,\sigma^2)=\begin{pmatrix} y-\mu\\[2pt] (y-\mu)^2-\sigma^2\end{pmatrix}.
+\]
+由定义 $\E[g(y,\mu,\sigma^2)]=0$。求解样本矩条件 $\frac1n\sum_ig(y_i,\hat\mu,\hat\sigma^2)=0$。
+\solution
+逐行求解：
+\begin{align*}
+\frac1n\sum_{i=1}^n(y_i-\hat\mu) &= 0 \why{样本矩条件第一行}\\
+\bar y-\hat\mu &= 0\ \Rightarrow\ \hat\mu=\bar y \why{$\tfrac1n\sum_i\hat\mu=\hat\mu$}\\
+\frac1n\sum_{i=1}^n\big[(y_i-\hat\mu)^2-\hat\sigma^2\big] &= 0 \why{样本矩条件第二行}\\
+\hat\sigma^2 &= \frac1n\sum_{i=1}^n(y_i-\bar y)^2. \why{代入 $\hat\mu=\bar y$}
+\end{align*}
+矩估计量就是样本均值与\key{除以 $n$} 的样本方差（有偏；除以 $n-1$ 的版本才无偏）。
+\end{exmp}
+
+\begin{english}
+The method of moments replaces population moments by sample moments. Since the linear projection coefficient is $\beta=[\E(x_ix_i')]^{-1}\E(x_iy_i)$, its moment estimator is $\hat\beta=(\sum_ix_ix_i')^{-1}\sum_ix_iy_i$, which coincides with the OLS estimator. In general, a parameter defined by the moment condition $\E[g(w_i,\theta)]=0$ is estimated by solving the sample moment condition $n^{-1}\sum_i g(w_i,\hat\theta)=0$; GMM extends this to the over-identified case.
+\end{english}
+
+%======================================================================
+\section{最小化什么？LAD 与 OLS}\label{sec:U03-lad}
+
+\subsection{出发点：让不可观测的误差整体尽量小}
+
+模型为 $y_i=x_i'\beta+u_i$，$i=1,\dots,n$。由于 $\beta$ 未知，误差 $u_i=y_i-x_i'\beta$ 不可观测。但对每个候选值 $b\in\R^K$，可以算出“隐含误差”
+\[
+u_i(b)=y_i-x_i'b,\qquad i=1,\dots,n .
+\]
+好的 $b$ 应使 $u_1(b),\dots,u_n(b)$ \key{整体}尽量接近 0。问题在于如何把 $n$ 个数汇总成一个“大小”：取绝对值之和得到 LAD，取平方和得到 OLS。
+
+\subsection{最小绝对偏差（LAD）}
+
+\subsubsection{LAD 的定义}
+
+\begin{defn}[LAD 估计量]\label{def:U03-lad}
+\term{最小绝对偏差}{least absolute deviation, LAD}估计量为
+\[
+\hat\beta_{LAD}=\argmin_{b}\ \sum_{i=1}^n|y_i-x_i'b|=\argmin_b\ \big(|u_1(b)|+\cdots+|u_n(b)|\big).
+\]
+\end{defn}
+
+\subsubsection{无显式解：绝对值在 0 处不可导}
+
+目标函数 $\sum_i|y_i-x_i'b|$ 在任一 $u_i(b)=0$ 处有尖点、不可导，不能用“令导数为零”解出闭式表达式。所以 LAD \key{没有显式解}（no explicit solution），只能数值求解。
+
+\subsubsection{LAD 可改写为线性规划}
+
+把每个 $u_i$ 拆成正部与负部：$u_i=u_i^+-u_i^-$，其中 $u_i^+=\max(u_i,0)\ge0$，$u_i^-=\max(-u_i,0)\ge0$，于是 $|u_i|=u_i^++u_i^-$。LAD 等价于
+\[
+\min_{b,\;u^+,\;u^-}\ \sum_{i=1}^n\big(u_i^++u_i^-\big)
+\quad\text{s.t.}\quad x_i'b+u_i^+-u_i^-=y_i,\ \ u_i^+\ge0,\ u_i^-\ge0,\quad i=1,\dots,n .
+\]
+目标函数与约束都是线性的，这就是\term{线性规划}{linear programming}，可用单纯形法等算法求解。在最优点，每个 $i$ 的 $u_i^+$、$u_i^-$ 至多一个为正：若两者都为正，把它们同时减去较小者，约束仍成立而目标值下降。所以最优值确实等于 $\sum_i|u_i|$。
+
+\subsubsection{LAD 估计条件中位数：中位数回归与分位数回归}
+
+OLS 对应条件均值，LAD 对应\key{条件中位数}。所以 LAD 又称\term{中位数回归}{median regression}，是\term{分位数回归}{quantile regression}在分位点 $\tau=0.5$ 时的特例（Hansen 第 24 章）。中位数不受极端值拉动，LAD 因此对 $y$ 方向的离群值稳健（见 \ref{sec:U03-outlier} 节）。
+
+\subsection{最小二乘（OLS）}
+
+\subsubsection{OLS 的定义：最小化残差平方和}
+
+\begin{defn}[OLS 估计量]\label{def:U03-ols}
+\term{普通最小二乘}{ordinary least squares, OLS}估计量为
+\[
+\hat\beta_{OLS}=\argmin_b\ \sum_{i=1}^n(y_i-x_i'b)^2=\argmin_b\ (Y-Xb)'(Y-Xb),
+\]
+其中 $Y$ 为 $n\times1$ 的被解释变量向量，$X$ 为 $n\times K$ 的回归元矩阵（第 $i$ 行为 $x_i'$，见 \ref{ss:U03-matrix} 小节）。
+\end{defn}
+
+第二个等号用到 $\sum_iu_i^2=u'u$：$n\times1$ 向量与自身的内积等于各元素平方和。
+
+\subsubsection{残差平方和函数 \texorpdfstring{$SSR(b)$}{SSR(b)} 与 Hansen 的 \texorpdfstring{$SSE(\beta)$}{SSE(beta)}}
+
+目标函数
+\[
+SSR(b)=\sum_{i=1}^n(y_i-x_i'b)^2
+\]
+称为\term{残差平方和}{sum of squared residuals, SSR}函数。Hansen 把它记为 $SSE(\beta)$（sum of squared errors）。本书的 SSE 专指“解释平方和”，两种记法恰好相反，详见 \ref{ss:U03-naming} 小节。
+
+\subsection{为什么偏好平方：可导性及其他理由}
+
+\subsubsection{损失函数的形状：\texorpdfstring{$|u|$}{|u|} 有尖点，\texorpdfstring{$u^2$}{u\^{}2} 处处可导}
+
+LAD 用绝对值损失 $|u|$，OLS 用平方损失 $u^2$。$|u|$ 连续，但在 $u=0$ 处有尖点、不可导（V 形）；$u^2$ 处处可导（U 形），可以求一阶导数并令其为零。
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth]
+\begin{scope}
+\draw[->] (-1.6,0) -- (1.8,0) node[right] {$u$};
+\draw[->] (0,-0.2) -- (0,1.9);
+\draw[red,thick] (-1.4,1.4) -- (0,0) -- (1.4,1.4);
+\node[red] at (1.15,1.7) {$|u|$};
+\node[font=\small] at (0.1,-0.5) {0 处有尖点：连续但不可导};
+\end{scope}
+\begin{scope}[xshift=5.2cm]
+\draw[->] (-1.6,0) -- (1.8,0) node[right] {$u$};
+\draw[->] (0,-0.2) -- (0,1.9);
+\draw[blue,thick,domain=-1.2:1.2,smooth] plot (\x,{1.2*\x*\x});
+\node[blue] at (1.6,1.6) {$u^2$};
+\node[font=\small] at (0.1,-0.5) {处处可导：可解一阶条件};
+\end{scope}
+\end{tikzpicture}
+\captionof{figure}{LAD 与 OLS 损失函数的形状}
+\end{center}
+
+\subsubsection{偏好 OLS 的五条理由与一个代价}
+
+\begin{enumerate}[label=(\arabic*)]
+  \item \key{可导，有闭式解}（最基本的理由）：$u^2$ 处处可导，一阶条件是线性方程组，解为 $\hat\beta=(X'X)^{-1}X'Y$；
+  \item \key{对应条件均值}：平方损失下的最优预测是条件期望函数 CEF（第 2 章），OLS 是线性投影的样本版本；
+  \item \key{正态下等于 MLE}（第 4 章）；
+  \item \key{Gauss--Markov 最优}：同方差下 OLS 是最优线性无偏估计 BLUE（第 4 章）；
+  \item 代价：平方放大大残差，OLS \key{对离群值敏感}（\ref{sec:U03-outlier} 节）。
+\end{enumerate}
+
+\subsubsection{例：常数模型中 OLS 给均值、LAD 给中位数}
+
+\begin{exmp}[常数模型：OLS 给均值、LAD 给中位数]\label{ex:U03-const}
+数据 $\{1,2,3,4,100\}$，模型 $y_i=b+u_i$（只有常数）。分别求 OLS 与 LAD 估计。
+\solution
+OLS：最小化 $S(b)=\sum_i(y_i-b)^2$。
+\begin{align*}
+S'(b) &= -2\sum_{i=1}^n(y_i-b)=0 \why{一阶条件}\\
+\hat b_{OLS} &= \frac1n\sum_{i=1}^n y_i=\bar y=\frac{110}{5}=22. \why{解出 $b$}
+\end{align*}
+LAD：最小化 $L(b)=\sum_i|y_i-b|$。在 $b$ 不等于任何 $y_i$ 处，
+\begin{align*}
+L'(b) &= \sum_{i=1}^n\operatorname{sign}(b-y_i) \why{$\tfrac{\dd}{\dd b}|y_i-b|=\operatorname{sign}(b-y_i)$}\\
+&= \#\{i:y_i<b\}-\#\{i:y_i>b\}. \why{逐项取 $\pm1$}
+\end{align*}
+$2<b<3$ 时 $L'(b)=2-3=-1<0$（递减）；$3<b<4$ 时 $L'(b)=3-2=1>0$（递增）。所以 $L$ 在 $b=3$ 处取最小，$\hat b_{LAD}=3$，即样本中位数。
+
+结论：一个离群值 100 把 OLS 拉到 22，LAD 不受影响。
+\end{exmp}
+
+\begin{english}
+OLS minimizes the sum of squared residuals $\sum_i(y_i-x_i'b)^2$, while LAD minimizes $\sum_i|y_i-x_i'b|$. Because the absolute value is not differentiable at zero, LAD has no closed-form solution and is computed by linear programming; it estimates the conditional median. The squared loss is differentiable everywhere, which yields a closed-form solution, and its minimizer corresponds to the conditional mean. The price is that OLS is sensitive to outliers.
+\end{english}
+
+%======================================================================
+\section{OLS 估计量的推导}\label{sec:U03-deriv}
+
+本节由浅入深推导 OLS：先一元（标量求导），再多元（求和写法、向量求导），最后矩阵写法，并验证二阶条件。
+
+\subsection{一元无截距情形：二次函数求极值}
+
+先看只有一个回归元、没有截距的模型 $y_i=x_i\beta+u_i$（$\beta$ 为标量）。目标函数是 $\beta$ 的二次函数，形如 $a\beta^2+b\beta+c$，开口向上，极小值在抛物线顶点：
+\begin{align*}
+SSR(\beta) &= \sum_{i=1}^n(y_i-x_i\beta)^2 \why{定义}\\
+&= \Big(\sum_i x_i^2\Big)\beta^2-2\Big(\sum_i x_iy_i\Big)\beta+\sum_i y_i^2 \why{展开；$a=\sum_ix_i^2>0$}\\
+\frac{\dd\,SSR}{\dd\beta} &= 2\Big(\sum_i x_i^2\Big)\beta-2\sum_i x_iy_i=0 \why{一阶条件}\\
+\hat\beta &= \frac{\sum_i x_iy_i}{\sum_i x_i^2}. \why{抛物线顶点 $-b/(2a)$}
+\end{align*}
+
+\subsection{一元含截距情形：\texorpdfstring{$\hat\beta_1=\widehat{\Cov}(x,y)/\widehat{\Var}(x)$}{beta1-hat = Cov(x,y)/Var(x)}}
+
+\subsubsection{两个一阶条件}
+
+模型 $y_i=\beta_0+\beta_1x_i+u_i$。目标函数 $SSR(\beta_0,\beta_1)=\sum_i(y_i-\beta_0-\beta_1x_i)^2$ 分别对 $\beta_0,\beta_1$ 求偏导并令其为零（两边除以 $-2$）：
+\begin{equation}\label{eq:U03-foc2}
+\sum_{i=1}^n(y_i-\hat\beta_0-\hat\beta_1x_i)=0,\qquad \sum_{i=1}^n x_i(y_i-\hat\beta_0-\hat\beta_1x_i)=0 .
+\end{equation}
+
+\subsubsection{解出截距与斜率}
+
+思路：由第一式解出 $\hat\beta_0$，代入第二式，再利用“离差之和为零”把 $x_i$ 换成 $x_i-\bar x$。
+\begin{align*}
+\sum_iy_i-n\hat\beta_0-\hat\beta_1\sum_ix_i &= 0 \why{第一式展开}\\
+\hat\beta_0 &= \bar y-\hat\beta_1\bar x \why{两边除以 $n$}\\
+\sum_ix_i\big[(y_i-\bar y)-\hat\beta_1(x_i-\bar x)\big] &= 0 \why{代入第二式}\\
+\hat\beta_1 &= \frac{\sum_ix_i(y_i-\bar y)}{\sum_ix_i(x_i-\bar x)} \why{移项}\\
+&= \frac{\sum_i(x_i-\bar x)(y_i-\bar y)}{\sum_i(x_i-\bar x)^2}. \why{$\sum_i\bar x(y_i-\bar y)=0$ 等}
+\end{align*}
+最后一步：分子减去 $\bar x\sum_i(y_i-\bar y)=0$，分母减去 $\bar x\sum_i(x_i-\bar x)=0$，值不变。分子分母同除以 $n$（或 $n-1$），得
+\begin{equation}\label{eq:U03-slope}
+\hat\beta_1=\frac{\widehat{\Cov}(x,y)}{\widehat{\Var}(x)},\qquad \hat\beta_0=\bar y-\hat\beta_1\bar x ,
+\end{equation}
+正是总体公式 $\beta_1=\Cov(x,y)/\Var(x)$ 的样本版本。
+
+\subsection{多元情形：求和写法与 \texorpdfstring{$K\times1$}{K x 1} 梯度}
+
+\subsubsection{梯度：对向量逐元素求导}
+
+$x_i$、$\beta$ 都是 $K\times1$。目标函数 $f(\beta)=\sum_{i=1}^n(y_i-x_i'\beta)^2$ 对向量 $\beta$ 求导，得到 $K\times1$ 的\term{梯度}{gradient}，其第 $k$ 个元素是 $\partial f/\partial\beta_k$：
+\begin{align*}
+\underset{K\times1}{\frac{\partial f(\beta)}{\partial\beta}}=\begin{pmatrix}\partial f/\partial\beta_1\\ \vdots\\ \partial f/\partial\beta_K\end{pmatrix}
+&= \sum_{i=1}^n 2(y_i-x_i'\beta)\cdot\frac{\partial(y_i-x_i'\beta)}{\partial\beta} \why{链式法则}\\
+&= \sum_{i=1}^n 2(y_i-x_i'\beta)\cdot(-x_i) \why{$\partial(x_i'\beta)/\partial\beta=x_i$}\\
+&= -2\sum_{i=1}^n x_i(y_i-x_i'\beta). \why{整理}
+\end{align*}
+其中 $\partial(x_i'\beta)/\partial\beta=x_i$：$x_i'\beta=\sum_kx_{ik}\beta_k$ 对 $\beta_k$ 的导数是 $x_{ik}$，排成列向量即 $x_i$。
+
+\subsubsection{一阶条件：\texorpdfstring{$\sum_ix_iy_i=(\sum_ix_ix_i')\hat\beta$}{sum x y = (sum x x') beta-hat}}
+
+令梯度为零，得\term{一阶条件}{first-order condition, FOC}：
+\begin{equation}\label{eq:U03-foc}
+\sum_{i=1}^n x_i(y_i-x_i'\hat\beta)=0
+\iff
+\underset{K\times1}{\sum_{i=1}^n x_iy_i}=\underset{K\times K}{\Big(\sum_{i=1}^n x_ix_i'\Big)}\hat\beta .
+\end{equation}
+这是关于 $\hat\beta$ 的 $K$ 元线性方程组。若 $\sum_ix_ix_i'$ 满秩，唯一解为 $\hat\beta=(\sum_ix_ix_i')^{-1}\sum_ix_iy_i$，与矩估计结果相同。
+
+\begin{note}[梯度前的负号不能漏]
+梯度是 $-2\sum_ix_i(y_i-x_i'\beta)$，矩阵形式是 $-2X'(Y-X\beta)$，前面有\key{负号}（来自 $\partial(-x_i'\beta)/\partial\beta=-x_i$）。令梯度为零时常数 $-2$ 被约掉，正规方程与 $\hat\beta$ 不受影响；但单独写梯度（牛顿法迭代、二阶条件、第 4 章的得分函数）时符号必须正确。
+\end{note}
+
+\subsection{矩阵写法}\label{ss:U03-matrix}
+
+\subsubsection{数据矩阵 \texorpdfstring{$X$、$Y$、$u$}{X, Y, u} 与 \texorpdfstring{$Y=X\beta+u$}{Y = X beta + u}}
+
+把 $n$ 个观测按行堆叠：
+\[
+\underset{n\times K}{X}=\begin{pmatrix}x_1'\\ x_2'\\ \vdots\\ x_n'\end{pmatrix}
+=\begin{pmatrix}x_{11}&x_{12}&\cdots&x_{1K}\\ x_{21}&x_{22}&\cdots&x_{2K}\\ \vdots&\vdots&&\vdots\\ x_{n1}&x_{n2}&\cdots&x_{nK}\end{pmatrix},\qquad
+\underset{n\times1}{Y}=\begin{pmatrix}y_1\\ \vdots\\ y_n\end{pmatrix},\qquad
+\underset{n\times1}{u}=\begin{pmatrix}u_1\\ \vdots\\ u_n\end{pmatrix}.
+\]
+$n$ 个方程 $y_i=x_i'\beta+u_i$ 一次写成 $Y=X\beta+u$。
+
+\subsubsection{关键恒等式 \texorpdfstring{$X'X=\sum_ix_ix_i'$、$X'Y=\sum_ix_iy_i$、$X'u=\sum_ix_iu_i$}{X'X = sum x x', X'Y = sum x y, X'u = sum x u}}
+
+$X'$ 是 $K\times n$ 矩阵，它的第 $i$ 列就是 $x_i$，即 $X'=(x_1,\dots,x_n)$。按“列乘行”展开：
+\begin{align*}
+X'X &= (x_1,\dots,x_n)\begin{pmatrix}x_1'\\ \vdots\\ x_n'\end{pmatrix}=\sum_{i=1}^n x_ix_i' \quad(K\times K), \why{分块乘法}\\
+X'Y &= (x_1,\dots,x_n)\begin{pmatrix}y_1\\ \vdots\\ y_n\end{pmatrix}=\sum_{i=1}^n x_iy_i \quad(K\times1), \why{同上}\\
+X'u &= \sum_{i=1}^n x_iu_i \quad(K\times1). \why{同上}
+\end{align*}
+所以求和写法与矩阵写法可以逐项互译（第 1 章）。
+
+\subsubsection{两条向量求导法则}
+
+矩阵推导需要两条法则（第 1 章）：对 $K\times1$ 常数向量 $a$ 与 $K\times K$ 常数矩阵 $A$，
+\[
+\frac{\partial(a'\beta)}{\partial\beta}=a,\qquad
+\frac{\partial(\beta'A\beta)}{\partial\beta}=(A+A')\beta=2A\beta\ \ (A\text{ 对称}).
+\]
+
+\subsubsection{矩阵推导：\texorpdfstring{$\hat\beta=(X'X)^{-1}X'Y$}{beta-hat = (X'X)\^{}-1 X'Y}}
+
+思路：把目标函数展开成 $\beta$ 的二次型，用两条法则求梯度，令其为零。
+\begin{align*}
+f(\beta) &= (Y-X\beta)'(Y-X\beta) \why{$\sum_iu_i^2=u'u$}\\
+&= Y'Y-\beta'X'Y-Y'X\beta+\beta'X'X\beta \why{展开，$(X\beta)'=\beta'X'$}\\
+&= Y'Y-2\beta'X'Y+\beta'X'X\beta \why{$Y'X\beta$ 是标量，等于其转置}\\
+\frac{\partial f}{\partial\beta} &= -2X'Y+2X'X\beta \why{两条法则，$X'X$ 对称}\\
+&= -2X'(Y-X\beta) \why{提出 $-2X'$}\\
+0 &= -2X'(Y-X\hat\beta) \why{一阶条件}\\
+X'X\hat\beta &= X'Y \why{移项，除以 $2$}\\
+\hat\beta_{OLS} &= (X'X)^{-1}X'Y. \why{$X'X$ 可逆时左乘其逆}
+\end{align*}
+由上一小节的恒等式，$(X'X)^{-1}X'Y=(\sum_ix_ix_i')^{-1}\sum_ix_iy_i$，与求和写法一致。
+
+\subsection{二阶条件：Hessian \texorpdfstring{$2X'X$}{2X'X} 正定，确实是最小值}
+
+\subsubsection{Hessian 矩阵正定}
+
+对梯度再求一次导，得 \term{Hessian 矩阵}{Hessian matrix}：
+\[
+\frac{\partial^2f}{\partial\beta\,\partial\beta'}=\frac{\partial\,(-2X'Y+2X'X\beta)}{\partial\beta'}=2X'X .
+\]
+对任意 $K\times1$ 向量 $a\neq0$：
+\begin{align*}
+a'(2X'X)a &= 2(Xa)'(Xa) \why{$(Xa)'=a'X'$}\\
+&= 2\|Xa\|^2\ \ge 0. \why{平方长度非负}
+\end{align*}
+当 $X$ 列满秩时，$a\neq0\Rightarrow Xa\neq0$，上式严格大于 0，所以 $2X'X$ 正定，$f$ 严格凸，一阶条件的解是\key{唯一的全局最小值}。
+
+\subsubsection{另一证明：配方法 \texorpdfstring{$SSR(b)=SSR(\hat\beta)+(b-\hat\beta)'X'X(b-\hat\beta)$}{SSR(b) = SSR(beta-hat) + quadratic form}}
+
+记 $\hat u=Y-X\hat\beta$，由正规方程 $X'\hat u=0$。对任意 $b$：
+\begin{align*}
+Y-Xb &= (Y-X\hat\beta)-X(b-\hat\beta)=\hat u-X(b-\hat\beta) \why{加减 $X\hat\beta$}\\
+SSR(b) &= \hat u'\hat u-2(b-\hat\beta)'X'\hat u+(b-\hat\beta)'X'X(b-\hat\beta) \why{展开}\\
+&= SSR(\hat\beta)+(b-\hat\beta)'X'X(b-\hat\beta). \why{$X'\hat u=0$}
+\end{align*}
+第二项是半正定二次型，$\ge0$；$X$ 列满秩时只在 $b=\hat\beta$ 处为 0。所以 $\hat\beta$ 是唯一最小点，无需求导。
+
+\subsection{正规方程}\label{ss:U03-normal}
+
+\subsubsection{正规方程的三种等价写法}
+
+\begin{defn}[正规方程]\label{def:U03-normal}
+记残差 $\hat u_i=y_i-x_i'\hat\beta$，$\hat u=Y-X\hat\beta$。以下三式等价，称为\term{正规方程}{normal equations}：
+\[
+X'X\hat\beta=X'Y\iff X'(Y-X\hat\beta)=0\iff \sum_{i=1}^n x_i\hat u_i=0 .
+\]
+共 $K$ 个方程、$K$ 个未知数。
+\end{defn}
+
+\subsubsection{正规方程是总体矩条件的样本版本}
+
+正规方程（两边除以 $n$）就是线性投影矩条件 $\E[x_i(y_i-x_i'\beta)]=0$ 的样本版本 $\frac1n\sum_ix_i(y_i-x_i'\hat\beta)=0$。所以 OLS $=$ 线性投影系数的矩估计。
+
+\subsection{手算例子}
+
+\subsubsection{例：\texorpdfstring{$n=5$}{n=5} 的手算 OLS（贯穿本章与第 4 章）}
+
+\begin{exmp}[手算 OLS：贯穿本章与第 4 章的数据]\label{ex:U03-data}
+$n=5$，$x=(1,2,3,4,5)$，$y=(2,4,5,4,5)$，模型含截距：$y_i=\beta_0+\beta_1x_i+u_i$。用矩阵公式求 $\hat\beta$，并用一元公式验证。
+\solution
+$X$ 的第一列全为 1，第二列为 $x$。所需的和：$\sum_ix_i=15$，$\sum_ix_i^2=55$，$\sum_iy_i=20$，$\sum_ix_iy_i=2+8+15+16+25=66$。
+\begin{align*}
+X'X &= \begin{pmatrix} n&\sum_ix_i\\ \sum_ix_i&\sum_ix_i^2\end{pmatrix}=\begin{pmatrix}5&15\\15&55\end{pmatrix},\quad
+X'Y=\begin{pmatrix}\sum_iy_i\\ \sum_ix_iy_i\end{pmatrix}=\begin{pmatrix}20\\66\end{pmatrix} \why{$X'X=\sum_ix_ix_i'$}\\
+\det(X'X) &= 5\cdot55-15^2=50 \why{$2\times2$ 行列式}\\
+(X'X)^{-1} &= \frac1{50}\begin{pmatrix}55&-15\\-15&5\end{pmatrix} \why{$2\times2$ 求逆公式}\\
+\hat\beta &= \frac1{50}\begin{pmatrix}55\cdot20-15\cdot66\\-15\cdot20+5\cdot66\end{pmatrix}
+=\frac1{50}\begin{pmatrix}110\\30\end{pmatrix}=\begin{pmatrix}2.2\\0.6\end{pmatrix}. \why{$(X'X)^{-1}X'Y$}
+\end{align*}
+一元公式验证：$\bar x=3$，$\bar y=4$；离差 $x-\bar x=(-2,-1,0,1,2)$，$y-\bar y=(-2,0,1,0,1)$。
+\begin{align*}
+\sum_i(x_i-\bar x)(y_i-\bar y) &= 4+0+0+0+2=6,\quad \sum_i(x_i-\bar x)^2=10 \why{逐项相乘}\\
+\hat\beta_1 &= 6/10=0.6,\qquad \hat\beta_0=4-0.6\times3=2.2. \why{式 \eqref{eq:U03-slope}}
+\end{align*}
+两种方法一致：$\hat y=2.2+0.6x$。
+\end{exmp}
+
+\subsubsection{练习：只有截距的回归 \texorpdfstring{$\hat\beta=\bar y$}{beta-hat = y-bar}}
+
+\begin{prac}[只有截距的回归]
+用矩阵公式计算只有截距的回归 $y_i=\beta+u_i$ 的 OLS 估计，并解释。
+\answer
+$X=\one_n$（$n\times1$ 全 1 向量）。
+\begin{align*}
+X'X &= \one_n'\one_n=n,\qquad X'Y=\one_n'Y=\sum_iy_i \why{内积即求和}\\
+\hat\beta &= (X'X)^{-1}X'Y=\frac1n\sum_iy_i=\bar y. \why{OLS 公式}
+\end{align*}
+常数项回归的 OLS 就是样本均值，对应总体结论“最优常数预测是 $\E y$”（第 2 章）。
+\end{prac}
+
+\begin{english}
+The OLS estimator minimizes $f(\beta)=(Y-X\beta)'(Y-X\beta)$. The first-order condition is $\partial f/\partial\beta=-2X'(Y-X\beta)=0$, which gives the normal equations $X'X\hat\beta=X'Y$. If $X$ has full column rank, $X'X$ is invertible and $\hat\beta=(X'X)^{-1}X'Y=(\sum_ix_ix_i')^{-1}\sum_ix_iy_i$. The Hessian $2X'X$ is positive definite, so this is the unique minimizer. In the simple regression with an intercept, $\hat\beta_1=\sum_i(x_i-\bar x)(y_i-\bar y)/\sum_i(x_i-\bar x)^2$ and $\hat\beta_0=\bar y-\hat\beta_1\bar x$.
+\end{english}
+
+%======================================================================
+\section{识别与多重共线性}\label{sec:U03-ident}
+
+\subsection{唯一解 \texorpdfstring{$\iff$ $X'X$ 满秩 $\iff$ $X$ 列满秩}{iff X'X full rank iff X full column rank}}
+
+\subsubsection{识别的含义：正规方程有唯一解}
+
+\term{识别}{identification}指参数能由（总体）数据分布唯一确定；在样本中表现为正规方程有唯一解。由式 \eqref{eq:U03-foc}，一阶条件 $\sum_ix_iy_i=(\sum_ix_ix_i')\beta$ 是以 $K\times K$ 矩阵 $\sum_ix_ix_i'=X'X$ 为系数的线性方程组，所以
+\[
+\beta\ \text{被唯一识别}\iff \sum_ix_ix_i'=X'X\ \text{满秩},\qquad \text{此时}\ \hat\beta=\Big(\sum_ix_ix_i'\Big)^{-1}\sum_ix_iy_i\ \text{是唯一解}.
+\]
+接下来的问题是：在什么条件下 $X'X$ 满秩？答案是 $X$ 列满秩，即回归元之间没有完全多重共线性。
+
+\subsubsection{识别条件与必要条件 \texorpdfstring{$n\ge K$}{n >= K}}
+
+\begin{thm}[识别条件]\label{thm:U03-ident}
+$X'X$（$K\times K$）可逆 $\iff$ $\rank(X)=K$（$X$ 列满秩）$\iff$ 回归元之间没有完全多重共线性。此时 $\hat\beta$ 唯一。必要条件：$n\ge K$（因为 $\rank(X)\le\min(n,K)$）。
+\end{thm}
+
+\subsubsection{证明：\texorpdfstring{$X$ 与 $X'X$}{X and X'X} 的零空间相同}
+
+思路：证明对任意 $a\in\R^K$，$Xa=0\iff X'Xa=0$。
+\begin{align*}
+Xa=0\ &\Rightarrow\ X'Xa=X'0=0, \why{左乘 $X'$}\\
+X'Xa=0\ &\Rightarrow\ a'X'Xa=\|Xa\|^2=0\ \Rightarrow\ Xa=0. \why{左乘 $a'$；长度为 0 则为零向量}
+\end{align*}
+所以 $X'X$ 有非零零向量 $\iff$ $X$ 的列线性相关。$K\times K$ 矩阵可逆 $\iff$ 其零空间只有 0 $\iff$ $X$ 的 $K$ 列线性无关 $\iff$ $\rank(X)=K$。
+
+\subsection{完全多重共线性及其常见来源}
+
+\subsubsection{定义：存在 \texorpdfstring{$a\neq0$}{a != 0} 使 \texorpdfstring{$Xa=0$}{Xa = 0}}
+
+\begin{defn}[完全多重共线性]\label{def:U03-perfect}
+若存在 $a\neq0$ 使 $Xa=0$，即某个回归元是其他回归元的精确线性组合（例如 $x_1=c\cdot x_2$），称回归元存在\term{完全多重共线性}{perfect multicollinearity}。
+\end{defn}
+
+此时 $\beta$ \key{不可识别}：若 $\hat\beta$ 满足正规方程，则对任意实数 $t$，
+\begin{align*}
+X'X(\hat\beta+ta) &= X'X\hat\beta+t\,X'(Xa) \why{矩阵乘法分配律}\\
+&= X'Y+0=X'Y, \why{$Xa=0$}
+\end{align*}
+所以 $\hat\beta+ta$ 也是解，解有无穷多个；而拟合值 $X(\hat\beta+ta)=X\hat\beta$ 不变。数据无法区分这些参数值。
+
+\subsubsection{七种常见来源}
+
+完全多重共线性几乎都来自设定或编码失误（Hansen §3.24）：
+\begin{enumerate}[label=(\arabic*)]
+  \item 同一变量放了两次，或放了它的单位换算版本（同时放“元”和“千元”）；
+  \item 精确的定义关系：$\text{experience}=\text{age}-\text{education}-6$，同时放三者与截距（$-6$ 由截距列吸收）；
+  \item \term{虚拟变量陷阱}{dummy variable trap}：截距 $+$ 所有类别的虚拟变量（如 $D_1+D_2=\one_n$）；
+  \item 虚拟变量与其平方同时放入（$D^2=D$）；
+  \item 子样本中某虚拟变量全为 0（零列）或全为 1（与截距列相同）；
+  \item 虚拟变量交互项全为 0（样本中没有同时满足两个条件的个体）；
+  \item 回归元个数多于观测数（$K>n$）。
+\end{enumerate}
+
+\subsubsection{软件的处理与研究者的责任}
+
+Stata 遇到完全共线性会自动删去某个变量，并报告 “omitted because of collinearity”；R 的 \texttt{lm} 把相应系数报告为 \texttt{NA}。正确的做法是找出共线性的来源，重新设定模型或样本，而不是接受软件任意删掉的变量。
+
+\subsubsection{例：性别虚拟变量的三种回归}
+
+\begin{exmp}[性别虚拟变量]\label{ex:U03-gender}
+$D_1$ 为男性虚拟变量（男 $=1$），$D_2$ 为女性虚拟变量（女 $=1$），样本中有 $n_1$ 名男性、$n_2$ 名女性，$n_1+n_2=n$。考虑三个回归：
+\[
+\text{(A)}\ Y=\mu\one_n+D_1\alpha_1+D_2\alpha_2+e;\qquad
+\text{(B)}\ Y=D_1\alpha_1+D_2\alpha_2+e;\qquad
+\text{(C)}\ Y=\mu\one_n+D_1\phi+e.
+\]
+(a) 三个回归都能用 OLS 估计吗？(b) 比较 (B) 与 (C)。(c) 求 $\one_n'D_1$、$\one_n'D_2$，并求 (B) 中的 OLS 估计。
+\solution
+(a) (A) 不能估计。每个人非男即女，$D_1+D_2=\one_n$，取 $a=(1,-1,-1)'$ 有 $[\one_n,D_1,D_2]a=\one_n-D_1-D_2=0$，完全共线（虚拟变量陷阱）。
+
+(b) (B) 与 (C) 是同一模型的两种参数化。因为 $\one_n=D_1+D_2$、$D_2=\one_n-D_1$，$\{D_1,D_2\}$ 与 $\{\one_n,D_1\}$ 张成同一列空间，两个回归的拟合值相同（\ref{ss:U03-invar} 小节）。比较两组人的均值：
+\begin{align*}
+\text{女性}:&\ \ \alpha_2=\mu, \why{(B) 取 $D_1=0$；(C) 取 $D_1=0$}\\
+\text{男性}:&\ \ \alpha_1=\mu+\phi\ \Rightarrow\ \phi=\alpha_1-\alpha_2. \why{(B)、(C) 取 $D_1=1$}
+\end{align*}
+
+(c) $\one_n'D_1=\sum_iD_{1i}=n_1$，$\one_n'D_2=n_2$。在 (B) 中 $X=[D_1,D_2]$：
+\begin{align*}
+X'X &= \begin{pmatrix}D_1'D_1&D_1'D_2\\ D_2'D_1&D_2'D_2\end{pmatrix}=\begin{pmatrix}n_1&0\\0&n_2\end{pmatrix} \why{$D_j^2=D_j$；无人兼属两组}\\
+X'Y &= \begin{pmatrix}D_1'Y\\ D_2'Y\end{pmatrix}=\begin{pmatrix}\sum_{i\in\text{男}}y_i\\ \sum_{i\in\text{女}}y_i\end{pmatrix} \why{$D_j$ 挑出该组}\\
+\begin{pmatrix}\hat\alpha_1\\ \hat\alpha_2\end{pmatrix} &= \begin{pmatrix}n_1^{-1}\sum_{i\in\text{男}}y_i\\ n_2^{-1}\sum_{i\in\text{女}}y_i\end{pmatrix}=\begin{pmatrix}\bar Y_1\\ \bar Y_2\end{pmatrix}. \why{对角矩阵求逆}
+\end{align*}
+即 $\hat\alpha_1$ 是男性样本均值，$\hat\alpha_2$ 是女性样本均值；相应地 (C) 中 $\hat\mu=\bar Y_2$，$\hat\phi=\bar Y_1-\bar Y_2$。
+\end{exmp}
+
+\subsection{近似多重共线性：仍可识别但方差膨胀}
+
+\subsubsection{定义与直觉}
+
+\term{近似多重共线性}{near multicollinearity}：回归元高度相关但不完全相关，例如 $x_1\neq c\cdot x_2$，但 $\Corr(x_1,x_2)=0.9$。此时 $X$ 仍列满秩，$\beta$ \key{可识别}，OLS 仍无偏（第 4 章），但\key{单个系数的估计方差很大}，即共线性“影响 $\Var(\hat\beta_{OLS})$”。
+
+直觉：两个变量几乎同步变动，数据中很少出现“一个动、另一个不动”的情形，难以区分各自的效应。
+
+\subsubsection{两回归元的方差公式 \texorpdfstring{$\sigma^2/[n(1-\rho^2)]$}{sigma\^{}2/[n(1-rho\^{}2)]}}
+
+Hansen §4.21 的计算：同方差下 $\Var(\hat\beta\mid X)=\sigma^2(X'X)^{-1}$（第 4 章）。设两个回归元经过标准化，使 $\frac1nX'X=\begin{pmatrix}1&\rho\\ \rho&1\end{pmatrix}$，$\rho$ 为二者的样本相关系数。
+\begin{align*}
+\Var(\hat\beta\mid X) &= \sigma^2\Big[n\begin{pmatrix}1&\rho\\ \rho&1\end{pmatrix}\Big]^{-1} \why{代入 $X'X$}\\
+&= \frac{\sigma^2}{n}\begin{pmatrix}1&\rho\\ \rho&1\end{pmatrix}^{-1} \why{$(cA)^{-1}=c^{-1}A^{-1}$}\\
+&= \frac{\sigma^2}{n(1-\rho^2)}\begin{pmatrix}1&-\rho\\ -\rho&1\end{pmatrix}. \why{$2\times2$ 求逆，行列式 $1-\rho^2$}
+\end{align*}
+单个系数的方差为 $\sigma^2/[n(1-\rho^2)]$，$\rho\to1$ 时趋于无穷。$\rho=0.9$ 时，方差是不相关情形（$\rho=0$）的 $1/(1-0.81)\approx5.26$ 倍。
+
+\subsection{方差膨胀因子 VIF 与“VIF \texorpdfstring{$>10$}{> 10}”经验法则}
+
+\subsubsection{VIF 的定义}
+
+\begin{defn}[方差膨胀因子]\label{def:U03-vif}
+把第 $j$ 个回归元 $x_j$ 对其余所有回归元（含截距）作 OLS，得拟合优度 $R_j^2$。定义\term{方差膨胀因子}{variance inflation factor, VIF}
+\[
+\mathrm{VIF}_j=\frac1{1-R_j^2}.
+\]
+\end{defn}
+
+\subsubsection{方差公式 \texorpdfstring{$\Var(\hat\beta_j\mid X)=\sigma^2/[SST_j(1-R_j^2)]$}{Var(beta\_j|X) = sigma\^{}2/[SST\_j(1-R\_j\^{}2)]}}
+
+它之所以叫“方差膨胀因子”，是因为同方差下（证明见 \ref{ss:U03-vifproof} 小节）
+\begin{equation}\label{eq:U03-vif}
+\Var(\hat\beta_j\mid X)=\frac{\sigma^2}{SST_j(1-R_j^2)}=\frac{\sigma^2}{SST_j}\cdot\mathrm{VIF}_j,\qquad SST_j=\sum_{i=1}^n(x_{ij}-\bar x_j)^2 .
+\end{equation}
+$\sigma^2/SST_j$ 是“$x_j$ 与其他回归元完全不相关”（$R_j^2=0$）时的方差；共线性使方差放大 $\mathrm{VIF}_j$ 倍。
+
+\subsubsection{经验法则、两回归元的换算与 Stata 命令}
+
+\begin{itemize}
+  \item 经验法则：$\mathrm{VIF}_j>10$（等价于 $R_j^2>0.9$）视为严重共线。VIF 最大的那些变量就是造成共线性的主要变量。
+  \item 两个回归元（含截距）时，$x_1$ 对 $(1,x_2)$ 的回归是一元回归，$R_1^2=\widehat{\Corr}(x_1,x_2)^2=\rho^2$（\ref{ss:U03-r2prop} 小节）。$\mathrm{VIF}=10$ 对应 $|\rho|=\sqrt{0.9}\approx0.949$；$\rho=0.9$ 时 $\mathrm{VIF}=1/0.19\approx5.26$，与上一小节一致。
+  \item Stata：回归后输入 \texttt{estat vif}。
+\end{itemize}
+
+\subsubsection{“VIF \texorpdfstring{$>10$}{> 10} 就删变量”要谨慎}
+
+\begin{note}[不要机械地删除高 VIF 变量]
+\begin{itemize}
+  \item 近似共线性\key{不造成偏误}，只降低精度，而且精度损失会如实反映在（同方差）标准误中。Goldberger 戏称它与“样本太小”是同一类问题（micronumerosity）：在 $\sigma^2/[n(1-\rho^2)]$ 中，$\rho$ 与 $n$ 的作用对称（Hansen §4.21）。
+  \item 若被删变量属于真实模型（$\beta_2\neq0$）且与保留变量相关，删掉它会造成\key{遗漏变量偏误}（第 2 章）——用偏误换方差。
+  \item 若只关心某个系数，而共线性发生在控制变量之间，则对关注系数的精度没有影响，无需处理：由式 \eqref{eq:U03-vif}，$\hat\beta_j$ 的方差只依赖 $x_j$ 对其余回归元的 $R_j^2$，而 $R_j^2$ 只取决于其余回归元张成的空间，与它们之间是否共线无关。
+  \item 近似共线性常伴随高杠杆值，此时异方差稳健标准误可能\key{偏小}（Hansen §4.21）：系数估计不精确，标准误却显得很小。
+\end{itemize}
+\end{note}
+
+\subsubsection{练习：由 \texorpdfstring{$R_2^2=0.95$}{R\_2\^{}2 = 0.95} 计算 VIF 与标准误}
+
+\begin{prac}[VIF 与标准误]
+三个回归元（含截距）中，$x_2$ 对 $(1,x_3)$ 回归得 $R_2^2=0.95$。(a) 求 $\mathrm{VIF}_2$。(b) 若 $x_2$ 与其他变量不相关时 $\hat\beta_2$ 的标准误为 $0.1$，现在约为多少？
+\answer
+(a) $\mathrm{VIF}_2=1/(1-0.95)=20>10$，严重共线。
+
+(b) 由式 \eqref{eq:U03-vif}，方差放大 20 倍，标准误放大 $\sqrt{20}\approx4.47$ 倍，约为 $0.1\times4.47=0.447$。
+\end{prac}
+
+\begin{english}
+$\beta$ is uniquely identified if and only if $X$ has full column rank, $\rank(X)=K$, i.e., there is no perfect multicollinearity; this requires $n\ge K$. Near multicollinearity (e.g., $\Corr(x_1,x_2)=0.9$) does not violate identification or cause bias, but it inflates the variance of individual coefficient estimates: $\Var(\hat\beta_j\mid X)=\sigma^2/[SST_j(1-R_j^2)]$. The variance inflation factor is $\mathrm{VIF}_j=1/(1-R_j^2)$; a common rule of thumb flags $\mathrm{VIF}_j>10$. Dropping a relevant correlated regressor trades variance for omitted variable bias.
+\end{english}
+
+%======================================================================
+\section{拟合值、残差与正交性}\label{sec:U03-resid}
+
+\subsection{拟合值（样本内预测）与残差}
+
+\subsubsection{定义}
+
+\begin{defn}[拟合值与残差]\label{def:U03-fitted}
+\term{拟合值}{fitted value} $\hat y_i=x_i'\hat\beta$，即用估计出的系数对样本内观测所作的预测（in-sample prediction）；\term{残差}{residual} $\hat u_i=y_i-\hat y_i=y_i-x_i'\hat\beta$。于是 $y_i=\hat y_i+\hat u_i$。矩阵形式：$\hat Y=X\hat\beta$，$\hat u=Y-\hat Y$，$Y=\hat Y+\hat u$。
+\end{defn}
+
+\subsubsection{误差与残差的区别}
+
+\key{误差} $u_i=y_i-x_i'\beta$ 用真值 $\beta$，不可观测；\key{残差} $\hat u_i=y_i-x_i'\hat\beta$ 用估计值 $\hat\beta$，可以计算。二者的关系见 \ref{ss:U03-Mu} 小节：$\hat u=Mu$。
+
+\subsection{正交条件 \texorpdfstring{$X'\hat u=0$}{X'u-hat = 0} 及其推论}
+
+\subsubsection{正规方程即“残差与每个回归元正交”}
+
+正规方程可以写成
+\begin{align*}
+X'\hat u &= X'(Y-X\hat\beta) \why{$\hat u$ 的定义}\\
+&= X'Y-X'X\hat\beta=0, \why{正规方程 $X'X\hat\beta=X'Y$}
+\end{align*}
+逐元素写出：
+\begin{equation}\label{eq:U03-orth}
+\sum_{i=1}^n x_{ik}\hat u_i=0,\qquad k=1,\dots,K .
+\end{equation}
+即残差向量与 $X$ 的每一列（样本）正交。这是 OLS 所有代数性质的源头。
+
+\subsubsection{推论一：含截距时残差和为零、回归线过样本均值点}
+
+若 $X$ 的第一列为常数列 $\one_n$，式 \eqref{eq:U03-orth} 的第一行给出 $\sum_i\hat u_i=0$：\key{残差均值为零}。进而
+\begin{align*}
+\frac1n\sum_i\hat y_i &= \frac1n\sum_i(y_i-\hat u_i) \why{$\hat y_i=y_i-\hat u_i$}\\
+&= \bar y-\frac1n\sum_i\hat u_i=\bar y, \why{$\sum_i\hat u_i=0$}\\
+\bar y=\frac1n\sum_ix_i'\hat\beta &= \bar x'\hat\beta, \why{$\hat y_i=x_i'\hat\beta$，求平均}
+\end{align*}
+即拟合值的均值等于 $\bar y$，回归线（面）穿过样本均值点 $(\bar x,\bar y)$。
+
+\subsubsection{推论二：含截距时残差与回归元的样本协方差为零}
+
+对第 $k$ 个回归元，
+\begin{align*}
+\sum_i(x_{ik}-\bar x_k)(\hat u_i-\bar{\hat u}) &= \sum_i(x_{ik}-\bar x_k)\hat u_i \why{$\sum_i(x_{ik}-\bar x_k)=0$}\\
+&= \sum_ix_{ik}\hat u_i-\bar x_k\sum_i\hat u_i \why{展开}\\
+&= 0-0=0. \why{式 \eqref{eq:U03-orth}；推论一}
+\end{align*}
+所以含截距时，残差与每个回归元的样本协方差（样本相关系数）为零。
+
+\subsubsection{推论三：\texorpdfstring{$X_2'\hat u=0$}{X\_2'u-hat = 0}；残差对 \texorpdfstring{$X$}{X} 回归系数为零}
+
+\begin{itemize}
+  \item 若 $X=[X_1\ X_2]$，则 $X'\hat u=\begin{pmatrix}X_1'\hat u\\ X_2'\hat u\end{pmatrix}=0$，故 $X_1'\hat u=0$、$X_2'\hat u=0$：残差与任何一组回归元都正交。
+  \item 把 $\hat u$ 对 $X$ 回归，系数为 $(X'X)^{-1}X'\hat u=(X'X)^{-1}\cdot0=0$：残差中已没有任何能被 $X$ 线性解释的成分。
+\end{itemize}
+
+\subsection{\texorpdfstring{$\hat y\perp\hat u$}{y-hat orthogonal to u-hat}：拟合值与残差不相关}
+
+\subsubsection{推导 \texorpdfstring{$\hat Y'\hat u=0$}{Y-hat'u-hat = 0}}
+
+拟合值是 $X$ 各列的线性组合，所以也与残差正交：
+\begin{align*}
+\hat Y'\hat u &= (X\hat\beta)'\hat u=\hat\beta'X'\hat u \why{$\hat Y=X\hat\beta$，$(AB)'=B'A'$}\\
+&= \hat\beta'\cdot0=0. \why{正交条件}
+\end{align*}
+
+\subsubsection{含截距时样本协方差为零}
+
+含截距时 $\sum_i\hat u_i=0$，且 $\hat y_i$ 的样本均值为 $\bar y$，于是
+\begin{align*}
+\sum_i(\hat y_i-\bar y)\hat u_i &= \hat Y'\hat u-\bar y\sum_i\hat u_i \why{展开}\\
+&= 0-0=0, \why{$\hat Y'\hat u=0$；$\sum_i\hat u_i=0$}
+\end{align*}
+即 $\hat y_i$ 与 $\hat u_i$ \key{不相关}（uncorrelated）。这是下一节平方和分解中交叉项消失的原因。
+
+\subsubsection{易错：正交性只对 \texorpdfstring{$X$}{X} 的列及其线性组合成立}
+
+\begin{note}[残差不与 $x$ 的任意函数正交]
+正交性只对 $X$ 的列（及其线性组合，如 $\hat Y$）成立。例如一元无截距回归 $y_i=x_i\beta+u_i$ 中 $\sum_ix_i\hat u_i=0$，但一般 $\sum_ix_i^2\hat u_i\neq0$（“$\sum_ix_i^2\hat u_i=0$”是错误说法）。这是第 2 章“投影误差只与 $x$ 的线性函数不相关”的样本版本。
+\end{note}
+
+\subsubsection{例：手算数据验证正交关系}
+
+\begin{exmp}[正交关系的数值验证]\label{ex:U03-orth}
+沿用例 \ref{ex:U03-data}：$x=(1,2,3,4,5)$，$y=(2,4,5,4,5)$，$\hat y=2.2+0.6x$。计算拟合值与残差，验证 $\sum_i\hat u_i=0$、$\sum_ix_i\hat u_i=0$、$\sum_i\hat y_i\hat u_i=0$，并计算 $\sum_ix_i^2\hat u_i$。
+\solution
+\begin{align*}
+\hat y &= (2.8,\ 3.4,\ 4.0,\ 4.6,\ 5.2) \why{$2.2+0.6x_i$}\\
+\hat u &= (-0.8,\ 0.6,\ 1.0,\ -0.6,\ -0.2) \why{$y_i-\hat y_i$}\\
+\textstyle\sum_i\hat u_i &= -0.8+0.6+1.0-0.6-0.2=0 \why{含截距}\\
+\textstyle\sum_ix_i\hat u_i &= -0.8+1.2+3.0-2.4-1.0=0 \why{正交条件}\\
+\textstyle\sum_i\hat y_i\hat u_i &= -2.24+2.04+4.0-2.76-1.04=0 \why{$\hat Y'\hat u=0$}\\
+\textstyle\sum_ix_i^2\hat u_i &= -0.8+2.4+9.0-9.6-5.0=-4.0\neq0. \why{$x^2$ 不在列空间中}
+\end{align*}
+前三个为零，最后一个不为零：残差只与 $1$、$x$ 及其线性组合正交。
+\end{exmp}
+
+\begin{english}
+The normal equations imply $X'\hat u=0$: the residuals are orthogonal to every regressor. If the regression includes an intercept, the residuals sum to zero and the fitted line passes through the sample means $(\bar x,\bar y)$. Consequently $\hat Y'\hat u=\hat\beta'X'\hat u=0$, so fitted values and residuals are uncorrelated. Orthogonality holds only for linear combinations of the columns of $X$, not for arbitrary functions of the regressors.
+\end{english}
+
+%======================================================================
+\section{投影矩阵 \texorpdfstring{$P$}{P} 与消灭矩阵 \texorpdfstring{$M$}{M}}\label{sec:U03-PM}
+
+\subsection{定义：\texorpdfstring{$\hat Y=PY$，$\hat u=MY$}{Y-hat = PY, u-hat = MY}}
+
+\begin{defn}[投影矩阵与消灭矩阵]\label{def:U03-PM}
+设 $X$ 为 $n\times K$ 且列满秩。定义
+\[
+\underset{n\times n}{P}=X(X'X)^{-1}X',\qquad \underset{n\times n}{M}=I_n-P .
+\]
+$P$ 称为\term{投影矩阵}{projection matrix}，又称\term{帽子矩阵}{hat matrix}（它给 $Y$“戴上帽子”）；$M$ 称为\term{消灭矩阵}{annihilator matrix}，又称残差生成（制造）矩阵。需要标明所投影的矩阵时写作 $P_X$、$M_X$。
+\end{defn}
+
+拟合值与残差都是 $Y$ 的线性变换：
+\begin{align*}
+\hat Y &= X\hat\beta=X(X'X)^{-1}X'Y=PY, \why{代入 $\hat\beta$}\\
+\hat u &= Y-\hat Y=(I_n-P)Y=MY. \why{$M$ 的定义}
+\end{align*}
+
+\subsection{\texorpdfstring{$P$ 与 $M$}{P and M} 的代数性质}
+
+\subsubsection{五条性质}
+
+\begin{thm}[$P$、$M$ 的性质（Hansen 定理 3.3）]\label{thm:U03-PM}
+\begin{enumerate}[label=(\arabic*)]
+  \item 对称：$P'=P$，$M'=M$；
+  \item 幂等：$PP=P$，$MM=M$；
+  \item $PX=X$，$MX=0$；对 $X$ 的任一列子集 $X_1$ 也有 $PX_1=X_1$，$MX_1=0$；$PM=MP=0$；
+  \item $\tr P=K$，$\tr M=n-K$；
+  \item 特征值只取 0 或 1：$P$ 有 $K$ 个 1、$n-K$ 个 0；$\rank P=K$，$\rank M=n-K$。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{证明：对称与幂等}
+
+\begin{align*}
+P' &= \big[X(X'X)^{-1}X'\big]'=X\big[(X'X)^{-1}\big]'X' \why{$(ABC)'=C'B'A'$}\\
+&= X\big[(X'X)'\big]^{-1}X'=X(X'X)^{-1}X'=P, \why{转置与求逆可交换；$X'X$ 对称}\\
+M' &= I_n'-P'=I_n-P=M, \why{转置的线性性}\\
+PP &= X(X'X)^{-1}\underbrace{X'X(X'X)^{-1}}_{=I_K}X'=X(X'X)^{-1}X'=P, \why{中间相乘为 $I_K$}\\
+MM &= (I_n-P)(I_n-P)=I_n-2P+PP \why{展开}\\
+&= I_n-2P+P=I_n-P=M. \why{由 $PP=P$}
+\end{align*}
+
+\subsubsection{证明：\texorpdfstring{$PX=X$、$MX=0$、$PM=0$}{PX = X, MX = 0, PM = 0} 与列子集}
+
+\begin{align*}
+PX &= X(X'X)^{-1}X'X=X, \why{$(X'X)^{-1}X'X=I_K$}\\
+MX &= X-PX=X-X=0, \why{上一行}\\
+PM &= P(I_n-P)=P-PP=0,\qquad MP=(PM)'=0. \why{幂等；$P$、$M$ 对称}
+\end{align*}
+列子集：设 $X_1$ 由 $X$ 的前 $K_1$ 列组成（其他子集同理），则 $X_1=XS$，其中 $S=\begin{pmatrix}I_{K_1}\\0\end{pmatrix}$ 为 $K\times K_1$ 的选择矩阵。于是 $PX_1=PXS=XS=X_1$，$MX_1=MXS=0\cdot S=0$。
+
+\subsubsection{证明：\texorpdfstring{$\tr P=K$、$\tr M=n-K$}{tr P = K, tr M = n-K}}
+
+\begin{align*}
+\tr P &= \tr\big[X(X'X)^{-1}X'\big]=\tr\big[(X'X)^{-1}X'X\big] \why{$\tr(AB)=\tr(BA)$}\\
+&= \tr I_K=K, \why{$(X'X)^{-1}X'X=I_K$}\\
+\tr M &= \tr I_n-\tr P=n-K. \why{迹的线性性}
+\end{align*}
+第一步把 $n\times n$ 矩阵的迹化成 $K\times K$ 矩阵的迹：取 $A=X$（$n\times K$），$B=(X'X)^{-1}X'$（$K\times n$）。
+
+\subsubsection{证明：特征值只取 0 或 1，秩等于迹}
+
+设 $Pv=\lambda v$，$v\neq0$。
+\begin{align*}
+\lambda v=Pv &= PPv=P(\lambda v)=\lambda Pv=\lambda^2v \why{幂等}\\
+(\lambda^2-\lambda)v &= 0\ \Rightarrow\ \lambda\in\{0,1\}. \why{$v\neq0$}
+\end{align*}
+$P$ 对称，可正交对角化，其秩等于非零特征值个数，即特征值 1 的个数，也等于全部特征值之和 $\tr P=K$。所以 $P$ 有 $K$ 个 1、$n-K$ 个 0，$\rank P=K$。同理 $M$ 也对称幂等，$\rank M=\tr M=n-K$。
+
+\subsection{残差是误差的线性变换：\texorpdfstring{$\hat u=Mu$}{u-hat = Mu}}\label{ss:U03-Mu}
+
+\subsubsection{推导 \texorpdfstring{$\hat u=Mu$ 与 $\hat\beta-\beta=(X'X)^{-1}X'u$}{u-hat = Mu and beta-hat - beta = (X'X)\^{}-1 X'u}}
+
+若数据由 $Y=X\beta+u$ 生成，则
+\begin{align*}
+\hat u &= MY=M(X\beta+u) \why{代入模型}\\
+&= MX\beta+Mu=Mu, \why{$MX=0$}\\
+\hat\beta &= (X'X)^{-1}X'(X\beta+u)=\beta+(X'X)^{-1}X'u, \why{代入模型}\\
+\hat u'\hat u &= (MY)'(MY)=Y'M'MY=Y'MY=u'Mu. \why{$M$ 对称幂等；$\hat u=Mu$}
+\end{align*}
+残差是误差经 $M$ 变换的结果；估计误差 $\hat\beta-\beta$ 是误差的线性组合。这两个式子是第 4 章推导无偏性与方差的起点。
+
+\subsubsection{残差只有 \texorpdfstring{$n-K$}{n-K} 个自由度}
+
+$\hat u=MY$ 位于 $M$ 的列空间中，其维数 $\rank M=n-K$；等价地，$n$ 个残差要满足 $K$ 个线性约束 $X'\hat u=0$。所以 $n$ 个残差中只有 $n-K$ 个可以“自由变动”。这是第 4 章中 $s^2=\hat u'\hat u/(n-K)$ 要除以 $n-K$ 的根源。
+
+\subsection{几何解释：\texorpdfstring{$Y$}{Y} 在 \texorpdfstring{$X$}{X} 的列空间上的正交投影}
+
+\subsubsection{列空间与最近点}
+
+$X$ 的 $K$ 个列张成 $\R^n$ 中的 $K$ 维子空间 $\mathcal R(X)=\{Xb:b\in\R^K\}$，称为\term{列空间}{column space}。$SSR(b)=\|Y-Xb\|^2$ 是 $Y$ 到 $\mathcal R(X)$ 中点 $Xb$ 的距离平方，所以 OLS 就是在 $\mathcal R(X)$ 中找离 $Y$ \key{最近的点}。这个点就是 $\hat Y=PY$，即 $Y$ 在 $\mathcal R(X)$ 上的\term{正交投影}{orthogonal projection}；残差 $\hat u=MY$ 垂直于整个 $\mathcal R(X)$：对任意 $b$，$(Xb)'\hat u=b'X'\hat u=0$。$P$ 把向量投影到 $\mathcal R(X)$ 上，$M$ 把向量投影到它的 $n-K$ 维正交补上。
+
+\begin{center}
+\begin{tikzpicture}[>=Stealth,scale=1.0]
+\fill[blue!8] (-0.6,-0.5) -- (4.2,-0.5) -- (5.4,1.1) -- (0.6,1.1) -- cycle;
+\draw[blue!50] (-0.6,-0.5) -- (4.2,-0.5) -- (5.4,1.1) -- (0.6,1.1) -- cycle;
+\coordinate (O) at (0.4,-0.2);
+\coordinate (Yh) at (3.6,0.55);
+\coordinate (Y) at (3.6,3.0);
+\draw[->,thick] (O) -- (Y) node[above] {$Y$};
+\draw[->,thick,blue] (O) -- (Yh) node[below right] {$\hat Y=PY$};
+\draw[->,thick,red,dashed] (Yh) -- (Y) node[midway,right] {$\hat u=MY$};
+\draw (3.6,0.85) -- (3.32,0.78) -- (3.32,0.48);
+\node[left] at (O) {$0$};
+\node[blue!70!black] at (4.7,-0.25) {$\mathcal R(X)$};
+\end{tikzpicture}
+\captionof{figure}{OLS 的几何：$\hat Y$ 是 $Y$ 在列空间 $\mathcal R(X)$ 上的正交投影，残差与列空间垂直}
+\end{center}
+
+\subsubsection{直角三角形与勾股定理}
+
+三条边 $Y$、$\hat Y$、$\hat u$ 构成直角三角形（$\hat Y\perp\hat u$），由勾股定理
+\[
+\|Y\|^2=\|\hat Y\|^2+\|\hat u\|^2,\qquad\text{即}\qquad \sum_iy_i^2=\sum_i\hat y_i^2+\sum_i\hat u_i^2 ,
+\]
+这就是下一节的（未中心化）平方和分解。
+
+\subsection{非奇异线性变换下的不变性}\label{ss:U03-invar}
+
+\subsubsection{推导：\texorpdfstring{$\tilde\beta=C^{-1}\hat\beta$，$P_Z=P_X$}{beta-tilde = C\^{}-1 beta-hat, P\_Z = P\_X}}
+
+若改用 $Z=XC$ 作回归元，$C$ 为 $K\times K$ 非奇异矩阵（例如改变量纲，或把 $x_2$ 换成 $x_2-x_1$），则 $Z$ 的每一列是 $X$ 各列的线性组合，且 $\mathcal R(Z)=\mathcal R(X)$。
+\begin{align*}
+\tilde\beta &= (Z'Z)^{-1}Z'Y=(C'X'XC)^{-1}C'X'Y \why{代入 $Z=XC$}\\
+&= C^{-1}(X'X)^{-1}(C')^{-1}C'X'Y \why{$(ABC)^{-1}=C^{-1}B^{-1}A^{-1}$}\\
+&= C^{-1}(X'X)^{-1}X'Y=C^{-1}\hat\beta, \why{$(C')^{-1}C'=I_K$}\\
+P_Z &= XC(C'X'XC)^{-1}C'X' \why{代入 $Z=XC$}\\
+&= XCC^{-1}(X'X)^{-1}(C')^{-1}C'X'=X(X'X)^{-1}X'=P_X. \why{同上}
+\end{align*}
+
+\subsubsection{推论：拟合值、残差、\texorpdfstring{$\hat\sigma^2$、$R^2$}{sigma\^{}2, R\^{}2} 不变，系数按 \texorpdfstring{$C^{-1}$}{C\^{}-1} 变换}
+
+因为 $P_Z=P_X$、$M_Z=M_X$（列空间没变），拟合值 $P_ZY=P_XY$、残差 $M_ZY=M_XY$ 不变，进而 $\hat\sigma^2$、$s^2$、$R^2$ 都不变；把 $x_2$ 换成 $x_2-x_1$ 时也是如此。系数按 $C^{-1}$ 变换，相应的协方差矩阵估计变为 $\hat V^*=C^{-1}\hat V(C^{-1})'$。以同方差估计为例：
+\begin{align*}
+\hat V^* &= s^2(Z'Z)^{-1}=s^2C^{-1}(X'X)^{-1}(C')^{-1} \why{$s^2$ 不变}\\
+&= C^{-1}\big[s^2(X'X)^{-1}\big](C^{-1})'=C^{-1}\hat V(C^{-1})'. \why{$(C')^{-1}=(C^{-1})'$}
+\end{align*}
+异方差稳健估计同样满足这一关系。
+
+\subsubsection{例：把 \texorpdfstring{$x$}{x} 从“元”改为“千元”}
+
+模型 $y=\beta_0+\beta_1x+u$。改用 $x^*=x/1000$（千元），即 $Z=XC$，$C=\diag(1,\,1/1000)$，$C^{-1}=\diag(1,\,1000)$。于是 $\tilde\beta_0=\hat\beta_0$，$\tilde\beta_1=1000\hat\beta_1$：斜率乘以 1000，拟合值完全相同。
+
+\subsection{两个练习：正交分块与投影的投影}
+
+\subsubsection{练习：\texorpdfstring{$X_1'X_2=0$ 时 $P=P_1+P_2$}{X\_1'X\_2 = 0 implies P = P\_1 + P\_2}}
+
+\begin{prac}[正交分块时投影矩阵可加]\label{pr:U03-P1P2}
+若 $X=[X_1\ X_2]$ 且 $X_1'X_2=0$，证明 $P=P_1+P_2$，其中 $P_j=X_j(X_j'X_j)^{-1}X_j'$。
+\answer
+\begin{align*}
+X'X &= \begin{pmatrix}X_1'X_1&X_1'X_2\\ X_2'X_1&X_2'X_2\end{pmatrix}=\begin{pmatrix}X_1'X_1&0\\0&X_2'X_2\end{pmatrix} \why{$X_1'X_2=0$}\\
+(X'X)^{-1} &= \diag\big((X_1'X_1)^{-1},\,(X_2'X_2)^{-1}\big) \why{分块对角阵逐块求逆}\\
+P &= [X_1\ X_2]\,\diag\big((X_1'X_1)^{-1},(X_2'X_2)^{-1}\big)\begin{pmatrix}X_1'\\ X_2'\end{pmatrix} \why{$P$ 的定义}\\
+&= X_1(X_1'X_1)^{-1}X_1'+X_2(X_2'X_2)^{-1}X_2'=P_1+P_2. \why{分块乘法}
+\end{align*}
+\end{prac}
+
+\subsubsection{练习：把 \texorpdfstring{$\hat Y$}{Y-hat} 对 \texorpdfstring{$X$}{X} 回归；\texorpdfstring{$PX_1=X_1$}{PX\_1 = X\_1}}
+
+\begin{prac}[投影的投影]
+(a) 把 $\hat Y=PY$ 对 $X$ 回归，系数是多少？(b) 证明 $X=[X_1\ X_2]$ 时 $PX_1=X_1$，$MX_1=0$。
+\answer
+(a)
+\begin{align*}
+(X'X)^{-1}X'\hat Y &= (X'X)^{-1}X'PY \why{$\hat Y=PY$}\\
+&= (X'X)^{-1}(PX)'Y \why{$P$ 对称：$X'P=(PX)'$}\\
+&= (X'X)^{-1}X'Y=\hat\beta. \why{$PX=X$}
+\end{align*}
+拟合值已在 $\mathcal R(X)$ 中，再投影一次不变，系数仍是 $\hat\beta$。
+
+(b) $X_1=XS$，$S=\begin{pmatrix}I_{K_1}\\0\end{pmatrix}$ 为选择矩阵，故 $PX_1=PXS=XS=X_1$，$MX_1=X_1-PX_1=0$。
+\end{prac}
+
+\subsection{杠杆值 \texorpdfstring{$h_{ii}$}{h\_ii}}\label{ss:U03-leverage}
+
+\subsubsection{定义：\texorpdfstring{$P$}{P} 的对角元}
+
+$X$ 的第 $i$ 行是 $x_i'$，所以 $P=X(X'X)^{-1}X'$ 的第 $(i,j)$ 元为 $h_{ij}=x_i'(X'X)^{-1}x_j$，且 $\hat y_i=(PY)_i=\sum_jh_{ij}y_j$。
+
+\begin{defn}[杠杆值]\label{def:U03-lev}
+$P$ 的对角元 $h_{ii}=x_i'(X'X)^{-1}x_i$ 称为第 $i$ 个观测的\term{杠杆值}{leverage}。它是 $y_i$ 在自身拟合值 $\hat y_i=\sum_jh_{ij}y_j$ 中的权重，衡量 $y_i$ 对自身拟合值的影响。
+\end{defn}
+
+\subsubsection{三条性质}
+
+\begin{thm}[杠杆值的性质（Hansen 定理 3.6）]\label{thm:U03-lev}
+(1) $0\le h_{ii}\le1$；(2) 含截距时 $h_{ii}\ge1/n$；(3) $\sum_{i=1}^nh_{ii}=K$，平均杠杆值为 $K/n$。
+\end{thm}
+
+\subsubsection{证明}
+
+(1) 由 $P$ 对称幂等：
+\begin{align*}
+h_{ii} &= (PP)_{ii}=\sum_{j=1}^nh_{ij}h_{ji} \why{幂等；矩阵乘法}\\
+&= \sum_{j=1}^nh_{ij}^2\ \ge\ h_{ii}^2\ \ge0. \why{对称 $h_{ji}=h_{ij}$；只留 $j=i$ 项}
+\end{align*}
+所以 $h_{ii}\ge0$，且 $h_{ii}\ge h_{ii}^2$ 即 $h_{ii}(1-h_{ii})\ge0$，得 $h_{ii}\le1$。
+
+(2) 记 $P_1=\one_n(\one_n'\one_n)^{-1}\one_n'=\frac1n\one_n\one_n'$，其对角元都是 $1/n$。含截距时 $\one_n\in\mathcal R(X)$：
+\begin{align*}
+PP_1 &= P_1,\qquad P_1P=(PP_1)'=P_1 \why{$P\one_n=\one_n$；对称}\\
+(P-P_1)^2 &= P-PP_1-P_1P+P_1=P-P_1. \why{幂等，代入上式}
+\end{align*}
+$P-P_1$ 对称幂等，因而半正定：$a'(P-P_1)a=\|(P-P_1)a\|^2\ge0$。取 $a$ 为第 $i$ 个单位向量，得 $h_{ii}-1/n\ge0$。
+
+(3) $\sum_ih_{ii}=\tr P=K$（定理 \ref{thm:U03-PM}）。
+
+\subsubsection{一元回归的杠杆值公式：离 \texorpdfstring{$\bar x$}{x-bar} 越远杠杆越大}
+
+$x_i$ 越“偏离”其他观测，$h_{ii}$ 越大。一元含截距回归中可以写出显式公式。令 $Z=[\one_n,\ x-\bar x\one_n]=XC$，$C=\begin{pmatrix}1&-\bar x\\0&1\end{pmatrix}$ 非奇异，且 $Z$ 的两列正交（$\one_n'(x-\bar x\one_n)=0$）。记 $\tilde x=x-\bar x\one_n$。
+\begin{align*}
+P_X &= P_Z \why{非奇异变换不变性}\\
+&= \frac1n\one_n\one_n'+\frac{\tilde x\tilde x'}{\tilde x'\tilde x} \why{练习 \ref{pr:U03-P1P2}：正交分块}\\
+h_{ii} &= \frac1n+\frac{(x_i-\bar x)^2}{\sum_j(x_j-\bar x)^2}. \why{取第 $i$ 个对角元}
+\end{align*}
+
+\subsubsection{例：手算数据的杠杆值}
+
+\begin{exmp}[手算数据的杠杆值]\label{ex:U03-lev}
+沿用例 \ref{ex:U03-data}（$x=(1,2,3,4,5)$，含截距）。求各观测的杠杆值并验证定理 \ref{thm:U03-lev}。
+\solution
+$\bar x=3$，$\sum_j(x_j-\bar x)^2=10$，$n=5$：
+\begin{align*}
+h_{ii} &= 0.2+\frac{(x_i-3)^2}{10} \why{一元杠杆值公式}\\
+h &= (0.6,\ 0.3,\ 0.2,\ 0.3,\ 0.6). \why{逐个代入}
+\end{align*}
+也可直接用 $(X'X)^{-1}$ 验证：$h_{ii}=(1,x_i)\frac1{50}\begin{pmatrix}55&-15\\-15&5\end{pmatrix}\begin{pmatrix}1\\x_i\end{pmatrix}=\frac{55-30x_i+5x_i^2}{50}$，$x_1=1$ 时为 $30/50=0.6$。两端点杠杆最大，中心点最小；所有 $h_{ii}\in[1/5,1]$，总和 $=2=K$。
+\end{exmp}
+
+\begin{english}
+The projection matrix $P=X(X'X)^{-1}X'$ and the annihilator $M=I-P$ are symmetric and idempotent, with $PX=X$, $MX=0$, $\tr P=K$ and $\tr M=n-K$. Fitted values are $\hat Y=PY$ and residuals are $\hat u=MY=Mu$. Geometrically, OLS orthogonally projects $Y$ onto the column space of $X$. Fitted values and residuals are invariant to nonsingular linear transformations of the regressors, while the coefficients transform as $C^{-1}\hat\beta$. The leverage $h_{ii}=x_i'(X'X)^{-1}x_i$ lies in $[0,1]$ and sums to $K$.
+\end{english}
+
+%======================================================================
+\section{平方和分解与拟合优度 \texorpdfstring{$R^2$}{R\^{}2}}\label{sec:U03-r2}
+
+\subsection{未中心化分解：\texorpdfstring{$\sum_iy_i^2=\sum_i\hat y_i^2+\sum_i\hat u_i^2$}{sum y\^{}2 = sum y-hat\^{}2 + sum u-hat\^{}2}}
+
+\subsubsection{推导：交叉项因 \texorpdfstring{$\hat Y'\hat u=0$}{Y-hat'u-hat = 0} 消失}
+
+由 $y_i=\hat y_i+\hat u_i$，且 $\hat y_i$ 与 $\hat u_i$ 正交（不相关）：
+\begin{align*}
+\sum_{i=1}^ny_i^2 &= \sum_{i=1}^n(\hat y_i+\hat u_i)^2 \why{$y_i=\hat y_i+\hat u_i$}\\
+&= \sum_i\hat y_i^2+2\sum_i\hat y_i\hat u_i+\sum_i\hat u_i^2 \why{展开}\\
+&= \sum_i\hat y_i^2+\sum_i\hat u_i^2. \why{$\sum_i\hat y_i\hat u_i=\hat\beta'X'\hat u=0$}
+\end{align*}
+这个分解不需要截距，就是上一节几何图中的勾股定理。
+
+\subsubsection{SST、SSE、SSR 的含义与“拟合越好”}
+
+上式三项依次称为：SST（sum of squares total，总平方和）、SSE（sum of squares explained，被 OLS 解释的平方和）、SSR（sum of squared residuals，残差平方和）。$y$ 的总变异被分成两块：模型解释的部分与未解释的部分，两块互不重叠。SSE 越大（SSR 越小），OLS 拟合得越好。
+\[
+R^2=\frac{SSE}{SST}=1-\frac{SSR}{SST},
+\]
+其中 $SSR/SST$ 是没有被 OLS（模型）解释的比例。用未中心化平方和定义的 $R^2=\sum_i\hat y_i^2/\sum_iy_i^2$ 称为未中心化 $R^2$；实际报告的 $R^2$ 用下面的中心化平方和。
+
+\begin{center}
+\begin{tikzpicture}
+\begin{scope}
+\clip (0,0) ellipse (2.6 and 1.1);
+\fill[blue!12] (-2.7,-1.2) rectangle (0.6,1.2);
+\fill[red!12] (0.6,-1.2) rectangle (2.7,1.2);
+\end{scope}
+\draw[thick] (0,0) ellipse (2.6 and 1.1);
+\draw[thick] (0.6,-1.07) -- (0.6,1.07);
+\node[blue!60!black] at (-0.9,0) {SSE（模型解释）};
+\node[red!60!black] at (1.55,0) {SSR};
+\node at (0,1.45) {SST（总变异）};
+\end{tikzpicture}
+\captionof{figure}{平方和分解：总变异 SST 被分成解释部分 SSE 与残差部分 SSR}
+\end{center}
+
+\subsection{中心化分解：需要截距}
+
+\subsubsection{方差分析公式 SST \texorpdfstring{$=$}{=} SSE \texorpdfstring{$+$}{+} SSR}
+
+\begin{thm}[方差分析（ANOVA）公式]\label{thm:U03-anova}
+若回归含截距（更一般地，$\one_n\in\mathcal R(X)$），则
+\[
+\underbrace{\sum_{i=1}^n(y_i-\bar y)^2}_{SST}=\underbrace{\sum_{i=1}^n(\hat y_i-\bar y)^2}_{SSE}+\underbrace{\sum_{i=1}^n\hat u_i^2}_{SSR}.
+\]
+\end{thm}
+
+\subsubsection{推导：交叉项中 \texorpdfstring{$\sum_i\hat u_i=0$}{sum u-hat = 0} 需要截距}
+
+思路：在 $y_i-\bar y$ 中加减 $\hat y_i$，展开后证明交叉项为零。
+\begin{align*}
+\sum_i(y_i-\bar y)^2 &= \sum_i\big[(\hat y_i-\bar y)+\hat u_i\big]^2 \why{加减 $\hat y_i$}\\
+&= \sum_i(\hat y_i-\bar y)^2+2\sum_i(\hat y_i-\bar y)\hat u_i+\sum_i\hat u_i^2 \why{展开}\\
+&= \sum_i(\hat y_i-\bar y)^2+2\Big(\underbrace{\textstyle\sum_i\hat y_i\hat u_i}_{=0}-\bar y\underbrace{\textstyle\sum_i\hat u_i}_{=0\text{（需截距）}}\Big)+\sum_i\hat u_i^2. \why{正交性；含截距}
+\end{align*}
+若 $\one_n\in\mathcal R(X)$，由 $\hat u\perp\mathcal R(X)$ 得 $\one_n'\hat u=\sum_i\hat u_i=0$。无截距时交叉项 $-2\bar y\sum_i\hat u_i$ 一般不为零，中心化分解不成立，$1-SSR/SST$ 可能为负。
+
+\subsubsection{例：无截距时 \texorpdfstring{$1-SSR/SST$}{1 - SSR/SST} 可为负}
+
+\begin{exmp}[无截距时 $R^2$ 可为负]\label{ex:U03-negr2}
+$x=(1,2,3)$，$y=(3,2,1)$，作过原点回归 $y_i=x_i\beta+u_i$。计算 $1-SSR/SST$，并检验两种分解。
+\solution
+\begin{align*}
+\hat\beta &= \frac{\sum_ix_iy_i}{\sum_ix_i^2}=\frac{3+4+3}{1+4+9}=\frac{10}{14}=\frac57\approx0.714 \why{一元无截距公式}\\
+\hat y &= \tfrac17(5,\,10,\,15)\approx(0.714,\,1.429,\,2.143) \why{$\hat\beta x_i$}\\
+\hat u &= \tfrac17(16,\,4,\,-8)\approx(2.286,\,0.571,\,-1.143) \why{$y_i-\hat y_i$}\\
+SSR &= \tfrac{256+16+64}{49}=\tfrac{336}{49}\approx6.857,\quad SST=\textstyle\sum_i(y_i-2)^2=2 \why{$\bar y=2$}\\
+1-SSR/SST &\approx 1-3.429=-2.43<0. \why{代入}
+\end{align*}
+中心化分解失败的原因：$\sum_i\hat u_i=12/7\neq0$。此时 $SSE=\sum_i(\hat y_i-2)^2=98/49=2$，交叉项 $2\sum_i(\hat y_i-\bar y)\hat u_i=2(0-2\cdot\tfrac{12}7)=-\tfrac{48}{7}\approx-6.857$，所以 $SST=2=2+6.857-6.857$，并不等于 $SSE+SSR$。未中心化分解仍成立：$\sum_iy_i^2=14=\tfrac{350}{49}+\tfrac{336}{49}\approx7.143+6.857$。
+\end{exmp}
+
+\subsection{\texorpdfstring{$R^2$}{R\^{}2} 的定义与解释}
+
+\subsubsection{定义：决定系数}
+
+\begin{defn}[拟合优度]\label{def:U03-r2}
+回归含截距时，定义
+\[
+R^2=\frac{SSE}{SST}=1-\frac{SSR}{SST}=1-\frac{\sum_i\hat u_i^2}{\sum_i(y_i-\bar y)^2}\in[0,1],
+\]
+称为\term{决定系数}{coefficient of determination}或\term{拟合优度}{goodness of fit}：$y$ 的样本变异中被回归（模型）解释的比例。
+\end{defn}
+
+由定理 \ref{thm:U03-anova}，SSE 与 SSR 都非负且和为 SST，所以 $R^2\in[0,1]$。读法：$SSR/SST$ 是没有被 OLS（模型）解释的部分；SSE 越大，OLS 拟合越好。
+
+\subsubsection{例：手算数据的 SST、SSE、SSR 与 \texorpdfstring{$R^2$}{R\^{}2}}
+
+\begin{exmp}[平方和分解的数值验证]\label{ex:U03-r2}
+沿用例 \ref{ex:U03-orth}：$y=(2,4,5,4,5)$，$\bar y=4$，$\hat y=(2.8,3.4,4.0,4.6,5.2)$，$\hat u=(-0.8,0.6,1.0,-0.6,-0.2)$。
+\solution
+\begin{align*}
+SST &= \textstyle\sum_i(y_i-4)^2=4+0+1+0+1=6 \why{定义}\\
+SSR &= \textstyle\sum_i\hat u_i^2=0.64+0.36+1+0.36+0.04=2.4 \why{定义}\\
+SSE &= \textstyle\sum_i(\hat y_i-4)^2=1.44+0.36+0+0.36+1.44=3.6 \why{定义}\\
+R^2 &= 3.6/6=0.6. \why{$SSE/SST$}
+\end{align*}
+验证 $6=3.6+2.4$。未中心化：$\sum_iy_i^2=86$，$\sum_i\hat y_i^2=7.84+11.56+16+21.16+27.04=83.6$，$86=83.6+2.4$。
+\end{exmp}
+
+\subsection{命名对照：本书（Wooldridge）与 Hansen 的 SSE/SSR 恰好相反}\label{ss:U03-naming}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lllL}
+\toprule
+含义 & 本书 / Wooldridge & Hansen & 部分其他教材\\
+\midrule
+总平方和 $\sum_i(y_i-\bar y)^2$ & SST（total） & 直接写公式 & TSS\\
+解释平方和 $\sum_i(\hat y_i-\bar y)^2$ & \textbf{SSE}（explained） & 直接写公式 & ESS；或 SSR（regression）\\
+残差平方和 $\sum_i\hat u_i^2$ & \textbf{SSR}（residual） & \textbf{SSE}（sum of squared errors） & RSS；或 SSE（error）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{平方和的命名对照}
+\end{center}
+
+\begin{keypt}[同一个缩写，含义相反]
+本书的 SSE 是“解释的”，Hansen 的 SSE 是“残差的”；而部分教材的 SSR 是“回归（解释）平方和”。英文作答时，第一次出现务必写全称，例如 “the residual sum of squares $SSR=\sum_i\hat u_i^2$”。第 6 章 $F$ 检验中的 $SSR_r$、$SSR_{ur}$ 都指残差平方和。
+\end{keypt}
+
+\subsection{\texorpdfstring{$R^2$}{R\^{}2} 的性质}\label{ss:U03-r2prop}
+
+\subsubsection{\texorpdfstring{$R^2$}{R\^{}2} 等于 \texorpdfstring{$y$ 与 $\hat y$}{y and y-hat} 样本相关系数的平方}
+
+含截距时 $\hat y$ 的样本均值为 $\bar y$，所以样本相关系数用 $\bar y$ 中心化：
+\begin{align*}
+\textstyle\sum_i(y_i-\bar y)(\hat y_i-\bar y) &= \textstyle\sum_i(\hat y_i-\bar y+\hat u_i)(\hat y_i-\bar y) \why{$y_i=\hat y_i+\hat u_i$}\\
+&= \textstyle\sum_i(\hat y_i-\bar y)^2+\sum_i\hat u_i(\hat y_i-\bar y)=SSE, \why{交叉项为零}\\
+\widehat{\Corr}(y,\hat y)^2 &= \frac{\big[\sum_i(y_i-\bar y)(\hat y_i-\bar y)\big]^2}{\sum_i(y_i-\bar y)^2\sum_i(\hat y_i-\bar y)^2}=\frac{SSE^2}{SST\cdot SSE} \why{代入上式}\\
+&= \frac{SSE}{SST}=R^2. \why{约去 $SSE$}
+\end{align*}
+一元回归中 $\hat y_i=\hat\beta_0+\hat\beta_1x_i$ 是 $x_i$ 的线性函数，相关系数的平方不受线性变换影响，所以 $R^2=\widehat{\Corr}(y,x)^2$。
+
+\subsubsection{加入回归元 \texorpdfstring{$R^2$}{R\^{}2} 不会下降}
+
+比较短回归 $Y=X_1\tilde\beta_1+\tilde u$ 与长回归 $Y=X_1\hat\beta_1+X_2\hat\beta_2+\hat u$（都含截距，SST 相同）。短回归相当于在长回归中施加约束 $\beta_2=0$ 后最小化 SSR：
+\begin{align*}
+SSR_{\text{长}} &= \min_{b_1,b_2}\|Y-X_1b_1-X_2b_2\|^2 \why{OLS 的定义}\\
+&\le \min_{b_1}\|Y-X_1b_1-X_2\cdot0\|^2=SSR_{\text{短}}, \why{约束最小值 $\ge$ 无约束最小值}
+\end{align*}
+所以 $R^2_{\text{长}}=1-SSR_{\text{长}}/SST\ge R^2_{\text{短}}$。等号当且仅当长回归中 $\hat\beta_2=0$：此时 $(\tilde\beta_1,0)$ 也达到长回归的最小值，而列满秩时最小点唯一。因此\key{不能用 $R^2$ 选择模型}。
+
+\subsubsection{OLS 在所有线性拟合中使 \texorpdfstring{$R^2$}{R\^{}2} 最大}
+
+对任意系数向量 $b$ 定义 $R^2(b)=1-SSR(b)/SST$。OLS 最小化 $SSR(b)$，所以使 $R^2(b)$ 最大。例如异方差下 GLS 估计量的 $R^2$ 不会超过 OLS 的 $R^2$；但这不说明 OLS 更好，GLS 的目标是有效性而非拟合（第 4 章）。
+
+\subsubsection{\texorpdfstring{$R^2$}{R\^{}2} 与因果、与系数质量无关；不同被解释变量不可比}
+
+\begin{itemize}
+  \item $R^2$ 高不代表因果关系正确；$R^2$ 低也不代表系数估计无用（第 4 章：无偏性与 $R^2$ 无关）。
+  \item 被解释变量不同（如 $y$ 与 $\log y$）的模型，SST 不同，$R^2$ 不可比。
+\end{itemize}
+
+\subsection{调整 \texorpdfstring{$R^2$}{R\^{}2}}
+
+\subsubsection{定义与两种等价写法}
+
+\begin{defn}[调整 $R^2$（Theil）]\label{def:U03-adjr2}
+\term{调整 $R^2$}{adjusted R-squared}定义为
+\[
+\bar R^2=1-\frac{SSR/(n-K)}{SST/(n-1)}=1-(1-R^2)\frac{n-1}{n-K}.
+\]
+\end{defn}
+
+第二个等号：$\frac{SSR/(n-K)}{SST/(n-1)}=\frac{SSR}{SST}\cdot\frac{n-1}{n-K}=(1-R^2)\frac{n-1}{n-K}$。$\bar R^2$ 用无偏的 $s^2=SSR/(n-K)$ 与 $SST/(n-1)$ 代替 $R^2$ 中隐含的有偏方差估计 $SSR/n$、$SST/n$。
+
+\subsubsection{对增加回归元的惩罚：\texorpdfstring{$\bar R^2$}{adj. R\^{}2} 上升当且仅当 \texorpdfstring{$|t|>1$}{|t| > 1}}
+
+加入新变量后 $SSR$ 下降，但 $n-K$ 也下降，$\bar R^2$ 可能下降。可以证明：$\bar R^2$ 上升当且仅当新变量的（同方差）$t$ 统计量绝对值大于 1（Hansen §9.13 的结论）。$\bar R^2$ 可以为负：$\bar R^2<0\iff R^2<(K-1)/(n-1)$。
+
+\begin{extend}[$\bar R^2$ 上升 $\iff|t|>1$ 的证明]
+设原回归有 $K$ 个回归元，残差平方和 $SSR_0$；加入一个回归元后为 $SSR_1$。单个约束的 $F$ 统计量等于 $t^2$（第 6 章）：
+\begin{align*}
+t^2=F &= \frac{SSR_0-SSR_1}{SSR_1/(n-K-1)} \why{单约束 $F$ 统计量}\\
+\frac{SSR_0}{SSR_1} &= 1+\frac{t^2}{n-K-1}. \why{整理}
+\end{align*}
+SST 不变，所以 $\bar R^2$ 上升 $\iff$ $s^2$ 下降：
+\begin{align*}
+\frac{SSR_1}{n-K-1}<\frac{SSR_0}{n-K}
+&\iff \frac{SSR_0}{SSR_1}>\frac{n-K}{n-K-1}=1+\frac1{n-K-1} \why{移项}\\
+&\iff 1+\frac{t^2}{n-K-1}>1+\frac1{n-K-1}\iff t^2>1. \why{代入上式}
+\end{align*}
+\end{extend}
+
+\subsubsection{留一法 \texorpdfstring{$\tilde R^2$}{R-tilde\^{}2}：更好的拟合度量}
+
+Hansen 建议用基于留一法预测误差 $\tilde u_i$（\ref{ss:U03-loo} 小节）的
+\[
+\tilde R^2=1-\frac{\sum_i\tilde u_i^2}{\sum_i(y_i-\bar y)^2}
+\]
+作为更好的拟合度量。由于 $|\tilde u_i|\ge|\hat u_i|$，$\tilde R^2\le R^2$；$\tilde R^2$ 衡量的是样本外预测能力，加入无用变量时会下降。
+
+\subsubsection{例：手算数据的 \texorpdfstring{$\bar R^2$}{adjusted R\^{}2}}
+
+\begin{exmp}[调整 $R^2$ 的计算]
+沿用例 \ref{ex:U03-r2}：$R^2=0.6$，$n=5$，$K=2$。
+\solution
+\begin{align*}
+\bar R^2 &= 1-(1-0.6)\times\frac{5-1}{5-2} \why{定义}\\
+&= 1-0.4\times\tfrac43=1-0.533=0.467<R^2=0.6. \why{计算}
+\end{align*}
+\end{exmp}
+
+\begin{english}
+With an intercept, $SST=SSE+SSR$, where $SST=\sum_i(y_i-\bar y)^2$, $SSE=\sum_i(\hat y_i-\bar y)^2$ (explained) and $SSR=\sum_i\hat u_i^2$ (residual); the cross term vanishes because $\hat Y'\hat u=0$ and $\sum_i\hat u_i=0$. $R^2=SSE/SST=1-SSR/SST$ measures the fraction of the sample variation in $y$ explained by the regression, and equals the squared sample correlation between $y$ and $\hat y$. It never decreases when regressors are added; the adjusted $\bar R^2=1-(1-R^2)(n-1)/(n-K)$ penalizes additional regressors. Without an intercept, $1-SSR/SST$ can be negative. Note that Hansen uses SSE for the sum of squared residuals.
+\end{english}
+

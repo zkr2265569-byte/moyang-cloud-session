@@ -1,0 +1,1103 @@
+\chapter{静态面板（二）：随机效应、Hausman 检验与时不变变量}
+\label{ch:U11a-panel2}
+
+第 10 章的固定效应（WG）估计把 $\alpha_i$ 当作参数消去，对 $\alpha_i$ 与 $x_{it}$ 的关系不作任何假设。本章换一个角度：若 $\alpha_i$ 与回归元无关（RE 模型），就把它并入误差，用 GLS 换取更高的效率，并且可以估计不随时间变化的变量（性别、种族）的系数。学习路线：先写出 RE 模型与复合误差的等相关结构，推导 GLS（$\Omega_v\inv$ 的谱分解、准去均值、$T\to\infty$ 时趋于 WG）及其可行版本 FGLS；再对照 FE 与 RE 在两种模型下的一致性，讨论时不变回归元 $z_i$ 的识别；然后用 Hausman 检验在两种模型之间作判断（原理与第 9 章的内生性检验相同）；本章后半部分讲在 FE 框架下识别 $z_i$ 系数的 FEF 两步法与 FEF-IV、非平衡面板、面板二元选择与 Mundlak 设定。动态面板见第 12 章。对应 Hansen 第 17.5–17.6、17.14–17.15、17.21、17.24–17.25、17.32–17.33 节；面板二元选择见 Hansen 第 25.13 节。
+
+%======================================================================
+\section{随机效应模型与复合误差}\label{sec:U11a-re}
+
+\subsection{静态面板的四个问题与本章的位置}
+
+静态线性面板的研究可以归纳为四个问题：
+\begin{enumerate}
+  \item FE 模型还是 RE 模型——$\alpha_i$ 是否与回归元相关；
+  \item 如何识别不随时间变化的变量的效应（time-invariant effects）；
+  \item 双向效应模型——个体效应与时间效应并存；
+  \item 多层（嵌套）效应模型——$y_{it}\to y_{ijt}$。
+\end{enumerate}
+(3)(4) 已在第 10 章讨论，本章处理 (1)(2)。贯穿始终的原则仍是 \key{Model first, estimation second}：先判断数据服从哪种模型，再选择估计方法。
+
+\begin{note}[本书记号与 Hansen 的对调]
+本书的 $\alpha_i$、$u_{it}$、$\sigma_\alpha^2$、$\sigma_u^2$ 分别对应 Hansen 的 $u_i$、$\varepsilon_{it}$、$\sigma_u^2$、$\sigma_\varepsilon^2$（见第 10 章记号对照表）。两边都出现“$\sigma_u^2$”，但指的是\key{不同}的方差：本书的 $\sigma_u^2$ 是特异误差的方差，Hansen 的 $\sigma_u^2$ 是个体效应的方差。读 Hansen 原文时务必注意。
+\end{note}
+
+\subsection{复合误差：把 \texorpdfstring{$\alpha_i$}{alpha\_i} 当作误差}
+
+\subsubsection{FE 估计与 RE 估计：把 \texorpdfstring{$\alpha_i$}{alpha\_i} 当参数还是当误差}
+
+处理 $\alpha_i$ 有两种思路：
+\begin{itemize}
+  \item \key{FE 估计（WG）}：把 $\alpha_i$ 当作待估\key{参数}，用组内变换消去（第 10 章）；
+  \item \key{RE 估计（GLS）}：把 $\alpha_i$ 当作一个\key{新的误差项}，与 $u_{it}$ 合并成一个误差。
+\end{itemize}
+第二种思路要回答两个问题：合并后的误差有什么协方差结构？如何据此构造 GLS？本节回答前者，下一节回答后者。
+
+\subsubsection{定义：随机效应模型与单向误差成分模型}
+
+\begin{defn}[随机效应模型]\label{def:U11a-re}
+\textbf{随机效应模型}（random effects model）把个体效应并入误差：
+\begin{equation}\label{eq:U11a-re}
+y_{it}=x_{it}\T\beta+v_{it},\qquad v_{it}=\alpha_i+u_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\end{equation}
+其中 $x_{it}$ 为 $K\times1$ 回归元，$\alpha_i$ 为个体效应，$u_{it}$ 为特异误差。$v_{it}$ 称为\term{复合误差}{composite error}；这种“个体成分 $+$ 特异成分”的误差结构称为\term{单向误差成分模型}{one-way error component model}。若模型含截距，可把 $\E(\alpha_i)$ 并入截距，故不妨设 $\E(\alpha_i)=0$。
+\end{defn}
+
+把 $\alpha_i$ 放进误差的代价是：同一个体不同时期的误差 $v_{it}$ 与 $v_{is}$ 都含有同一个 $\alpha_i$，因而\key{相关}。下面先列出假设，再精确算出这一相关结构。
+
+\subsection{RE 假设}
+
+\subsubsection{RE1–RE5}
+
+\begin{defn}[RE 假设（Hansen 假设 17.1）]\label{def:U11a-reass}
+记 $X_i=(x_{i1},\dots,x_{iT})\T$（$T\times K$），$U_i=(u_{i1},\dots,u_{iT})\T$（$T\times1$）。
+\begin{enumerate}[label=RE\arabic*.,leftmargin=3.4em]
+  \item 严格外生：$\E(u_{it}\mid X_i,\alpha_i)=0$，$t=1,\dots,T$；
+  \item 个体效应外生：$\E(\alpha_i\mid X_i)=0$（RE 模型的核心假设）；
+  \item $u$ 同方差、无序列相关：$\E(U_iU_i\T\mid X_i,\alpha_i)=\sigma_u^2I_T$；
+  \item $\alpha_i$ 同方差：$\E(\alpha_i^2\mid X_i)=\sigma_\alpha^2$；
+  \item 个体间独立：$\{(X_i,\alpha_i,U_i)\}_{i=1}^N$ 为 \iid。
+\end{enumerate}
+\end{defn}
+
+\subsubsection{RE1–RE2 管一致性，RE3–RE4 管效率}
+
+RE1 与 RE2 合起来就是复合误差的严格外生：
+\begin{align*}
+\E(v_{it}\mid X_i) &= \E(\alpha_i\mid X_i)+\E(u_{it}\mid X_i) \why{期望的线性性}\\
+&= 0+\E\big[\E(u_{it}\mid X_i,\alpha_i)\mid X_i\big] \why{RE2；迭代期望律}\\
+&= 0 \why{RE1}
+\end{align*}
+RE3、RE4 只决定误差的二阶矩，从而决定 GLS 的权重，影响效率，不影响一致性。RE2 是 RE 模型与 FE 模型的分界：FE 模型允许 $\E(\alpha_i\mid X_i)\ne0$。
+
+\subsection{复合误差的协方差结构：等相关与“高度持续”}
+
+\subsubsection{两个预备事实}
+
+要算 $v_{it}$ 的方差与同一个体不同时期之间的协方差。先由 RE1、RE3 推出两个事实：
+\begin{align*}
+\E(\alpha_iu_{it}\mid X_i) &= \E\big[\alpha_i\,\E(u_{it}\mid X_i,\alpha_i)\mid X_i\big] \why{迭代期望律，提出 $\alpha_i$}\\
+&= 0 \why{RE1}\\
+\E(u_{it}u_{is}\mid X_i) &= \E\big[\E(u_{it}u_{is}\mid X_i,\alpha_i)\mid X_i\big] \why{迭代期望律}\\
+&= \sigma_u^2\,\mathbf{1}\{t=s\} \why{RE3}
+\end{align*}
+
+\subsubsection{方差：\texorpdfstring{$\Var(v_{it})=\sigma_\alpha^2+\sigma_u^2$}{Var(v) = sigma\_alpha\^2 + sigma\_u\^2}}
+
+\begin{align*}
+\Var(v_{it}\mid X_i) &= \E\big[(\alpha_i+u_{it})^2\mid X_i\big] \why{$\E(v_{it}\mid X_i)=0$}\\
+&= \E(\alpha_i^2\mid X_i)+2\E(\alpha_iu_{it}\mid X_i)+\E(u_{it}^2\mid X_i) \why{展开平方}\\
+&= \sigma_\alpha^2+0+\sigma_u^2 \why{RE4；预备事实}
+\end{align*}
+
+\subsubsection{协方差：\texorpdfstring{$\Cov(v_{it},v_{is})=\sigma_\alpha^2$}{Cov(v\_it, v\_is) = sigma\_alpha\^2}（\texorpdfstring{$t\ne s$}{t ne s}）}
+
+\begin{align*}
+\Cov(v_{it},v_{is}\mid X_i) &= \E\big[(\alpha_i+u_{it})(\alpha_i+u_{is})\mid X_i\big] \why{$t\ne s$，均值为 0}\\
+&= \E(\alpha_i^2\mid X_i)+\E(\alpha_iu_{is}\mid X_i)+\E(u_{it}\alpha_i\mid X_i)+\E(u_{it}u_{is}\mid X_i) \why{展开}\\
+&= \sigma_\alpha^2+0+0+0 \why{RE4；预备事实}
+\end{align*}
+
+\subsubsection{组内相关系数 \texorpdfstring{$\rho$}{rho}：任意两期都相同}
+
+\begin{equation}\label{eq:U11a-rho}
+\Corr(v_{it},v_{is}\mid X_i)=\frac{\Cov(v_{it},v_{is}\mid X_i)}{\sqrt{\Var(v_{it}\mid X_i)\Var(v_{is}\mid X_i)}}=\frac{\sigma_\alpha^2}{\sigma_\alpha^2+\sigma_u^2}\equiv\rho,\qquad t\ne s .
+\end{equation}
+$\rho$ 是个体效应方差在总误差方差中所占的比例，Stata 的 \texttt{xtreg} 输出中称为 \texttt{rho}（fraction of variance due to $u_i$，Stata 沿用 Hansen 式记号把个体效应记为 $u_i$）。
+
+\subsubsection{“高度持续”：相关不随间隔衰减}
+
+由 \eqref{eq:U11a-rho}，$\E(v_{it}v_{is})=\E(\alpha_i^2)=\sigma_\alpha^2\neq0$：同一个体任意两期的复合误差都\key{相关}，而且相关系数\key{不随间隔 $|t-s|$ 衰减}——相隔 1 期与相隔 10 期一样相关，因为它们共享同一个 $\alpha_i$。这与 AR(1) 误差的相关系数 $\phi^{|t-s|}$ 随间隔几何衰减截然不同，所以称复合误差“高度持续”（highly persistent）。
+
+\begin{note}[$\alpha_i$、$u_{it}$ 都 i.i.d.，$v_{it}$ 也不是 i.i.d.]
+即使 $\alpha_i$ 跨个体 i.i.d.、$u_{it}$ 跨个体与时期 i.i.d.，复合误差 $v_{it}$ 在同一个体内仍然相关，所以 $\{v_{it}\}$ 不是 i.i.d.。截面独立只在“个体”这一层成立（RE5）。
+\end{note}
+
+\subsubsection{等相关模型与 RE 模型是同一回事}
+
+反过来，设某个误差 $e_{it}$ 满足 $\E(e_{it}\mid X_i)=0$、$\E(e_{it}^2\mid X_i)=\sigma^2$、$\E(e_{it}e_{is}\mid X_i)=\rho\sigma^2$（$t\ne s$，$\rho\ge0$），称为\term{等相关}{equicorrelation}误差。取
+\[
+\sigma_\alpha^2=\rho\sigma^2,\qquad \sigma_u^2=(1-\rho)\sigma^2,
+\]
+则 $\sigma_\alpha^2+\sigma_u^2=\sigma^2$、$\sigma_\alpha^2=\rho\sigma^2$，二阶矩结构与 RE 模型完全相同。所以“随机效应”与“等相关”是同一个模型的两种说法（Hansen 第 17.6 节）。
+
+\subsection{混合 OLS：一致但非有效}
+
+\subsubsection{混合 OLS 估计量}
+
+最简单的做法是忽略面板结构，把 $NT$ 个观测当作一个截面做 OLS，称为\term{混合 OLS}{pooled OLS}：
+\begin{equation}\label{eq:U11a-pool}
+\hat\beta_{pool}=\Big(\sum_{i=1}^N\sum_{t=1}^Tx_{it}x_{it}\T\Big)^{-1}\sum_{i=1}^N\sum_{t=1}^Tx_{it}y_{it}
+=\Big(\sum_{i=1}^NX_i\T X_i\Big)^{-1}\sum_{i=1}^NX_i\T Y_i,
+\end{equation}
+其中 $Y_i=(y_{i1},\dots,y_{iT})\T$；第二个等号是矩阵乘法按行展开（$X_i$ 的第 $t$ 行为 $x_{it}\T$）。
+
+\subsubsection{RE 假设下混合 OLS 一致}
+
+记 $V_i=(v_{i1},\dots,v_{iT})\T$，模型写成 $Y_i=X_i\beta+V_i$。要证 $\hat\beta_{pool}\pto\beta$：
+\begin{align*}
+\hat\beta_{pool} &= \Big(\sum_iX_i\T X_i\Big)^{-1}\sum_iX_i\T(X_i\beta+V_i) \why{代入 $Y_i$}\\
+&= \beta+\Big(\sum_iX_i\T X_i\Big)^{-1}\sum_iX_i\T V_i \why{展开}\\
+\hat\beta_{pool}-\beta &= \Big(\frac1N\sum_iX_i\T X_i\Big)^{-1}\frac1N\sum_iX_i\T V_i \why{上下同除 $N$}\\
+&\pto \big[\E(X_i\T X_i)\big]^{-1}\E(X_i\T V_i) \why{WLLN 与 CMT}\\
+\E(X_i\T V_i) &= \E\big[X_i\T\E(V_i\mid X_i)\big]=0 \why{迭代期望律；RE1--RE2}
+\end{align*}
+所以只要 $x_{it}$ 与 $v_{it}=\alpha_i+u_{it}$ 不相关，混合 OLS（以及下一节的 GLS）就是一致的。反之，若 $x_{it}$ 与 $\alpha_i$ 相关，则 $\E(X_i\T V_i)=\E(X_i\T\one_T\alpha_i)+\E(X_i\T U_i)=T\,\E(\bar x_{i\cdot}\alpha_i)\neq0$（$X_i\T\one_T=T\bar x_{i\cdot}$），混合 OLS 有偏且不一致——这就是遗漏 $\alpha_i$ 造成的内生性（第 7 章）。
+
+\subsubsection{为什么不是 BLUE：误差协方差不是 \texorpdfstring{$\sigma^2I_T$}{sigma\^2 I\_T}}
+
+混合 OLS \key{不是有效的}：下一节将看到误差协方差矩阵 $\Omega_v=\Var(V_i\mid X_i)\neq\sigma^2I_T$（非对角元为 $\sigma_\alpha^2$），Gauss--Markov 定理的前提（球形误差）不成立，OLS 不是 BLUE。GLS 的作用\key{只在效率}：在一致性上它并不比混合 OLS 要求更少或更多。
+
+\subsubsection{条件方差为夹心形式，必须用聚类标准误}
+
+\begin{align*}
+\Var(\hat\beta_{pool}\mid X) &= \Big(\sum_iX_i\T X_i\Big)^{-1}\Var\Big(\sum_iX_i\T V_i\,\Big|\,X\Big)\Big(\sum_iX_i\T X_i\Big)^{-1} \why{$\Var(AZ)=A\Var(Z)A'$}\\
+\Var\Big(\sum_iX_i\T V_i\,\Big|\,X\Big) &= \sum_iX_i\T\E(V_iV_i\T\mid X_i)X_i \why{跨 $i$ 独立（RE5）}\\
+&= \sum_iX_i\T\Omega_vX_i \why{$\E(V_iV_i'\mid X_i)=\Omega_v$}
+\end{align*}
+于是
+\begin{equation}\label{eq:U11a-Vpool}
+V_{pool}=\Big(\sum_iX_i\T X_i\Big)^{-1}\Big(\sum_iX_i\T\Omega_vX_i\Big)\Big(\sum_iX_i\T X_i\Big)^{-1}.
+\end{equation}
+经典公式 $\hat\sigma^2(\sum_iX_i\T X_i)^{-1}$ 忽略了同一个体内误差的正相关，当回归元在个体内也正相关时会\key{严重低估}方差。所以用混合 OLS 时必须报告\key{按个体聚类的标准误}（第 10 章方差估计一节），Stata 命令为 \texttt{reg y x,} \texttt{vce(cluster id)}。
+
+\begin{prac}[复合误差的方差与相关]\label{pr:U11a-equi}
+设 $\sigma_\alpha^2=1$，$\sigma_u^2=3$。求 $\Var(v_{it})$、$\Cov(v_{i1},v_{i5})$ 与 $\Corr(v_{i2},v_{i3})$。若 $u_{it}$ 改为平稳 AR(1)：$u_{it}=0.5u_{i,t-1}+e_{it}$（仍有 $\Var(u_{it})=\sigma_u^2=3$），$\Corr(v_{it},v_{is})$ 还与 $|t-s|$ 无关吗？
+\answer
+等相关情形：
+\begin{align*}
+\Var(v_{it}) &= \sigma_\alpha^2+\sigma_u^2=1+3=4 \why{方差公式}\\
+\Cov(v_{i1},v_{i5}) &= \sigma_\alpha^2=1 \why{$t\ne s$}\\
+\Corr(v_{i2},v_{i3}) &= \frac{\sigma_\alpha^2}{\sigma_\alpha^2+\sigma_u^2}=\frac14=0.25 \why{式 \eqref{eq:U11a-rho}}
+\end{align*}
+任意两期的相关系数都是 $0.25$。AR(1) 情形：平稳 AR(1) 有 $\Cov(u_{it},u_{is})=\sigma_u^2\,0.5^{|t-s|}$，而 $\alpha_i$ 与 $u$ 不相关，故
+\begin{align*}
+\Cov(v_{it},v_{is}) &= \sigma_\alpha^2+\sigma_u^2\,0.5^{|t-s|} \why{展开，交叉项为 0}\\
+\Corr(v_{it},v_{is}) &= \frac{\sigma_\alpha^2+\sigma_u^2\,0.5^{|t-s|}}{\sigma_\alpha^2+\sigma_u^2}=\frac{1+3\times0.5^{|t-s|}}{4} \why{除以方差 4}
+\end{align*}
+间隔为 1、2、3 时分别为 $0.625$、$0.4375$、$0.34375$，随间隔增大而下降并趋于 $\sigma_\alpha^2/(\sigma_\alpha^2+\sigma_u^2)=0.25$，\key{不再是等相关}。此时 RE3 不成立，标准 RE 的 GLS 权重不再最优（估计量仍一致），推断应使用聚类标准误。
+\end{prac}
+
+\begin{english}
+Under the random effects model, $y_{it}=x_{it}'\beta+v_{it}$ with composite error $v_{it}=\alpha_i+u_{it}$. Then $\Var(v_{it})=\sigma_\alpha^2+\sigma_u^2$ and $\Cov(v_{it},v_{is})=\sigma_\alpha^2$ for $t\neq s$, so the errors are equicorrelated within individuals with correlation $\rho=\sigma_\alpha^2/(\sigma_\alpha^2+\sigma_u^2)$, which does not decay with $|t-s|$. If $E(v_{it}\mid X_i)=0$, pooled OLS is consistent but inefficient, because the error covariance matrix is not proportional to the identity; inference should use cluster-robust standard errors.
+\end{english}
+
+%======================================================================
+\section{RE 的 GLS 估计}\label{sec:U11a-gls}
+
+\subsection{个体层面的堆叠写法：\texorpdfstring{$Y_i=X_i\beta+V_i$}{Y\_i = X\_i beta + V\_i}}
+
+把个体 $i$ 的 $T$ 个方程（$t=1,\dots,T$）上下堆叠：
+\[
+\underbrace{\begin{pmatrix}y_{i1}\\\vdots\\y_{iT}\end{pmatrix}}_{Y_i\ (T\times1)}
+=\underbrace{\begin{pmatrix}x_{i1}\T\beta\\\vdots\\x_{iT}\T\beta\end{pmatrix}}_{X_i\beta}
++\underbrace{\begin{pmatrix}\alpha_i\\\vdots\\\alpha_i\end{pmatrix}}_{\alpha_i\one_T}
++\underbrace{\begin{pmatrix}u_{i1}\\\vdots\\u_{iT}\end{pmatrix}}_{U_i},
+\]
+即
+\begin{equation}\label{eq:U11a-stack}
+Y_i=X_i\beta+V_i,\qquad V_i=\alpha_i\one_T+U_i ,
+\end{equation}
+其中 $X_i$ 为 $T\times K$，$\one_T$ 为 $T\times1$ 全 1 向量。由 RE5，$i\neq j$ 时 $V_i$ 与 $V_j$ 不相关。
+
+\subsection{误差协方差矩阵 \texorpdfstring{$\Omega_v$}{Omega\_v} 的推导}
+
+\subsubsection{\texorpdfstring{$\Omega_v=\sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T$}{Omega\_v = sigma\_alpha\^2 11' + sigma\_u\^2 I}}
+
+要算 $\Omega_v\equiv\Var(V_i\mid X_i)$（$T\times T$）。因 $\E(V_i\mid X_i)=0$，方差等于二阶矩：
+\begin{align*}
+\Omega_v &= \E(V_iV_i\T\mid X_i) \why{$\E(V_i\mid X_i)=0$}\\
+&= \E\big[(\alpha_i\one_T+U_i)(\alpha_i\one_T+U_i)\T\mid X_i\big] \why{代入 $V_i$}\\
+&= \E(\alpha_i^2\mid X_i)\one_T\one_T\T+\one_T\E(\alpha_iU_i\T\mid X_i)+\E(U_i\alpha_i\mid X_i)\one_T\T+\E(U_iU_i\T\mid X_i) \why{展开}\\
+&= \sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T \why{RE4；RE1；RE3}
+\end{align*}
+其中第二、三项为零是因为 $\E(\alpha_iu_{it}\mid X_i)=0$（上一节的预备事实），第四项用了迭代期望律与 RE3。写成矩阵，对角元为 $\sigma_\alpha^2+\sigma_u^2$，非对角元全为 $\sigma_\alpha^2$：
+\begin{equation}\label{eq:U11a-Omega}
+\Omega_v=\begin{pmatrix}
+\sigma_\alpha^2+\sigma_u^2 & \sigma_\alpha^2 & \cdots & \sigma_\alpha^2\\
+\sigma_\alpha^2 & \sigma_\alpha^2+\sigma_u^2 & \cdots & \sigma_\alpha^2\\
+\vdots & \vdots & \ddots & \vdots\\
+\sigma_\alpha^2 & \sigma_\alpha^2 & \cdots & \sigma_\alpha^2+\sigma_u^2
+\end{pmatrix}=\sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T .
+\end{equation}
+$\Omega_v$ 不是单位矩阵的倍数，所以对 \eqref{eq:U11a-stack} 做 OLS 不是 BLUE。注意 $\Omega_v$ 不依赖 $i$（平衡面板），也不依赖 $X_i$。
+
+\subsubsection{全样本：块对角的 \texorpdfstring{$I_N\otimes\Omega_v$}{I\_N kron Omega\_v}}
+
+把 $N$ 个个体堆叠成 $V=(V_1\T,\dots,V_N\T)\T$（$NT\times1$）。$i\neq j$ 时 $\E(V_iV_j\T\mid X)=\E(V_i\mid X)\E(V_j\mid X)\T=0$（个体间独立、均值为零），故
+\[
+\Var(V\mid X)=\begin{pmatrix}\Omega_v&&\\&\ddots&\\&&\Omega_v\end{pmatrix}=I_N\otimes\Omega_v .
+\]
+
+\subsection{GLS 估计量与 BLUE}
+
+\subsubsection{思路：把每个个体看作一个截面观测}
+
+\eqref{eq:U11a-stack} 是一个以\key{个体}为观测单位的“截面”回归：$N$ 个 i.i.d. 的观测 $(Y_i,X_i)$，每个观测是一个 $T$ 维向量，误差协方差 $\Omega_v$ 已知（暂且假定 $\sigma_\alpha^2,\sigma_u^2$ 已知）。这正是第 4 章广义 Gauss--Markov 定理的情形：用 $\Omega_v^{-1/2}$ 把误差“白化”，再对变换后的模型用 OLS。
+
+\subsubsection{白化变换：左乘 \texorpdfstring{$\Omega_v^{-1/2}$}{Omega\_v\^{}(-1/2)}}
+
+设 $\Omega_v^{-1/2}$ 为对称矩阵，满足 $\Omega_v^{-1/2}\Omega_v\Omega_v^{-1/2}=I_T$（具体形式见下文谱分解）。
+\begin{align*}
+\tilde Y_i\equiv\Omega_v^{-1/2}Y_i &= \Omega_v^{-1/2}X_i\beta+\Omega_v^{-1/2}V_i\equiv\tilde X_i\beta+\tilde V_i \why{左乘 $\Omega_v^{-1/2}$}\\
+\Var(\tilde V_i\mid X_i) &= \Omega_v^{-1/2}\Var(V_i\mid X_i)\big(\Omega_v^{-1/2}\big)\T \why{$\Var(AZ)=A\Var(Z)A'$}\\
+&= \Omega_v^{-1/2}\Omega_v\Omega_v^{-1/2}=I_T \why{$\Omega_v^{-1/2}$ 对称}
+\end{align*}
+变换后的误差是球形的，并且 $\E(\tilde V_i\mid X_i)=\Omega_v^{-1/2}\E(V_i\mid X_i)=0$，满足 Gauss--Markov 条件。
+
+\subsubsection{GLS 公式}
+
+对变换后的模型做 OLS：
+\begin{align*}
+\hat\beta_{GLS} &= \Big(\sum_i\tilde X_i\T\tilde X_i\Big)^{-1}\sum_i\tilde X_i\T\tilde Y_i \why{OLS 公式}\\
+&= \Big(\sum_iX_i\T\Omega_v^{-1/2}\Omega_v^{-1/2}X_i\Big)^{-1}\sum_iX_i\T\Omega_v^{-1/2}\Omega_v^{-1/2}Y_i \why{转置，$\Omega_v^{-1/2}$ 对称}\\
+&= \Big(\sum_iX_i\T\Omega_v\inv X_i\Big)^{-1}\sum_iX_i\T\Omega_v\inv Y_i \why{$\Omega_v^{-1/2}\Omega_v^{-1/2}=\Omega_v^{-1}$}
+\end{align*}
+\begin{equation}\label{eq:U11a-gls}
+\boxed{\ \hat\beta_{GLS}=\Big(\sum_{i=1}^NX_i\T\Omega_v\inv X_i\Big)^{-1}\Big(\sum_{i=1}^NX_i\T\Omega_v\inv Y_i\Big)\equiv\hat\beta_{RE}\ }
+\end{equation}
+这就是\key{随机效应估计量}。下文记 $A_G\equiv\sum_iX_i\T\Omega_v\inv X_i$（$K\times K$）。
+
+\subsubsection{条件无偏与条件方差 \texorpdfstring{$V_{GLS}=A_G^{-1}$}{V\_GLS = A\_G\^{}-1}}
+
+\begin{align*}
+\hat\beta_{GLS}-\beta &= A_G^{-1}\sum_iX_i\T\Omega_v\inv V_i \why{代入 $Y_i=X_i\beta+V_i$}\\
+\E(\hat\beta_{GLS}-\beta\mid X) &= A_G^{-1}\sum_iX_i\T\Omega_v\inv\E(V_i\mid X_i)=0 \why{RE1--RE2}\\
+\Var(\hat\beta_{GLS}\mid X) &= A_G^{-1}\Big(\sum_iX_i\T\Omega_v\inv\Omega_v\Omega_v\inv X_i\Big)A_G^{-1} \why{跨 $i$ 独立}\\
+&= A_G^{-1}A_GA_G^{-1}=A_G^{-1} \why{$\Omega_v\inv\Omega_v=I_T$}
+\end{align*}
+即
+\begin{equation}\label{eq:U11a-Vgls}
+V_{GLS}=\Var(\hat\beta_{GLS}\mid X)=\Big(\sum_{i=1}^NX_i\T\Omega_v\inv X_i\Big)^{-1}.
+\end{equation}
+
+\subsubsection{BLUE：Aitken 定理在面板中的证明}
+
+\begin{thm}[GLS 是 BLUE（Aitken 定理）]\label{thm:U11a-aitken}
+在 RE1–RE5 下（$\Omega_v$ 已知），设 $\tilde\beta=\sum_iC_iY_i$ 是任一线性估计量（$C_i$ 为 $K\times T$，只依赖于 $X$），且对一切 $\beta$ 条件无偏。则 $\Var(\tilde\beta\mid X)\ge V_{GLS}$（差为半正定）。这一结论称为\term{Aitken 定理}{Aitken theorem}。
+\end{thm}
+
+证明思路：把任意线性无偏估计量的权重写成“GLS 权重 $+$ 偏离”，证明交叉项为零。
+
+第一步，无偏条件。$\E(\tilde\beta\mid X)=\sum_iC_iX_i\beta+\sum_iC_i\E(V_i\mid X_i)=\big(\sum_iC_iX_i\big)\beta$，对一切 $\beta$ 等于 $\beta$ 当且仅当 $\sum_iC_iX_i=I_K$。
+
+第二步，分解权重。令 $C_i^*=A_G^{-1}X_i\T\Omega_v\inv$（GLS 的权重），$D_i=C_i-C_i^*$。则
+\begin{align*}
+\sum_iD_iX_i &= \sum_iC_iX_i-A_G^{-1}\sum_iX_i\T\Omega_v\inv X_i \why{代入 $C_i^*$}\\
+&= I_K-A_G^{-1}A_G=0 \why{无偏条件}
+\end{align*}
+
+第三步，计算方差。
+\begin{align*}
+\Var(\tilde\beta\mid X) &= \sum_iC_i\Omega_vC_i\T \why{跨 $i$ 独立}\\
+&= \sum_iC_i^*\Omega_vC_i^{*\prime}+\sum_iC_i^*\Omega_vD_i\T+\sum_iD_i\Omega_vC_i^{*\prime}+\sum_iD_i\Omega_vD_i\T \why{$C_i=C_i^*+D_i$ 展开}\\
+\sum_iC_i^*\Omega_vC_i^{*\prime} &= A_G^{-1}\Big(\sum_iX_i\T\Omega_v\inv\Omega_v\Omega_v\inv X_i\Big)A_G^{-1}=A_G^{-1} \why{同上节}\\
+\sum_iC_i^*\Omega_vD_i\T &= A_G^{-1}\sum_iX_i\T D_i\T=A_G^{-1}\Big(\sum_iD_iX_i\Big)\T=0 \why{$\Omega_v^{-1}\Omega_v=I$；第二步}
+\end{align*}
+第三项是第二项的转置，也为零。于是
+\[
+\Var(\tilde\beta\mid X)=V_{GLS}+\sum_iD_i\Omega_vD_i\T\ \ge\ V_{GLS},
+\]
+因为 $\Omega_v$ 正定，每个 $D_i\Omega_vD_i\T$ 都半正定。\hfill$\square$
+
+\subsubsection{与混合 OLS 比较：\texorpdfstring{$V_{GLS}\le V_{pool}$}{V\_GLS <= V\_pool}}
+
+混合 OLS 是 $C_i=(\sum_jX_j\T X_j)^{-1}X_i\T$ 的线性无偏估计量（$\sum_iC_iX_i=I_K$），由上面的 Aitken 定理，
+\[
+V_{GLS}=\Big(\sum_iX_i\T\Omega_v\inv X_i\Big)^{-1}\ \le\ V_{pool}
+\]
+（$V_{pool}$ 见 \eqref{eq:U11a-Vpool}）。当 $\sigma_\alpha^2=0$ 时 $\Omega_v=\sigma_u^2I_T$，GLS 权重 $C_i^*=(\sum_jX_j\T X_j)^{-1}X_i\T$ 与混合 OLS 相同，二者相等（Hansen 第 17.6 节）。所以 RE 模型下 GLS 比混合 OLS 更有效：它正确利用了“同一个体误差等相关”这一信息。
+
+\subsection{\texorpdfstring{$\Omega_v^{-1}$}{Omega\_v inverse} 的谱分解}
+
+\subsubsection{把 \texorpdfstring{$\Omega_v$}{Omega\_v} 写成 \texorpdfstring{$M_T$}{M\_T} 与 \texorpdfstring{$P_T$}{P\_T} 的线性组合}
+
+思路：把 $\Omega_v$ 写成两个互相正交的幂等矩阵 $M_T$、$P_T$ 的线性组合，求逆（以及开方）只需对两个系数分别取倒数（开方）。回忆第 10 章：
+\[
+P_T=\one_T(\one_T\T\one_T)\inv\one_T\T=\tfrac1T\one_T\one_T\T,\qquad M_T=I_T-P_T ,
+\]
+二者都是 $T\times T$ 对称幂等矩阵，且 $M_TP_T=P_TM_T=0$，$M_T+P_T=I_T$，$M_T\one_T=0$，$P_T\one_T=\one_T$。
+\begin{align*}
+\Omega_v &= \sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T \why{式 \eqref{eq:U11a-Omega}}\\
+&= T\sigma_\alpha^2P_T+\sigma_u^2(M_T+P_T) \why{$\one_T\one_T'=TP_T$，$I_T=M_T+P_T$}\\
+&= \sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T \why{合并 $P_T$ 的系数}
+\end{align*}
+\begin{equation}\label{eq:U11a-OmegaMP}
+\Omega_v=\sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T .
+\end{equation}
+
+\subsubsection{定理：\texorpdfstring{$(aM_T+bP_T)^r=a^rM_T+b^rP_T$}{(aM+bP)\^r = a\^r M + b\^r P}}
+
+\begin{thm}[$aM_T+bP_T$ 的幂]\label{thm:U11a-power}
+若 $a,b>0$，则对任意实数 $r$，$(aM_T+bP_T)^r=a^rM_T+b^rP_T$。特别地，
+\begin{equation}\label{eq:U11a-Omegainv}
+\Omega_v\inv=\frac1{\sigma_u^2}M_T+\frac1{\sigma_u^2+T\sigma_\alpha^2}P_T=\frac1{\sigma_u^2}\Big[M_T+\frac1{1+T\sigma_\alpha^2/\sigma_u^2}P_T\Big].
+\end{equation}
+\end{thm}
+
+\subsubsection{证明：\texorpdfstring{$r=-1$}{r = -1} 的直接验证}
+
+以 $a=\sigma_u^2$、$b=\sigma_u^2+T\sigma_\alpha^2$ 为例，验证 \eqref{eq:U11a-Omegainv} 右端乘 $\Omega_v$ 等于 $I_T$：
+\begin{align*}
+\Omega_v\Big(\frac1aM_T+\frac1bP_T\Big) &= (aM_T+bP_T)\Big(\frac1aM_T+\frac1bP_T\Big) \why{式 \eqref{eq:U11a-OmegaMP}}\\
+&= \frac aaM_T^2+\frac abM_TP_T+\frac baP_TM_T+\frac bbP_T^2 \why{展开}\\
+&= M_T+0+0+P_T \why{$M_T^2=M_T$，$P_T^2=P_T$，$M_TP_T=0$}\\
+&= I_T \why{$M_T+P_T=I_T$}
+\end{align*}
+
+\subsubsection{证明：\texorpdfstring{$r=-1/2$}{r = -1/2} 的直接验证}
+
+GLS 的白化变换需要对称的 $\Omega_v^{-1/2}$ 满足 $\Omega_v^{-1/2}\Omega_v\Omega_v^{-1/2}=I_T$。取 $S=a^{-1/2}M_T+b^{-1/2}P_T$（对称）：
+\begin{align*}
+S\,\Omega_v\,S &= \big(a^{-1/2}M_T+b^{-1/2}P_T\big)(aM_T+bP_T)\big(a^{-1/2}M_T+b^{-1/2}P_T\big) \why{代入}\\
+&= \big(a^{1/2}M_T+b^{1/2}P_T\big)\big(a^{-1/2}M_T+b^{-1/2}P_T\big) \why{前两项相乘，交叉项为 0}\\
+&= M_T+P_T=I_T \why{同上}
+\end{align*}
+
+\subsubsection{一般 \texorpdfstring{$r$}{r}：特征值只有两个}
+
+$M_T$、$P_T$ 是对称幂等、互相正交、和为 $I_T$ 的投影矩阵。$aM_T+bP_T$ 作用于 $\one_T$ 得 $b\one_T$；作用于任一与 $\one_T$ 正交的向量 $c$（$P_Tc=0$，$M_Tc=c$）得 $ac$。所以它的特征值只有两个：$b$（特征向量 $\one_T$，重数 1）与 $a$（特征向量与 $\one_T$ 正交，重数 $T-1$）。由特征分解，对特征值取 $r$ 次方、特征向量不变，即得 $a^rM_T+b^rP_T$。\hfill$\square$
+
+\subsubsection{自查方法：令 \texorpdfstring{$\sigma_\alpha^2=0$}{sigma\_alpha\^2 = 0}}
+
+写 $\Omega_v\inv$ 时容易把系数放错位置。检查办法：令 $\sigma_\alpha^2=0$，应有 $\Omega_v=\sigma_u^2I_T$、$\Omega_v\inv=\sigma_u^{-2}I_T$。正确式 \eqref{eq:U11a-Omegainv} 给出 $\sigma_u^{-2}(M_T+P_T)=\sigma_u^{-2}I_T$，吻合。也可以再查 $T\to\infty$：$P_T$ 的系数 $1/(\sigma_u^2+T\sigma_\alpha^2)$ 趋于零，而 $M_T$ 的系数 $1/\sigma_u^2$ 不变——这是后文“$T$ 大时 GLS $\approx$ WG”的来源。
+
+\subsubsection{常用推论：\texorpdfstring{$\Omega_v\inv\one_T=\one_T/(\sigma_u^2+T\sigma_\alpha^2)$}{Omega inverse times 1}}
+
+\begin{align*}
+\Omega_v\inv\one_T &= \frac1{\sigma_u^2}M_T\one_T+\frac1{\sigma_u^2+T\sigma_\alpha^2}P_T\one_T \why{式 \eqref{eq:U11a-Omegainv}}\\
+&= 0+\frac1{\sigma_u^2+T\sigma_\alpha^2}\one_T \why{$M_T\one_T=0$，$P_T\one_T=\one_T$}
+\end{align*}
+GLS 对“个体效应方向” $\one_T$ 的权重只有 $1/(\sigma_u^2+T\sigma_\alpha^2)$。本章讨论 RE 在 FE 模型下的偏差时会用到这一结果。
+
+\begin{exmp}[$T=3$ 时的 $\Omega_v$ 与 $\Omega_v\inv$]\label{ex:U11a-T3}
+设 $T=3$，$\sigma_\alpha^2=1$，$\sigma_u^2=2$。写出 $\Omega_v$，用谱分解求 $\Omega_v\inv$ 并验证。
+\solution
+由 \eqref{eq:U11a-Omega}，对角元 $\sigma_\alpha^2+\sigma_u^2=3$，非对角元 $\sigma_\alpha^2=1$：
+\[
+\Omega_v=\begin{pmatrix}3&1&1\\1&3&1\\1&1&3\end{pmatrix}.
+\]
+$a=\sigma_u^2=2$，$b=\sigma_u^2+T\sigma_\alpha^2=2+3=5$，故 $\Omega_v\inv=\frac12M_3+\frac15P_3$。$M_3$ 的对角元为 $1-\frac13=\frac23$、非对角元为 $-\frac13$；$P_3$ 的元素全为 $\frac13$。于是
+\begin{align*}
+(\Omega_v\inv)_{tt} &= \frac12\cdot\frac23+\frac15\cdot\frac13=\frac13+\frac1{15}=\frac6{15}=0.4 \why{对角元}\\
+(\Omega_v\inv)_{ts} &= \frac12\cdot\Big(-\frac13\Big)+\frac15\cdot\frac13=-\frac16+\frac1{15}=-\frac1{10}=-0.1 \why{非对角元}
+\end{align*}
+验证：第一行乘第一列 $0.4\times3+(-0.1)\times1+(-0.1)\times1=1.2-0.2=1$；第一行乘第二列 $0.4\times1+(-0.1)\times3+(-0.1)\times1=0.4-0.3-0.1=0$。所以 $\Omega_v\Omega_v\inv=I_3$。
+\end{exmp}
+
+\subsection{准去均值表示：GLS 就是“部分去均值”后的 OLS \tagext}
+
+\subsubsection{\texorpdfstring{$\Omega_v^{-1/2}=\sigma_u^{-1}(I_T-\theta P_T)$}{Omega\^{}(-1/2) = (I - theta P)/sigma\_u}}
+
+由上面的幂定理取 $r=-\frac12$：
+\begin{align*}
+\Omega_v^{-1/2} &= \frac1{\sigma_u}M_T+\frac1{\sqrt{\sigma_u^2+T\sigma_\alpha^2}}P_T \why{$r=-1/2$}\\
+&= \frac1{\sigma_u}\big[M_T+(1-\theta)P_T\big] \why{定义 $1-\theta=\sigma_u/\sqrt{\sigma_u^2+T\sigma_\alpha^2}$}\\
+&= \frac1{\sigma_u}\big[I_T-P_T+(1-\theta)P_T\big] \why{$M_T=I_T-P_T$}\\
+&= \frac1{\sigma_u}\big[I_T-\theta P_T\big] \why{合并 $P_T$ 的系数}
+\end{align*}
+其中
+\begin{equation}\label{eq:U11a-theta}
+\theta\equiv1-\sqrt{\frac{\sigma_u^2}{\sigma_u^2+T\sigma_\alpha^2}}\in[0,1).
+\end{equation}
+
+\subsubsection{GLS 等于对准去均值数据做 OLS}
+
+$\Omega_v^{-1/2}Y_i=\sigma_u^{-1}(Y_i-\theta P_TY_i)=\sigma_u^{-1}(Y_i-\theta\one_T\bar y_{i\cdot})$，第 $t$ 个元素为 $\sigma_u^{-1}(y_{it}-\theta\bar y_{i\cdot})$；对 $X_i$ 同理。常数 $1/\sigma_u$ 同乘被解释变量与回归元，不影响 OLS 估计。所以 GLS 就是对\term{准去均值}{quasi-demeaning}后的数据做 OLS：
+\begin{equation}\label{eq:U11a-quasi}
+y_{it}-\theta\bar y_{i\cdot}=(x_{it}-\theta\bar x_{i\cdot})\T\beta+(v_{it}-\theta\bar v_{i\cdot}).
+\end{equation}
+若模型含截距 $\beta_0$，变换后截距列变为 $1-\theta$（常数），仍可照常估计。
+
+\subsubsection{\texorpdfstring{$\theta$}{theta} 的取值：从混合 OLS 到 WG}
+
+\begin{itemize}
+  \item $\theta=0$（$\sigma_\alpha^2=0$，没有个体效应）：不做任何变换，RE $=$ 混合 OLS；
+  \item $\theta\to1$（$T\sigma_\alpha^2/\sigma_u^2\to\infty$）：完全去均值，RE $\to$ WG；
+  \item $0<\theta<1$：RE 介于二者之间，只减去个体均值的“一部分”。
+\end{itemize}
+个体效应越重要（$\sigma_\alpha^2/\sigma_u^2$ 越大）或期数越多（$T$ 越大），$\theta$ 越接近 1，RE 越像 WG。
+
+\subsubsection{Hansen 的记法与 Stata 输出}
+
+Hansen 第 17.15 节记 $\rho_i=\sigma_\varepsilon/\sqrt{\sigma_\varepsilon^2+T_i\sigma_u^2}$，换成本书记号就是 $1-\theta$（注意方差记号对调），并称 $Y_i-(1-\rho_i)\one_T\bar Y_i$ 为\term{部分组内变换}{partial within transformation}。Stata 的 \texttt{xtreg y x, re theta} 会报告估计的 $\hat\theta$。
+
+\begin{exmp}[续上例：$T=3$ 时的 $\theta$]\label{ex:U11a-theta}
+在上一个例题（$T=3$，$\sigma_\alpha^2=1$，$\sigma_u^2=2$）中求 $\theta$，并写出准去均值变换。
+\solution
+\begin{align*}
+\theta &= 1-\sqrt{\frac{\sigma_u^2}{\sigma_u^2+T\sigma_\alpha^2}}=1-\sqrt{\frac25} \why{式 \eqref{eq:U11a-theta}}\\
+&\approx 1-0.632=0.368 \why{$\sqrt{0.4}\approx0.632$}
+\end{align*}
+所以 GLS 等价于对 $y_{it}-0.368\,\bar y_{i\cdot}$ 关于 $x_{it}-0.368\,\bar x_{i\cdot}$ 做 OLS——只减去约 37\% 的个体均值。
+\end{exmp}
+
+\subsection{GLS 是 WG 与组间估计量的矩阵加权平均 \tagext}
+
+\subsubsection{组内矩阵、组间矩阵与组间估计量}
+
+令
+\[
+\psi\equiv\frac{\sigma_u^2}{\sigma_u^2+T\sigma_\alpha^2}=(1-\theta)^2\in(0,1],
+\]
+则由 \eqref{eq:U11a-Omegainv}，$\Omega_v\inv=\sigma_u^{-2}(M_T+\psi P_T)$。记
+\[
+S_W=\sum_iX_i\T M_TX_i,\qquad S_B=\sum_iX_i\T P_TX_i=T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T,
+\]
+\[
+\hat\beta_W=S_W^{-1}\sum_iX_i\T M_TY_i,\qquad \hat\beta_B=S_B^{-1}\sum_iX_i\T P_TY_i .
+\]
+其中 $X_i\T P_TX_i=\frac1T(X_i\T\one_T)(\one_T\T X_i)=\frac1T(T\bar x_{i\cdot})(T\bar x_{i\cdot}\T)=T\bar x_{i\cdot}\bar x_{i\cdot}\T$。$\hat\beta_W$ 就是 WG；同理 $X_i\T P_TY_i=T\bar x_{i\cdot}\bar y_{i\cdot}$，故
+\[
+\hat\beta_B=\Big(\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T\Big)^{-1}\sum_i\bar x_{i\cdot}\bar y_{i\cdot},
+\]
+它是对个体均值方程（第 10 章称之为截面模型）
+\[
+\bar y_{i\cdot}=\bar x_{i\cdot}\T\beta+(\alpha_i+\bar u_{i\cdot})
+\]
+做 OLS 得到的\term{组间估计量}{between estimator}（为简洁这里省略截距）。
+
+\subsubsection{加权平均的推导}
+
+\begin{align*}
+\hat\beta_{GLS} &= \Big(\sum_iX_i\T(M_T+\psi P_T)X_i\Big)^{-1}\sum_iX_i\T(M_T+\psi P_T)Y_i \why{常数 $\sigma_u^{-2}$ 约去}\\
+&= (S_W+\psi S_B)^{-1}\Big(\sum_iX_i\T M_TY_i+\psi\sum_iX_i\T P_TY_i\Big) \why{按 $M_T$、$P_T$ 拆开}\\
+&= (S_W+\psi S_B)^{-1}\big(S_W\hat\beta_W+\psi S_B\hat\beta_B\big) \why{$\sum_iX_i'M_TY_i=S_W\hat\beta_W$ 等}
+\end{align*}
+两个权重矩阵 $(S_W+\psi S_B)^{-1}S_W$ 与 $(S_W+\psi S_B)^{-1}\psi S_B$ 之和为 $I_K$，所以 RE 是 WG（只用个体内变异）与组间估计量（只用个体间变异）的\key{矩阵加权平均}。这一结果常归于 Maddala (1971)。
+
+\subsubsection{权重正比于各自的精度}
+
+在 RE 假设下分别计算两个估计量的条件方差：
+\begin{align*}
+\hat\beta_W-\beta &= S_W^{-1}\sum_iX_i\T M_TV_i=S_W^{-1}\sum_iX_i\T M_TU_i \why{$M_T\one_T=0$}\\
+\Var(\hat\beta_W\mid X) &= S_W^{-1}\Big(\sum_iX_i\T M_T\sigma_u^2I_TM_TX_i\Big)S_W^{-1}=\sigma_u^2S_W^{-1} \why{RE3；$M_T$ 幂等}\\
+\hat\beta_B-\beta &= \Big(\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T\Big)^{-1}\sum_i\bar x_{i\cdot}(\alpha_i+\bar u_{i\cdot}) \why{代入均值方程}\\
+\Var(\hat\beta_B\mid X) &= \Big(\sigma_\alpha^2+\frac{\sigma_u^2}T\Big)\Big(\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T\Big)^{-1} \why{$\Var(\alpha_i+\bar u_{i\cdot})=\sigma_\alpha^2+\sigma_u^2/T$}\\
+&= (\sigma_u^2+T\sigma_\alpha^2)S_B^{-1}=\sigma_u^2(\psi S_B)^{-1} \why{$S_B=T\sum_i\bar x_{i\cdot}\bar x_{i\cdot}'$}
+\end{align*}
+两个估计量的精度（方差的逆）分别为 $\sigma_u^{-2}S_W$ 与 $\sigma_u^{-2}\psi S_B$，恰好正比于加权平均中的 $S_W$ 与 $\psi S_B$：GLS 按精度给两部分信息加权。
+
+\subsubsection{推论：\texorpdfstring{$V_{GLS}=\sigma_u^2(S_W+\psi S_B)^{-1}$}{V\_GLS = sigma\_u\^2 (S\_W + psi S\_B)\^{}-1}}
+
+由 \eqref{eq:U11a-Vgls}，
+\begin{align*}
+V_{GLS} &= \Big(\sum_iX_i\T\sigma_u^{-2}(M_T+\psi P_T)X_i\Big)^{-1} \why{代入 $\Omega_v\inv$}\\
+&= \sigma_u^2(S_W+\psi S_B)^{-1} \why{提出常数，$(cA)^{-1}=c^{-1}A^{-1}$}
+\end{align*}
+对比 $\Var(\hat\beta_W\mid X)=\sigma_u^2S_W^{-1}$：GLS 在 WG 的信息 $S_W$ 之上多用了组间信息 $\psi S_B$，所以更有效。组间估计量在 RE 下无偏，但效率低于 GLS；Hansen 第 17.14 节认为它在线性面板中的主要用处是估计方差分量（下一节）。
+
+\subsection{\texorpdfstring{$T\to\infty$}{T to infinity} 时 GLS \texorpdfstring{$\to$}{to} WG}
+
+\subsubsection{直观：\texorpdfstring{$P_T$}{P\_T} 项的权重相对消失}
+
+把 \eqref{eq:U11a-Omegainv} 代入 GLS 公式：
+\begin{align*}
+\hat\beta_{GLS} &= \Big(\sum_iX_i\T\Big[\frac{M_T}{\sigma_u^2}+\frac{P_T}{\sigma_u^2+T\sigma_\alpha^2}\Big]X_i\Big)^{-1}\sum_iX_i\T\Big[\frac{M_T}{\sigma_u^2}+\frac{P_T}{\sigma_u^2+T\sigma_\alpha^2}\Big]Y_i \why{代入 $\Omega_v\inv$}\\
+&\approx \Big(\frac1{\sigma_u^2}\sum_iX_i\T M_TX_i\Big)^{-1}\frac1{\sigma_u^2}\sum_iX_i\T M_TY_i \why{$T$ 大，$P_T$ 项可略}\\
+&= \hat\beta_{WG} \why{$\sigma_u^{-2}$ 约去}
+\end{align*}
+其中 $\sum_iX_i\T M_TX_i=\sum_i\sum_t(x_{it}-\bar x_{i\cdot})(x_{it}-\bar x_{i\cdot})\T$ 随 $T$ 线性增长，而 $P_T$ 项 $\frac{1}{\sigma_u^2+T\sigma_\alpha^2}\sum_iX_i\T P_TX_i=\frac{T}{\sigma_u^2+T\sigma_\alpha^2}\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T$ 不随 $T$ 增长。所以 $T$ 大时 FE 估计与 RE 估计几乎相同。
+
+\subsubsection{严格论证：GLS 与 WG 之差为 \texorpdfstring{$O_p(1/T)$}{O\_p(1/T)}}
+
+用加权平均形式计算二者之差：
+\begin{align*}
+\hat\beta_{GLS}-\hat\beta_W &= (S_W+\psi S_B)^{-1}\big(S_W\hat\beta_W+\psi S_B\hat\beta_B\big)-(S_W+\psi S_B)^{-1}(S_W+\psi S_B)\hat\beta_W \why{加权形式；插入单位阵}\\
+&= (S_W+\psi S_B)^{-1}\psi S_B\big(\hat\beta_B-\hat\beta_W\big) \why{合并同类项}\\
+&= \Big(\frac{S_W}{NT}+\frac{\psi S_B}{NT}\Big)^{-1}\frac{\psi S_B}{NT}\big(\hat\beta_B-\hat\beta_W\big) \why{上下同除 $NT$}
+\end{align*}
+逐项看量级：
+\begin{itemize}
+  \item $\dfrac{S_W}{NT}=\dfrac1{NT}\sum_i\sum_t\dot x_{it}\dot x_{it}\T$（$\dot x_{it}=x_{it}-\bar x_{i\cdot}$）收敛到一个正定矩阵；
+  \item $\dfrac{\psi S_B}{NT}=\dfrac{\sigma_u^2}{\sigma_u^2+T\sigma_\alpha^2}\cdot\dfrac1N\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T=O_p\Big(\dfrac1T\Big)$，因为第一个因子不超过 $\sigma_u^2/(T\sigma_\alpha^2)$；
+  \item $\hat\beta_B-\hat\beta_W=O_p(1)$。
+\end{itemize}
+所以 $\hat\beta_{GLS}-\hat\beta_W=O_p(1/T)\to0$：$T\to\infty$ 时组间部分的权重以 $1/T$ 的速度消失。等价地，$\theta\to1$，准去均值变成完全去均值。直观上，$T$ 大时每个个体的均值 $\bar y_{i\cdot}$ 几乎就是 $\alpha_i+\bar x_{i\cdot}\T\beta$，组间方程的误差几乎全是 $\alpha_i$，个体间信息相对个体内信息微不足道。
+
+\begin{keypt}[英文试卷常见问法]
+“Show that the RE (GLS) estimator approaches the FE estimator as $T\to\infty$.”答题三步：(i) 由 $\Omega_v=\sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T$ 得 $\Omega_v\inv=\sigma_u^{-2}M_T+(\sigma_u^2+T\sigma_\alpha^2)^{-1}P_T$；(ii) 写出 $\hat\beta_{GLS}=(S_W+\psi S_B)^{-1}(S_W\hat\beta_W+\psi S_B\hat\beta_B)$，$\psi=\sigma_u^2/(\sigma_u^2+T\sigma_\alpha^2)$；(iii) $\psi S_B=O_p(N)$ 而 $S_W=O_p(NT)$，故 $T\to\infty$ 时 $\hat\beta_{GLS}\to S_W^{-1}\sum_iX_i\T M_TY_i=\hat\beta_{WG}$。
+\end{keypt}
+
+\begin{english}
+Writing $\Omega_v=\sigma_\alpha^2\mathbf{1}_T\mathbf{1}_T'+\sigma_u^2I_T=\sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T$ and using that $M_T$ and $P_T$ are orthogonal idempotent matrices summing to $I_T$, we obtain $\Omega_v^{-1}=\sigma_u^{-2}M_T+(\sigma_u^2+T\sigma_\alpha^2)^{-1}P_T$. The GLS (RE) estimator $\hat\beta_{GLS}=(\sum_iX_i'\Omega_v^{-1}X_i)^{-1}\sum_iX_i'\Omega_v^{-1}Y_i$ is BLUE under the RE assumptions. It is equivalent to OLS on quasi-demeaned data $y_{it}-\theta\bar y_i$ with $\theta=1-\sigma_u/\sqrt{\sigma_u^2+T\sigma_\alpha^2}$, and it is a matrix-weighted average of the within and between estimators. As $T\to\infty$, the weight on the between component vanishes at rate $1/T$ and the RE estimator converges to the FE estimator.
+\end{english}
+
+%======================================================================
+\section{可行 GLS（FGLS）与方差分量估计}\label{sec:U11a-fgls}
+
+\subsection{问题：\texorpdfstring{$\Omega_v$}{Omega\_v} 未知，GLS 不可行}
+
+$\hat\beta_{GLS}$ 依赖 $\Omega_v=\sigma_\alpha^2\one_T\one_T\T+\sigma_u^2I_T$，而 $\sigma_\alpha^2$、$\sigma_u^2$ 未知，所以 $\hat\beta_{GLS}$ 是\key{不可行的}（infeasible）。好在 $\Omega_v$ 只含两个未知数——两个\term{方差分量}{variance components}——估计出来代入即可。
+
+\subsection{FGLS 的定义}
+
+\begin{defn}[可行 GLS]\label{def:U11a-fgls}
+用方差分量的估计 $\hat\sigma_\alpha^2$、$\hat\sigma_u^2$ 构造
+\[
+\hat\Omega_v=\widehat{\Var}(V_i)=\hat\sigma_\alpha^2\one_T\one_T\T+\hat\sigma_u^2I_T ,
+\]
+代入 GLS 公式，得到\term{可行广义最小二乘}{feasible GLS, FGLS}估计量
+\begin{equation}\label{eq:U11a-fgls}
+\hat\beta_{FGLS}=\Big(\sum_{i=1}^NX_i\T\hat\Omega_v\inv X_i\Big)^{-1}\Big(\sum_{i=1}^NX_i\T\hat\Omega_v\inv Y_i\Big).
+\end{equation}
+\end{defn}
+
+几点说明：
+\begin{itemize}
+  \item 平衡面板中所有个体共用同一个 $\hat\Omega_v$（两个括号里都是 $\hat\Omega_v\inv$）；非平衡面板中它随个体的期数 $T_i$ 变化（本章后文非平衡面板一节）。
+  \item 等价算法：先算 $\hat\theta=1-\hat\sigma_u/\sqrt{\hat\sigma_u^2+T\hat\sigma_\alpha^2}$，再对准去均值数据 $y_{it}-\hat\theta\bar y_{i\cdot}$、$x_{it}-\hat\theta\bar x_{i\cdot}$ 做 OLS。
+  \item 只要 $\hat\sigma_\alpha^2$、$\hat\sigma_u^2$ 一致，$N\to\infty$ 时 FGLS 与 GLS 渐近等价。
+  \item 方差分量从哪里来？一般用 WG（FE）估计——FGLS 总是建立在 WG 的第一步之上。
+\end{itemize}
+
+\subsection{基本做法：用 WG 结果估计方差分量}
+
+\subsubsection{三步公式}
+
+\begin{enumerate}
+  \item 用 WG 估计 $\beta$，得 $\hat\beta_{WG}$；
+  \item 由 LSDV 与 WG 的关系（第 10 章）得到个体效应的估计，再取样本二阶矩：
+  \[
+  \hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta_{WG},\qquad \hat\sigma_\alpha^2=\widehat{\E(\alpha_i^2)}=\frac1N\sum_{i=1}^N\hat\alpha_i^2 ;
+  \]
+  \item 用残差的样本二阶矩估计 $\sigma_u^2$：
+  \[
+  \hat u_{it}=y_{it}-\hat\alpha_i-x_{it}\T\hat\beta_{WG},\qquad \hat\sigma_u^2=\widehat{\E(u_{it}^2)}=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^T\hat u_{it}^2 .
+  \]
+\end{enumerate}
+
+\subsubsection{为什么用 WG：两种模型下都一致}
+
+WG 不依赖 $\alpha_i$ 与 $x_{it}$ 的关系，在 RE 模型与 FE 模型下都一致（第 10 章），因而用它估计方差分量最稳妥。
+
+\subsubsection{\texorpdfstring{$\hat u_{it}$}{u-hat} 就是 WG 残差}
+
+\begin{align*}
+\hat u_{it} &= y_{it}-\big(\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta_{WG}\big)-x_{it}\T\hat\beta_{WG} \why{代入 $\hat\alpha_i$}\\
+&= (y_{it}-\bar y_{i\cdot})-(x_{it}-\bar x_{i\cdot})\T\hat\beta_{WG} \why{整理}
+\end{align*}
+即组内变换后回归的残差。
+
+\subsection{基本公式的偏差与修正 \tagext}
+
+要看：$N\to\infty$、$T$ 固定时上面两个估计量收敛到什么。为看清本质，把 $\hat\beta_{WG}$ 换成真值 $\beta$（$\hat\beta_{WG}$ 一致，对极限没有影响）。由均值方程 $\bar y_{i\cdot}=\alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot}$（RE 模型中不含截距、$\E\alpha_i=0$）。
+
+\subsubsection{\texorpdfstring{$\hat\sigma_u^2\pto\frac{T-1}{T}\sigma_u^2$}{sigma\_u\^2-hat to (T-1)/T sigma\_u\^2}：偏小}
+
+\begin{align*}
+\hat u_{it} &= (y_{it}-\bar y_{i\cdot})-(x_{it}-\bar x_{i\cdot})\T\beta=u_{it}-\bar u_{i\cdot} \why{$\alpha_i$ 被组内变换消去}\\
+\frac1{NT}\sum_i\sum_t\hat u_{it}^2 &= \frac1T\cdot\frac1N\sum_iU_i\T M_TU_i \why{$\hat U_i=M_TU_i$，$M_T$ 幂等}\\
+&\pto \frac1T\E(U_i\T M_TU_i)=\frac1T\sigma_u^2\tr(M_T)=\frac{T-1}T\sigma_u^2 \why{WLLN；第 10 章 Neyman--Scott 例}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$\hat\sigma_\alpha^2\pto\sigma_\alpha^2+\sigma_u^2/T$}{sigma\_alpha\^2-hat to sigma\_alpha\^2 + sigma\_u\^2/T}：偏大}
+
+\begin{align*}
+\hat\alpha_i &= \bar y_{i\cdot}-\bar x_{i\cdot}\T\beta=\alpha_i+\bar u_{i\cdot} \why{代入均值方程}\\
+\frac1N\sum_i\hat\alpha_i^2 &\pto \E(\alpha_i+\bar u_{i\cdot})^2 \why{WLLN}\\
+&= \E(\alpha_i^2)+2\E(\alpha_i\bar u_{i\cdot})+\E(\bar u_{i\cdot}^2) \why{展开平方}\\
+&= \sigma_\alpha^2+0+\frac{\sigma_u^2}T \why{$\E(\alpha_iu_{it})=0$；$\Var(\bar u_{i\cdot})=\sigma_u^2/T$}
+\end{align*}
+所以 $T$ 固定时基本公式的 $\hat\sigma_u^2$ 偏小，$\hat\sigma_\alpha^2$ 偏大（多出 $\sigma_u^2/T$——$\hat\alpha_i$ 本身含估计误差 $\bar u_{i\cdot}$，这正是第 10 章的伴随参数问题）。只有 $T\to\infty$ 时二者才一致。
+
+\subsubsection{修正公式}
+
+\begin{equation}\label{eq:U11a-varcomp}
+\hat\sigma_u^2=\frac1{NT-N-K}\sum_{i=1}^N\sum_{t=1}^T\hat u_{it}^2,\qquad
+\hat\sigma_\alpha^2=\max\Big\{0,\ \frac1N\sum_{i=1}^N\big(\hat\alpha_i-\bar{\hat\alpha}\big)^2-\frac{\hat\sigma_u^2}T\Big\},
+\end{equation}
+其中：
+\begin{itemize}
+  \item 分母 $NT-N-K$ 扣除了 $N$ 个个体效应与 $K$ 个斜率所用的自由度（第 10 章），使 $\hat\sigma_u^2$ 无偏；
+  \item 减去 $\hat\sigma_u^2/T$ 抵消 $\hat\alpha_i$ 中估计误差 $\bar u_{i\cdot}$ 的方差；
+  \item 减去 $\bar{\hat\alpha}=\frac1N\sum_i\hat\alpha_i$ 是为了在模型无截距而 $\E\alpha_i\neq0$ 时不把 $(\E\alpha_i)^2$ 误算进方差；
+  \item 截断于 0 防止出现负的方差估计。
+\end{itemize}
+
+\begin{note}[方差分量的偏差只影响效率，不影响一致性]
+在 RE 假设下，用\key{任何}固定的 $T\times T$ 权重矩阵 $W$ 构造的估计量 $\tilde\beta_W=(\sum_iX_i\T WX_i)^{-1}\sum_iX_i\T WY_i$ 都一致：
+\begin{align*}
+\tilde\beta_W-\beta &= \Big(\frac1N\sum_iX_i\T WX_i\Big)^{-1}\frac1N\sum_iX_i\T WV_i \why{代入 $Y_i$}\\
+\E(X_i\T WV_i) &= \E\big[X_i\T W\,\E(V_i\mid X_i)\big]=0 \why{迭代期望律}
+\end{align*}
+若 $\hat\Omega_v\pto\Omega^*$（可能 $\neq\Omega_v$），FGLS 与权重 $W=\Omega^{*-1}$ 的估计量渐近相同，因而仍一致，只是权重不是最优、效率略低。所以即使用了有偏的方差分量（基本公式），FGLS 仍然一致；$T$ 较大时偏差本身也很小。
+\end{note}
+
+\subsection{其他方差分量估计}
+
+\subsubsection{组间残差法（Hansen 第 17.14 节）}
+
+个体均值方程 $\bar y_{i\cdot}=\bar x_{i\cdot}\T\beta+(\alpha_i+\bar u_{i\cdot})$ 的误差方差为
+\begin{align*}
+\sigma_b^2\equiv\Var(\alpha_i+\bar u_{i\cdot}) &= \sigma_\alpha^2+2\Cov(\alpha_i,\bar u_{i\cdot})+\Var(\bar u_{i\cdot}) \why{方差展开}\\
+&= \sigma_\alpha^2+\frac{\sigma_u^2}T \why{RE1；RE3}
+\end{align*}
+用组间回归残差 $\hat e_{bi}=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta_B$ 估计 $\hat\sigma_b^2=\frac1{N-K}\sum_i\hat e_{bi}^2$，再用 WG 的 $\hat\sigma_u^2$ 得
+\[
+\hat\sigma_\alpha^2=\max\Big\{0,\ \hat\sigma_b^2-\frac{\hat\sigma_u^2}T\Big\}.
+\]
+思路与上面的修正公式相同：WG 提供 $\hat\sigma_u^2$，组间回归提供 $\hat\sigma_b^2$，二者相减得 $\hat\sigma_\alpha^2$。Hansen 称这是 RE 中最常用的 $\sigma_\alpha^2$ 估计量。若 $\hat\sigma_\alpha^2=0$，则 $\hat\theta=0$，FGLS 退化为混合 OLS。
+
+\subsubsection{水平残差法}
+
+另一种只用 WG 结果的做法：用 WG 系数在\key{水平}上计算残差 $\hat e_{it}=y_{it}-x_{it}\T\hat\beta_{FE}$。它近似等于 $\alpha_i+u_{it}$：
+\begin{align*}
+\hat e_{it} &= \alpha_i+u_{it}-x_{it}\T(\hat\beta_{FE}-\beta) \why{代入 $y_{it}$}\\
+\hat\sigma_e^2\equiv\frac1{NT}\sum_i\sum_t\hat e_{it}^2 &= \frac1{NT}\sum_i\sum_t(\alpha_i+u_{it})^2+o_p(1) \why{$\hat\beta_{FE}\pto\beta$}\\
+&\pto \E(\alpha_i+u_{it})^2=\sigma_\alpha^2+\sigma_u^2 \why{WLLN；交叉项为 0}
+\end{align*}
+于是 $\hat\sigma_\alpha^2=\max\{0,\hat\sigma_e^2-\hat\sigma_u^2\}$，其中 $\hat\sigma_u^2$ 取 \eqref{eq:U11a-varcomp} 的 WG 估计（Hansen 记号下为 $\hat\sigma_u^2=\hat\sigma_e^2-\hat\sigma_\varepsilon^2$）。与上面一样，若 $\E\alpha_i\neq0$ 而模型无截距，应先从 $\hat e_{it}$ 中减去其总均值。
+
+\subsection{Stata 实现}
+
+\begin{lstlisting}
+xtset id year
+xtreg y x z, re                    // RE-FGLS; z may be time-invariant
+xtreg y x z, re theta              // also report estimated theta
+xtreg y x z, re vce(cluster id)    // cluster-robust SE
+xtreg y x, be                      // between estimator
+\end{lstlisting}
+\texttt{xtreg, re} 的默认标准误是经典形式 $\hat V_{GLS}=(\sum_iX_i\T\hat\Omega_v\inv X_i)^{-1}$；若 RE 只是近似成立（例如 $u_{it}$ 有序列相关或异方差），应加 \texttt{vce(cluster id)}，得到按个体聚类的夹心形式（Hansen 第 17.6 节）。
+
+\begin{prac}[基本公式的偏差有多大]\label{pr:U11a-bias}
+设 $T=4$，$\sigma_u^2=2$，$\sigma_\alpha^2=1$。若用基本公式（$\frac1{NT}\sum\sum\hat u_{it}^2$ 与 $\frac1N\sum\hat\alpha_i^2$），$N\to\infty$ 时 $\hat\sigma_u^2$、$\hat\sigma_\alpha^2$ 分别收敛到多少？对应的 $\hat\theta$ 与真实 $\theta$ 各是多少？
+\answer
+\begin{align*}
+\hat\sigma_u^2 &\pto \frac{T-1}T\sigma_u^2=\frac34\times2=1.5 \why{偏小}\\
+\hat\sigma_\alpha^2 &\pto \sigma_\alpha^2+\frac{\sigma_u^2}T=1+0.5=1.5 \why{偏大}\\
+\theta &= 1-\sqrt{\frac{2}{2+4\times1}}=1-\sqrt{1/3}\approx1-0.577=0.423 \why{真值}\\
+\hat\theta &\pto 1-\sqrt{\frac{1.5}{1.5+4\times1.5}}=1-\sqrt{0.2}\approx1-0.447=0.553 \why{偏误分量}
+\end{align*}
+准去均值“去得过多”，估计量偏向 WG 一侧；但由上面的注意，FGLS 仍然一致，只是效率略有损失。
+\end{prac}
+
+\begin{english}
+The GLS estimator is infeasible because $\Omega_v$ depends on the unknown variance components $\sigma_\alpha^2$ and $\sigma_u^2$. Feasible GLS replaces them with estimates based on the within (FE) estimator, which is consistent under both the RE and FE models: $\hat\sigma_u^2=\sum_i\sum_t\hat u_{it}^2/(NT-N-K)$ from the within residuals, and $\hat\sigma_\alpha^2$ from the estimated individual effects $\hat\alpha_i=\bar y_i-\bar x_i'\hat\beta_{FE}$ after subtracting $\hat\sigma_u^2/T$ (or from the between regression residuals). Under the RE assumptions FGLS is asymptotically equivalent to GLS; even with inconsistent variance components it remains consistent, only less efficient.
+\end{english}
+
+%======================================================================
+\section{RE 一致的条件与 FE/RE 对照}\label{sec:U11a-consist}
+
+\subsection{RE 一致的条件：\texorpdfstring{$\E(\alpha_i\mid x_{it})=0$}{E(alpha | x) = 0}}
+
+\subsubsection{分解复合误差的条件均值}
+
+$\hat\beta_{GLS}$（即 $\hat\beta_{RE}$）一致的条件是复合误差与回归元不相关（$v_{it}\perp x_{it}$）。把条件均值拆开：
+\begin{align*}
+0=\E(v_{it}\mid x_{it}) &= \E(\alpha_i+u_{it}\mid x_{it}) \why{$v_{it}=\alpha_i+u_{it}$}\\
+&= \E(\alpha_i\mid x_{it})+\E(u_{it}\mid x_{it}) \why{条件期望的线性性}
+\end{align*}
+
+\subsubsection{两个必要条件：\texorpdfstring{$\alpha_i$}{alpha\_i} 外生与 \texorpdfstring{$u_{it}$}{u\_it} 外生}
+
+由上式，RE 一致需要：
+\begin{enumerate}
+  \item $\E(\alpha_i\mid x_{it})=0$：个体效应与回归元不相关——这是 RE \key{额外}需要的条件；
+  \item $\E(u_{it}\mid x_{it})=0$：特异误差外生——这是包括 WG 在内的所有方法都需要的“常规”外生性。
+\end{enumerate}
+$\alpha_i$ 代表个体的能力、偏好等不可观测特征，与 $x_{it}$（受教育年限、投资、工作经验……）“极有可能相关”，所以条件 1 在实践中很难成立。若 $\E(\alpha_i\mid x_{it})\neq0$，$\hat\beta_{RE}$ 有偏且不一致。
+
+\subsubsection{严格版本：\texorpdfstring{$\E(\alpha_i\mid X_i)=0$}{E(alpha | X\_i) = 0} 与 \texorpdfstring{$\E(u_{it}\mid X_i)=0$}{E(u | X\_i) = 0}}
+
+GLS 把各期信息混合使用（$\Omega_v\inv$ 不是对角阵），因此需要的是对\key{所有期}回归元的严格版本：$\E(\alpha_i\mid X_i)=0$、$\E(u_{it}\mid X_i)=0$，即 RE1–RE2。
+
+\subsection{FE 模型下 RE 的偏差从何而来}
+
+要看：若 $\E(\alpha_i\mid X_i)\neq0$ 而 $u_{it}$ 仍严格外生，$\hat\beta_{GLS}$ 收敛到什么。思路：把误差拆成 $\alpha_i\one_T$ 与 $U_i$ 两部分，利用 $\Omega_v\inv\one_T=\one_T/(\sigma_u^2+T\sigma_\alpha^2)$（本章谱分解一节的推论）。
+
+\subsubsection{分子：偏差只通过个体间部分进入}
+
+\begin{align*}
+\hat\beta_{GLS}-\beta &= \Big(\sum_iX_i\T\Omega_v\inv X_i\Big)^{-1}\sum_iX_i\T\Omega_v\inv(\alpha_i\one_T+U_i) \why{代入 $V_i$}\\
+\frac1N\sum_iX_i\T\Omega_v\inv U_i &\pto 0 \why{$u$ 严格外生}\\
+\frac1N\sum_iX_i\T\Omega_v\inv\one_T\alpha_i &= \frac1{\sigma_u^2+T\sigma_\alpha^2}\cdot\frac1N\sum_iX_i\T\one_T\alpha_i \why{$\Omega_v^{-1}\one_T$ 的推论}\\
+&= \frac T{\sigma_u^2+T\sigma_\alpha^2}\cdot\frac1N\sum_i\bar x_{i\cdot}\alpha_i \why{$X_i'\one_T=T\bar x_{i\cdot}$}\\
+&\pto \frac T{\sigma_u^2+T\sigma_\alpha^2}\,\E(\bar x_{i\cdot}\alpha_i)\neq0 \why{WLLN；FE 模型}
+\end{align*}
+偏差只通过“个体间”部分——个体均值 $\bar x_{i\cdot}$ 与 $\alpha_i$ 的相关——进入，且这一项是 $O(1)$ 的（$T/(\sigma_u^2+T\sigma_\alpha^2)\to1/\sigma_\alpha^2$）。
+
+\subsubsection{分母：个体内部分是 \texorpdfstring{$O(T)$}{O(T)} 的}
+
+\begin{align*}
+\frac1N\sum_iX_i\T\Omega_v\inv X_i &= \frac1{\sigma_u^2}\cdot\frac1N\sum_iX_i\T M_TX_i+\frac T{\sigma_u^2+T\sigma_\alpha^2}\cdot\frac1N\sum_i\bar x_{i\cdot}\bar x_{i\cdot}\T \why{代入 $\Omega_v\inv$}
+\end{align*}
+第一项是 $\frac1{\sigma_u^2}\cdot\frac1N\sum_i\sum_t\dot x_{it}\dot x_{it}\T=O(T)$，第二项是 $O(1)$。因此
+\[
+\plim(\hat\beta_{GLS}-\beta)=\frac{O(1)}{O(T)}=O\Big(\frac1T\Big):
+\]
+$T$ 固定时 RE 不一致；$T\to\infty$ 时偏差消失。这与“$T\to\infty$ 时 RE $\to$ WG”的结论一致。
+
+\subsection{一致性对照表}
+
+\subsubsection{两种估计在两种模型下}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{FE 估计与 RE 估计的一致性}
+\begin{tabularx}{0.8\linewidth}{lCC}
+\toprule
+估计 & $H_0$：RE 模型 & $H_1$：FE 模型\\
+\midrule
+FE / WG & 一致（$\to\beta$） & 一致\\
+RE / GLS & 一致（$\to\beta$） & 不一致（内生）\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+这张表是下文 Hausman 检验的出发点：WG 总是一致，GLS 只在 RE 模型下一致。
+
+\subsubsection{完整对照表：加入 FD、组间估计量与混合 OLS \tagext}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{静态面板各估计量的一致性与有效性}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{3.1cm}LL}
+\toprule
+估计量 & RE 模型：$\E(\alpha_i\mid X_i)=0$ & FE 模型：$\E(\alpha_i\mid X_i)\neq0$\\
+\midrule
+WG / FE（$=$ LSDV） & 一致；非有效 & \textbf{一致}\\
+一阶差分 FD & 一致；非有效 & \textbf{一致}\\
+RE / GLS（FGLS） & 一致；\textbf{有效}（GLS 为 BLUE） & 不一致（$T$ 固定）\\
+组间估计量 & 一致；非有效 & 不一致\\
+混合 OLS & 一致；非有效（需聚类标准误） & 不一致\\
+\midrule
+时不变变量 $z_i$ 的系数 $\gamma$ & RE/GLS、混合 OLS 可估 & WG 不可识别；用本章后文的 FEF 两步法\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+（所有一致性都以严格外生 $\E(u_{it}\mid X_i,\alpha_i)=0$ 与相应的秩条件为前提。）
+
+\subsection{“固定”与“随机”只是历史名称}
+
+Hansen 第 17.25 节强调：两种模型中 $\alpha_i$ 都是随机变量。“fixed effect”一词源于早期把回归元视为“固定”（非随机）的年代——称 $\alpha_i$ 为“固定的”等于称它为一个（遗漏的）回归元。今天所有变量都被视为随机的，这个名称已无实际含义；真正的区别只在于 \key{$\alpha_i$ 是否与回归元相关}。当代实践“稳健性优先于效率”，线性面板几乎一律使用 FE；RE 主要用于 FE 难以实现的场合（许多非线性模型，见本章后文面板二元选择一节）。
+
+\begin{prac}[选哪个估计量]\label{pr:U11a-choose}
+$N=2000$ 家企业、$T=4$ 年，研究投资 $x_{it}$ 对产出 $y_{it}$ 的影响。分别判断混合 OLS、RE、FE 是否一致、是否有效：(1) $\alpha_i$ 为管理能力，能力强的企业投资多；(2) $\alpha_i$ 与投资无关，但 $u_{it}$ 服从 AR(1)。
+\answer
+(1) 这是 FE 模型：$\E(\alpha_i\mid x_{it})\neq0$。混合 OLS 与 RE 都不一致（遗漏变量偏误；$T=4$ 固定时 RE 的 $O(1/T)$ 偏差不消失）；FE 一致。
+(2) $\E(\alpha_i\mid X_i)=0$，三者都一致；但 $u_{it}$ 序列相关使 RE3 不成立，标准 RE 的 GLS 权重不再最优，三者都不是 BLUE；推断应使用按个体聚类的标准误。若要选，RE 通常仍比混合 OLS 精确，FE 最稳健。
+\end{prac}
+
+\begin{english}
+The RE (GLS) estimator is consistent only if the composite error is uncorrelated with the regressors, which requires $E(\alpha_i\mid X_i)=0$ in addition to the usual strict exogeneity $E(u_{it}\mid X_i)=0$. If $\alpha_i$ is correlated with the regressors, as is likely when $\alpha_i$ represents ability or preferences, the RE estimator is biased and inconsistent for fixed $T$ (the bias is of order $1/T$), while the FE estimator remains consistent. The FE estimator is consistent under both models; the RE estimator is efficient under the RE model. The labels ``fixed'' and ``random'' are historical: in both models $\alpha_i$ is random, and the key distinction is whether it is correlated with the regressors.
+\end{english}
+
+%======================================================================
+\section{时不变回归元 \texorpdfstring{$z_i$}{z\_i}}\label{sec:U11a-zi}
+
+\subsection{模型：可观测的个体效应}
+
+\subsubsection{RE 的一个优势：能估计可观测的个体效应}
+
+既然 FE 更稳健，为什么有时仍用 RE？一个重要原因是：RE 能估计\key{可观测的}个体效应，如性别、种族、性格特征。把个体效应拆成不可观测部分 $\alpha_i$（能力、偏好）与可观测部分 $z_i\T\gamma$（性别、种族……），研究目标是识别 $\gamma$——\term{时不变效应}{time-invariant effects}。
+
+\subsubsection{定义：含时不变回归元的面板模型}
+
+\begin{defn}[含时不变回归元的面板模型]\label{def:U11a-zi}
+\begin{equation}\label{eq:U11a-zi}
+y_{it}=\alpha_i+z_i\T\gamma+x_{it}\T\beta+u_{it},
+\end{equation}
+其中 $z_i$（$L\times1$）为可观测、不随时间变化的回归元，称为\term{时不变回归元}{time-invariant regressors}，如性别、种族、出生地、企业所在省份、是否国企（若样本期内不变）；$\gamma$（$L\times1$）衡量的是时不变效应；$x_{it}$（$K\times1$）为随时间变化的回归元。
+\end{defn}
+
+\subsection{WG 无法识别 \texorpdfstring{$\gamma$}{gamma}}
+
+\subsubsection{组内变换把 \texorpdfstring{$z_i\T\gamma$}{z\_i' gamma} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 一起消去}
+
+对 \eqref{eq:U11a-zi} 关于 $t$ 取平均。因 $z_i$ 不随 $t$ 变，$\bar z_{i\cdot}=z_i$：
+\[
+\bar y_{i\cdot}=\alpha_i+z_i\T\gamma+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot}.
+\]
+用 \eqref{eq:U11a-zi} 减去均值方程：
+\begin{align*}
+y_{it}-\bar y_{i\cdot} &= (\alpha_i-\alpha_i)+(z_i-z_i)\T\gamma+(x_{it}-\bar x_{i\cdot})\T\beta+(u_{it}-\bar u_{i\cdot}) \why{两式相减}\\
+&= (x_{it}-\bar x_{i\cdot})\T\beta+(u_{it}-\bar u_{i\cdot}) \why{$z_i'\gamma$ 与 $\alpha_i$ 一起消去}
+\end{align*}
+组内变换后的方程里没有 $\gamma$，所以 FE / WG 无法估计 $\gamma$。
+
+\subsubsection{这是识别问题：观测等价}
+
+这不是某种估计方法的缺陷，而是\key{识别}问题。FE 模型对 $\alpha_i$ 不加任何限制（可与 $x_{it}$、$z_i$ 任意相关）。令
+\[
+\alpha_i^*\equiv\alpha_i+z_i\T\gamma,\qquad \gamma^*\equiv0,
+\]
+则 $y_{it}=\alpha_i^*+z_i\T\gamma^*+x_{it}\T\beta+u_{it}$ 与 \eqref{eq:U11a-zi} 完全相同，而 $\alpha_i^*$ 同样满足 FE 模型的全部假设。两组参数 $(\alpha_i,\gamma)$ 与 $(\alpha_i^*,0)$ 给出完全相同的数据分布——\term{观测等价}{observational equivalence}。只要允许 $\alpha_i$ 与 $z_i$ 任意相关，$\gamma$ 就不可能被识别（Hansen 第 17.32 节）。
+
+\subsubsection{LSDV 中的表现：\texorpdfstring{$z_i$}{z\_i} 列是个体虚拟变量的线性组合}
+
+把 $z_i$ 按观测堆叠成 $NT\times L$ 矩阵 $Z$。记 $Z_0=(z_1,\dots,z_N)\T$（$N\times L$），个体虚拟变量矩阵 $D=I_N\otimes\one_T$（$NT\times N$，第 10 章）。个体 $i$ 的 $T$ 行都等于 $z_i\T$，所以
+\[
+Z=(I_N\otimes\one_T)Z_0=DZ_0 ,
+\]
+即 $Z$ 的每一列都是 $N$ 个虚拟变量列的线性组合（权重为 $z_1,\dots,z_N$）——与个体虚拟变量\key{完全共线}。用组内变换矩阵 $M_D=I_N\otimes M_T$ 验证：
+\begin{align*}
+M_DZ &= (I_N\otimes M_T)(I_N\otimes\one_T)Z_0 \why{$Z=DZ_0$}\\
+&= (I_NI_N\otimes M_T\one_T)Z_0 \why{混合积性质}\\
+&= (I_N\otimes0_{T\times1})Z_0=0 \why{$M_T\one_T=0$}
+\end{align*}
+组内变换后 $z_i$ 列恒为零。Stata 的 \texttt{xtreg ..., fe} 遇到这种变量会报告 omitted。
+
+\subsection{RE/GLS 可以识别 \texorpdfstring{$\gamma$}{gamma}——但代价是更强的假设}
+
+\subsubsection{RE 把 \texorpdfstring{$z_i$}{z\_i} 当作普通回归元}
+
+RE 把 $\alpha_i$ 放进误差：
+\[
+y_{it}=z_i\T\gamma+x_{it}\T\beta+v_{it},\qquad v_{it}=\alpha_i+u_{it}.
+\]
+$z_i$ 只是一个普通回归元，GLS（或混合 OLS）可以同时估计 $\gamma$ 与 $\beta$：回归元向量换成 $(z_i\T,x_{it}\T)\T$，前面各节的公式照用。
+
+\subsubsection{代价：\texorpdfstring{$\alpha_i$}{alpha\_i} 须与 \texorpdfstring{$z_i$}{z\_i} 及所有 \texorpdfstring{$x_{it}$}{x\_it} 都不相关}
+
+RE 的一致性需要 $\E(\alpha_i\mid X_i,z_i)=0$——不仅要求 $\alpha_i$ 与 $z_i$ 无关，还要求与\key{所有期}的 $x_{it}$ 无关。然而在实践中这一做法缺乏支持：模型很可能是 FE 模型，而一旦是 FE 模型，RE 对 $\beta$ 与 $\gamma$ 的估计\key{都}不一致——$\alpha_i$ 与 $x_{it}$ 的相关会通过 GLS 把偏差同时传给 $\hat\gamma$。
+
+\subsection{分工策略：用 FE/WG 估计 \texorpdfstring{$\beta$}{beta}，另行识别 \texorpdfstring{$\gamma$}{gamma}}
+
+实践指导：\key{总是用 FE/WG 估计 $\beta$}；对 $\gamma$ 另想办法。具体做法是“分工”：
+\begin{enumerate}
+  \item 用 WG 一致地估计 $\beta$——对 $\alpha_i$ 与 $x_{it}$ 的关系不设任何限制；
+  \item 再对 $\gamma$ 单独做一个只需较弱假设的估计——只有 $\gamma$ 的识别才需要额外假设（$z_i$ 与 $\alpha_i$ 无关，或有工具变量）。
+\end{enumerate}
+第二步的具体方法——Pesaran \& Zhou (2018) 的 FEF 两步法，以及 $z_i$ 与 $\alpha_i$ 相关时的 FEF-IV——见本章后文。
+
+\begin{prac}[工资方程中的“女性”虚拟变量]\label{pr:U11a-female}
+工资面板中加入“女性”虚拟变量 $z_i$。(a) 为什么 \texttt{xtreg lwage exper female, fe} 会把 \texttt{female} 报告为 omitted？(b) 研究者改用 \texttt{xtreg ..., re} 得到 $\hat\gamma=-0.15$。这个估计在什么条件下可信？
+\answer
+(a) \texttt{female} 在个体内不变，组内变换后恒为 0（等价地：它是个体虚拟变量的线性组合 $Z=DZ_0$），与固定效应完全共线，系数不可识别，Stata 自动删除。
+(b) 需要 RE 假设：$\alpha_i$（能力、偏好等）与 \texttt{female} 以及\key{所有期}的 \texttt{exper} 都不相关，且误差严格外生。若能力与工作经验相关（FE 模型），RE 对 \texttt{exper} 与 \texttt{female} 的系数都不一致。更稳妥的做法：用 FE 估计 \texttt{exper} 的系数，再用 FEF 两步法估计 $\gamma$，其所需假设只是 $\alpha_i$ 与 \texttt{female} 不相关。
+\end{prac}
+
+\begin{english}
+Time-invariant regressors $z_i$ are eliminated by the within transformation together with $\alpha_i$, so their coefficients $\gamma$ are not identified in the FE model: $\alpha_i+z_i'\gamma$ is observationally equivalent to $\alpha_i^*=\alpha_i+z_i'\gamma$ with $\gamma^*=0$; in the dummy-variable regression $z_i$ is perfectly collinear with the individual dummies. The RE (GLS) estimator can estimate $\gamma$, but only under the stronger assumption that $\alpha_i$ is uncorrelated with both $z_i$ and all $x_{it}$. A safer strategy is to estimate $\beta$ by FE and identify $\gamma$ in a second step.
+\end{english}
+
+%======================================================================
+\section{Hausman 检验：FE 模型还是 RE 模型}\label{sec:U11a-hausman}
+
+\subsection{检验的假设}
+
+\subsubsection{原假设与备择假设}
+
+用 \key{Hausman 检验}（Hausman, 1978, \emph{Econometrica}）判断数据服从 FE 模型还是 RE 模型：
+\begin{equation}\label{eq:U11a-H0}
+H_0:\ \E(\alpha_i\mid x_{it})=0\quad\text{（RE 模型）}\qquad\text{vs}\qquad H_1:\ \E(\alpha_i\mid x_{it})\neq0\quad\text{（FE 模型）}.
+\end{equation}
+严格地说，$H_0$ 是 $\E(\alpha_i\mid X_i)=0$（RE2）。RE 模型是 FE 模型的特例（FE 模型对 $\alpha_i$ 不加限制），所以这是一个“特例对一般”的检验。
+
+\subsubsection{设定检验：比较两个估计量而不直接检验相关性}
+
+$\alpha_i$ 不可观测，无法直接检验它与 $x_{it}$ 的相关性。Hausman 检验是一种\key{模型设定检验}（specification test，第 9 章）：它比较两个估计量，看二者的差异是否大到不能用抽样误差解释。
+
+\begin{note}[学术渊源]
+设定检验与误设模型下的稳健推断是 Halbert White 开创的研究传统的核心（White 1980 的异方差稳健方差即出自这一传统），其学生包括陈晓红（Xiaohong Chen）、洪永淼（Yongmiao Hong）、苏良军（Liangjun Su）等。Hausman 检验与第 5 章的稳健标准误同属这一脉络。
+\end{note}
+
+\subsection{思路：比较“总一致”的估计量与“仅在 \texorpdfstring{$H_0$}{H0} 下一致且有效”的估计量}
+
+\subsubsection{一致性表与差的行为}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\captionof{table}{Hausman 检验的逻辑}
+\begin{tabularx}{0.85\linewidth}{lCC}
+\toprule
+估计 & $H_0$：RE 模型 & $H_1$：FE 模型\\
+\midrule
+FE / WG & 一致（$\to\beta$） & 一致（$\to\beta$）\\
+RE / GLS & 一致（$\to\beta$）且有效 & 不一致\\
+\midrule
+$\hat q=\hat\beta_{FE}-\hat\beta_{RE}$ & $\approx0$ & $\neq0$\\
+\bottomrule
+\end{tabularx}
+\end{minipage}\end{center}
+\begin{itemize}
+  \item $H_0$ 下：两者都一致，差 $\hat q\equiv\hat\beta_{FE}-\hat\beta_{RE}\pto0$；而且 RE 有效（GLS 是 BLUE）。
+  \item $H_1$ 下：FE 仍一致，RE 不一致，$\hat q\pto\plim\hat\beta_{FE}-\plim\hat\beta_{RE}=\beta-\plim\hat\beta_{RE}\neq0$。
+\end{itemize}
+所以“差是否显著不为零”就是检验 $H_0$ 的依据。
+
+\subsubsection{与第 9 章内生性检验的对应}
+
+第 9 章的内生性 Hausman 检验（OLS vs IV/GMM）结构完全相同：在原假设（外生）下有效的是 OLS，总一致的是 IV。一般原理：只要有一个“$H_0$ 下有效、$H_1$ 下不一致”的估计量和一个“两种情形下都一致”的估计量，就可以构造 Hausman 检验。
+
+\subsection{检验统计量与 \texorpdfstring{$\chi^2_K$}{chi2\_K} 分布}
+
+\subsubsection{Hausman 统计量}
+
+\begin{defn}[Hausman 统计量]\label{def:U11a-H}
+\begin{align*}
+H &= (\hat\beta_{FE}-\hat\beta_{RE})\T\big[\widehat{\Var}(\hat\beta_{FE}-\hat\beta_{RE})\big]^{-1}(\hat\beta_{FE}-\hat\beta_{RE})\\
+&= (\hat\beta_{FE}-\hat\beta_{RE})\T\big[\hat V_{FE}-\hat V_{RE}\big]^{-1}(\hat\beta_{FE}-\hat\beta_{RE}),
+\end{align*}
+其中第二个等号用到下面的引理（$H_0$ 下差的方差 $=$ 方差之差）；$\hat V_{FE}$、$\hat V_{RE}$ 取经典（非稳健）形式（Hansen 第 17.24 节）。在 $H_0$ 下 $H\dto\chi^2_K$，$K$ 为两种方法都能估计的系数个数。
+\end{defn}
+
+\subsubsection{为什么服从 \texorpdfstring{$\chi^2_K$}{chi2\_K}：标准化后是 \texorpdfstring{$K$}{K} 个独立标准正态的平方和}
+
+两个事实：(1) $H_0$ 下 $\hat\beta_{FE}$、$\hat\beta_{RE}$ 都渐近正态，故其差 $\hat q$ 也渐近正态，均值为零；(2) $H_0$ 下 $V_q\equiv\Var(\hat q)=\Var(\hat\beta_{FE})-\Var(\hat\beta_{RE})\ge0$（下面的引理），且 RE 方差最小。
+
+“用 $\hat q$ 除以它的标准差再平方”的精确含义是左乘矩阵平方根的逆。设 $V_q$ 可逆，$V_q^{-1/2}$ 为对称矩阵，满足 $V_q^{-1/2}V_qV_q^{-1/2}=I_K$。若 $\hat q\approx N(0,V_q)$，令 $\xi=V_q^{-1/2}\hat q$：
+\begin{align*}
+\xi &\approx N\big(0,\ V_q^{-1/2}V_qV_q^{-1/2}\big)=N(0,I_K) \why{正态的线性变换}\\
+H=\hat q\T V_q\inv\hat q &= \hat q\T V_q^{-1/2}V_q^{-1/2}\hat q \why{$V_q^{-1}=V_q^{-1/2}V_q^{-1/2}$}\\
+&= \xi\T\xi=\sum_{k=1}^K\xi_k^2\ \sim\ \chi^2_K \why{$K$ 个独立 $N(0,1)$ 的平方和}
+\end{align*}
+用一致估计 $\hat V_q$ 代替 $V_q$ 不改变极限分布。
+
+\subsection{引理：有效估计量与“差”不相关，故差的方差 \texorpdfstring{$=$}{=} 方差之差}
+
+\subsubsection{为什么需要引理}
+
+$H$ 要用到
+\[
+\Var(\hat\beta_{FE}-\hat\beta_{RE})=V_{FE}+V_{RE}-\Cov(\hat\beta_{FE},\hat\beta_{RE})-\Cov(\hat\beta_{RE},\hat\beta_{FE}),
+\]
+而协方差项不好算。引理说明 $H_0$ 下 $\Cov(\hat\beta_{FE},\hat\beta_{RE})=V_{RE}$，于是差的方差只需两个单独的方差（第 9 章在 OLS/IV 情形证明过同一结论；Hansen 第 8.11 节称之为 Hausman 等式）。
+
+\subsubsection{引理的陈述}
+
+\begin{thm}[Hausman (1978) 引理]\label{thm:U11a-hlemma}
+设 $\hat\beta_E$ 在 $H_0$ 下是（某类一致、渐近正态估计量中）\key{有效}的，$\hat\beta_C$ 在 $H_0$ 下一致（且属于同一类），$\hat q=\hat\beta_C-\hat\beta_E$。则在 $H_0$ 下（渐近地）
+\[
+\Cov(\hat\beta_E,\hat q)=0,\qquad\text{从而}\qquad \Var(\hat q)=\Var(\hat\beta_C)-\Var(\hat\beta_E)\ \ge0 .
+\]
+\end{thm}
+
+\subsubsection{证明（反证法）}
+
+记 $V_E=\Var(\hat\beta_E)$，$V_q=\Var(\hat q)$（设可逆），$C=\Cov(\hat\beta_E,\hat q)$（$K\times K$）。思路：若 $C\neq0$，就能用 $\hat q$ 把 $\hat\beta_E$“改进”成方差更小的估计量，与有效性矛盾。
+
+对任意固定矩阵 $A$（$K\times K$），构造
+\[
+\tilde\beta=\hat\beta_E+A\hat q=(I_K-A)\hat\beta_E+A\hat\beta_C .
+\]
+$H_0$ 下 $\hat q\pto0$，所以 $\tilde\beta$ 也一致，且属于同一类（例如两者都线性无偏时，其组合也线性无偏）。其方差：
+\begin{align*}
+\Var(\tilde\beta) &= V_E+\Cov(\hat\beta_E,A\hat q)+\Cov(A\hat q,\hat\beta_E)+AV_qA\T \why{$\Var(a+b)$ 展开}\\
+&= V_E+CA\T+AC\T+AV_qA\T \why{$\Cov(\hat\beta_E,A\hat q)=CA'$}
+\end{align*}
+取 $A=-CV_q\inv$：
+\begin{align*}
+\Var(\tilde\beta) &= V_E-CV_q\inv C\T-CV_q\inv C\T+CV_q\inv V_qV_q\inv C\T \why{代入 $A$，$V_q$ 对称}\\
+&= V_E-CV_q\inv C\T \why{合并}
+\end{align*}
+$CV_q\inv C\T$ 半正定；若 $C\neq0$，它不是零矩阵（其迹 $\sum_kc_k\T V_q\inv c_k>0$，$c_k\T$ 为 $C$ 的第 $k$ 行）。于是 $\Var(\tilde\beta)\le V_E$ 且不相等——与 $\hat\beta_E$ 的有效性矛盾。故 $C=0$。最后
+\begin{align*}
+\Var(\hat\beta_C) &= \Var(\hat\beta_E+\hat q)=V_E+V_q+C+C\T \why{$\hat\beta_C=\hat\beta_E+\hat q$}\\
+&= V_E+V_q \why{$C=0$}
+\end{align*}
+即 $V_q=\Var(\hat\beta_C)-\Var(\hat\beta_E)$。\hfill$\square$
+
+\subsubsection{标量情形的直观}
+
+标量时 $\Var(\hat\beta_E+r\hat q)=V_E+2rC+r^2V_q$。若 $C\neq0$，取很小的、与 $C$ 符号相反的 $r$，一次项 $2rC<0$ 压过二次项 $r^2V_q$，方差就比 $V_E$ 还小（最优取 $r=-C/V_q$，方差降为 $V_E-C^2/V_q$）——有效估计量不可能被这样“改进”。所以有效估计量必须与任何“一致估计量之差”（一个依概率趋于 0 的量）不相关：它已经吸收了数据中所有有用的信息。
+
+\subsubsection{推论：\texorpdfstring{$\Var(\hat\beta_{FE})\ge\Var(\hat\beta_{RE})$}{Var(FE) >= Var(RE)}}
+
+取 $\hat\beta_E=\hat\beta_{RE}$、$\hat\beta_C=\hat\beta_{FE}$：$H_0$ 下 $\Var(\hat\beta_{FE}-\hat\beta_{RE})=\Var(\hat\beta_{FE})-\Var(\hat\beta_{RE})\ge0$，即 RE 的方差最小（most efficient）。
+
+\subsection{在 FE/RE 情形下的直接验证}
+
+在 RE 假设下（条件于 $X$），也可以不借助引理而直接算出 $\Cov(\hat\beta_{WG},\hat\beta_{GLS}\mid X)$。记
+\[
+A_W=\sum_iX_i\T M_TX_i,\qquad A_G=\sum_iX_i\T\Omega_v\inv X_i ,
+\]
+则 $\hat\beta_{WG}-\beta=A_W^{-1}\sum_iX_i\T M_TV_i$（且 $M_TV_i=M_TU_i$），$\hat\beta_{GLS}-\beta=A_G^{-1}\sum_iX_i\T\Omega_v\inv V_i$。
+
+\subsubsection{交叉协方差等于 \texorpdfstring{$V_{GLS}$}{V\_GLS}}
+
+\begin{align*}
+\Cov(\hat\beta_{WG},\hat\beta_{GLS}\mid X) &= A_W^{-1}\Big(\sum_i\sum_jX_i\T M_T\,\E(V_iV_j\T\mid X)\,\Omega_v\inv X_j\Big)A_G^{-1} \why{两式相乘取期望}\\
+&= A_W^{-1}\Big(\sum_iX_i\T M_T\,\Omega_v\Omega_v\inv X_i\Big)A_G^{-1} \why{$i\neq j$ 项为 0；$\E(V_iV_i')=\Omega_v$}\\
+&= A_W^{-1}A_WA_G^{-1}=A_G^{-1} \why{$\Omega_v\Omega_v^{-1}=I_T$}\\
+&= \Var(\hat\beta_{GLS}\mid X) \why{$V_{GLS}=A_G^{-1}$}
+\end{align*}
+这正是引理的结论 $\Cov(\hat\beta_E,\hat q)=\Cov(\hat\beta_{GLS},\hat\beta_{WG})-V_{GLS}=0$。
+
+\subsubsection{\texorpdfstring{$V_{WG}=\sigma_u^2A_W^{-1}$}{V\_WG = sigma\_u\^2 A\_W\^{}-1}}
+
+\begin{align*}
+M_T\Omega_vM_T &= M_T\big[\sigma_u^2M_T+(\sigma_u^2+T\sigma_\alpha^2)P_T\big]M_T \why{式 \eqref{eq:U11a-OmegaMP}}\\
+&= \sigma_u^2M_T \why{$M_T^3=M_T$，$M_TP_T=0$}\\
+V_{WG} &= A_W^{-1}\Big(\sum_iX_i\T M_T\Omega_vM_TX_i\Big)A_W^{-1}=\sigma_u^2A_W^{-1} \why{代入上式}
+\end{align*}
+
+\subsubsection{差的方差及其半正定性}
+
+\begin{align*}
+\Var(\hat\beta_{WG}-\hat\beta_{GLS}\mid X) &= V_{WG}+V_{GLS}-2V_{GLS} \why{两个交叉协方差都为 $V_{GLS}$}\\
+&= \sigma_u^2\Big(\sum_iX_i\T M_TX_i\Big)^{-1}-\Big(\sum_iX_i\T\Omega_v\inv X_i\Big)^{-1} \why{代入}\\
+&= \sigma_u^2\big[S_W^{-1}-(S_W+\psi S_B)^{-1}\big]\ \ge\ 0 \why{$V_{GLS}=\sigma_u^2(S_W+\psi S_B)^{-1}$}
+\end{align*}
+半正定性一目了然：$S_W+\psi S_B\ge S_W>0$，而正定矩阵求逆会反转大小顺序（第 1 章），故 $S_W^{-1}\ge(S_W+\psi S_B)^{-1}$。这也是 GLS 为 BLUE 的直接体现。
+
+\subsection{决策规则与自由度}
+
+\subsubsection{决策规则}
+
+\begin{itemize}
+  \item $H>\chi^2_{K,1-\alpha}$ 临界值（或 $p$ 值 $<\alpha$）：拒绝 $H_0$，证据表明 $\alpha_i$ 与回归元相关，RE 模型不适用，用 FE；
+  \item $H\le$ 临界值：不能拒绝 RE 假设。
+\end{itemize}
+
+\subsubsection{自由度只计时变回归元}
+
+$K$ 只计两种方法都能估计的系数，即时变回归元的系数。时不变变量 $z_i$（只有 RE 能估）必须排除在比较之外（Hansen 第 17.24 节）；TWFE 中的年份虚拟变量通常也不放进比较。若 $V_q$ 不满秩，用广义逆计算 $H$，自由度取 $V_q$ 的秩。
+
+\begin{exmp}[$K=1$ 时的 Hausman 统计量]\label{ex:U11a-H}
+$\hat\beta_{FE}=0.50$（s.e.\ 0.10），$\hat\beta_{RE}=0.40$（s.e.\ 0.06）。计算 Hausman 统计量并在 5\% 水平下作出判断；若误把两者当作独立，结果如何？
+\solution
+\begin{align*}
+\widehat{\Var}(\hat q) &= 0.10^2-0.06^2=0.0100-0.0036=0.0064 \why{方差之差}\\
+H &= \frac{(0.50-0.40)^2}{0.0064}=\frac{0.01}{0.0064}=1.5625 \why{$K=1$ 的 $H$}
+\end{align*}
+$H=1.5625<\chi^2_{1,0.95}=3.84$，不拒绝 RE。若错误地用 $0.10^2+0.06^2=0.0136$（把两者当独立）作分母，$H=0.01/0.0136\approx0.735$，严重低估了统计量：两个估计量用的是同一份数据，高度正相关，差的方差远小于方差之和。
+\end{exmp}
+
+\subsection{Stata 实现：\texttt{hausman fe re, sigmamore}}
+
+\begin{lstlisting}
+xtreg y x1 x2, fe
+estimates store fe
+xtreg y x1 x2, re
+estimates store re
+hausman fe re, sigmamore   // consistent estimator first, efficient one second
+\end{lstlisting}
+\begin{itemize}
+  \item \key{顺序}：先写总一致的（\texttt{fe}），后写 $H_0$ 下有效的（\texttt{re}）。
+  \item \texttt{sigmamore}：两个协方差矩阵都用有效估计量（RE）得到的误差方差估计来计算（\texttt{sigmaless} 则都用一致估计量的）。这样 $\hat V_{FE}-\hat V_{RE}$ 在有限样本中更可能半正定，避免出现负的 $H$ 或“矩阵不正定”的报错。建议默认加上这一选项。
+  \item 两次 \texttt{xtreg} 都\key{不要}加 \texttt{vce(cluster id)}：经典 Hausman 统计量要求 $\hat V$ 为经典形式；稳健版本见本章后文的 Mundlak 设定。
+\end{itemize}
+
+\subsection{使用注意事项}
+
+\begin{enumerate}
+  \item \key{有限样本中 $\hat V_{FE}-\hat V_{RE}$ 可能不正定}，$H$ 可能为负或无法计算——用 \texttt{sigmamore} 或广义逆。
+  \item \key{经典 Hausman 要求 RE 在 $H_0$ 下是有效的}（RE3–RE4：同方差、无序列相关）。若存在异方差或个体内自相关，RE 不再有效，引理不成立，$H$ 不服从 $\chi^2_K$。此时应使用回归形式的稳健检验（Mundlak 检验，本章后文）或自助法。
+  \item \key{预检验偏误}（Hansen 第 17.24 节）：“不拒绝就用 RE、拒绝就用 FE”是一个\term{预检验估计量}{pretest estimator}，检验结果是随机的且与两个估计量相关，所得估计量的分布复杂且有偏。Hausman 检验更适合作为“我打算用 RE，先检查一下 RE 假设”的设定检验。
+  \item \key{不拒绝 $\neq$ RE 成立}：检验功效可能很低（例如 $x$ 的组内变异很小、FE 很不精确时）。
+\end{enumerate}
+
+\subsection{结论：线性面板总是用 FE/WG}
+
+结论：\key{WG estimation for FE model is the optimal choice}——实践中总是用 FE/WG 估计 $\beta$。理由：
+\begin{itemize}
+  \item WG 在两种模型下都一致（本章一致性对照表）；
+  \item RE 的效率收益只在 $\E(\alpha_i\mid X_i)=0$ 这个通常不可信的假设下才有；
+  \item $T$ 大时二者本来就接近（GLS $\to$ WG）。
+\end{itemize}
+这与 Hansen 第 17.25 节的判断一致：当代实践偏好稳健性，线性面板几乎一律用 FE。至于 FE 无法识别的时不变效应 $\gamma$，用本章后文的 FEF 两步法单独识别。
+
+\begin{keypt}[标准作答顺序]
+“Explain how to choose between the FE and RE models.” 按以下顺序作答：(1) 写出 $H_0$（RE：$\E(\alpha_i\mid x_{it})=0$）与 $H_1$（FE）；(2) 列一致性表：WG 两者皆一致，GLS 仅 $H_0$ 下一致且有效；(3) 写 $H$ 统计量并说明 $H_0$ 下 $\Var(\hat q)=V_{FE}-V_{RE}$（引理：有效估计量与差不相关）；(4) $H\dto\chi^2_K$，$K$ 为时变回归元个数；(5) 决策规则与 Stata 命令 \texttt{hausman fe re, sigmamore}；(6) 指出局限（需 RE 有效、预检验问题），结论：实践中用 FE。
+\end{keypt}
+
+\begin{prac}[负的方差差]\label{pr:U11a-negH}
+$\hat\beta_{FE}=0.50$（s.e.\ 0.10），$\hat\beta_{RE}=0.45$（s.e.\ 0.11）。能否计算 Hausman 统计量？说明原因与处理办法。
+\answer
+\begin{align*}
+\widehat{\Var}(\hat q) &= 0.10^2-0.11^2=0.0100-0.0121=-0.0021<0 \why{方差之差}
+\end{align*}
+公式给出负的“方差”，$H$ 无意义。理论上 $H_0$ 下 $V_{FE}\ge V_{RE}$，出现反号说明两者的方差估计用了不同的 $\hat\sigma^2$，或样本较小、估计噪声大。处理：用 \texttt{hausman fe re, sigmamore}（两者用同一个 RE 的误差方差估计，保证差半正定），或改用回归形式的 Mundlak 检验（本章后文），它不需要计算方差之差。
+\end{prac}
+
+\begin{english}
+The Hausman test compares the FE estimator, which is consistent under both $H_0: E(\alpha_i\mid x_{it})=0$ (RE) and $H_1$ (FE), with the RE estimator, which is consistent and efficient under $H_0$ but inconsistent under $H_1$. Under $H_0$ the efficient estimator is uncorrelated with the difference $\hat\beta_{FE}-\hat\beta_{RE}$, so $\Var(\hat\beta_{FE}-\hat\beta_{RE})=\Var(\hat\beta_{FE})-\Var(\hat\beta_{RE})$. The statistic $H=(\hat\beta_{FE}-\hat\beta_{RE})'[\hat V_{FE}-\hat V_{RE}]^{-1}(\hat\beta_{FE}-\hat\beta_{RE})$ is asymptotically $\chi^2_K$ under $H_0$, where $K$ is the number of time-varying regressors. We reject the RE model if $H$ exceeds the $\chi^2_K$ critical value. The classical test requires RE to be efficient under $H_0$; with heteroskedasticity or serial correlation a robust (Mundlak-type) version should be used.
+\end{english}

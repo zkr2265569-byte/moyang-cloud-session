@@ -1,0 +1,552 @@
+\chapter{Python 速查}
+% ======================================================================
+% 单元 DAPP1：附录 Python 速查（按库列函数 + 可直接改用的代码模板）
+% ======================================================================
+\lstdefinestyle{pyPYQ}{language=Python,basicstyle=\linespread{1.0}\ttfamily\scriptsize,aboveskip=2pt,belowskip=2pt,breaklines=true}
+\lstnewenvironment{PYQcode}{\xeCJKsetup{CJKecglue=\hskip 0pt}\lstset{style=pyPYQ}}{}
+\newcommand{\PYQbs}{\textbackslash}
+\newcommand{\PYQe}{\enspace{\color{gray}$\triangleright$}\ }
+% 表格前不分页（避免小节标题孤悬页底）：longtable 起始处的 \penalty\z@ 改为 \penalty\@M
+\makeatletter
+\newcommand{\PYQnobreak}{\def\LT@start{\let\LT@start\endgraf\endgraf\penalty\@M\vskip\LTpre\endgraf
+  \ifdim\pagetotal<\pagegoal\else\dimen@=\pageshrink\advance\dimen@ 1sp \kern\dimen@\penalty 9999\endgraf\kern-\dimen@\fi
+  \output{\LT@output}}}
+\makeatother
+% 两列速查表：#1 = 左列（等宽：函数/写法）宽度；右列 = 作用 · 关键参数 ▹ 示例 → 结果
+\newenvironment{PYQtab}[1]{\par\footnotesize\linespread{1.0}\selectfont\xeCJKsetup{CJKecglue=\hskip 0pt}%
+  \setlength{\LTpre}{2pt}\setlength{\LTpost}{3pt}%
+  \setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.0}\rowcolors{1}{}{gray!7}%
+  \PYQnobreak
+  \begin{longtable}{@{}>{\leavevmode\ttfamily\raggedright\arraybackslash}p{#1}>{\leavevmode\raggedright\arraybackslash}p{\dimexpr\textwidth-#1-6pt\relax}@{}}\noalign{\hrule height\heavyrulewidth\kern2pt}}%
+  {\noalign{\kern2pt\hrule height\heavyrulewidth}\end{longtable}\par}
+
+\noindent\key{用法}\quad 表格左列为函数/写法，右列为作用与关键参数，\textcolor{gray}{$\triangleright$} 后为示例，$\to$ 及代码注释中 \texttt{->} 后为运行结果。版本：Python 3.13，requests 2.34、beautifulsoup4 4.15、pdfplumber 0.11、openpyxl 3.1、pandas 3.0、scikit-learn 1.9、jieba 0.42、gensim 4.4、snownlp 0.12、selenium 4（需本机 Chrome）。
+
+% ======================================================================
+\section{安装命令与导入约定}
+\begin{PYQcode}
+# 在 cmd（Win+R 输入 cmd）中执行；装不上时加清华镜像 -i https://pypi.tuna.tsinghua.edu.cn/simple
+# pip install requests beautifulsoup4 lxml selenium pdfplumber openpyxl pandas jieba snownlp scikit-learn gensim wordcloud matplotlib
+import os, re, time, math, requests, pdfplumber, jieba, pandas as pd, numpy as np
+from collections import Counter, defaultdict; from bs4 import BeautifulSoup; from openpyxl import Workbook, load_workbook
+\end{PYQcode}
+
+% ======================================================================
+\section{Python 基础：字符串、容器、控制流与文件读写}
+
+\subsection{字符串方法：strip、split、join、replace、count、find、isnumeric}
+\begin{PYQtab}{3.4cm}
+s.strip() & 去两端空白（含 \texttt{\PYQbs n}、\texttt{\PYQbs t}）；\texttt{lstrip/rstrip} 只去一侧；可传字符集\PYQe\texttt{'\ \ 中南大学\PYQbs n'.strip()} $\to$ \texttt{'中南大学'} \\*
+s.split(sep) & 切成列表；不传 sep 时按任意空白切且丢弃空串\PYQe\texttt{'2019-10-10 10:10:10'.split(' ')[0]} $\to$ \texttt{'2019-10-10'} \\
+sep.join(lst) & 列表 $\to$ 字符串，元素必须全是 str\PYQe\texttt{'-'.join(['2025','10','10'])} $\to$ \texttt{'2025-10-10'} \\
+s.replace(old, new) & 固定子串替换（第 3 参数 count 限次数）\PYQe\texttt{'<em>阿里</em>'.replace('<em>','')} $\to$ \texttt{'阿里</em>'} \\
+s.count(sub) & 子串计数，\key{不管是否成词}\PYQe\texttt{'资产负债表显示资产增加，资产质量提升'.count('资产')} $\to$ 3 \\
+s.find(sub) & 首次出现的位置，找不到返回 $-1$\PYQe\texttt{'abc'.find('z')} $\to$ \texttt{-1} \\
+s.startswith / endswith & 前缀/后缀判断，可传元组\PYQe\texttt{'A.PDF'.lower().endswith('.pdf')} $\to$ True \\
+s.isnumeric() / isdigit() & 是否全为数字字符；\texttt{isdigit} 不认汉字数字\PYQe\texttt{'1'} $\to$ True；\texttt{'584,218.68'} $\to$ False；\texttt{'五'.isnumeric()} $\to$ True，\texttt{'五'.isdigit()} $\to$ False \\
+x in s / x in lst & 子串判断 / 成员判断（列表要求元素\key{完全相等}）\PYQe\texttt{'序' in '序号'} $\to$ True；\texttt{'序' in ['序号']} $\to$ False \\
+str() int() float() & 类型转换；拼接前数字要先 \texttt{str()}\PYQe\texttt{'第'+str(1)+'条'} $\to$ \texttt{'第1条'} \\
+f-string、round & 格式化，\texttt{:.2f} 保留两位\PYQe\texttt{f'\{3.14159:.2f\}'} $\to$ \texttt{'3.14'}；\texttt{round(0.123456, 4)} $\to$ 0.1235 \\
+\end{PYQtab}
+
+\subsection{列表、字典、集合与推导式：切片、sorted、enumerate、zip、get、set}
+\begin{PYQtab}{3.4cm}
+下标与切片 & 从 0 开始；\texttt{[a:b]} 左闭右开；\texttt{[-1]} 末个；\texttt{[::-1]} 反转\PYQe\texttt{a=[10,20,30,40]}：\texttt{a[1:]} $\to$ \texttt{[20,30,40]}，\texttt{a[::-1]} $\to$ \texttt{[40,30,20,10]} \\*
+lst.append(x) & 末尾追加一个元素；\texttt{extend} 追加多个；\texttt{remove} 按值删；收集结果的列表要在\key{循环外}初始化 \\
+sorted(it, key=, reverse=) & 返回排好序的\key{新}列表（\texttt{lst.sort()} 原地）\PYQe\texttt{sorted(d.items(), key=lambda x: x[1], reverse=True)[:2]} $\to$ \texttt{[('资产',120),('负债',95)]} \\
+enumerate(it, start=0) & 同时取编号与元素\PYQe\texttt{list(enumerate(['苹果','香蕉'], start=1))} $\to$ \texttt{[(1,'苹果'),(2,'香蕉')]} \\
+zip(a, b) & 并行遍历，以短者为准\PYQe\texttt{list(zip(['a','b'],[1,2]))} $\to$ \texttt{[('a',1),('b',2)]} \\
+d.get(k, default) & 取值，键不存在返回默认值；\texttt{d.items()/keys()/values()}\PYQe\texttt{\{'资产':120\}.get('利润', 0)} $\to$ 0 \\
+set(lst) & 去重（无序）；DF 统计时每篇文档先去重\PYQe\texttt{set(['资产','资产','负债'])} $\to$ \texttt{\{'资产','负债'\}} \\
+{[表达式 for x in 序列 if 条件]} & 列表推导式\PYQe\texttt{[[c for c in r if c] for r in table]}：去掉表格中的 None 与空串 \\
+any() / all() & 至少一个为真 / 全部为真；空序列 any $\to$ False、all $\to$ True\PYQe\texttt{any(x>2 for x in [1,3])} $\to$ True \\
+iter() / next() & 迭代器逐个取，耗尽抛 StopIteration；列表不能直接 next\PYQe\texttt{it = iter(pdf.pages); next(it)}（for 中途跳页）\\
+lambda 参数: 返回值 & 匿名函数，常作 key\PYQe\texttt{key=lambda x: x[1]}：按元组第二个元素 \\
+\end{PYQtab}
+
+\subsection{控制流与文件读写：break/continue/return、try/except、open/with}
+\begin{PYQtab}{3.4cm}
+break / continue & 结束\key{最近一层}循环 / 跳过本轮，外层循环照常；多层退出：设标志 \texttt{find=True} 再在外层 \texttt{if find: break}，或写成函数用 return \\*
+return & 立即结束整个函数（含所有循环）\PYQe\texttt{if len(text) > 20: return text} \\
+try / except & 出错不中断，进入 except：\texttt{except Exception as e: print(e)}；批量下载/解析时记录失败文件 \\
+open(p, mode, encoding=) & \texttt{'r'} 读、\texttt{'w'} 覆盖写、\texttt{'a'} 追加、\texttt{'rb'/'wb'} 二进制；\texttt{errors='ignore'} 跳过无法编解码的字符\PYQe\texttt{with open(p, 'a', encoding='utf-8') as f: f.write(name+'\PYQbs n')} \\
+f.read()/readlines() & 全文字符串 / 每行一个元素的列表；\texttt{f.write()} 写入；with 结束自动关闭文件 \\
+time.sleep(s) & 暂停 s 秒：等页面加载、降低访问频率 \\
+\end{PYQtab}
+\textbf{易错}：\texttt{break} 只跳出内层（双重循环内层 \texttt{if j==1: break} 输出 \texttt{0 0; 1 0; 2 0}）；\texttt{y = x} 不复制，\texttt{y.append(4)} 后 x 也变（复制用 \texttt{x.copy()}）；向下取整 \texttt{int(2156/20)} = 107，向上取整 \texttt{-(-2156//20)} = 108（或 \texttt{math.ceil}）。
+
+% ======================================================================
+\section{requests：发送请求与处理响应}
+
+\subsection{请求参数（headers、params、timeout、proxies）与响应属性（text、content、encoding）}
+\begin{PYQtab}{3.6cm}
+requests.get(url, **kw) & 发 GET 请求，返回 Response；kw：headers、params、timeout、proxies、cookies、verify\PYQe\texttt{r = requests.get(url, headers=headers, timeout=10)} \\*
+headers= & \texttt{\{'User-Agent': 'Mozilla/5.0 ...'\}} 伪装成浏览器（爬虫的“身份证”），必须是\key{字典}；从 F12 $\to$ Network $\to$ Headers 复制；不加可能得到空页面、403 或简化版页面 \\
+params= & 自动拼接并 URL 编码查询参数\PYQe\texttt{\{'tn':'news','word':'阿里巴巴','pn':10\}} $\to$ \texttt{?tn=news\&word=\%E9\%98\%BF...\&pn=10} \\
+timeout= / proxies= & \texttt{timeout=10} 超时即抛异常、防卡死（可写 \texttt{(连接, 读取)}）；IP 代理 \texttt{proxies=\{"http": "http://"+proxy, "https": "https://"+proxy\}}，\texttt{proxy='123.45.67.89:8080'} \\
+requests.post() & 发 POST 请求 \texttt{requests.post(url, data=, json=)}：data 为表单、json 为 JSON 体（部分网站接口用 POST）\\
+r.status\_code & 200 成功；403 拒绝；404 不存在；5xx 服务器错；\texttt{r.raise\_for\_status()} 在 4xx/5xx 时抛 HTTPError \\
+r.text / r.content & 按 \texttt{r.encoding} 解码的字符串（解析 HTML 用）/ 原始字节（下载 PDF、图片用）\PYQe\texttt{open('a.pdf','wb').write(r.content)} \\
+r.encoding & 解码所用编码；响应头无 charset 的 text/* 页面默认 ISO-8859-1 $\to$ 中文乱码，修正：\texttt{r.encoding = r.apparent\_encoding}（由内容推测，如 \texttt{'utf-8'}、\texttt{'GB18030'}）\\
+r.json() / r.url & JSON 转 dict / 实际网址（\texttt{r.headers} 响应头）；\texttt{requests.Session()} 保持 cookies、复用连接（需要登录态时用 \texttt{s.get(...)}）\\
+urllib.parse.quote & 汉字与 \texttt{\%XX} 互转（UTF-8；反向用 \texttt{unquote}）\PYQe\texttt{quote('理财')} $\to$ \texttt{'\%E7\%90\%86\%E8\%B4\%A2'} \\
+\end{PYQtab}
+
+\subsection{模板：批量爬取多家公司多页新闻（params + pn 翻页 + try/except）}
+\begin{PYQcode}
+headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'}
+def baidu(company, page):
+    params = {'rtt': 1, 'bsst': 1, 'cl': 2, 'tn': 'news', 'ie': 'utf-8', 'word': company, 'pn': (page - 1) * 10}  # pn=(页码-1)*10
+    r = requests.get('https://www.baidu.com/s', headers=headers, params=params, timeout=10)
+    r.raise_for_status(); r.encoding = r.apparent_encoding; return r.text   # apparent_encoding 防中文乱码
+for company in ['工商银行', '农业银行']:
+    for page in range(1, 3):
+        try:
+            html = baidu(company, page)            # ……再用 re 或 BeautifulSoup 提取标题、网址、来源、日期
+        except Exception as e:
+            print(company, page, '爬取失败:', e)
+        time.sleep(1)                              # 降低访问频率
+\end{PYQcode}
+
+% ======================================================================
+\section{re：正则表达式}
+
+\subsection{元字符与量词表：\texorpdfstring{\texttt{. \^{} \$ * + ? \{m,n\} [ ] | ( ) \PYQbs d \PYQbs w \PYQbs s}}{. ^ $ * + ? {m,n} [ ] | ( ) d w s}}
+右列示例为 \texttt{re.findall(模式, 字符串)} 的结果；\texttt{\PYQbs d}、\texttt{\PYQbs w}、\texttt{.} 等每次只匹配\key{一个}字符。
+\begin{PYQtab}{2.9cm}
+. & 除换行外任意一个字符（加 \texttt{re.S} 后也匹配换行）\PYQe\texttt{('c.t', 'cat cut cot c\PYQbs nt')} $\to$ \texttt{['cat','cut','cot']} \\*
+\^{}\quad \$ & 字符串开头 / 结尾（\texttt{re.M} 时为每行）\PYQe\texttt{(r'\^{}\PYQbs d+', '123abc456')} $\to$ \texttt{['123']}；\texttt{r'\PYQbs d+\$'} $\to$ \texttt{['456']} \\
+*\quad + & 前一单位 0 次或多次 / 1 次或多次\PYQe\texttt{('ab*c', 'ac abc abbbc')} $\to$ \texttt{['ac','abc','abbbc']}；\texttt{'ab+c'} $\to$ \texttt{['abc','abbbc']} \\
+? & 0 或 1 次；跟在量词后表示\key{非贪婪}\PYQe\texttt{('colou?r', 'color colour')} $\to$ \texttt{['color','colour']} \\
+\{m\}\ \{m,n\} & 恰好 m 次 / m 到 n 次（默认贪婪）；\texttt{\{m,\}} 至少 m 次\PYQe\texttt{(r'\PYQbs d\{2,3\}', '1 12 123 1234')} $\to$ \texttt{['12','123','123']} \\
+{[...]}\quad{[\^{}...]} & 字符集任取其一（其中 \texttt{* . +} 失去特殊含义）/ 不在集合中的字符\PYQe\texttt{('[aeiou]', 'python')} $\to$ \texttt{['o']}；\texttt{re.sub('[*]', '', '*ST阿里')} $\to$ \texttt{'ST阿里'}；\texttt{('[\^{}0-9]+', 'a1b22c')} $\to$ \texttt{['a','b','c']} \\
+{[0-9] [a-zA-Z]} {[\PYQbs u4e00-\PYQbs u9fa5]} & 数字、字母范围；常用汉字区间\PYQe\texttt{('[\PYQbs u4e00-\PYQbs u9fa5]+', 'ABC中南大学123')} $\to$ \texttt{['中南大学']} \\
+| & 或\PYQe\texttt{('五|5|主要', '前五大前5名主要客户')} $\to$ \texttt{['五','5','主要']} \\
+(...)\quad (?:...) & 分组：① 当整体重复 ② 捕获内容 / 只分组不捕获\PYQe\texttt{(r'(\PYQbs d+)元', '100元和200元')} $\to$ \texttt{['100','200']}；\texttt{(r'(?:ab)+', 'ababx ab')} $\to$ \texttt{['abab','ab']}，对比 \texttt{'(ab)+'} $\to$ \texttt{['ab','ab']}（重复分组只留最后一次）\\
+(?P<name>...) & 命名分组\PYQe\texttt{re.search(r'(?P<code>\PYQbs d\{6\})\_(?P<year>\PYQbs d\{4\})', '000019\_2023\_深粮控股').group('year')} $\to$ \texttt{'2023'} \\
+\PYQbs d\ \PYQbs D\quad \PYQbs w\ \PYQbs W & 一个数字 / 非数字；字母、数字、下划线（Python 3 中\key{也匹配汉字}）/ 反之\PYQe\texttt{(r'\PYQbs d+', '订单号A12345')} $\to$ \texttt{['12345']}（\texttt{r'\PYQbs d'} $\to$ 5 个单字）；\texttt{(r'\PYQbs w+', '阿里巴巴2025 abc\_1!')} $\to$ \texttt{['阿里巴巴2025','abc\_1']} \\
+\PYQbs s\ \PYQbs S\quad \PYQbs b & 空白（空格、\texttt{\PYQbs t}、\texttt{\PYQbs n}）/ 非空白；单词边界\PYQe\texttt{(r'\PYQbs s', 'a b\PYQbs tc\PYQbs nd')} $\to$ \texttt{[' ','\PYQbs t','\PYQbs n']}；\texttt{(r'\PYQbs bcat\PYQbs b', 'cat concat cat.')} $\to$ \texttt{['cat','cat']} \\
+\PYQbs .\ \PYQbs *\ \PYQbs ( & 转义：匹配字符本身\PYQe\texttt{(r'\PYQbs d+\PYQbs .\PYQbs d+', '3.14和2.5')} $\to$ \texttt{['3.14','2.5']} \\
+*?\ +?\ ??\ \{m,n\}? & 非贪婪：尽量少匹配\PYQe\texttt{(r'\PYQbs d\{2,4\}?', '12345')} $\to$ \texttt{['12','34']} \\
+(?=...) & \tagext\ 向前断言：后面跟着…但不吃掉\PYQe\texttt{(r'\PYQbs d+(?=元)', '100元 200美元 300元')} $\to$ \texttt{['100','300']} \\
+\end{PYQtab}
+
+\subsection{函数与修饰符：findall、search、match、sub、split、compile、re.S/re.I/re.M}
+\begin{PYQtab}{3.4cm}
+re.findall(p, s) & 所有匹配组成的列表（第 3 参数 \texttt{flags=0} 为修饰符）：无分组 $\to$ 整段；1 个分组 $\to$ 组内容；$\ge 2$ 个分组 $\to$ \key{元组列表}；无匹配 $\to$ \texttt{[]}（不报错、不是 None）\PYQe\texttt{re.findall('<a href="(.*?)".*?>(.*?)</a>', s)} $\to$ \texttt{[('http://x.com/1.html','标题一'), ...]} \\*
+re.search(p, s) & 任意位置的\key{第一个}匹配，返回 Match 或 None；\texttt{.group()}、\texttt{.group(1)}、\texttt{.groups()}、\texttt{.span()}\PYQe\texttt{re.search(r'(\PYQbs d\{4\})-(\PYQbs d\{2\})', '发布于2025-12-18').groups()} $\to$ \texttt{('2025','12')} \\
+re.match / fullmatch & 只从\key{开头}匹配 / 整个字符串都匹配（校验格式）\PYQe\texttt{re.match(r'\PYQbs d+', '发布于2025')} $\to$ None；\texttt{re.fullmatch(r'\PYQbs d\{6\}', '000019')} $\to$ Match \\
+re.sub(p, repl, s) & 替换，返回新字符串（\texttt{count=0} 全换）；repl 中 \texttt{\PYQbs 1} 引用第 1 组\PYQe\texttt{re.sub(r'(\PYQbs d\{4\})年(\PYQbs d\{1,2\})月(\PYQbs d\{1,2\})日', r'\PYQbs 1-\PYQbs 2-\PYQbs 3', '2025年10月10日')} $\to$ \texttt{'2025-10-10'} \\
+re.split(p, s) & 按正则切分\PYQe\texttt{re.split(r'[，,；;\PYQbs s]+', '资产,负债；利润 现金')} $\to$ \texttt{['资产','负债','利润','现金']} \\
+re.compile(p, flags) & 预编译为 Pattern 对象，循环中反复用 \texttt{pat.findall/search/sub}\PYQe\texttt{re.compile(r"(五|5|主要).\{0,10\}?客户").search('公司前5大客户资料').group()} $\to$ \texttt{'5大客户'} \\
+re.finditer / re.escape & Match 迭代器 / 自动转义特殊字符\PYQe\texttt{[m.group() for m in re.finditer(r'\PYQbs d+', 'a1b22c333')]} $\to$ \texttt{['1','22','333']}；\texttt{re.escape('*ST')} $\to$ \texttt{'\PYQbs\PYQbs *ST'} \\
+re.S / re.I / re.M & \texttt{re.S}（\texttt{re.DOTALL}）让 \texttt{.} 匹配换行，源码标题跨行时必加；\texttt{re.I} 忽略大小写；\texttt{re.M} 让 \texttt{\^{}}/\texttt{\$} 按行匹配；组合写 \texttt{re.S|re.I}\PYQe\texttt{re.findall(r'\^{}\PYQbs d+', '1a\PYQbs n2b', re.M)} $\to$ \texttt{['1','2']} \\
+\end{PYQtab}
+
+\subsection{贪婪与非贪婪、re.S、“文本A(.*?)文本B”套路}
+\begin{PYQcode}
+t = '<title>AAA</title><title>BBB</title>'
+re.findall('<title>(.*)</title>', t)            # -> ['AAA</title><title>BBB']  贪婪：吃到最后一个
+re.findall('<title>(.*?)</title>', t)           # -> ['AAA', 'BBB']              非贪婪：刚好一段
+res = '文本A\n百度新闻文本B'
+re.findall('文本A(.*?)文本B', res)                # -> []  . 不匹配换行
+re.findall('文本A(.*?)文本B', res, re.S)[0].strip()   # -> '百度新闻'
+re.findall(r'日期：(.*?)', '来源：新华社 日期：2025-12-18')            # -> ['']  右边无边界，非贪婪吃 0 个
+re.findall(r'日期：(\d{4}-\d{2}-\d{2})', '来源：新华社 日期：2025-12-18')  # -> ['2025-12-18']
+re.sub('<.*?>', '', '<em>阿里巴巴</em>代码竞赛')  # -> '阿里巴巴代码竞赛'  去掉所有标签；'<.*>' 贪婪误删 -> '代码竞赛'
+fn = '000019_2023_深粮控股_2023年年度报告_2024-04-16'
+re.compile(r'^[0-9]{6}').findall(fn)[0]          # -> '000019'（股票代码）；r'([0-9]{4})年' -> '2023'；r'_([\u4e00-\u9fa5]+)_' -> '深粮控股'
+re.findall(r'\d+', '昨天20:26')                   # -> ['20', '26']  相对日期
+p_count = '<span class="total-box" style="">约 <span>(.*?)</span> 条'   # 巨潮搜索结果总条数
+\end{PYQcode}
+\textbf{易错}：正则一律写原始字符串 \texttt{r'...'}；文本 A、B 必须是每条记录都相同、能唯一圈住目标的左右边界。
+
+% ======================================================================
+\section{Selenium 4：浏览器自动化}
+
+\subsection{启动、定位（find\_element + By）、交互与等待}
+\begin{PYQtab}{3.6cm}
+导入 & \texttt{from selenium import webdriver}；\texttt{from selenium.webdriver.common.by import By}；\texttt{from selenium.webdriver.common.keys import Keys}；\texttt{from selenium.webdriver.chrome.service import Service}；\texttt{from selenium.webdriver.support.ui import WebDriverWait}；\texttt{from selenium.webdriver.support import expected\_conditions as EC} \\*
+ChromeOptions() & \texttt{opt = webdriver.ChromeOptions()}；\texttt{opt.add\_argument('--headless')}（无界面）、\texttt{'--disable-gpu'}、\texttt{'--window-size=1920,1080'}；指定下载目录（PDF 批量下载）：\texttt{opt.add\_experimental\_option('prefs', \{'download.default\_directory': r'E:\PYQbs 理财公告'\})} \\
+Service(path) & 指定 chromedriver 路径，版本须与 Chrome 大版本一致；4.6 起可省略（Selenium Manager 自动下载，需联网）\PYQe\texttt{Service(r'D:\PYQbs Anaconda\PYQbs Scripts\PYQbs chromedriver.exe')} \\
+webdriver.Chrome() & \texttt{browser = webdriver.Chrome(service=s, options=opt)} 启动浏览器；旧参数 \texttt{executable\_path} 已删除 \\
+browser.get(url) & 打开网页，\key{无返回值}（不是源码）；源码用 \texttt{browser.page\_source}（渲染后的“真正源码”，属性不加括号）；另有 \texttt{browser.title}、\texttt{browser.current\_url} \\
+find\_element(By.X, v) & 第一个匹配元素，找不到抛 NoSuchElementException\PYQe\texttt{browser.find\_element(By.XPATH, '//*[@id="kw"]')} \\
+find\_elements(By.X, v) & 所有匹配元素的列表，找不到返回 \texttt{[]}、不报错\PYQe\texttt{len(browser.find\_elements(By.TAG\_NAME, 'a'))} \\
+By 的八种定位 & ID、NAME、CLASS\_NAME、TAG\_NAME、LINK\_TEXT、PARTIAL\_LINK\_TEXT、CSS\_SELECTOR、XPATH\PYQe\texttt{find\_element(By.CSS\_SELECTOR, '\#kw')}；旧写法 \texttt{find\_element\_by\_xpath(...)} 在 Selenium 4 中已删除 \\
+el.send\_keys(...) & 输入文字 / 模拟按键 \texttt{Keys.ENTER}、\texttt{Keys.PAGE\_DOWN}、\texttt{Keys.END}\PYQe\texttt{el.send\_keys('python'); el.send\_keys(Keys.ENTER)} \\
+el.click() / clear() & 点击（“下一页”“公告下载”）/ 清空输入框；\texttt{el.text} 可见文字，\texttt{el.get\_attribute('href')} 属性值 \\
+implicitly\_wait(10) & 隐式等待：找元素时最多等 10 秒，全局设一次 \\
+WebDriverWait & \texttt{WebDriverWait(browser, 10).until(EC.presence\_of\_element\_located((By.X, v)))} 显式等待到条件满足（另有 \texttt{EC.element\_to\_be\_clickable}；参数为\key{元组}）；超时抛 TimeoutException \\
+execute\_script(js) & 执行 JavaScript\PYQe\texttt{browser.execute\_script('window.scrollTo(0, document.body.scrollHeight)')} 滚到底部 \\
+switch\_to & 新标签页：\texttt{browser.switch\_to.window(browser.window\_handles[-1])}；iframe：\texttt{switch\_to.frame(el)} 进入（元素在 iframe 内必须先切换）、\texttt{switch\_to.default\_content()} 退出 \\
+close() / quit() & 关闭当前标签页 / 关闭浏览器并结束驱动（程序结束用 \texttt{quit()}，取完 page\_source 再关）；\texttt{back()/forward()/refresh()} 后退/前进/刷新 \\
+\end{PYQtab}
+
+\subsection{完整模板：多页新闻（改 URL）与巨潮翻页（模拟点击）}
+\begin{PYQcode}
+opt = webdriver.ChromeOptions(); opt.add_argument('--headless'); opt.add_argument('--disable-gpu')
+browser = webdriver.Chrome(options=opt)        # 或 webdriver.Chrome(service=Service(路径), options=opt)
+for page in range(1, 3):                       # (1) 能改 URL 就改 URL（推荐）：百度新闻 pn=(页码-1)*10
+    browser.get('https://www.baidu.com/s?rtt=1&bsst=1&cl=2&tn=news&ie=utf-8&word=阿里巴巴&pn=' + str((page - 1) * 10))
+    time.sleep(2); data = browser.page_source
+    titles = re.findall('<h3 class=".*?">.*?<a .*?>(.*?)</a>', data, re.S)   # 规则以当时源码为准
+# (2) URL 不变（JS 动态加载）就模拟点击：巨潮资讯网
+browser.get('http://www.cninfo.com.cn/new/fulltextSearch?notautosubmit=&keyWord=理财')
+WebDriverWait(browser, 10).until(EC.presence_of_element_located((By.CLASS_NAME, 'r-title'))); datas = [browser.page_source]
+for i in range(2):                             # 翻页次数 = ceil(总条数/20) - 1
+    browser.find_element(By.XPATH, '//button[@class="btn-next"]').click()   # XPath 以 F12 复制为准
+    time.sleep(2); datas.append(browser.page_source)
+alldata = ''.join(datas)                       # 各页源码拼成一个字符串，再用正则提取
+browser.quit()
+\end{PYQcode}
+
+% ======================================================================
+\section{XPath 与 CSS 选择器语法}
+
+\subsection{XPath 语法：//、[@属性]、[n]、contains、text()、@href}
+\begin{PYQtab}{3.4cm}
+/\quad // & 从根开始 / 直接子节点；任意层级的后代\PYQe 绝对路径 \texttt{/html/body/div[2]/h3/a}（Copy full XPath 得到，网页一改版就失效）；\texttt{//h3[@class="c-title"]/a} $\to$ 所有新闻标题链接 \\*
+* & 任意标签\PYQe\texttt{//*[@id="kw"]} $\to$ id 为 kw 的元素（Copy XPath 的常见结果）\\
+{[@属性="值"]} & 属性\key{完全等于}\PYQe\texttt{//a[@class="n"]} 匹配不到 \texttt{class="n cur"}，要用 contains \\
+{[n]\ \ [last()]} & 第 n 个（\key{从 1 数}）/ 最后一个同名兄弟\PYQe\texttt{//div[@id="page"]/div/a[2]}；\texttt{//div[@id="page"]//a[last()]} $\to$ “下一页” \\
+contains(text(),"…") & 文字包含（按文字定位比按位置稳定）\PYQe\texttt{//a[contains(text(),"下一页")]} \\
+contains(@class,"…") starts-with(@href,"…") & 属性包含 / 属性以…开头\PYQe\texttt{//a[contains(@class,"cur")]}；\texttt{//a[starts-with(@href,"http")]} \\
+text()\ \ string() & 只取直接文本节点 / 取全部后代文字\PYQe 对 \texttt{<a><em>阿里</em>标题一</a>}：\texttt{//h3/a/text()} $\to$ \texttt{'标题一'}；\texttt{string(//h3[1]/a)} $\to$ \texttt{'阿里标题一'} \\
+@属性\quad and / or & 取属性值；组合条件\PYQe\texttt{//div[@class="result"]//a/@href} $\to$ 两个链接；\texttt{//div[@class="result" and @id="2"]} \\
+..\quad following-sibling:: & 父节点 / 后面的兄弟节点\PYQe\texttt{//em/..} $\to$ 包含 em 的 a；\texttt{//div[@id="1"]/following-sibling::div[1]} \\
+\end{PYQtab}
+\textbf{易错}：\texttt{@href}、\texttt{text()} 这类返回属性/文本的写法只能用于 lxml（\texttt{etree.HTML(html).xpath(...)}）；Selenium 的 \texttt{find\_element} 必须定位到\key{元素}，再用 \texttt{.text}、\texttt{.get\_attribute()} 取值。
+
+\subsection{CSS 选择器语法：\#id、.class、后代、>、[属性]、:nth-of-type}
+\begin{PYQtab}{3.4cm}
+\#kw\quad .s\_ipt & 用于 BeautifulSoup 的 \texttt{select/select\_one} 与 Selenium 的 \texttt{By.CSS\_SELECTOR}（开发者工具右键 Copy $\to$ Copy selector）。id 为 kw / class 含 s\_ipt；\textbf{易错}：\texttt{//*[@id="kw"]} 是 XPath，不是 CSS，CSS 写法为 \texttt{\#kw} \\*
+div.result\quad div p & 带 class 的标签 / 后代（空格）\PYQe\texttt{soup.select('div.result h3 a')} $\to$ 两个标题链接 \\
+div > p & 直接子元素\PYQe\texttt{soup.select('\#content > p')} $\to$ 两个段落 \\
+{[id]}\quad a[href\^{}="http"] & 有该属性 / 属性以…开头\PYQe\texttt{soup.select('div[id]')} $\to$ 三个 div \\
+:nth-of-type(n) & 同类兄弟中第 n 个（从 1 数）\PYQe\texttt{soup.select('div.result:nth-of-type(2) a')[0].text} $\to$ \texttt{'标题二'} \\
+\end{PYQtab}
+
+% ======================================================================
+\section{BeautifulSoup：解析 HTML}
+
+\subsection{查找标签与取文字、属性：find、find\_all、select、get\_text}
+\begin{PYQtab}{3.6cm}
+BeautifulSoup() & 解析为文档树；解析器 \texttt{'lxml'} 更快（需安装）\PYQe\texttt{soup = BeautifulSoup(r.text, 'html.parser')} \\*
+soup.find(name, **kw) & 第一个匹配标签，没有返回 \key{None}；\texttt{id=}、\texttt{class\_=}（\key{有下划线}）、\texttt{attrs=\{...\}}\PYQe\texttt{soup.find('div', id='content')} \\
+soup.find\_all(...) & 所有匹配标签的列表（\texttt{limit=} 限个数）\PYQe\texttt{soup.find\_all('h3', class\_='c-title')} \\
+select(css) / select\_one & CSS 选择器（全部 / 第一个）\PYQe\texttt{soup.select('div.result h3 a')} \\
+get\_text(strip=True) & 全部后代文字；strip 去空白；\texttt{separator='\PYQbs n'}（正文提取）\\
+tag['href'] / get('href') & 取属性；属性不存在时 \texttt{[]} 抛 KeyError，\texttt{get} 返回 None \\
+tag.string & 只有一个子节点时的文字；多个子节点时为 None（\texttt{<a><em>阿里</em>标题一</a>} 的 \texttt{.string} $\to$ None）；另有 \texttt{tag.name / attrs / parent / find\_next\_sibling()} \\
+**c 字典解包 & 候选容器逐个尝试：\texttt{soup.find('div', **\{'id':'contentApp'\})} 等价于 \texttt{soup.find('div', id='contentApp')}；class 写 \texttt{\{'class':'main-text'\}} \\
+\end{PYQtab}
+
+\subsection{模板：候选容器提取新闻正文}
+\begin{PYQcode}
+soup = BeautifulSoup('<a href="http://x.com/1.html"><em>阿里</em>标题一</a><p class="c-author">新浪财经 2025-12-18</p>', 'html.parser')
+a = soup.find('a'); a.get_text(), a['href']                  # -> ('阿里标题一', 'http://x.com/1.html')
+soup.select_one('p.c-author').text.split()                   # -> ['新浪财经', '2025-12-18']；soup.find('span') -> None（先 if tag:）
+candidates = [{'id': 'contentApp'}, {'id': 'content'}, {'class': 'main-text'}]
+def extract_article_text(html):
+    soup = BeautifulSoup(html, 'html.parser')
+    for c in candidates:
+        div = soup.find('div', **c)
+        if div:                                              # 找到才取文本
+            text = div.get_text(strip=True)
+            if len(text) > 20:
+                return text                                  # 找到合格正文立即返回
+    return max((d.get_text(strip=True) for d in soup.find_all('div')), key=len, default='')  # 退而取最长 div
+\end{PYQcode}
+
+% ======================================================================
+\section{pdfplumber：PDF 文本与表格}
+
+\subsection{打开 PDF、提取文本与表格：open、pages、extract\_text、extract\_tables}
+\begin{PYQtab}{3.4cm}
+pdfplumber.open(path) & 打开 PDF；路径前加 r；可用 with 自动关闭（否则 \texttt{pdf.close()}）\PYQe\texttt{pdf = pdfplumber.open(r'C:\PYQbs 年报\PYQbs a.pdf')} \\*
+pdf.pages & 页面对象列表，\key{下标从 0 开始}\PYQe\texttt{[<Page:1>, <Page:2>]}；\texttt{len(pdf.pages)} $\to$ 2 \\
+page.extract\_text() & 该页文字（字符串）；扫描件可能返回 None 或空串\PYQe\texttt{text = pdf.pages[0].extract\_text()} \\
+page.extract\_tables() & 该页全部表格：表 $\to$ 行 $\to$ 单元格\key{三层列表}；合并单元格常为 None\PYQe\texttt{[[['序号','客户名称','销售额（元）'], ['1','第一名','584,218,124.68'], ...]]} \\
+page.extract\_table() & 只取最大的一个表格（两层列表）：\texttt{table[0]} 表头，\texttt{table[1:]} 数据 \\
+page.page\_number & 页码（从 1 开始）；\texttt{page.width / height} 页面尺寸；\texttt{page.crop((x0, top, x1, bottom))} 裁剪区域后再提取（去页眉页脚）\\
+\end{PYQtab}
+
+\subsection{模板：表格转 DataFrame 与“前五大客户”表要点}
+\begin{PYQcode}
+with pdfplumber.open(pdf_path) as pdf:
+    text_all = ''.join(page.extract_text() or '' for page in pdf.pages)   # 全文；None 换成 ''
+    table = pdf.pages[0].extract_table()                                   # 第一页最大的表
+    table = [[(c or '').replace('\n', '') for c in row] for row in table]  # 去单元格内换行、None
+    df = pd.DataFrame(table[1:], columns=table[0])                         # 第一行作表头
+    key_words = re.compile(r'(五|5|主要).{0,10}?客户')   # 年报“前五大客户”表：关键词定位页 + 表头判断 + 跨页接续
+    page_iterator = iter(pdf.pages)                      # 迭代器：可在循环中 next() 跳页；for i in page_iterator: if key_words.search(i.extract_text() or ''): ...
+    #   if '序号' in table[0] and any(re.search('客户', c) for c in table[0] if c): ...
+    #   if len(new_table) < 7: next_page = next(page_iterator)   # 表头+5行+合计=7行，不足则跨页
+\end{PYQcode}
+
+% ======================================================================
+\section{os、glob 与 shutil：文件与路径}
+
+\subsection{路径、遍历与移动文件的函数：listdir、walk、path.join、splitext、glob}
+\begin{PYQtab}{3.4cm}
+os.listdir(d) & 只列\key{本层}名字（文件与文件夹不分），不含路径\PYQe\texttt{['B.PDF', 'a.pdf', 'note.txt', 'sub']} \\*
+os.walk(d) & 递归遍历，每层给三元组 \texttt{(root, dirs, files)} = 当前路径、子文件夹、文件\PYQe\texttt{for root, dirs, files in os.walk(d):}（会进入 .idea 等所有子目录）\\
+os.path.join(a, b) & 安全拼接路径，自动补分隔符\PYQe\texttt{os.path.join(file\_dir, '1.py')} \\
+os.path.isfile & 是文件；\texttt{isdir} 是文件夹、\texttt{exists} 是否存在；必须传\key{完整路径} \\
+os.path.splitext & 拆成 (主名, 后缀)：只切最后一个点，后缀带点、保留大小写\PYQe\texttt{splitext('报告.2023.PDF')} $\to$ \texttt{('报告.2023', '.PDF')} \\
+os.path.basename & 文件名（\texttt{dirname} 所在目录）\PYQe\texttt{basename('/x/y/000019\_2023\_深粮控股.pdf')} $\to$ \texttt{'000019\_2023\_深粮控股.pdf'} \\
+os.makedirs(d, ...) & \texttt{os.makedirs(d, exist\_ok=True)} 建多级文件夹，已存在不报错（写文件前先建目录）\\
+os.rename(src, dst) & 改名 / 移动（剪切），目标文件夹须已存在；\texttt{shutil.copy / shutil.move} 复制 / 移动 \\
+glob.glob(pattern) & 通配符找文件，\texttt{**} 配 \texttt{recursive=True} 递归\PYQe\texttt{glob.glob(os.path.join(d, '*.pdf'))}（Linux 下区分大小写）\\
+os.getcwd() & 当前工作目录（相对路径以它为起点）；\texttt{os.path.getsize(p)} 文件字节数 \\
+\end{PYQtab}
+
+\subsection{模板：筛选 PDF、解析文件名与归档}
+\begin{PYQcode}
+file_dir = r'D:\年报\2023'                                    # 路径前加 r，防止 \U 等被当作转义
+file_list = [os.path.join(file_dir, f) for f in os.listdir(file_dir)
+             if os.path.isfile(os.path.join(file_dir, f)) and os.path.splitext(f)[1].lower() == '.pdf']  # 兼容 .pdf/.PDF
+out_dir = os.path.join(file_dir, '符合条件的文件'); os.makedirs(out_dir, exist_ok=True)
+for p in file_list:
+    name = os.path.basename(p)                                 # 等价于 p.split('\\')[-1]
+    code, year = name.split('_')[0], name.split('_')[1]        # 命名规则：代码_年份_简称_标题_日期
+    txt_name = os.path.splitext(name)[0] + '.txt'
+    # os.rename(p, os.path.join(out_dir, name))                # 移动（剪切）到新文件夹
+\end{PYQcode}
+
+% ======================================================================
+\section{openpyxl：读写 Excel}
+\begin{PYQtab}{3.4cm}
+Workbook() & 三层结构：\key{Workbook}（工作簿 = 文件）$\to$ \key{Worksheet}（工作表）$\to$ \key{Cell}（单元格）。新建工作簿，自带一个名为 Sheet 的工作表\PYQe\texttt{wb = Workbook()} \\*
+wb.active & 当前工作表\PYQe\texttt{ws = wb.active; ws.title = '结果'} \\
+wb.create\_sheet(t) & 新建工作表；\texttt{wb.remove(wb.worksheets[0])} 删除默认工作表\PYQe\texttt{wb.create\_sheet('出错记录')} \\
+ws.append(list) & 列表作为一整行写到下一行\PYQe\texttt{ws.append(['股票代码', '年份', '词频'])} \\
+ws.cell(row, column) & \texttt{ws.cell(row=, column=, value=)} 按行号列号写/读，行列号\key{从 1 开始}；enumerate 从 0 开始，要写 \texttt{row=i+1}（有表头时 \texttt{i+2}）\\
+ws['A1'] & 按坐标访问单元格，\texttt{.value} 取值\PYQe\texttt{ws['B3'] = '2023'} \\
+wb.save(path) & 保存；文件正在 Excel 中打开时报 PermissionError\PYQe\texttt{wb.save('前五大客户.xlsx')} \\
+load\_workbook(path) & 读取已有文件，\texttt{wb['表名']} 取表 \\
+ws.iter\_rows(...) & \texttt{ws.iter\_rows(min\_row=2, values\_only=True)} 按行迭代取值（另有 max\_row、max\_column）\PYQe\texttt{[('000019','2023',12), ('000002','2023',7)]} \\
+\end{PYQtab}
+
+% ======================================================================
+\section{pandas 常用操作}
+
+\subsection{读写、筛选、缺失值与分组合并：read\_csv、loc、fillna、groupby、merge}
+\begin{PYQtab}{3.4cm}
+pd.read\_csv(path) & 读文件为 DataFrame（Excel 用 \texttt{read\_excel}）；\texttt{encoding='utf-8'/'gbk'}；\texttt{dtype=\{'code': str\}} 保留前导 0（不加则 \texttt{'000019'} 读成 19）\\*
+df.to\_csv(path) & 写文件（\texttt{to\_excel} 同理），\texttt{index=False}；CSV 给 Excel 看用 \texttt{encoding='utf-8-sig'} \\
+pd.DataFrame() & 构造表\PYQe\texttt{pd.DataFrame(table[1:], columns=table[0])} \\
+df.shape / head() & 形状 / 前几行；\texttt{df.columns}、\texttt{dtypes}、\texttt{info()} 概况、\texttt{describe()} 描述统计\PYQe\texttt{df.shape} $\to$ \texttt{(3, 3)} \\
+df.loc / df.iloc & \texttt{df.loc[行条件, 列名]} 按标签（可布尔筛选）/ \texttt{df.iloc[i, j]} 按位置\PYQe\texttt{df.loc[df['销售额'] > 50, '客户名称']} \\
+isnull().sum() & 缺失值统计；\texttt{dropna()} 删除、\texttt{fillna(v)} 填充\PYQe\texttt{df['销售额'].fillna(0)} \\
+pd.to\_numeric & 类型转换（另有 \texttt{astype}、\texttt{pd.to\_datetime}）；\texttt{errors='coerce'} 转不了的变 NaN；\texttt{'1,234'} 要先去逗号 \\
+sort\_values(col) & 排序，\texttt{ascending=False} 降序 \\
+groupby(键)[列].agg() & 分组汇总：mean、sum、size、命名聚合\PYQe\texttt{fin.groupby('code')['tone'].mean()} \\
+pd.merge(a, b) & 按键合并，\texttt{on=}；\texttt{how='left'/'inner'/'outer'}（文本指标与财务数据按“代码–年份”合并）；\texttt{pd.concat([a, b])} 纵向堆叠，\texttt{axis=1} 横向 \\
+apply(f) & 逐元素函数；\texttt{value\_counts()} 计数、\texttt{drop\_duplicates()} 去重、\texttt{rename(columns=)} 改列名\PYQe\texttt{df['tone'].apply(lambda x: 1 if x > 0.15 else 0)} \\
+pd.set\_option(...) & \texttt{pd.set\_option('display.max\_columns', None)} 显示全部列 \\
+\end{PYQtab}
+
+\subsection{模板：文本指标与财务数据按代码–年份合并}
+\begin{PYQcode}
+fin = pd.DataFrame({'code': ['000019', '000019', '000002'], 'year': [2022, 2023, 2023], 'tone': [0.2, 0.5, 0.1]})
+ret = pd.DataFrame({'code': ['000019', '000002'], 'year': [2023, 2023], 'ret': [0.05, -0.02]})
+m = pd.merge(fin, ret, on=['code', 'year'], how='left')         # 2022 年那行 ret 为 NaN
+fin.groupby('code').agg(n=('tone', 'size'), avg=('tone', 'mean')).reset_index()  # -> 000002: n=1, avg=0.10；000019: n=2, avg=0.35
+fin.to_csv('demo.csv', index=False, encoding='utf-8-sig'); pd.read_csv('demo.csv')['code'].tolist()   # -> [19, 19, 2]  前导 0 丢了！
+pd.read_csv('demo.csv', dtype={'code': str})['code'].tolist()   # -> ['000019', '000019', '000002']
+\end{PYQcode}
+
+% ======================================================================
+\section{jieba 分词与 collections 计数}
+
+\subsection{三种分词模式、自定义词典与计数：cut、lcut、load\_userdict、Counter}
+\begin{PYQtab}{3.4cm}
+jieba.cut(s) & \key{精确模式}（默认），返回生成器；\texttt{HMM=True} 识别新词\PYQe\texttt{'我来到北京清华大学'} $\to$ 我/来到/北京/清华大学 \\*
+cut(s, cut\_all=True) & \key{全模式}：列出所有可能的词，有冗余\PYQe $\to$ 我/来到/北京/清华/清华大学/华大/大学 \\
+jieba.cut\_for\_search & \key{搜索引擎模式}：在精确模式上再切长词\PYQe\texttt{'小明硕士毕业于中国科学院计算所'} $\to$ 小明/硕士/毕业/于/中国/科学/学院/科学院/中国科学院/计算/计算所 \\
+jieba.lcut(s) & 同上但直接返回\key{列表}（统计、\texttt{count} 前用 lcut；另有 \texttt{lcut\_for\_search}）\PYQe\texttt{jieba.lcut('深度学习很火，但学习方法也很重要')} $\to$ \texttt{['深度','学习','很火','，','但','学习','方法','也','很','重要']} \\
+jieba.add\_word(w) & 临时加词（\texttt{freq=None, tag=None}）\PYQe 加 \texttt{'深度学习'} 后：\texttt{count('学习')} 2 $\to$ 1，\texttt{count('深度学习')} 0 $\to$ 1 \\
+jieba.load\_userdict(p) & 加载自定义词典：每行“词 词频 词性”，后两项可省，UTF-8\PYQe\texttt{资产负债表 10000 n}；加载前 \texttt{'现金流量表'} $\to$ 现金流量/表，加载后为一个词 \\
+jieba.posseg.lcut(s) & 分词并标词性，元素为 pair，可 \texttt{for w, f in ...} 解包\PYQe\texttt{[pair('我','r'), pair('爱','v'), pair('自然语言','l'), pair('处理','v')]} \\
+analyse.extract\_tags & \texttt{jieba.analyse.extract\_tags(s, topK=20, withWeight=False)} 基于 TF-IDF 的关键词提取（\texttt{textrank} 为另一算法）\\
+Counter(lst) & 词 $\to$ 次数的字典，\texttt{c['不存在']} 返回 0\PYQe\texttt{Counter(['资产','负债','资产'])} $\to$ \texttt{\{'资产':2, '负债':1\}} \\
+c.most\_common(n) & 次数最多的前 n 个，等价于 \texttt{sorted(c.items(), key=lambda x: x[1], reverse=True)[:n]}\PYQe\texttt{[('资产',3), ('负债',1)]} \\
+defaultdict(int) & 缺失键默认 0 的字典，可直接 \texttt{+= 1}\PYQe DF 统计：\texttt{for w in set(words): df[w] += 1} \\
+WordCloud(...) & 词云（\texttt{from wordcloud import WordCloud}），中文须给 \texttt{font\_path}（如 \texttt{'simhei.ttf'}）否则显示方框\PYQe\texttt{wc = WordCloud(font\_path='simhei.ttf', background\_color='white').generate\_from\_frequencies(Counter(words))}；\texttt{plt.imshow(wc); plt.axis('off'); plt.show()} \\
+\end{PYQtab}
+
+\subsection{模板：文本预处理与手写 TF-IDF}
+手写口径：$\mathrm{tf}(w,d)=n_{w,d}/|d|$，$\mathrm{idf}(w)=\ln\big(N/\mathrm{df}(w)\big)$，$\text{TF-IDF}=\mathrm{tf}\times\mathrm{idf}$（$N$ 为文档数，df 为含该词的文档数）。
+\begin{PYQcode}
+jieba.load_userdict('userdict.txt')                       # 自定义词典（如 THUOCL 金融词库）
+stopwords = set(line.strip() for line in open('hit_stopwords.txt', encoding='utf-8'))
+def preprocess(raw):
+    text = re.sub(r'[^\u4e00-\u9fa5a-zA-Z]', '', raw)    # 去标点、数字、空白等无关字符
+    return [w for w in jieba.lcut(text) if w not in stopwords and len(w) > 1]
+docs = [preprocess(t) for t in texts]                     # texts：每篇年报全文
+N = len(docs); doc_freq = defaultdict(int)
+for words in docs:                                        # 第一遍：DF，每篇文档每词只计一次
+    for w in set(words): doc_freq[w] += 1
+for words in docs:                                        # 第二遍：每篇的 TF-IDF
+    counter, total = Counter(words), len(words)
+    tfidf = {w: (n / total) * math.log(N / doc_freq[w]) for w, n in counter.items()}
+    top10 = sorted(tfidf.items(), key=lambda x: x[1], reverse=True)[:10]
+\end{PYQcode}
+
+% ======================================================================
+\section{scikit-learn}
+
+\subsection{数据划分与预处理：train\_test\_split、StandardScaler、Pipeline}
+\begin{PYQtab}{3.4cm}
+train\_test\_split & 随机划分训练/测试集；默认 \texttt{test\_size=0.25}、\texttt{shuffle=True}；分类用 \texttt{stratify=y}\PYQe\texttt{X\_tr, X\_te, y\_tr, y\_te = train\_test\_split(X, y, test\_size=0.3, random\_state=42, stratify=y)} \\*
+StandardScaler() & z-score 标准化，\key{fit 只用训练集}\PYQe\texttt{sc.fit\_transform(X\_tr); sc.transform(X\_te)} \\
+MinMaxScaler() & 缩放到 $[0,1]$（\texttt{feature\_range}）\\
+OneHotEncoder() & 类别变量独热编码，默认输出稀疏矩阵；\texttt{handle\_unknown='ignore'} 忽略新类别 \\
+SimpleImputer() & 缺失值填充：\texttt{strategy='mean'}（默认）、\texttt{'median'}、\texttt{'most\_frequent'} \\
+Pipeline([...]) & 串联预处理与模型（或 \texttt{make\_pipeline}），交叉验证时\key{防数据泄漏}；网格参数名写成 \texttt{步骤名\_\_参数} \\
+fit / transform / predict & 学参数 / 变换（\texttt{fit\_transform} 两步合一）/ 预测类别（\texttt{predict\_proba} 概率）；\texttt{score} 为默认指标（分类器准确率，回归 $R^2$）；新数据只能 transform \\
+\end{PYQtab}
+
+\subsection{文本特征：CountVectorizer 与 TfidfVectorizer}
+\begin{PYQtab}{3.4cm}
+CountVectorizer() & 词袋计数矩阵：\texttt{binary=True}（One-hot）、\texttt{ngram\_range=(1,2)}、\texttt{max\_features}、\texttt{min\_df}、\texttt{max\_df}、\texttt{stop\_words} \\*
+TfidfVectorizer() & TF-IDF 矩阵：\texttt{norm='l2'}、\texttt{use\_idf=True}、\texttt{smooth\_idf=True}、\texttt{sublinear\_tf=False}。默认口径 $\mathrm{idf}(w)=\ln\frac{1+N}{1+\mathrm{df}(w)}+1$（\texttt{smooth\_idf=False} 时 $\ln\frac{N}{\mathrm{df}}+1$），权重 = 原始次数 $\times$ idf，再对每行做 $L_2$ 归一化 \\
+token\_pattern & 默认 \texttt{r"(?u)\PYQbs b\PYQbs w\PYQbs w+\PYQbs b"}：丢弃单字词，未分词的中文整句成一个“词”；中文先 \texttt{" ".join(jieba.lcut(t))}，保留单字用 \texttt{r"(?u)\PYQbs b\PYQbs w+\PYQbs b"} \\
+fit\_transform(docs) & 学词表与 IDF（在整个语料上算）并转换；输入是\key{字符串列表}（每篇一个字符串，不是分词列表的列表）；返回稀疏矩阵：行 = 文档，列 = 词 \\
+transform(new\_docs) & 用已学词表转换新文本，测试集/新文本只能 transform \\
+get\_feature\_names\_out() & 每列对应的词（旧 \texttt{get\_feature\_names()} 已删除）\PYQe\texttt{['about','am','are',...]} \\
+vocabulary\_ / idf\_ & 词 $\to$ 列号字典 / 每列的 IDF；\texttt{X[i].toarray().flatten()} 稀疏行 $\to$ 一维数组（\texttt{X.shape}、\texttt{X.nnz}）\\
+row.argsort()[::-1][:10] & 值最大的 10 个\key{索引}（argsort 返回升序索引；得到的是编号，再用 \texttt{names[idx]} 取词）\PYQe\texttt{[0.2,0.8,0.1,0.5]} $\to$ argsort \texttt{[2,0,3,1]} $\to$ 反转取前 2：\texttt{[1,3]} \\
+cosine\_similarity & \texttt{cosine\_similarity(A, B)} 两两余弦相似度矩阵（\texttt{sklearn.metrics.pairwise}），TF-IDF 文本相似度 \\
+\end{PYQtab}
+
+\subsection{模型类名与关键超参数（括号内为默认值）}
+\begin{PYQtab}{4.3cm}
+LinearRegression & 最小二乘（linear\_model）：\texttt{fit\_intercept=True}；属性 \texttt{coef\_}、\texttt{intercept\_} \\*
+Ridge / Lasso / ElasticNet & 岭 / Lasso / 弹性网：\texttt{alpha=1.0}（正则强度，\key{越大越强}）；ElasticNet 另有 \texttt{l1\_ratio=0.5} \\
+LogisticRegression & Logistic/Softmax 回归：\texttt{C=1.0}（正则强度的\key{倒数}，越小越强）；L2 正则；\texttt{solver='lbfgs'}；\texttt{max\_iter=100}（不收敛就调大）；\texttt{class\_weight='balanced'} 处理不平衡 \\
+SVC & 核 SVM（svm）：\texttt{C=1.0}；\texttt{kernel='rbf'}（\texttt{'linear'}、\texttt{'poly'}、\texttt{'sigmoid'}）；\texttt{gamma='scale'} $=1/(d\cdot\Var(X))$（$d$ 为特征数，$\Var(X)$ 为 \texttt{X.var()}）；\texttt{degree=3} \\
+LinearSVC & 线性 SVM：\texttt{C=1.0}；默认损失为平方合页；大规模文本分类快 \\
+KNeighborsClassifier & $k$ 近邻（neighbors）：\texttt{n\_neighbors=5}；\texttt{weights='uniform'}（\texttt{'distance'}）；\texttt{metric='minkowski'}、\texttt{p=2} \\
+DecisionTreeClassifier & CART 决策树（tree）：\texttt{criterion='gini'}（\texttt{'entropy'}）；\texttt{max\_depth=None}；\texttt{min\_samples\_split=2}；\texttt{min\_samples\_leaf=1}；\texttt{ccp\_alpha=0.0} \\
+RandomForestClassifier & 随机森林（ensemble）：\texttt{n\_estimators=100}；\texttt{max\_features='sqrt'}（回归器为 1.0）；\texttt{bootstrap=True}；\texttt{oob\_score=False}；属性 \texttt{feature\_importances\_} \\
+AdaBoostClassifier & \texttt{n\_estimators=50}；\texttt{learning\_rate=1.0}；\texttt{estimator=None}（即深度 1 的决策树桩）\\
+GradientBoostingClassifier & GBDT：\texttt{n\_estimators=100}；\texttt{learning\_rate=0.1}；\texttt{max\_depth=3}；\texttt{subsample=1.0} \\
+BaggingClassifier & \texttt{n\_estimators=10}；\texttt{max\_samples}；\texttt{bootstrap=True} \\
+MultinomialNB / GaussianNB / BernoulliNB & 多项式 / 高斯 / 伯努利朴素贝叶斯（naive\_bayes）：\texttt{MultinomialNB(alpha=1.0)} 为拉普拉斯平滑，适合词频/TF-IDF \\
+MLPClassifier & 前馈神经网络（neural\_network）：\texttt{hidden\_layer\_sizes=(100,)}；\texttt{activation='relu'}；\texttt{solver='adam'}；\texttt{alpha=0.0001}（L2）；\texttt{learning\_rate\_init=0.001}；\texttt{max\_iter=200} \\
+KMeans & $k$-means（cluster）：\texttt{n\_clusters=8}；\texttt{init='k-means++'}；\texttt{n\_init='auto'}；\texttt{random\_state}；属性 \texttt{labels\_}、\texttt{cluster\_centers\_}、\texttt{inertia\_} \\
+DBSCAN / AgglomerativeClustering & 密度聚类 \texttt{DBSCAN(eps=0.5, min\_samples=5)} / 层次聚类 \texttt{AgglomerativeClustering(n\_clusters=2, linkage='ward')} \\
+PCA & 主成分分析（decomposition）：\texttt{n\_components}（整数，或 0–1 小数表示保留的方差比例）；属性 \texttt{explained\_variance\_ratio\_}、\texttt{components\_} \\
+\end{PYQtab}
+
+\subsection{评估指标与模型选择函数：metrics、cross\_val\_score、GridSearchCV}
+\begin{PYQtab}{3.4cm}
+accuracy\_score & 准确率 \texttt{accuracy\_score(y, y\_pred)} \\*
+f1\_score 等 & \texttt{precision\_score}、\texttt{recall\_score}、\texttt{f1\_score}：\texttt{average='binary'}（默认，二分类），多分类必须改 \texttt{'macro'}、\texttt{'micro'}、\texttt{'weighted'}；\texttt{pos\_label=1} \\
+confusion\_matrix & 混淆矩阵：\key{行 = 真实，列 = 预测}，类别按升序；二分类为 \texttt{[[TN, FP], [FN, TP]]} \\
+classification\_report & 每类 P/R/F1/support 与 macro/weighted 平均；\texttt{digits=2}、\texttt{target\_names} \\
+roc\_auc\_score & AUC \texttt{roc\_auc\_score(y, score)}：第二个参数传\key{得分/概率}，不是 0/1 类别：\texttt{predict\_proba(X)[:,1]} 或 \texttt{decision\_function(X)}；\texttt{roc\_curve(y, score)} 返回 fpr, tpr, thresholds（画 ROC）\\
+mean\_squared\_error & MSE；\texttt{root\_mean\_squared\_error} RMSE、\texttt{mean\_absolute\_error} MAE、\texttt{r2\_score} $R^2$ \\
+silhouette\_score & 轮廓系数 \texttt{silhouette\_score(X, labels)}（选 $k$）\\
+cross\_val\_score & \texttt{cross\_val\_score(est, X, y, cv=5, scoring=)}：$K$ 折交叉验证得分数组，\texttt{.mean()} 作为估计；分类时整数 cv 自动分层 \\
+KFold & 折的划分器（分层版 \texttt{StratifiedKFold}） \texttt{(n\_splits=5, shuffle=False, random\_state=None)}，\key{默认不打乱} \\
+GridSearchCV & \texttt{GridSearchCV(est, param\_grid, cv=, scoring=)} 网格搜索调参：\texttt{best\_params\_}、\texttt{best\_score\_}、\texttt{best\_estimator\_}、\texttt{cv\_results\_}；\texttt{RandomizedSearchCV} 随机搜索 \\
+\end{PYQtab}
+
+\subsection{完整模板一：标准化 + SVM + 网格搜索 + 评估}
+\begin{PYQcode}
+from sklearn.datasets import load_breast_cancer; from sklearn.pipeline import Pipeline; from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, GridSearchCV, StratifiedKFold, cross_val_score
+from sklearn.svm import SVC; from sklearn.linear_model import LogisticRegression; from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, roc_auc_score
+X, y = load_breast_cancer(return_X_y=True)                    # 569 个样本、30 个特征
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.3, random_state=42, stratify=y)
+pipe = Pipeline([('scaler', StandardScaler()), ('clf', SVC(kernel='rbf'))])     # 标准化放进管道
+grid = {'clf__C': [0.1, 1, 10], 'clf__gamma': ['scale', 0.01]}
+gs = GridSearchCV(pipe, grid, cv=StratifiedKFold(5, shuffle=True, random_state=0), scoring='f1').fit(X_tr, y_tr)  # 只用训练集调参
+print(gs.best_params_, round(gs.best_score_, 4))               # -> {'clf__C': 1, 'clf__gamma': 0.01} 0.9784
+y_pred = gs.predict(X_te)                                      # 测试集只用一次（gs 已用最优参数在全部训练集上重拟合）
+print(accuracy_score(y_te, y_pred), f1_score(y_te, y_pred))   # -> 0.9649 0.9725（四舍五入）
+print(confusion_matrix(y_te, y_pred))                          # -> [[ 59   5] [  1 106]]
+print(roc_auc_score(y_te, gs.decision_function(X_te)))         # -> 0.9965（传得分，不传类别）
+lr = Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression(max_iter=1000))])
+print(cross_val_score(lr, X, y, cv=5).mean())                  # -> 0.9807
+\end{PYQcode}
+
+\subsection{完整模板二：中文文本情感分类（jieba + TF-IDF + 朴素贝叶斯）}
+\begin{PYQcode}
+from sklearn.feature_extraction.text import TfidfVectorizer; from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+data = ["这部电影真的很好看", "这个产品太差了", "我对这次购物非常满意", "服务态度非常糟糕", "质量很好，值得推荐", "体验很差，再也不会买了",
+        "剧情精彩，演员表现出色", "客服不专业，让人失望", "真的很喜欢这个设计", "完全不符合预期，太坑了", "性价比很高，非常满意", "质量低劣，非常后悔购买"]
+labels = np.array([1, 0] * 6); corpus = [" ".join(jieba.lcut(t)) for t in data]   # 1 = 正面，0 = 负面；分词后用空格连接
+vec = TfidfVectorizer(token_pattern=r"(?u)\b\w+\b"); X = vec.fit_transform(corpus)   # 保留“好”“差”等单字词；X.shape -> (12, 46)
+X_tr, X_te, y_tr, y_te = train_test_split(X, labels, test_size=0.25, random_state=42)
+clf = MultinomialNB(alpha=1.0).fit(X_tr, y_tr); y_pred = clf.predict(X_te)
+print("准确率:", accuracy_score(y_te, y_pred)); print(classification_report(y_te, y_pred))   # -> 1.0（测试集 3 句：负 1、正 2）
+X_new = vec.transform([" ".join(jieba.lcut(t)) for t in ["演员很出色，非常满意", "质量太差，很失望"]])  # 新文本只 transform，不能再 fit
+print(['正面' if p == 1 else '负面' for p in clf.predict(X_new)])   # -> ['正面', '负面']
+\end{PYQcode}
+
+\subsection{聚类与降维：KMeans、PCA（含 silhouette\_score）}
+\begin{PYQcode}
+from sklearn.cluster import KMeans; from sklearn.decomposition import PCA; from sklearn.metrics import silhouette_score
+X = np.array([[1, 2], [1, 4], [1, 0], [10, 2], [10, 4], [10, 0]])
+km = KMeans(n_clusters=2, n_init=10, random_state=0).fit(X)
+km.labels_, km.cluster_centers_, km.inertia_   # -> [1 1 1 0 0 0]，[[10,2],[1,2]]，16.0；km.predict([[0, 0], [12, 3]]) -> [1 0]
+silhouette_score(X, km.labels_)                # -> 0.7133
+P = np.array([[2.5, 2.4], [0.5, 0.7], [2.2, 2.9], [1.9, 2.2], [3.1, 3.0], [2.3, 2.7], [2.0, 1.6], [1.0, 1.1], [1.5, 1.6], [1.1, 0.9]])
+pca = PCA(n_components=1).fit(P); pca.explained_variance_ratio_, pca.components_   # -> [0.9632]，[[0.6779 0.7352]]
+Z = pca.transform(P)                             # 降到 1 维，Z.shape -> (10, 1)
+\end{PYQcode}
+
+% ======================================================================
+\section{gensim：Word2Vec、LDA 与 TF-IDF}
+
+\subsection{Word2Vec、Dictionary 与 LdaModel 接口}
+\begin{PYQtab}{3.4cm}
+Word2Vec(sentences) & 训练词向量（\texttt{gensim.models}），sentences 是\key{分好词的列表的列表}：\texttt{vector\_size=100}、\texttt{window=5}、\texttt{min\_count=5}（小语料要调低）、\texttt{sg=0}（CBOW；1 为 Skip-gram）、\texttt{negative=5}、\texttt{epochs=5}、\texttt{workers=3} \\*
+model.wv[w] & 词向量；\texttt{wv.most\_similar(w, topn=10)} 最相似的词，\texttt{wv.similarity(a, b)} 两词余弦相似度；未登录词抛 KeyError\PYQe\texttt{model.wv['资产'].shape} $\to$ \texttt{(100,)} \\
+FastText(...) & 子词词向量（\texttt{min\_n=3}、\texttt{max\_n=6}），未登录词也有向量 \\
+corpora.Dictionary & \texttt{corpora.Dictionary(texts)} 构建词典（词 $\leftrightarrow$ id）；\texttt{filter\_extremes(no\_below=5, no\_above=0.5)} 去极端词 \\
+doc2bow(text) & 文档 $\to$ 词袋：(词 id, 次数) 列表\PYQe\texttt{dictionary.doc2bow(t)} $\to$ \texttt{[(0,1), (1,1), (2,1)]} \\
+LdaModel(...) & \texttt{LdaModel(corpus, id2word, num\_topics, ...)}：\texttt{num\_topics=100}（\key{务必自己设}）、\texttt{passes=1}、\texttt{iterations=50}、\texttt{alpha='symmetric'}、\texttt{eta}、\texttt{random\_state} \\
+lda.print\_topics() & 各主题的关键词及权重（\texttt{num\_words=10}；单个主题用 \texttt{show\_topic(k)}）\PYQe\texttt{'0.308*"专利" + 0.306*"研发" + ...'} \\
+get\_document\_topics & \texttt{lda.get\_document\_topics(bow)} 文档的主题分布（\texttt{minimum\_probability}）\PYQe\texttt{[(0, 0.127), (1, 0.873)]} \\
+lda.log\_perplexity & 每词似然下界 $b$（越大越好）；gensim 日志按 $2^{-b}$ 报告困惑度，\key{困惑度越低越好}\PYQe 模板数据上 $b\approx-1.94$ \\
+CoherenceModel & \texttt{CoherenceModel(model=, texts=, dictionary=, coherence='c\_v').get\_coherence()} 主题一致性，越高越好，用于选主题数 \\
+TfidfModel(corpus) & TF-IDF：默认权重 = 次数 $\times\log_2(N/\mathrm{df})$，再 $L_2$ 归一化 \\
+\end{PYQtab}
+
+\subsection{模板：训练词向量与 LDA 主题模型}
+\begin{PYQcode}
+from gensim import corpora; from gensim.models import Word2Vec, LdaModel
+texts = [['资产', '负债', '利润'], ['资产', '现金流', '利润'], ['研发', '创新', '专利'], ['研发', '专利', '技术']] * 10  # 已分词、去停用词
+w2v = Word2Vec(sentences=texts, vector_size=20, window=2, min_count=1, sg=1, epochs=20, seed=1)
+w2v.wv.most_similar('资产', topn=2)          # -> [('利润', ...), ('现金流', ...)]
+dictionary = corpora.Dictionary(texts); corpus = [dictionary.doc2bow(t) for t in texts]
+lda = LdaModel(corpus=corpus, id2word=dictionary, num_topics=2, passes=5, random_state=1)
+lda.print_topics(num_words=3)                # -> 一个主题以 专利/研发/技术 为主，另一个以 资产/利润/现金流 为主
+lda.get_document_topics(corpus[0])           # -> 文档 0 主要属于“资产经营”主题
+\end{PYQcode}
+
+% ======================================================================
+\section{SnowNLP：中文情感分析}
+
+\subsection{SnowNLP 接口：sentiments、words、sentences、keywords、train}
+\begin{PYQtab}{3.4cm}
+SnowNLP(text) & 创建对象（中文专用）\PYQe\texttt{s = SnowNLP('这次购物体验非常糟糕。客服态度差，商品质量有问题。')} \\*
+s.sentiments & 正面概率（0–1，越接近 1 越正面），常以 0.5 为阈值\PYQe 上句 $\to$ 0.017。\textbf{易错}：SnowNLP 常被归为“情感词典”方法，但 \texttt{sentiments} 实为在商品（图书等）评论语料上训练的\key{朴素贝叶斯分类器}输出的“属于正面的概率”，中性句也可能得高分（下例第三句 0.98）\\
+s.sentences & 分句（\texttt{s.words} 分词、\texttt{s.tags} 词性、\texttt{s.pinyin} 拼音、\texttt{s.han} 繁转简）\PYQe $\to$ \texttt{['这次购物体验非常糟糕', '客服态度差', '商品质量有问题']} \\
+s.keywords(n) & 关键词（\texttt{s.summary(n)} 摘要句；得分相同的词顺序可能随运行变化）\PYQe\texttt{keywords(3)} $\to$ 体验、购物、糟糕三词 \\
+sentiment.train & \texttt{snownlp.sentiment.train(neg, pos)} 用自己的正负语料重训情感模型，再 \texttt{sentiment.save(path)}；金融文本建议重训 \\
+\end{PYQtab}
+
+\subsection{模板：三句评论的情感打分}
+\begin{PYQcode}
+from snownlp import SnowNLP
+for t in ['这部电影真是太棒了！演员表现出色，剧情紧凑，强烈推荐！', '这次购物体验非常糟糕，客服态度差，商品质量有问题，再也不会来了。', '今天天气不错，适合外出散步。']:
+    score = SnowNLP(t).sentiments; print(f'情感得分：{score:.2f}', '正面' if score > 0.5 else '负面')   # -> 1.00 正面；0.01 负面；0.98 正面
+\end{PYQcode}

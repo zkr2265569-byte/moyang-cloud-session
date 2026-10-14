@@ -1,0 +1,428 @@
+\chapter{全书记号对照}
+\label{ch:UappD-notation}
+
+同一个对象在本书、Hansen (2022) 教材与 2025 年真题中常用不同的符号，同一个符号也可能在不同地方表示不同的对象。本附录把各章开头的记号说明汇总为对照表，单列一节整理“一个符号、多种含义”和容易混淆的缩写，最后一节给出各主题在本书与 Hansen 教材中的章节对照。
+
+\begin{summary}[读表约定与答题原则]
+\begin{itemize}
+  \item 每张表按“含义 $|$ 本书 $|$ Hansen (2022) $|$ 2025 真题 $|$ 说明”排列；“—”表示该来源未出现此对象或无须对照。
+  \item “说明 / 其他常见写法”一栏给出文献与其他教材中常见的替代写法和易混点；遇到这些写法时，按本表换算成本书记号再套用正文结论。
+  \item 答题原则：\key{用题目给的记号}；题目未给的，用本书记号，并在第一次出现时写一句英文定义（“where \ldots\ denotes \ldots”）。
+\end{itemize}
+\end{summary}
+
+%======================================================================
+\section{回归、渐近理论与检验（第 2–6 章）}\label{sec:UappD-reg}
+
+\subsection{基本对象：误差、数据、参数与矩矩阵}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+误差项 & $u_i$ & $e_i$ & 面板：$\epsilon_{it}$ & CEF 分解中有时记 $v_i$\\
+\addlinespace[1pt]
+残差 & $\hat u_i$ & $\hat e_i$ & — & —\\
+\addlinespace[1pt]
+随机变量与数据 & 小写 $y_i,x_i$ 为观测；大写 $Y,X$ 为数据矩阵 & 大写 $Y,X$ 为随机变量（小写为取值）；粗体 $\bm Y,\bm X$ 为数据矩阵 & $Y_{it}$，$x_{it}$ & 读 Hansen 时注意大小写含义与本书不同\\
+\addlinespace[1pt]
+回归元个数 & $K$（含常数项） & $k$ & 单个 $x_{it}$ & 若 $K$ 只计斜率个数，$F$ 检验分母自由度写成 $n-K-1$\\
+\addlinespace[1pt]
+参数真值 & $\beta$ & $\beta$ & $\beta$ & 也写 $\beta_0$（下标 0 表示真值）\\
+\addlinespace[1pt]
+条件期望函数 & $\E(y_i\mid x_i)$，$m(x)$ & $m(x)=\E[Y\mid X=x]$ & — & —\\
+\addlinespace[1pt]
+二阶矩矩阵 & $Q_{xx}=\E(x_ix_i\T)$（第 5 章）；第 7 章简记 $Q$ & $\bm Q_{XX}$ & — & 也写 $Q_x$；有时指样本矩 $\frac1n\sum_i x_ix_i\T$ 的极限\\
+\addlinespace[1pt]
+$n\times n$ 误差协方差 $\Var(u\mid X)$ & $D$（第 5 章起）；第 4 章 GLS 中记 $\Omega$ & $\bm D$ & — & 也常记 $\Omega$\\
+\addlinespace[1pt]
+渐近方差 & $V$：$\sqrt n(\hat\beta-\beta)$ 的渐近方差；$V/n$：$\hat\beta$ 的近似方差 & $\bm V_{\beta}$ 与 $\bm V_{\hat\beta}$ & — & —\\
+\addlinespace[1pt]
+渐近服从 & $\overset{a}{\sim}$ & — & — & —\\
+\end{longtable}}
+
+
+\subsection{平方和、线性约束与检验}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+残差平方和 $\sum_i\hat u_i^2$ & $SSR$ & $SSE$（sum of squared errors） & — & Hansen 的 SSE 是\key{残差}平方和，与本书相反！$F$ 检验中约束 / 无约束模型记 $SSR_r$、$SSR_{ur}$\\
+\addlinespace[1pt]
+解释平方和 $\sum_i(\hat y_i-\bar y)^2$ & $SSE$ & 直接写公式 & — & 部分教材把回归平方和记为 SSR\\
+\addlinespace[1pt]
+总平方和 $\sum_i(y_i-\bar y)^2$ & $SST$ & 直接写公式 & — & —\\
+\addlinespace[1pt]
+线性约束 & $R\beta=r$，$R$ 为 $q\times K$ & $\bm R\T\beta=\theta_0$，$\bm R$ 为 $k\times q$ & — & Hansen 的 $\bm R$ 是本书 $R$ 的转置\\
+\addlinespace[1pt]
+Delta 方法方差 & $V_\theta=RVR\T$ & $\bm V_\theta=\bm R\T\bm V\bm R$ & — & 同上，转置位置相反\\
+\addlinespace[1pt]
+假设值 & $\theta_0$；$\beta_j^0$ & $\theta_0$ & — & —\\
+\addlinespace[1pt]
+簇内误差协方差 & $\Omega_g$（$n_g\times n_g$） & — & — & —\\
+\addlinespace[1pt]
+HC 方差中的“肉” & $\sum_i x_ix_i\T\hat u_i^2=X\T\hat DX$ & $\sum_i X_iX_i\T\hat e_i^2$ & — & 也写 $X\T\hat\Omega X$，$\hat\Omega=\diag(\hat u_i^2)$\\
+\end{longtable}}
+
+
+%======================================================================
+\section{内生性、IV 与 GMM（第 7–9 章）}\label{sec:UappD-iv}
+
+\subsection{内生性来源：遗漏变量与测量误差}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+遗漏变量 & $w_i$ & — & — & 也常记 $z$（勿与工具变量 $z_i$ 混淆）\\
+\addlinespace[1pt]
+测量误差：关系式 & 观测 = 真值 + 误差：$x=x^*+e_x$，$y=y^*+e_y$ & 真值 $Z$，观测 $X=Z+u$ & — & 若写成 $x^*=x+e_x$、$y^*=y+e_y$（真值 = 观测 + 误差），误差的符号相反\\
+\addlinespace[1pt]
+测量误差：复合误差 & $u+e_y-\beta e_x$ & — & — & 按上一行的另一种写法为 $u-e_y+\beta e_x$\\
+\end{longtable}}
+
+
+\subsection{IV 与 GMM：维度、矩条件方差与准则函数}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+回归元 / 工具个数 & $K$ / $L$ & $k$ / $\ell$ & — & 也写 $K=\#(x)$、$L=\#(z)$\\
+\addlinespace[1pt]
+结构误差 & $u_i$ & $e_i$ & — & —\\
+\addlinespace[1pt]
+矩条件方差 & $\Omega=\E(z_iz_i\T u_i^2)$（单个观测，$L\times L$） & $\bm\Omega=\E[ZZ\T e^2]$ & — & 即 $\Var(z_iu_i)$；若定义为 $\Var(Z\T u)$ 则是 $n$ 个观测的加总，差一个因子 $n$\\
+\addlinespace[1pt]
+GMM 准则 & $J(\beta)=\bar g_n\T W\bar g_n$（不含 $n$）；$J$ 检验 $n\,\bar g_n\T\hat\Omega\inv\bar g_n$ & $J(\beta)=n\,\bar g_n\T W\bar g_n$（含 $n$） & — & 过度识别检验也称 Sargan–Hansen $J$ 检验\\
+\addlinespace[1pt]
+$W$ 的四种选择 & $I_L$；$(Z\T Z)\inv$；$\Omega\inv$；$\hat\Omega\inv$ & — & — & —\\
+\addlinespace[1pt]
+方法名称 & Generalized Method of Moments & GMM & — & 是 Generalized，不是 General\\
+\addlinespace[1pt]
+IV–OLS Hausman 检验的自由度 & $\chi^2_{k_2}$（$k_2$ 为内生变量个数） & — & — & 不是 $\chi^2_K$\\
+\end{longtable}}
+
+
+%======================================================================
+\section{静态与动态面板（第 10–12 章）}\label{sec:UappD-panel}
+
+\subsection{静态面板：效应、均值、组内变换与方差分量}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+个体效应 & $\alpha_i$ & $u_i$ & $\alpha_i$ & —\\
+\addlinespace[1pt]
+特异误差 & $u_{it}$ & $\varepsilon_{it}$ & $\epsilon_{it}$ & —\\
+\addlinespace[1pt]
+时间效应 & $\lambda_t$ & $v_t$ & $\lambda_t$ & 也写 $f_t$，易与因子 $f_t$ 混淆\\
+\addlinespace[1pt]
+时间虚拟变量 & $\text{year}_s$（第 17 章用 $f_{st}$） & $\tau_t$ & $f_t$（$\lambda_t=a_1f_1+\dots+a_Tf_T$） & 也写 $\text{year}_t$\\
+\addlinespace[1pt]
+个体虚拟变量 & $d_j$ & $d_i$ & — & —\\
+\addlinespace[1pt]
+个体 / 时期 / 总均值 & $\bar y_{i\cdot}$，$\bar y_{\cdot t}$，$\bar y_{\cdot\cdot}$ & $\overline Y_i$，$\widetilde Y_t$，$\overline Y$ & — & 也写 $\bar y_i$，$\bar y_t$，$\bar y$\\
+\addlinespace[1pt]
+单向 / 双向组内变换 & $\dot y_{it}$ / $\ddot y_{it}$ & $\dot Y_{it}$ / $\ddot Y_{it}$ & — & —\\
+\addlinespace[1pt]
+方差分量 & $\sigma^2_\alpha$（个体效应）、$\sigma^2_u$（特异误差） & $\sigma^2_u$（个体效应）、$\sigma^2_\varepsilon$（特异误差） & — & Hansen 的 $\sigma^2_u$ 指个体效应方差，与本书\key{对调}；Stata 的 \texttt{sigma\_u} 也指个体效应\\
+\addlinespace[1pt]
+RE 准去均值参数 & $\theta=1-\sigma_u/\sqrt{\sigma_u^2+T\sigma_\alpha^2}$ & $\rho=1-\theta$ & — & —\\
+\addlinespace[1pt]
+FEF 第一步残差 & $r_{it}$，$\bar r_i$ & — & — & 也写 $\hat u_{it}$\\
+\addlinespace[1pt]
+FE 估计量 & $\hat\beta_{FE}=\hat\beta_{WG}$ & $\hat\beta_{fe}$ & $\hat\beta_{FE}$ & WG 与 FE 是同一个估计量\\
+\addlinespace[1pt]
+TWFE 下的 DiD 处理变量 & $D_{it}=d_iw_t$ & — & $x_{it}=D_{it}$ & 也写 $w_{it}=d_id_t$；$w_t$ 即生效期虚拟变量（effective date dummy）\\
+\end{longtable}}
+
+
+\subsection{动态面板：首期、工具矩阵与 FOD}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+自回归系数 & $\rho$ & $\alpha$ & — & —\\
+\addlinespace[1pt]
+个体效应 / 特异误差 & $\alpha_i$ / $u_{it}$ & $u_i$ / $\varepsilon_{it}$ & — & —\\
+\addlinespace[1pt]
+首期观测 & $y_{i0}$（共 $T+1$ 期） & $Y_{i1}$ & — & 以 $y_{i1}$ 为首期时，工具的时期编号整体平移一期\\
+\addlinespace[1pt]
+AB 工具矩阵 & $W_i$ & $\bm Z_i$ & — & 勿与 GMM 权重矩阵 $W$ 混淆\\
+\addlinespace[1pt]
+System GMM 初始条件偏离项 & $v_{i0}$ & — & — & 也写 $u_{i0}$\\
+\addlinespace[1pt]
+FOD 变量 & 前向均值 $\bar y^f_{it}$；变换后 $y^f_{it}$（含系数 $c_t$） & forward orthogonal transformation & — & 也写 $\tilde y^f$、$y^{FOD}$；名称是 Deviation，不是 Difference\\
+\addlinespace[1pt]
+FOD 第 $t$ 个方程的工具 & $Z_t=(Y_0,\dots,Y_{t-1})$（$N\times t$） & — & — & 以 $y_{i1}$ 为首期时写作 $(Y_{t-1},\dots,Y_1)$\\
+\end{longtable}}
+
+
+%======================================================================
+\section{因子模型（第 13–14 章）}\label{sec:UappD-factor}
+
+\subsection{纯因子模型与交互固定效应}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+纯因子模型 & $u_{it}=\lambda_i\T f_t+v_{it}$（数据 $U$，误差 $V$） & $X_i=\Lambda F_i+u_i$（$X_i$ 为 $k$ 个变量，$i$ 为观测） & — & 也写 $y_{it}=\lambda_i\T f_t+u_{it}$（数据 $Y$，误差 $U$）\\
+\addlinespace[1pt]
+因子 / 载荷矩阵 & $F$：$T\times r$；$\Lambda$：$N\times r$ & $\Lambda$：$k\times r$；$F_i$：$r\times 1$ & — & —\\
+\addlinespace[1pt]
+标准化 & $F\T F=I_r$ 或 $\frac1T F\T F=I_r$，$\Lambda\T\Lambda$ 对角 & $\frac1n\sum_i\hat F_i\hat F_i\T=I_r$ & — & —\\
+\addlinespace[1pt]
+候选最大因子数 & $k_{\max}$ & — & — & 也写 $G$、$M$\\
+\addlinespace[1pt]
+CCE：$y$ 方程 / $x$ 方程误差 & $v_{it}$ / $\varepsilon_{it}$ & — & — & 也写 $u_{it}$ / $v_{it}$；$x$ 方程的因子项为 $\Gamma_i\T f_t$\\
+\addlinespace[1pt]
+截面平均 & $\bar z_t=(\bar y_t,\bar x_t\T)\T$；$\bar Z$：$T\times(K+1)$ & — & — & —\\
+\end{longtable}}
+
+
+%======================================================================
+\section{处理效应（第 15–16 章）}\label{sec:UappD-te}
+
+\subsection{DiD 与交错处理}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+处理组虚拟变量 & $d_i$ & $\mathit{State}_i$ & “$\alpha_i=1$” & —\\
+\addlinespace[1pt]
+处理后（生效）虚拟变量 & $w_t$ & $\mathit{Time}_t$ & “$\lambda_t=1$” & 也写 $d_t$、$f_t$（effective date dummy）\\
+\addlinespace[1pt]
+处理指示 & $D_{it}=d_iw_t$ & $D_{it}$ & $D_{it}$ & 也写 $w_{it}=d_id_t$、$d_if_t$\\
+\addlinespace[1pt]
+DiD 系数 & $\beta$ & $\theta$ & $\beta$ & 也有记作 $\alpha$ 的\\
+\addlinespace[1pt]
+个体 / 时间固定效应 & $\alpha_i$ / $\lambda_t$ & $u_i$ / $v_t$ & $\alpha_i$ / $\lambda_t$ & 时间效应也写 $\gamma_t$、$f_t$\\
+\addlinespace[1pt]
+潜在结果 & $y_{it}(1)$，$y_{it}(0)$（简写 $y^1_{it}$，$y^0_{it}$） & $Y=h(D,X,e)$ & — & 注意：$y^g_p$ 一类写法中上标为组别、下标为时期，不是潜在结果\\
+\addlinespace[1pt]
+四格样本均值 & $\bar y_{dw}$（先组别后时期）：$\bar y_{00}$，$\bar y_{01}$，$\bar y_{10}$，$\bar y_{11}$ & — & $\bar Y_{C,0}$，$\bar Y_{C,1}$，$\bar Y_{T,0}$，$\bar Y_{T,1}$ & 也有记作格 A、B、C、D，或 $y^0_0,y^0_1,y^1_0,y^1_1$（上标组别、下标时期）\\
+\addlinespace[1pt]
+控制 / 处理单位数 & $N_0$ / $N_1$ & $N_1$ 控制、$N_2$ 处理 & $i=2$ 控制、$i=1$ 处理 & Hansen 的下标含义与本书\key{相反}\\
+\addlinespace[1pt]
+处理前 / 后期 & $1,\dots,T_0$ / $T_0+1,\dots,T$；$T_1=T-T_0$ & — & $t=0$ / $t=1$ & 事件研究中有时用 $T_0$ 指生效期\\
+\addlinespace[1pt]
+时变效应 & $\tau_t$ & — & — & 也写 $\beta_3,\beta_4,\beta_5$ 等\\
+\addlinespace[1pt]
+异质效应 & $\beta_i$（个体）、$\tau_{it}$（单元格） & — & $\beta_i$ & —\\
+\addlinespace[1pt]
+事件时间编号 & $e=t-E_i$；生效期 $e=0$，参照期 $e=-1$ & — & — & 也有把生效期系数记作 $\beta_1$（跳过 0）的写法\\
+\addlinespace[1pt]
+交错处理效应 & cohort $G_i=r$；$\tau_{rs}$（第一下标 cohort，第二下标日历期） & — & — & Callaway \& Sant'Anna 记为 $ATT(g,t)$，也写 $\tau_{g,t}$（$g=r$ 为 cohort，$t=s$ 为日历期）；$TE_t(r)$ 等写法的下标次序因作者而异，使用前先写定义\\
+\addlinespace[1pt]
+从未处理的潜在结果 & $y_{it}(\infty)$ & — & — & 也写 $y_t(\infty)$；写 $y_t(0)$ 时要说明 0 指“从未处理”\\
+\addlinespace[1pt]
+协变量斜率 & $\delta$ & $\beta$ & — & 也写 $\gamma$\\
+\end{longtable}}
+
+
+\subsection{合成控制与面板数据法}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{2.3cm}>{\raggedright\arraybackslash\small}p{3.7cm}>{\raggedright\arraybackslash\small}p{3.0cm}>{\raggedright\arraybackslash\small}p{2.2cm}>{\raggedright\arraybackslash\small}p{3.4cm}@{}}
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{含义} & \textbf{本书} & \textbf{Hansen (2022)} & \textbf{2025 真题} & \textbf{说明 / 其他常见写法}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+单位编号 & $i=1$ 处理，$j=2,\dots,N$ 控制 & — & — & 另一写法“$1+N$”：1 个处理单位 + $N$ 个控制单位\\
+\addlinespace[1pt]
+PDA 秩条件 & 控制单位载荷矩阵 $\Lambda$（$(N-1)\times r$）满足 $\rank\Lambda=r$，写作 $N-1>r$ & — & — & 用“$1+N$”编号时写作 $N>r$\\
+\addlinespace[1pt]
+无处理结果的因子模型 & $y^0_{it}=\lambda_i\T f_t+u_{it}$（$\lambda_i$ 为 $r\times 1$ 载荷） & — & — & —\\
+\addlinespace[1pt]
+个体处理效应 & $\Delta_t=y_{1t}-y^0_{1t}$；矩阵补全中为 $\Delta_{it}$ & — & — & —\\
+\end{longtable}}
+
+
+%======================================================================
+\section{易混符号与命名冲突}\label{sec:UappD-confuse}
+
+\subsection{一个符号、多种含义}
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{1.3cm}>{\raggedright\arraybackslash\small}p{10.0cm}>{\raggedright\arraybackslash\small}p{3.8cm}@{}}
+\toprule
+\textbf{符号} & \textbf{不同含义（出处）} & \textbf{如何区分}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{符号} & \textbf{不同含义（出处）} & \textbf{如何区分}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+$\lambda$ & $\lambda_t$：时间固定效应（第 10、15、17 章，2025 真题）；$\lambda_i$：因子载荷（第 13、14、16 章）；$\lambda_j$：特征值（第 1 章）；$\lambda$：拉格朗日乘子 & 看下标：$t$ 为时间效应，$i$ 为载荷\\
+\addlinespace[1pt]
+$f_t$ & 因子（第 13–16 章）；静态面板中有时用来表示时间效应；有时表示政策生效虚拟变量；2025 真题中为时间虚拟变量 & 本书：因子 $f_t$、时间效应 $\lambda_t$、生效虚拟变量 $w_t$、时间虚拟变量 $\text{year}_s$\\
+\addlinespace[1pt]
+$W$、$w$ & GMM 权重矩阵 $W$（$L\times L$）；AB 工具矩阵 $W_i$；处理后虚拟变量 $w_t$；TWFE 权重 $w_{it}$；SCM 权重 $w_j$；遗漏变量 $w_i$（第 7 章） & 看维度与下标\\
+\addlinespace[1pt]
+$\Omega$ & 得分方差 $\E(x_ix_i\T u_i^2)$（$K\times K$）；矩条件方差 $\E(z_iz_i\T u_i^2)$（$L\times L$）；$n\times n$ 误差协方差（第 4 章）；RE 的 $\Omega_v$（$T\times T$）；AB 的 $\E(W_i\T HW_i)$ & 看维度\\
+\addlinespace[1pt]
+$Q$ & $Q_{xx}=\E(x_ix_i\T)$（第 5 章；第 7 章简记 $Q$，$K\times K$）；$Q=\E(z_ix_i\T)$（第 8–9 章，$L\times K$）；双向组内变换 $Q=M_N\otimes M_T$（第 10、17 章，$NT\times NT$），非平衡时记 $Q_u$ & 看维度与章节\\
+\addlinespace[1pt]
+$M$ & 零化矩阵 $M_X$、$M_T$、$M_D$、$M_{\bar Z}$；$\E(z_iz_i\T)$（第 8 章记 $M$，也记 $M_{zz}$） & 看下标\\
+\addlinespace[1pt]
+$\rho$ & 动态面板自回归系数；残差相关系数 $\rho_{ij}$（截面相关检验）；控制函数系数（$u=\rho v+\eta$）；簇内相关（Moulton 因子）；Hansen 的 $1-\theta$ & 看上下文\\
+\addlinespace[1pt]
+$\theta$ & RE 准去均值参数；Hansen 第 18 章的 DiD 系数；AH 的参数向量 $(\rho,\beta\T)\T$；一般参数 & 看章节\\
+\addlinespace[1pt]
+$\alpha$ & 个体效应 $\alpha_i$；显著性水平 $\alpha$；有时用作 DiD 系数；Hansen 动态面板的自回归系数 & 看下标与章节\\
+\addlinespace[1pt]
+$e$ & Hansen 的误差 $e_i$；事件时间 $e$；测量误差 $e_x$、$e_y$；PCA 特征值 $e_k$ & 看上下文\\
+\addlinespace[1pt]
+$v$ & CEF 误差（有时记 $v_i$）；RE 复合误差 $v_{it}$；因子模型特异误差 $v_{it}$；第一阶段误差 $v$；System GMM 初始偏离 $v_{i0}$ & 看下标\\
+\addlinespace[1pt]
+$d$ & 处理组虚拟变量 $d_i$；个体虚拟变量 $d_j$；生效虚拟变量（有时记 $d_t$）；cohort 虚拟变量 $d_{ir}$；Stata 中 \texttt{d.} 为差分算子 & \texttt{d.f} 不是交互项\\
+\addlinespace[1pt]
+$T_0$ & 本书：最后一个处理前期；部分事件研究文献中指生效期 & 先写定义\\
+\addlinespace[1pt]
+上标 & 潜在结果 $y^1$、$y^0$；组别（$y^g_p$：上标组别、下标时期）；$y^*$：真值（测量误差）；$y^f$：FOD 变换 & 先写定义\\
+\end{longtable}}
+
+
+\subsection{缩写与命名冲突}
+
+\subsubsection{SSE 与 SSR}
+Wooldridge 等教材中 SSE = 解释平方和、SSR = 残差平方和（本书同此）；Hansen 的 SSE = 残差平方和（sum of squared errors）；还有部分教材用 SSR 表示回归平方和。英文作答第一次出现时写全称，例如 “the residual sum of squares $SSR=\sum_i\hat u_i^2$”。
+
+\subsubsection{\texorpdfstring{$K$}{K} 是否含截距}
+本书 $K$ 含截距，残差自由度为 $n-K$；若 $K$ 只计斜率个数，则写成 $n-K-1$。不论哪种写法，$F$ 检验的分母自由度 = 样本量 $-$ 无约束模型的系数总数。
+
+\subsubsection{FOD、GMM、RCM 的全称}
+\begin{itemize}
+  \item FOD：Forward Orthogonal \key{Deviation}（前向正交离差），不是 Difference。
+  \item GMM：\key{Generalized}（不是 General）Method of Moments。
+  \item RCM：回归控制法（regression control method），即面板数据法 PDA。
+\end{itemize}
+
+\subsubsection{\texorpdfstring{$CD$ 与 $CD^*$}{CD 与 CD*}}
+平方相关系数之和 $T\sum_{i<j}\hat\rho_{ij}^2$ 是 Breusch–Pagan LM 统计量，不应称作 CD；求和只取 $j>i$（每一对 $(i,j)$ 只算一次）。本书 $CD$ 专指 Pesaran 的
+\[
+CD=\sqrt{\frac{2T}{N(N-1)}}\sum_{i<j}\hat\rho_{ij},
+\]
+$CD^*$ 为标准化的 LM 统计量。
+
+\subsubsection{Wooldridge 扩展 TWFE 的年份与命令名}
+Wooldridge 的论文“Two-Way Fixed Effects, the Two-Way Mundlak Regression, and Difference-in-Differences Estimators”2021 年起以工作论文形式流传，2025 年发表于 \textit{Empirical Economics}；文献中写 Wooldridge (2021) 或 Wooldridge (2025) 指的是同一篇。其扩展 TWFE 对每个 cohort$\times$处理后时期设一个交互项，从而允许处理效应随 cohort 与时期异质（第 15 章）。对应的 Stata 用户命令为 \texttt{jwdid}（Rios-Avila），另有 \texttt{wooldid}（见附录 B）。
+
+\begin{english}
+\begin{itemize}
+  \item Throughout, $i=1,\dots,N$ indexes individuals and $t=1,\dots,T$ indexes time periods.
+  \item Here $\alpha_i$ denotes the unobserved individual effect, $\lambda_t$ the time effect, and $u_{it}$ the idiosyncratic error.
+  \item Let $\bar y_{i\cdot}=T^{-1}\sum_{t=1}^T y_{it}$ denote the time average for individual $i$, and let $M_T=I_T-T^{-1}\one_T\one_T\T$ denote the demeaning matrix.
+  \item We use $SSR=\sum_{i=1}^n\hat u_i^2$ for the residual sum of squares, and $K$ denotes the number of regressors including the intercept.
+  \item To keep the notation of the question, we write $\epsilon_{it}$ for the idiosyncratic error and $\ddot x_{it}$ for the two-way demeaned regressor.
+\end{itemize}
+\end{english}
+
+%======================================================================
+\section{主题—本书章节—Hansen 章节对照}\label{sec:UappD-map}
+
+\subsection{各主题在本书与 Hansen (2022) 中的位置}
+
+读 Hansen 原文核对定理条件或补充例子时，用下表定位。Hansen 的记号与本书的差异见本附录前几节。
+
+{\renewcommand{\arraystretch}{1.15}\begin{longtable}{@{}>{\raggedright\arraybackslash\small}p{6.6cm}>{\raggedright\arraybackslash\small}p{2.6cm}>{\raggedright\arraybackslash\small}p{6.2cm}@{}}
+\toprule
+\textbf{主题} & \textbf{本书} & \textbf{Hansen (2022)}\\
+\midrule
+\endfirsthead
+\toprule
+\textbf{主题} & \textbf{本书} & \textbf{Hansen (2022)}\\
+\midrule
+\endhead
+\bottomrule
+\endlastfoot
+条件期望、线性投影、OLS 的代数与几何、有限样本性质与正态回归 MLE & 第 2–4 章 & 第 2–5 章\\
+\addlinespace[1pt]
+大样本理论、稳健 / 聚类标准误、$t$、$F$ 与 Wald 检验 & 第 5–6 章 & 第 4 章（聚类抽样 §4.22–4.24）、第 6、7、9 章\\
+\addlinespace[1pt]
+内生性的来源（遗漏变量、测量误差、联立性） & 第 7 章 & 第 12 章（§12.3 例子）\\
+\addlinespace[1pt]
+IV、2SLS、GMM 与三大检验（相关性、内生性、过度识别） & 第 8–9 章 & 第 12–13 章\\
+\addlinespace[1pt]
+静态面板：FE、LSDV、TWFE、RE、Hausman 检验、FEF & 第 10–11 章 & 第 17 章（§17.1–17.35）\\
+\addlinespace[1pt]
+动态面板：Nickell 偏误、Anderson–Hsiao、Arellano–Bond、Blundell–Bond、FOD & 第 12 章 & §17.36–17.44\\
+\addlinespace[1pt]
+截面相关、因子模型与主成分分析 & 第 13 章 & §11.11–11.16\\
+\addlinespace[1pt]
+交互固定效应（Bai、CCE）与截面相关检验 & 第 14 章 & 未专门讨论；§11.15（含其他回归元的因子模型）思路相近\\
+\addlinespace[1pt]
+DiD、事件研究与交错处理 & 第 15 章 & 第 18 章\\
+\addlinespace[1pt]
+合成控制、面板数据法与矩阵补全 & 第 16 章 & —\\
+\addlinespace[1pt]
+2025 年春季真题 & 第 17 章 & —\\
+\end{longtable}}

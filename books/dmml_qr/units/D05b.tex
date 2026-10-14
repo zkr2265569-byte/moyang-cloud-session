@@ -1,0 +1,257 @@
+% ======================================================================
+% 单元 D05b：第 5 章后半 —— 降维（PCA/SVD/t-SNE）、关联规则、异常检测与推荐、
+%            机器学习 × 经济金融（DML、因果森林、资产定价、文本、样本外检验、可解释性）、本章综合
+% ======================================================================
+\renewcommand{\arraystretch}{1.08}
+\section{降维：主成分分析、奇异值分解与 t-SNE}
+
+\subsection{维数灾难：稀疏、距离趋同、样本量指数增长}
+\term{维数灾难}{curse of dimensionality}：(1) \key{稀疏}：$[0,1]^p$ 均匀数据中框住 10\% 样本的立方体边长 $0.1^{1/p}$（$p=10$ 时 0.794，KNN 等局部方法失效）；(2) \key{距离趋同}：最近／最远距离之比 $\to1$；(3) \key{样本量指数增长}：每维 10 格需 $10^p$ 格。降维用于可视化、去噪、减计算、缓解共线性、防过拟合；分\key{特征选择}（保留部分原属性）与\key{特征提取}（构造新属性，如 PCA）。
+
+\subsection{PCA：最大投影方差 \texorpdfstring{$\Leftrightarrow$}{<=>} 最小重构误差，推导 \texorpdfstring{$Sw=\lambda w$}{Sw = lambda w}}
+\term{主成分分析}{principal component analysis, PCA}：找正交新轴，第 1 轴投影方差最大，第 $k$ 轴在与前 $k-1$ 轴正交下方差最大，留前 $r$ 轴。单位 $w$、中心化 $x$：$\|x-ww^\top x\|^2=\|x\|^2-(w^\top x)^2$ $\Rightarrow$ \key{重构误差最小 $\Leftrightarrow$ 投影方差最大}。$X\in\R^{n\times p}$ 已中心化（每行一个样本），$S=\frac1{n-1}X^\top X$，得分 $z=Xw$：
+\begin{align*}
+\Var(z)&=\tfrac1{n-1}z^\top z=w^\top Sw \why{中心化后 $\bar z=0$}\\
+L&=w^\top Sw-\lambda(w^\top w-1)\ \Rightarrow\ 2Sw-2\lambda w=0\ \Rightarrow\ Sw=\lambda w \why{约束 $w^\top w=1$，否则 $\|w\|\to\infty$}\\
+\Var(z)&=w^\top(\lambda w)=\lambda \why{投影方差 = 特征值}
+\end{align*}
+\key{结论}：$S=W\Lambda W^\top$，$\lambda_1\ge\dots\ge\lambda_p\ge0$；第 $k$ 主成分方向 = 第 $k$ 大特征值的单位特征向量 $w_k$，得分 $z_{ik}=w_k^\top x_i$，方差 $\lambda_k$，各主成分\key{互不相关}；\key{总方差守恒} $\sum_k\lambda_k=\tr S=\sum_js_{jj}$；前 $r$ 个主成分子空间重构误差最小，最小误差平方和 $(n-1)\sum_{k>r}\lambda_k$（旋转不丢信息，截断才丢）。
+
+\subsection{PCA 算法五步与 \texorpdfstring{$2\times2$}{2x2} 手算公式}
+(1) 中心化（必要时标准化）；(2) $S=\frac1{n-1}X^\top X$（标准化后为相关矩阵 $R$）；(3) 特征分解、降序；(4) 选 $r$；(5) $W_r=[w_1,\dots,w_r]$，得分 $Z=XW_r$（$n\times r$），重构 $\hat X=ZW_r^\top+\bar x$。\key{$2\times2$}：$\lambda_{1,2}=\frac12\big[\tr S\pm\sqrt{(\tr S)^2-4\det S}\big]$，方向由 $(s_{11}-\lambda)w_1+s_{12}w_2=0$ 解出再单位化（符号任意）；$s_{11}=s_{22}$ 时方向为 $(1,\pm1)^\top/\sqrt2$。示意：$(1,2),(2,1),(3,4),(4,3),(5,5)$，$\bar x=(3,3)$，$S=\bigl(\begin{smallmatrix}2.5&2\\2&2.5\end{smallmatrix}\bigr)$，$\lambda=4.5,0.5$，$w_1=(1,1)^\top/\sqrt2$，贡献率 90\%，第 1 点得分 $-3/\sqrt2=-2.121$，PC1 重构误差平方和 $(n-1)\lambda_2=2$。
+
+\subsection{贡献率、碎石图、Kaiser 准则、载荷；协方差还是相关矩阵}
+贡献率 $\lambda_k/\sum_j\lambda_j$，累计贡献率 $\sum_{k\le r}\lambda_k/\sum_j\lambda_j$。选 $r$：累计达 80\%–90\%；\key{Kaiser}：相关矩阵 PCA 保留 $\lambda_k>1$（不如一个标准化原变量者舍去）；\key{碎石图}（$k$–$\lambda_k$）取由陡变平的拐点（同肘部法）；主成分回归用交叉验证；计量因子个数用 Bai–Ng（2002）信息准则。\term{载荷}{loading}：$w_k$ 的分量；相关矩阵 PCA 中 $\Corr(x_j,z_k)=w_{jk}\sqrt{\lambda_k}$；PC1 载荷同号且相近 $\Rightarrow$ “整体水平”（个股收益 PC1 ≈ 市场因子）。\key{PCA 依赖尺度}：量纲不同或方差悬殊 $\Rightarrow$ 标准化（对 $R$ 做）；量纲相同且方差差异有意义（同市场个股收益）$\Rightarrow$ 协方差矩阵；两者\key{不能互相换算}。示意：$S=\bigl(\begin{smallmatrix}5&2\\2&2\end{smallmatrix}\bigr)$：$\lambda=6,1$，PC1 $=(2,1)^\top/\sqrt5$（85.7\%）；相关矩阵 $r=0.632$，PC1 $=(1,1)^\top/\sqrt2$（81.6\%）。\textbf{易错}：sklearn \texttt{PCA} 只中心化不标准化。
+
+\subsection{PCA 与 SVD：\texorpdfstring{$\lambda_k=\sigma_k^2/(n-1)$}{lambda_k = sigma_k^2/(n-1)}，Eckart–Young 最优低秩逼近}
+\term{奇异值分解}{SVD}：任意 $X\in\R^{n\times p}$，$X=U\Sigma V^\top$，$U$（$n\times n$）、$V$（$p\times p$）正交，$\Sigma$ 对角元 $\sigma_1\ge\sigma_2\ge\dots\ge0$ 为奇异值，$V$／$U$ 的列为右／左奇异向量。$X$ 中心化时 $(n-1)S=X^\top X=V(\Sigma^\top\Sigma)V^\top$ $\Rightarrow$ \key{方向 $=V$ 的列，$\lambda_k=\sigma_k^2/(n-1)$，得分 $Z=XV=U\Sigma$}；反之 $\sigma_k=\sqrt{(n-1)\lambda_k}$。实践中用 SVD 算 PCA（不显式构造 $X^\top X$，更稳）。\key{Eckart–Young}：Frobenius 范数下秩 $\le r$ 的最优逼近为截断 SVD $X_r=\sum_{k\le r}\sigma_ku_kv_k^\top$，$\|X-X_r\|_F^2=\sum_{k>r}\sigma_k^2$。用途：LSA（文档–词矩阵截断 SVD）、推荐矩阵分解、稀疏矩阵用 \texttt{TruncatedSVD}（不中心化保稀疏）。
+
+\subsection{PCA 与计量因子模型、因子分析、PCR 与 PLS}
+因子模型 $Y=\Lambda F'+U$（$Y$：$N\times T$），$F'F=I_r$ 下 $\hat F$ = $Y'Y$ 前 $r$ 大特征向量，$\hat\Lambda=Y\hat F$。令 $X=Y'$（$T$ 期为样本、$N$ 个变量）：
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.3cm}LL@{}}
+\toprule
+ & 机器学习 PCA & 计量因子模型 PCA\\
+\midrule
+分解对象 & $X^\top X$ 的特征向量 $=V$ & $Y'Y=XX^\top$ 的特征向量 $=U$\\
+方向／载荷；得分／因子 & $W_r=V_r$；$Z=XV_r=U_r\Sigma_r$ & $\hat\Lambda=X^\top U_r=V_r\Sigma_r$；$\hat F=U_r$\\
+共同成分 & $ZW_r^\top=U_r\Sigma_rV_r^\top$ & $(\hat\Lambda\hat F')'=U_r\Sigma_rV_r^\top$（相同）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+差别只在 $\Sigma_r$ 归载荷还是得分（\key{旋转／尺度不定性}）。区别：(1) ML 作描述性降维；计量视为含特质误差的模型，研究 $N,T\to\infty$ 的一致性与渐近分布（Bai 2003）及因子个数（Bai–Ng 2002）。(2) \key{因子分析}：$\Sigma=\Lambda\Lambda^\top+\Psi$（$\Psi$ 对角，特质方差），极大似然估计，区分共同／特质方差；PCA 不区分，$N$ 大时趋同。(3) \key{主成分回归 PCR}（扩散指数，Stock–Watson 2002）选成分\key{不看 $y$}；\key{偏最小二乘 PLS} 找与 $y$ 协方差最大的方向（有监督降维）。
+
+\subsection{PCA 优缺点与扩展；t-SNE 非线性可视化}
+\key{优}：无参数、一次 SVD、主成分不相关（消共线性）、最优线性压缩、去噪。\key{缺}：只捕捉线性；对尺度与离群点敏感；含义可能不清；无监督（方差大 $\ne$ 与目标相关）。\key{扩展}：核 PCA、稀疏 PCA（L1 载荷）、鲁棒 PCA（低秩 + 稀疏）、LDA（有监督；勿与主题模型 LDA 混淆）、\term{自编码器}{autoencoder}（单隐层线性自编码器与 PCA 张成相同子空间；条件自编码器资产定价，Gu–Kelly–Xiu 2021）。
+
+\noindent\term{t-SNE}{t-distributed stochastic neighbor embedding}（van der Maaten–Hinton 2008）：嵌入 2–3 维可视化，保持\key{局部}邻居关系。高维 $p_{j|i}=\frac{\exp(-\|x_i-x_j\|^2/2\sigma_i^2)}{\sum_{k\ne i}\exp(-\|x_i-x_k\|^2/2\sigma_i^2)}$，$p_{ij}=\frac{p_{j|i}+p_{i|j}}{2n}$；低维用自由度 1 的 Student-t 核 $q_{ij}=\frac{(1+\|y_i-y_j\|^2)^{-1}}{\sum_{k\ne l}(1+\|y_k-y_l\|^2)^{-1}}$（厚尾缓解\key{拥挤问题}）；梯度下降 $\min\mathrm{KL}(P\|Q)=\sum_{i\ne j}p_{ij}\log\frac{p_{ij}}{q_{ij}}$（对“高维近、低维远”罚得重 $\Rightarrow$ 保局部）。$\sigma_i$ 由\key{困惑度}（$2^{H(P_i)}$，有效邻居数，常 5–50）定。\textbf{易错}：只用于可视化，不宜作后续特征；簇大小与簇间距离无意义；结果随机（困惑度、种子）；不能变换新样本；$O(n^2)$（Barnes–Hut $O(n\log n)$），常先 PCA 到约 50 维。UMAP 更快、更保全局结构。
+
+\subsection{sklearn 代码：PCA、SVD、TruncatedSVD、TSNE}
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.decomposition import PCA, TruncatedSVD; from sklearn.manifold import TSNE
+pca = PCA(n_components=2).fit(X)    # 只中心化；explained_variance_ 为特征值（除以 n-1）
+pca.explained_variance_ratio_; pca.components_     # 贡献率；每行一个方向（符号任意）
+Z = pca.transform(X); Xhat = pca.inverse_transform(Z); PCA(n_components=0.90)  # 保留 90% 方差
+U, s, Vt = np.linalg.svd(X - X.mean(0), full_matrices=False)   # s**2/(n-1) = 特征值
+TruncatedSVD(n_components=100).fit_transform(X_tfidf)            # LSA
+emb = TSNE(n_components=2, perplexity=30, random_state=0).fit_transform(X)  # perplexity < n
+\end{lstlisting}
+\textbf{易错判断}：“主成分一定对预测有用”——错（无监督）；PCA vs t-SNE：线性／非线性、保全局方差／保局部邻域、可／不可 \texttt{transform} 新样本。
+
+% ======================================================================
+\section{关联规则挖掘：Apriori 与 FP-growth}
+
+\subsection{购物篮分析：项、项集、事务、支持度计数、关联规则}
+\term{购物篮分析}{market basket analysis}：“买 A 的也常买 B”（金融：交叉销售、风险事件共现）。\term{项}{item}，全集 $I$；\term{项集}{itemset}（$k$-项集）；\term{事务}{transaction} $t\subseteq I$，事务库 $T$；\term{支持度计数}{support count} $\sigma(X)$ = 包含 $X$ 的事务数；\term{关联规则}{association rule} $A\Rightarrow B$：$A,B$ 非空、$A\cap B=\varnothing$（前件、后件）。
+
+\subsection{支持度、置信度、强规则、提升度与其他兴趣度度量}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.4cm}p{5.4cm}L@{}}
+\toprule
+支持度 & $P(A\cup B)=\sigma(A\cup B)/|T|$ & 普遍性；$\ge$ min\_sup 的项集为\key{频繁项集}\\
+置信度 & $P(B\mid A)=\sigma(A\cup B)/\sigma(A)$ & 可靠性；同时 $\ge$ min\_sup、min\_conf 为\key{强规则}\\
+提升度 lift & $\frac{\mathrm{conf}(A\Rightarrow B)}{\mathrm{supp}(B)}=\frac{P(A\cup B)}{P(A)P(B)}$ & $>1$ 正相关，$=1$ 独立（无信息），$<1$ 负相关；对称\\
+杠杆度；确信度 & $P(A\cup B)-P(A)P(B)$；$\frac{1-\mathrm{supp}(B)}{1-\mathrm{conf}(A\Rightarrow B)}$ & 杠杆 $>0$ 正相关；确信度 $=1$ 独立\\
+零不变度量 & 全置信度 $\frac{\sigma(A\cup B)}{\max\{\sigma(A),\sigma(B)\}}$，Kulczynski $\frac12[P(A|B)+P(B|A)]$，余弦 $\frac{P(A\cup B)}{\sqrt{P(A)P(B)}}$ & lift、$\chi^2$ 受零事务（都不含 $A,B$）影响，零事务多时用这些\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错}：$P(A\cup B)$ 指事务\key{同时包含} $A$、$B$ 的所有项（项集的并 = 事件的交）。置信度高未必有用：1000 人中 600 持基金 $F$、800 持理财 $W$、450 两者都有：$F\Rightarrow W$ 支持度 45\%、置信度 75\%，但 $P(W)=0.8$，lift $=0.9375<1$（负相关）。
+
+\subsection{Apriori 性质与 Apriori 算法：连接、剪枝、扫描计数}
+两步：(1) 找全部频繁项集（$2^m-1$ 个候选，难点）；(2) 由频繁项集生成强规则。\key{Apriori 性质}（反单调、向下闭包）：频繁项集的非空子集都频繁；非频繁项集的超集都非频繁（$X\subseteq Y\Rightarrow\sigma(Y)\le\sigma(X)$）。\key{算法}（Agrawal–Srikant 1994）：扫描得 $C_1\to L_1$；对 $k=2,3,\dots$：(a) \key{连接} $L_{k-1}\bowtie L_{k-1}$：字典序下\key{前 $k-2$ 项相同、末项不同}者合并；(b) \key{剪枝}：某 $(k-1)$-子集不在 $L_{k-1}$ 中则删（不扫描）；(c) \key{扫描计数}得 $L_k$；$L_k$ 空时停，频繁项集 $=\bigcup_kL_k$。示意：$L_2=\{AB,AC,AE,CE\}$ $\to$ 连接 $ABC,ABE,ACE$ $\to$ 剪枝删 $ABC$（$BC\notin L_2$）、$ABE$（$BE\notin L_2$）$\to C_3=\{ACE\}$。2-项集候选无需剪枝。
+
+\subsection{由频繁项集生成强规则；Apriori 的瓶颈与改进}
+对频繁项集 $l$ 的每个非空真子集 $s$：$s\Rightarrow(l-s)$，置信度 $\sigma(l)/\sigma(s)$（自动满足支持度，无需再扫描；$k$-项集有 $2^k-2$ 条）。\key{剪枝}：后件越大置信度越低，$s\Rightarrow l-s$ 不满足则把 $s$ 的项再挪到后件也不满足。示意：$\sigma(ACE)=\sigma(C)=\sigma(AE)=3$，$|T|=6$：$C\Rightarrow AE$ 置信度 1、lift $=1/(3/6)=2$。\key{瓶颈}：候选极多（$10^4$ 个频繁 1-项集 $\to$ 约 $5\times10^7$ 个候选 2-项集）；每层扫描一次。\key{改进}：散列（桶计数不足的 2-项集排除）、事务压缩、划分（局部频繁项集之并为全局候选，两次扫描）、抽样（降低阈值）、动态项集计数。
+
+\subsection{FP-growth：FP 树、项头表、条件模式基与条件 FP 树}
+FP-growth（Han–Pei–Yin 2000）：\key{只扫描两次、不产生候选}。(1) 第一次扫描：删非频繁项，频繁项按支持度\key{降序}（项头表）；(2) 第二次扫描：每条事务按此序插入\term{FP 树}{frequent-pattern tree}，前缀相同共享节点、计数加 1，项头表用\key{节点链}串同名节点；(3) 从项头表\key{最底部}的项 $a$ 起：沿节点链取 $a$ 的前缀路径（计数取 $a$ 节点计数）得\term{条件模式基}{conditional pattern base} $\to$ 删计数不足项得条件 FP 树 $\to$ 递归挖掘，模式加后缀 $a$。示意：$C$ 的条件模式基 $\{A,B,E\}{:}1,\{A,E\}{:}2$ $\to\langle A{:}3,E{:}3\rangle$（$B$ 仅 1，删）$\to AC,EC,AEC$（均 3）。\key{比较}：Apriori 逐层“生成候选 + 测试”，扫描次数 $\ge$ 最长模式长度；FP-growth 在长模式、稠密数据时快得多，但 FP 树可能很大、内存高、递归复杂。
+
+\subsection{闭频繁项集与极大频繁项集；mlxtend 实现}
+\term{闭频繁项集}{closed frequent itemset}：频繁且无\key{支持度相同}的真超集，可恢复全部频繁项集\key{及支持度}（无损）。\term{极大频繁项集}{maximal frequent itemset}：频繁且无\key{频繁}真超集，不能恢复支持度（有损）。极大 $\subseteq$ 闭 $\subseteq$ 频繁。示意：$A(5),B(4),C(3),E(4),AB(3),AC(3),AE(3),CE(3),ACE(3)$：闭为 $A,B,E,AB,ACE$；极大为 $AB,ACE$。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from mlxtend.preprocessing import TransactionEncoder      # sklearn 无关联规则模块
+from mlxtend.frequent_patterns import apriori, fpgrowth, association_rules
+te = TransactionEncoder(); df = pd.DataFrame(te.fit(T).transform(T), columns=te.columns_)  # T: 事务列表
+freq = apriori(df, min_support=0.5, use_colnames=True)          # 或 fpgrowth(...)
+rules = association_rules(freq, metric="confidence", min_threshold=0.8)  # 0.23.2-0.23.3 版另需 num_itemsets=len(df)
+rules[["antecedents", "consequents", "support", "confidence", "lift"]]
+\end{lstlisting}
+注意：阈值太高漏稀有高价值规则、太低规则爆炸；\key{关联不等于因果}（可能都由收入驱动）；数值属性先离散化；结合提升度筛选。
+
+% ======================================================================
+\section{异常检测与推荐系统}
+
+\subsection{三类离群点与检测方法分类；统计方法（Grubbs、马氏距离）}
+\key{全局离群点}（偏离整个数据集）；\key{情境离群点}（特定情境下异常：28℃ 在冬天；需区分情境属性与行为属性）；\key{集体离群点}（单个正常、一组出现才异常：一批账户几分钟内互转洗钱）。按标签：有监督（极不平衡分类）、半监督（只有正常样本，如 One-Class SVM）、无监督（最常见）。\key{统计方法}：(1) 一元：z-score（3$\sigma$）或 \key{Grubbs} $G=\max_i|x_i-\bar x|/s$，与 $\frac{n-1}{\sqrt n}\sqrt{\frac{t^2}{n-2+t^2}}$（$t=t_{\alpha/(2n),n-2}$）比较，超过则删最可疑点后重复；(2) 多元：$D^2=(x-\bar x)^\top S^{-1}(x-\bar x)\overset{a}{\sim}\chi^2_p$，$D^2>\chi^2_{p,0.975}$ 判离群，能识别违背相关结构的点（很矮却很重），为免\key{掩蔽效应}用稳健 MCD 估计（\texttt{EllipticEnvelope}）；(3) 非参数：直方图、箱线图／IQR、核密度。
+
+\subsection{基于距离 DB\texorpdfstring{$(r,\pi)$}{(r,pi)} 与局部离群因子 LOF}
+\key{基于距离}：半径 $r$ 邻域内对象比例 $\le\pi$ 为 DB$(r,\pi)$ 离群点，或以第 $k$ 近邻距离为分数；全局统一阈值，密度不同的簇下误判稀疏簇正常点、漏判密集簇旁的点。\term{LOF}{local outlier factor}（Breunig 等 2000）：$k$-距离 $\mathrm{dist}_k(o)$ = 到第 $k$ 近邻的距离，$N_k(o)$ = 距离 $\le\mathrm{dist}_k(o)$ 的其他点；可达距离 $\mathrm{reachdist}_k(o\leftarrow o')=\max\{\mathrm{dist}_k(o'),d(o,o')\}$（离 $o'$ 太近时用其 $k$-距离代替，平滑）；
+\[\mathrm{lrd}_k(o)=\Big[\tfrac{\sum_{o'\in N_k(o)}\mathrm{reachdist}_k(o\leftarrow o')}{|N_k(o)|}\Big]^{-1},\quad \mathrm{LOF}_k(o)=\tfrac1{|N_k(o)|}\sum_{o'\in N_k(o)}\tfrac{\mathrm{lrd}_k(o')}{\mathrm{lrd}_k(o)}.\]
+$\approx1$ 正常；$\gg1$ 比邻居稀疏得多（\key{局部}离群）。示意（$k=2$，$\{1,2,3,4,10\}$）：$\mathrm{reachdist}(10\leftarrow4)=\max(2,6)=6$，$\mathrm{reachdist}(10\leftarrow3)=\max(1,7)=7$，$\mathrm{lrd}(10)=1/6.5$；其余 lrd $=2/3$，$\mathrm{LOF}(10)=\frac23\times6.5=4.33$，其余为 1。
+
+\subsection{孤立森林：路径长度与异常分数 \texorpdfstring{$s=2^{-E[h(x)]/c(\psi)}$}{s = 2^(-E[h]/c(psi))}}
+\term{孤立森林}{isolation forest}（Liu–Ting–Zhou 2008）：异常点“少而不同”，随机切分几刀即被孤立。无放回抽 $\psi$ 个样本（默认 256），随机选属性、在其最小值与最大值间随机切分，递归至单样本或高度上限；建 $t$ 棵（默认 100）。路径长度 $h(x)$ = 根到叶的边数，异常点 $E[h(x)]$ 短。
+\[s(x,\psi)=2^{-E[h(x)]/c(\psi)},\qquad c(n)=2H(n-1)-\tfrac{2(n-1)}n,\quad H(i)\approx\ln i+0.5772,\]
+$c(n)$ 为二叉搜索树不成功查找的平均路径长（归一化）。$s\to1$ 异常；$s$ 明显 $<0.5$ 正常；全部 $\approx0.5$ 无明显异常。示意：$c(256)=10.24$，$E[h]=4\Rightarrow s=0.763$。优：线性时间、内存小、适合高维大数据、无需距离；缺：只做平行坐标轴切分，对局部异常不如 LOF。
+
+\subsection{其他异常检测方法与经济金融应用}
+基于聚类（DBSCAN 噪声点、远离簇中心、属于很小的簇）；One-Class SVM；自编码器（重构误差大者）。应用：信用卡欺诈与反洗钱、异常交易与市场操纵、财务舞弊识别（Bao 等 2020 JAR，集成学习）、宏观数据清洗；异常罕见，评价不能只看准确率。
+
+\subsection{推荐系统：基于内容 vs 协同过滤；基于用户的 CF}
+\key{基于内容}：物品属性匹配用户画像；\term{协同过滤}{collaborative filtering, CF}：只用“用户—物品”评分矩阵。\key{基于用户}：(1) 共同评分物品上算相似度：余弦或 \key{Pearson}（先减各自均值，消除打分偏高／偏低）；(2) 取对 $i$ 评过分的最相似 $K$ 个邻居 $N(u)$；(3) $\hat r_{ui}=\bar r_u+\frac{\sum_{v\in N(u)}\mathrm{sim}(u,v)(r_{vi}-\bar r_v)}{\sum_{v\in N(u)}|\mathrm{sim}(u,v)|}$。示意：$\mathrm{sim}=0.853,0.707$，邻居 $r_{vi}-\bar r_v=0.6,1.2$，$\bar r_u=4$：$\hat r=4+\frac{0.853\times0.6+0.707\times1.2}{1.560}=4.87$。\textbf{易错}：评分全为正时余弦普遍偏大（口味相反的用户余弦 0.797、Pearson $-0.792$），宜用 Pearson（中心化余弦）。
+
+\subsection{基于物品的 CF、矩阵分解（隐因子模型）与推荐难点}
+\key{基于物品}：相似度用\key{调整余弦}（减用户均值），$\hat r_{ui}=\frac{\sum_{j\in N(i)}\mathrm{sim}(i,j)r_{uj}}{\sum_{j\in N(i)}|\mathrm{sim}(i,j)|}$；比用户相似度稳定、可离线预计算，电商常用。\key{矩阵分解}：$R\approx PQ^\top$（用户／物品 $\times$ 隐因子），只在\key{已观测}评分上 $\min\sum_{(u,i)}(r_{ui}-p_u^\top q_i)^2+\lambda(\|p_u\|^2+\|q_i\|^2)$，ALS 或 SGD 求解；同截断 SVD、因子模型、矩阵补全（Netflix 大奖赛）。难点：\key{冷启动}（借助内容信息）、稀疏、可扩展、流行度偏差与信息茧房。金融：基金理财推荐、智能投顾。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.neighbors import LocalOutlierFactor; from sklearn.ensemble import IsolationForest
+lof = LocalOutlierFactor(n_neighbors=2).fit(X); -lof.negative_outlier_factor_   # LOF；新样本需 novelty=True
+iso = IsolationForest(n_estimators=100, contamination=0.01, random_state=0).fit(X)  # max_samples=min(256,n)
+iso.predict(X); -iso.score_samples(X)    # -1 = 异常；score_samples 返回 -s；contamination 定阈值
+from sklearn.covariance import EllipticEnvelope; EllipticEnvelope(contamination=0.05)  # 稳健马氏距离
+sim = R.T.corr()     # R: 用户 x 物品 DataFrame（缺失 NaN），用户间 Pearson
+\end{lstlisting}
+
+% ======================================================================
+\section{机器学习 × 经济金融研究}
+
+\subsection{Mullainathan–Spiess（2017）：ML 系数不能当参数估计；ML 的四类用途}
+核心：ML 擅长 $\hat y$、不擅长 $\hat\beta$。\key{三条理由}：(1) 特征相关时许多系数组合预测几乎相同，正则化挑哪个取决于惩罚形式与数据扰动（Lasso 预测房价：不同子样本选中的变量差异很大、精度相近）$\Rightarrow$ “被选中／系数为正”不能解释为经济关系；(2) 正则化有意引入偏差，系数有偏且无现成标准误；(3) 不处理识别（遗漏变量、反向因果、选择偏差）。\key{四类用途}：(1) \key{预测政策问题}（Kleinberg 等 2015）：决策只依赖预测（髋关节手术看死亡率、保释看再犯风险、放贷看违约概率）；(2) \key{构造变量}（卫星图像测贫困、文本情绪／不确定性指数）；(3) \key{计量中的预测子任务}：IV 第一阶段（Lasso 选工具，Belloni 等 2012；同样本过拟合使 2SLS 偏向 OLS，需样本分割／交叉拟合）、倾向得分、高维控制变量、$E[Y|X]$ 与 $E[D|X]$；(4) \key{检验理论与可预测性}（有效市场 = 收益不可预测；ML 精度作解释力上限基准）。
+
+\subsection{高维控制变量：单次选择的偏误与后双重选择}
+$y_i=\alpha d_i+x_i^\top\beta+\varepsilon_i$，$p$ 大（甚至 $p>n$）。\textbf{易错}：Lasso 对 $(d,x)$ 回归再 OLS（单次选择）会剔除与 $d$ 高度相关、对 $y$ 效应中等的 $x_j$ $\Rightarrow$ 遗漏变量偏误，且 $\hat\alpha$ 非正态、$t$ 检验失效。\term{后双重选择}{post-double-selection}（Belloni–Chernozhukov–Hansen 2014）：(1) Lasso $y$ 对 $x$ 得 $\hat I_1$；(2) Lasso $d$ 对 $x$ 得 $\hat I_2$；(3) OLS $y$ 对 $d$ 与 $\hat I_1\cup\hat I_2$，稳健标准误推断 $\alpha$。第 2 步保证与 $d$ 强相关的混杂不被漏掉。金融：Feng–Giglio–Xiu（2020 JF）检验新因子在控制数百个已有因子后是否仍有定价能力（“因子动物园”）。
+
+\subsection{DML：部分线性模型与朴素插入估计的正则化偏差}
+\term{双重／去偏机器学习}{double/debiased machine learning, DML}（Chernozhukov 等 2018）：任意 ML 估计高维\term{干扰函数}{nuisance function}，对低维参数给出 $\sqrt n$ 一致、渐近正态估计；两件武器：\key{Neyman 正交得分}（消正则化偏差）+ \key{交叉拟合}（消过拟合偏差）。\key{部分线性模型 PLR}：$Y=D\theta_0+g_0(X)+U$，$E[U|X,D]=0$；$D=m_0(X)+V$，$E[V|X]=0$；给定 $X$ 后 $D$ 外生时 $\theta_0$ 为因果效应（Robinson 1988 用核估计）。\key{朴素插入} $\hat\theta=(\sum D_i^2)^{-1}\sum D_i(Y_i-\hat g(X_i))$：
+\[\sqrt n(\hat\theta-\theta_0)=\Big(\tfrac1n\textstyle\sum D_i^2\Big)^{-1}\Big[\underbrace{\tfrac1{\sqrt n}\textstyle\sum D_iU_i}_{\text{渐近正态}}+\underbrace{\tfrac1{\sqrt n}\textstyle\sum D_i(g_0(X_i)-\hat g(X_i))}_{b}\Big],\]
+$D_i=m_0(X_i)+V_i$，$m_0(g_0-\hat g)$ 不会平均掉；$\hat g$ 收敛率 $n^{-\varphi}$（$\varphi<\frac12$）$\Rightarrow b\sim\sqrt n\,n^{-\varphi}\to\infty$。根源：$D$ 与 $X$ 相关，$\hat g$ 的误差漏进 $\hat\theta$。
+
+\subsection{偏出（FWL）与 Neyman 正交得分：偏差只来自二阶项}
+记 $\ell_0(X)=E[Y|X]$：
+\begin{align*}
+\ell_0(X)&=m_0(X)\theta_0+g_0(X) \why{对模型取 $E[\cdot\mid X]$}\\
+Y-\ell_0(X)&=(D-m_0(X))\theta_0+U=V\theta_0+U \why{相减，消去 $g_0$}\\
+\theta_0&=E[V(Y-\ell_0(X))]/E[V^2] \why{乘 $V$ 取期望，$E[VU]=0$}
+\end{align*}
+即“$Y$ 的残差”对“$D$ 的残差”回归（FWL 的非参数版）。得分 $\psi(W;\theta,\eta)=\big(Y-\ell(X)-\theta(D-m(X))\big)\big(D-m(X)\big)$，$\eta=(\ell,m)$。\key{Neyman 正交性}：$\partial_rE[\psi(W;\theta_0,\eta_0+r(\eta-\eta_0))]|_{r=0}=0$（扰动 $\ell=\ell_0+r\Delta_\ell$、$m=m_0+r\Delta_m$，导数 $(-\Delta_\ell+\theta_0\Delta_m)V-U\Delta_m$，由 $E[V|X]=E[U|X]=0$ 期望为 0）。且 $E[\psi(W;\theta_0,\eta)]=E[(\ell-\ell_0)(m-m_0)]-\theta_0E[(m-m_0)^2]$：只剩\key{乘积项}，$\sqrt n$ 偏差约 $\sqrt n\|\hat m-m_0\|(\|\hat\ell-\ell_0\|+|\theta_0|\|\hat m-m_0\|)$，两者各快于 $n^{-1/4}$ 即可忽略。朴素得分 $(Y-D\theta-g(X))D$ 对 $g$ 的导数 $-E[\Delta_gD]\ne0$，不正交。
+
+\subsection{交叉拟合与 DML 估计步骤、标准误、渐近正态}
+\key{交叉拟合}：同一数据既估 $\hat\eta$ 又算残差时 $\hat\eta(X_i)$ 记住样本 $i$ 的噪声，$\frac1{\sqrt n}\sum V_i(\hat\ell(X_i)-\ell_0(X_i))$ 均值不为零；样本分割使之均值为零，交叉拟合轮换角色不浪费样本。\key{步骤}：(1) 随机分 $K$ 折（5 或 10）；(2) 对每折 $k$，用 $I_k$ \key{以外}数据训练 $\hat\ell^{(-k)}$（$Y$ 对 $X$）、$\hat m^{(-k)}$（$D$ 对 $X$），对 $i\in I_k$ 算 $\tilde Y_i=Y_i-\hat\ell^{(-k)}(X_i)$、$\tilde V_i=D_i-\hat m^{(-k)}(X_i)$；(3) 合并残差，$\hat\theta=\sum\tilde V_i\tilde Y_i/\sum\tilde V_i^2$（DML2；各折求 $\hat\theta_k$ 再平均为 DML1，推荐 DML2）；(4) $\hat\psi_i=(\tilde Y_i-\hat\theta\tilde V_i)\tilde V_i$，$\hat J=\frac1n\sum\tilde V_i^2$，
+\[\widehat{\mathrm{se}}(\hat\theta)=\sqrt{\frac1n\cdot\frac{\frac1n\sum_i\hat\psi_i^2}{\hat J^2}}\quad\text{（残差回归的 White 稳健标准误），CI: }\hat\theta\pm1.96\,\widehat{\mathrm{se}};\]
+(5) 重复 $S$ 次随机分折取中位数。\key{渐近正态}：$\|\hat m-m_0\|_2(\|\hat m-m_0\|_2+\|\hat\ell-\ell_0\|_2)=o_p(n^{-1/2})$ 时 $\sqrt n(\hat\theta-\theta_0)/\sigma\dto N(0,1)$，$\sigma^2=E[V^2]^{-2}E[V^2U^2]$。\textbf{易错}：全样本上用完全生长的树估干扰函数 $\Rightarrow\tilde V_i\equiv0$，分母为 0。
+
+\subsection{二元处理与 ATE：AIPW 正交得分（双重稳健）}
+$D\in\{0,1\}$：$Y=g_0(D,X)+U$，$m_0(X)=P(D=1|X)$（倾向得分），$\theta_0=E[g_0(1,X)-g_0(0,X)]$：
+$\psi=g(1,X)-g(0,X)+\frac{D(Y-g(1,X))}{m(X)}-\frac{(1-D)(Y-g(0,X))}{1-m(X)}-\theta$。\key{双重稳健}：$g$ 或 $m$ 一个正确即一致；需重叠 $0<m(X)<1$，常把 $\hat m$ 截断在 $[0.01,0.99]$。
+
+\subsection{DML 数值比较、代码与局限}
+示意（$\theta_0=0.5$，$m_0=x_1+0.5x_2^2$，$g_0=\frac{e^{x_1}}{1+e^{x_1}}+x_2^2$，$n=1000$，随机森林）：OLS（线性控制 $X$）偏差 0.665、覆盖率 0\%（函数形式错同样致命）；朴素 ML 偏差 $-0.030$ 且无标准误；正交不交叉拟合 0.018／97\%；DML 0.017／96\%。学习器越易过拟合，交叉拟合越关键。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.ensemble import RandomForestRegressor as RF
+from sklearn.model_selection import KFold, cross_val_predict
+kf = KFold(n_splits=5, shuffle=True, random_state=0)
+y_res = Y - cross_val_predict(RF(min_samples_leaf=5), X, Y, cv=kf)   # 折外预测 l_hat(X)
+d_res = D - cross_val_predict(RF(min_samples_leaf=5), X, D, cv=kf)   # 折外预测 m_hat(X)
+theta = (d_res @ y_res) / (d_res @ d_res); psi = (y_res - theta * d_res) * d_res
+se = np.sqrt(np.mean(psi**2) / np.mean(d_res**2)**2 / len(Y))
+# 包：doubleml.DoubleMLPLR(DoubleMLData(df,"y","d"), ml_l, ml_m, n_folds=5)；econml.dml.LinearDML；Stata ddml
+\end{lstlisting}
+\key{DML 不能做什么}：不解决识别（混杂须全在 $X$ 中）；不能放“坏控制”（处理后变量）；依赖学习器，应报告多种学习器作稳健性；有 IV 用 PLIV，面板与 DID 也有 DML 版本。
+
+\subsection{CATE、因果树（诚实估计）、因果森林、GRF 与元学习器}
+\term{CATE}{conditional average treatment effect} $\tau(x)=E[Y(1)-Y(0)|X=x]$；传统分组／交互项有事后挑子样本与多重检验问题；识别需 $\{Y(0),Y(1)\}\indep D|X$ 与重叠。\key{因果树}（Athey–Imbens 2016）：叶内估计 $\hat\tau=\bar Y_{\text{处理}}-\bar Y_{\text{控制}}$；分裂准则为子节点效应差异最大（并惩罚噪声），非 $Y$ 的 MSE；\key{诚实估计}：一半样本定结构、另一半估叶内效应，防“专挑效应大处分裂”夸大，可做常规 CI。\key{因果森林}（Wager–Athey 2018）：诚实树子抽样平均，$\hat\tau(x)$ 逐点一致、渐近正态。\key{GRF}（Athey–Tibshirani–Wager 2019）：森林 = 自适应近邻权重 $\alpha_i(x)$，先袋外偏出，$\hat\tau(x)=\frac{\sum_i\alpha_i(x)(D_i-\hat m(X_i))(Y_i-\hat\ell(X_i))}{\sum_i\alpha_i(x)(D_i-\hat m(X_i))^2}$。\term{元学习器}{meta-learner}：S（$D$ 作特征，$\hat\mu(x,1)-\hat\mu(x,0)$）、T（两组各一模型相减）、X（两组样本量悬殊）、R（$\min\sum[\tilde Y_i-\tau(X_i)\tilde V_i]^2+$ 正则，DML 的异质版）。解读：报告 $\hat\tau$ 分布、按 $\hat\tau$ 分位分组比较（交叉拟合）、最佳线性预测器检验异质性。\textbf{易错}：变量与 $\hat\tau$ 相关 $\ne$ 它导致效应差异。软件：R \texttt{grf}，Python \texttt{econml.dml.CausalForestDML}。
+
+\subsection{Gu–Kelly–Xiu（2020）：资产定价中的机器学习与 \texorpdfstring{$R^2_{oos}$}{R2oos}}
+\key{问题}：$r_{i,t+1}=E_t[r_{i,t+1}]+\epsilon_{i,t+1}$，$E_t[r_{i,t+1}]=g^*(z_{i,t})$，测风险溢价 = 学 $g^*$（$\hat y$ 问题）；因子动物园特征多、相关、非线性与交互。\key{数据}：美国个股月度 1957–2016，约 3 万只；94 个特征 $\times$（8 宏观 + 常数）+ 74 行业 = 920 个协变量，截面排序映射到 $[-1,1]$。\key{方法}：OLS、OLS-3、PLS、PCR、弹性网、广义线性、随机森林、梯度提升树、NN1–NN5。\key{划分}：训练 1957–1974、验证 1975–1986、测试 1987–2016，每年扩展窗口重估。\key{指标} $R^2_{oos}=1-\sum(r_{i,t+1}-\hat r_{i,t+1})^2/\sum r_{i,t+1}^2$（以\key{零}为基准，个股历史均值噪声太大）。\key{发现}：(1) 树与神经网络最好，全变量 OLS 样本外 $R^2<0$；月度 $R^2_{oos}$ 不到 1\%（最好的 NN3 约 0.40\%），但多空组合夏普比率约为线性基准的两倍；(2) 收益来自非线性与交互；(3) \key{浅层胜深层}（约 3 层，低信噪比）；(4) 重要变量：价格趋势（反转、动量）、流动性（市值、换手、价差）、波动率；重要性 = 置零后 $R^2$ 下降。局限：不说明是风险补偿还是错误定价；交易成本、小盘股需另行考察。相关：IPCA（Kelly–Pruitt–Su 2019）、条件自编码器（GKX 2021）、Freyberger–Neuhierl–Weber（2020）、Kozak–Nagel–Santosh（2020）、Chen–Pelger–Zhu（2024）、中国 A 股 Leippold–Wang–Zhou（2022，流动性类特征最重要）。
+
+\subsection{文本即数据（Gentzkow–Kelly–Taddy 2019）：三步框架、方法、计量问题}
+\key{三步}：(1) 文本 $\to$ 文档—词计数矩阵 $C$（分词、去停用词、词干化、$n$-gram）；(2) 由 $C$ 估计不可观测属性 $\hat V$（情绪、不确定性、话题、相似度）；(3) 在描述或因果分析中使用 $\hat V$。\key{方法}：\key{词典法}（定词表数词频：EPU 指数 Baker–Bloom–Davis 2016；Tetlock 2007；Loughran–McDonald 2011 金融词表，哈佛 IV-4 约 3/4 负面词在财务语境不负面）；\key{文本回归}（有监督，高维词频 Lasso／岭或逆回归，预测收益、波动、违约）；\key{生成模型}（主题模型 LDA：FOMC 记录 Hansen–McMahon–Prat 2018）；\key{词嵌入与相似度}（10-K 产品描述行业分类 Hoberg–Phillips 2016；媒体倾向 Gentzkow–Shapiro 2010）。\key{计量问题}：维度极高须正则化；$\hat V$ 为生成回归元，有\key{测量误差}（衰减偏误、标准误低估），需人工标注验证与稳健性；\key{研究者自由度}（词表、主题数事先定或按样本外选）；可解释性与精度权衡。
+
+\subsection{样本外检验：\texorpdfstring{$R^2_{oos}$}{R2oos}、Diebold–Mariano 与 Clark–West}
+Welch–Goyal（2008）：多数溢价预测变量样本外跑不赢历史均值。Campbell–Thompson（2008）：$R^2_{oos}=1-\frac{\sum_t(r_t-\hat r_t)^2}{\sum_t(r_t-\bar r_t)^2}$（$\bar r_t$ 为截至 $t-1$ 的历史均值），$>0$ 优于基准，月度约 0.5\% 已有经济意义。示意：误差平方和 4.75，历史均值基准 10 $\Rightarrow0.525$；零基准 $\sum r^2=15\Rightarrow0.683$——\key{须说明基准}。\key{DM}（非嵌套）：$d_t=L(e_{1t})-L(e_{2t})$，$\bar d/\sqrt{\widehat{\mathrm{LRV}}_d/T}\overset{a}{\sim}N(0,1)$；\key{Clark–West}（嵌套）：$f_t=(r_t-\bar r_t)^2-[(r_t-\hat r_t)^2-(\bar r_t-\hat r_t)^2]$，对 $\bar f$ 做单侧 $t$ 检验，修正大模型估计多余参数的噪声。
+
+\subsection{数据窥探与多重检验；常见偏差与时间序列验证}
+\term{数据窥探}{data snooping}：$M$ 个独立 5\% 检验，至少一个显著的概率 $1-0.95^M$（$M=20$：64\%；$M=100$：99.4\%）。\key{Bonferroni} $\alpha/M$（控 FWER，保守）；\key{BH}：$p_{(1)}\le\dots\le p_{(M)}$，取最大 $k$ 使 $p_{(k)}\le k\alpha/M$，拒前 $k$ 个（控 FDR）；Harvey–Liu–Zhu（2016）：新因子 $t>3.0$；White Reality Check、Hansen SPA：最好策略是否真优于基准。\key{偏差}：前视偏差、幸存者偏差（只用仍上市公司）、数据泄露（全样本标准化／填补／选特征后再划分）。\key{验证}：时间序列不能随机打乱，用扩展或滚动窗口；标签时间重叠时 purging 与 embargo（López de Prado 2018）；训练／验证／测试三分，测试集只用一次。
+
+\subsection{可解释性：MDI、置换重要性、PDP、ICE、ALE}
+\key{MDI}（不纯度重要性）：分裂的不纯度下降之和，快，但偏向连续与高基数特征、基于训练集。\key{置换重要性}（Breiman 2001）：测试集上打乱特征 $j$ 看表现下降，模型无关、样本外；相关特征时被低估。\key{PDP}：$\bar f_j(v)=\frac1n\sum_if(v,x_{i,-j})$；\key{ICE}：每样本一条 $f(v,x_{i,-j})$，显示异质与交互；特征相关时 PDP 外推到不现实区域，改用 \key{ALE}。
+
+\subsection{SHAP：Shapley 值公式与四条性质}
+SHAP（Lundberg–Lee 2017）把“预测 $-$ 基准”公平分给特征（玩家）。$v(S)$：只知道子集 $S$ 时的预测（如 $E[f(X)|X_S=x_S]$）：
+\[\phi_j=\sum_{S\subseteq F\setminus\{j\}}\frac{|S|!\,(p-|S|-1)!}{p!}\big[v(S\cup\{j\})-v(S)\big].\]
+唯一满足：\key{有效性} $\sum_j\phi_j=f(x)-v(\varnothing)$、对称性、虚拟性（无贡献为 0）、可加性。线性模型、特征独立：$\phi_j=w_j(x_j-Ex_j)$；$p=3$ 权重：$|S|=0,2$ 为 $\frac13$，$|S|=1$ 为 $\frac16$。示意：$f=2x_1+3x_2+x_1x_2$，基准 $(0,0)$，$x=(1,2)$：$\phi_1=\frac12(2-0)+\frac12(10-6)=3$，$\phi_2=7$（交互项被平分）。TreeSHAP 对树多项式时间精确，KernelSHAP 抽样近似；LIME 局部线性近似。\textbf{易错}：\key{解释不等于因果}，描述的是模型如何使用特征。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.inspection import permutation_importance, PartialDependenceDisplay; import shap
+r = permutation_importance(model, X_test, y_test, n_repeats=10, random_state=0)
+PartialDependenceDisplay.from_estimator(model, X_test, features=["mom12", "size"], kind="both")  # PDP+ICE
+sv = shap.TreeExplainer(model).shap_values(X_test); shap.summary_plot(sv, X_test)        # 蜂群图
+\end{lstlisting}
+
+\subsection{小结：研究目标与方法的对应}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}p{4.4cm}L@{}}
+\toprule
+纯预测（违约、收益、宏观） & 正则化回归、树、集成、神经网络 & 时间顺序样本外检验；泄露与前视；$R^2_{oos}$ 基准\\
+高维控制下的平均因果效应 & 后双重选择、DML & 识别仍靠条件独立；交叉拟合；多种学习器\\
+异质性处理效应 & 因果森林、元学习器 & 诚实估计；异质性 $\ne$ 因果调节\\
+构造新变量 & 文本、图像、聚类 & 测量误差与验证；研究者自由度\\
+解释模型 & 置换重要性、PDP、SHAP & 解释的是模型而非因果\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{本章综合：题型作答要点与英文关键表述}
+
+\subsection{综合题作答要点（预处理、聚类、PCA、关联规则、DML、无监督简答）}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.5cm}L@{}}
+\toprule
+题型 & 作答步骤要点\\
+\midrule
+预处理计算 & min-max 到 $[0,1]$：$\frac{x-\min}{\max-\min}$，到 $[-1,1]$：再 $\times2-1$；等频分箱后\key{箱均值}平滑（全换成箱均值）与\key{箱边界}平滑（换成较近的边界）；中位数分半法求 $Q_1,Q_3$（$n$ 奇数时两半不含中位数），内限 $[Q_1-1.5\,\mathrm{IQR},Q_3+1.5\,\mathrm{IQR}]$，外限用 $3\,\mathrm{IQR}$；z-score 小样本失效：$\max_i|z_i|\le(n-1)/\sqrt n$（$n\le10$ 时 $<3$）且有掩蔽效应，改用中位数、MAD、IQR\\
+k-means 与层次聚类 & 一维分配看两中心的中点；每轮写簇、中心、SSE，分配不变即收敛；与另一划分比 SSE 说明局部最优（多次初始化／k-means++）；轮廓 $s=\frac{b-a}{\max(a,b)}$；单链接（min）、全链接（max）逐步写合并高度\\
+PCA 计算 & 写 $\max w^\top Sw$ s.t. $w^\top w=1$ $\to Sw=\lambda w$，方差 $=\lambda$；$2\times2$ 用 $\tr$、$\det$ 求 $\lambda$，解方向并单位化；贡献率；奇异值 $\sigma_k=\sqrt{(n-1)\lambda_k}$；与因子模型：$\hat F=U_r$，$\hat\Lambda=V_r\Sigma_r$，共同成分相同\\
+关联规则 & 列 $C_k$ 计数、$L_k$；写连接（同前缀）与剪枝（子集不频繁）各删了谁；由频繁 3-项集列 6 条规则的置信度、lift；指出“置信度高但 lift $<1$”的规则（后件本身很普遍）\\
+DML 论述 & (a) 朴素插入的 $b$ 项发散；(b) $K$ 折 $\to$ 折外残差 $\to\hat\theta=\sum\tilde V\tilde Y/\sum\tilde V^2$ $\to$ se，正交性（误差只以乘积进入，各快于 $n^{-1/4}$）+ 交叉拟合（防过拟合、不浪费样本）；(c) DML 估平均参数、任意学习器 vs 因果森林估 $\tau(x)$、诚实树、子抽样，二者都依赖条件独立与重叠、都是残差对残差；(d) GKX：个股噪声大，$R^2_{oos}<1\%$ 仍可构造高夏普多空组合；零基准更保守\\
+无监督简答 & k-means（球形凸簇、需 $k$、噪声拉偏均值）vs DBSCAN（任意形状、无需 $k$ 但需 $\varepsilon$ 与 MinPts、标噪声）vs GMM（椭圆、软分配、BIC 选成分数）；购物篮是非对称二元数据，用 Jaccard 不用 SMC（“同为 0”不算相似）；lift 三种取值含义；孤立森林按平均路径长度打分\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{英文关键表述}
+\begin{english}[Key English expressions]
+\footnotesize
+\begin{itemize}
+\item Data mining discovers valid, novel, potentially useful and understandable patterns from large data; KDD runs from data cleaning, integration, selection and transformation to mining, pattern evaluation and knowledge presentation; CRISP-DM has six phases (business understanding to deployment). All preprocessing parameters must be fitted on the training set only to avoid data leakage; an outlier by the IQR rule lies outside $[Q_1-1.5\,\mathrm{IQR},\,Q_3+1.5\,\mathrm{IQR}]$.
+\item $k$-means alternates an assignment step and an update step; the SSE never increases, but the algorithm converges only to a local optimum. The silhouette coefficient $s=(b-a)/\max(a,b)$ is close to 1 for well-clustered points. A DBSCAN core point has at least MinPts points in its $\varepsilon$-neighbourhood; $k$-means is the hard-assignment limit of a Gaussian mixture fitted by EM.
+\item PCA finds orthogonal directions of maximal variance: the first principal direction is the eigenvector of the sample covariance matrix with the largest eigenvalue, and the component's variance equals that eigenvalue. Equivalently, the principal directions are the right singular vectors of the centred data matrix.
+\item The support of $A\Rightarrow B$ is the proportion of transactions containing $A\cup B$; its confidence is $P(B\mid A)$; its lift is $P(A\cup B)/[P(A)P(B)]$. The Apriori property states that every non-empty subset of a frequent itemset must be frequent. FP-growth mines frequent patterns without candidate generation using an FP-tree.
+\item The local outlier factor compares the local reachability density of a point with that of its neighbours; an isolation forest scores anomalies by their short average path lengths in random trees. Collaborative filtering predicts a user's rating from the ratings of similar users or similar items.
+\item Machine learning is designed for prediction ($\hat y$) rather than parameter estimation ($\hat\beta$); regularization introduces bias and selected variables are unstable, so ML coefficients should not be interpreted causally.
+\item Double/debiased machine learning combines a Neyman-orthogonal score, which makes the estimator insensitive to first-order errors in the nuisance functions, with cross-fitting, which removes the bias from overfitting; the estimator is $\sqrt n$-consistent and asymptotically normal if the nuisance functions converge faster than $n^{-1/4}$. DML does not solve identification: all confounders must still be observed. Causal forests estimate conditional average treatment effects using honest trees, in which one subsample determines the splits and another estimates the leaf effects.
+\item Forecasts must be evaluated out of sample with a time-ordered (expanding or rolling) scheme; the out-of-sample $R^2$ compares the model's mean squared forecast error with that of a benchmark. Testing many specifications on the same data leads to data snooping; multiple-testing corrections raise the hurdle (e.g.\ $t>3$).
+\item SHAP values attribute a prediction to features using Shapley values and sum to the prediction minus the baseline. Feature importance explains the model, not causal effects in the real world.
+\end{itemize}
+\end{english}
+\renewcommand{\arraystretch}{1.25}

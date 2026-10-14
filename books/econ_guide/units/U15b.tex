@@ -1,0 +1,1311 @@
+% ===================================================================
+% U15b  第 15 章（后半）：异质处理效应、事件研究、交错处理、
+%        普通 TWFE 的失效、异质稳健 DiD、方法选择、本章小结
+% ===================================================================
+
+%======================================================================
+\section{异质处理效应：时变效应 \texorpdfstring{$\tau_s$}{tau\_s}、个体效应 \texorpdfstring{$\beta_j$}{beta\_j} 与单元格效应 \texorpdfstring{$\tau_{it}$}{tau\_it}}\label{sec:U15b-hetero}
+
+前面各节假定处理效应是一个常数 $\beta$（同质 ATT）。本节放松这一假定：先让效应随时间变化（$\tau_s$），再让效应随处理单位变化（$\beta_j$），最后让每个处理单元格 $(i,t)$ 都有自己的效应（$\tau_{it}$）。全节假定\key{平衡面板、共同处理时点}：处理组从第 $T_0+1$ 期起受处理，$T_0$ 是最后一个处理前期。记号沿用本章前文：$d_i$ 为处理组指示，$w_t$ 为处理后指示，$D_{it}=d_iw_t$；处理组、控制组分别记作 $\mathcal T$、$\mathcal C$，单位数为 $N_1$、$N_0$，$N=N_1+N_0$；处理后期数 $T_1=T-T_0$。组均值写作 $\bar y_{T,s}$（处理组第 $s$ 期均值）、$\bar y_{T,\mathrm{pre}}$（处理组全部处理前期的均值）、$\bar y_{C,\mathrm{post}}$ 等，下标中的 $T$、$C$ 指组别，不是期数。
+
+\subsection{为什么要放松同质性}
+
+\subsubsection{基本 TWFE 模型隐含的两个强约束}
+
+Hansen 第 18.4 节把基本模型写成 $Y_{it}=\theta D_{it}+u_i+v_t+\varepsilon_{it}$（Hansen 记号：$u_i$ 为个体效应，$v_t$ 为时间效应）。它施加了两个强约束：
+\begin{enumerate}
+  \item 所有单位受\key{共同的时间效应}影响：$v_t$ 对每个 $i$ 都一样；
+  \item 处理效应 $\theta$ 对\key{所有处理单位相同}。
+\end{enumerate}
+效应其实不同时称为\term{异质处理效应}{heterogeneous treatment effects}。Hansen 指出，它不违背处理效应框架，只是分析更复杂；但错误地施加同质性的模型是误设的，所谓“共同的 $\theta$”并不存在。下文将看到：共同处理时点下，单一 $\hat\beta$ 仍可解释为各期或各单位效应的平均；交错处理时则不然。
+
+\subsubsection{异质性的三个方向}
+
+把单一 ATT 记为 $\alpha$ 时，随个体变化的效应常记作 $\alpha_i$（individual TE），随时间变化的效应常记作 $\alpha_t$（time-specific TE）。为避免与固定效应 $\alpha_i$、$\lambda_t$ 混淆，本书分别记作 $\beta_j$ 与 $\tau_s$。异质性有三个方向：
+\begin{itemize}
+  \item \key{随时间变}：$\tau_s$，$s>T_0$（本节；TWFE 中的 $\beta$ 变成“time-varying”）；
+  \item \key{随个体变}：$\beta_j$，$j\in\mathcal T$（本节）；
+  \item \key{随处理队列与时间变}：$\tau_{rs}$（交错处理，见本章“交错处理”一节）。
+\end{itemize}
+最一般的情形是每个处理单元格各有效应 $\tau_{it}$，本节最后讨论。
+
+%----------------------------------------------------------------------
+\subsection{时变处理效应 \texorpdfstring{$\tau_s$}{tau\_s}}
+
+\subsubsection{定义：第 \texorpdfstring{$s$}{s} 期处理组的 ATT}
+
+\begin{defn}[时变处理效应]\label{def:U15b-tv}
+政策在第 $T_0+1$ 期生效。对每个处理后时期定义\term{时变处理效应}{time-varying treatment effect}
+\[
+\tau_s=\E\bigl[y_{is}(1)-y_{is}(0)\mid d_i=1\bigr],\qquad s=T_0+1,\,T_0+2,\dots,T,
+\]
+即第 $s$ 期对处理组求平均的 ATT（“ATT over $i$ in $s$”）。第一项可观测；第二项是处理单位在第 $s$ 期“假如未处理”的结果，需要插补。
+\end{defn}
+
+同一对象的另一种写法是 $\tau_t=\E\bigl[y_i^1(t)-y_i^1(t,d_i=0)\bigr]$：上标 $1$ 表示处理组单位，$y_i^1(t,d_i=0)$ 表示该处理单位在第 $t$ 期若未受处理时的结果。$\tau_{T_0+1}$ 就是“处理单位在第 $T_0+1$ 期（处理后第一期）的处理效应”。
+
+\subsubsection{逐期交互的 TWFE 回归}
+
+令 $w_{st}=\mathbf{1}\{t=s\}$ 为第 $s$ 期虚拟变量（区分：$w_t$ 是处理后虚拟变量，$w_{st}$ 是第 $s$ 期虚拟变量，$w_t=\sum_{s>T_0}w_{st}$）。把单一交互项 $\beta D_{it}=\beta d_iw_t$ 拆成 $T-T_0$ 个“处理组 $\times$ 第 $s$ 期”交互项：
+\begin{equation}\label{eq:U15b-tv}
+y_{it}=\alpha_i+\lambda_t+\sum_{s=T_0+1}^{T}\tau_s\,d_iw_{st}+u_{it}.
+\end{equation}
+原模型是 $\tau_{T_0+1}=\dots=\tau_T=\beta$ 的特例。
+
+用虚拟变量写出来更直观。设五期面板，第 1、2 年为处理前，第 3、4、5 年为处理后：
+\[
+y_{it}=\beta_0+\beta_1d_i+\beta_{21}w_{3t}+\beta_{22}w_{4t}+\beta_{23}w_{5t}+\beta_3\,d_iw_{3t}+\beta_4\,d_iw_{4t}+\beta_5\,d_iw_{5t}+u_{it},
+\]
+其中 $w_{3t}=\mathbf{1}\{\text{year}=3\}$ 等。$\beta_3$ 是第 3 年（处理后第一年）的处理效应，$\beta_4$、$\beta_5$ 分别是第 4、5 年的处理效应；第 1、2 年合并为\key{基期}（所有 $w$ 为 0）。
+
+\begin{note}[时间虚拟变量必须逐期放全]
+每放一个“处理组 $\times$ 第 $s$ 期”交互，就必须有第 $s$ 期自己的时间虚拟变量。若漏掉 $\beta_{23}w_{5t}$，控制组第 5 年相对基期的变化被强行设为 0，$\beta_5$ 会混入第 5 年的共同时间效应。同理，若只用一个处理后虚拟变量 $f_t$（即 $w_t$）代替逐期时间虚拟变量，控制组各处理后期被迫取同一均值，$\tau_s$ 会吸收控制组的逐期变化。稳妥的做法是用全套时间虚拟变量（或 $\lambda_t$）。
+\end{note}
+
+\subsubsection{逐格取期望：\texorpdfstring{$\beta_3$}{beta\_3} 等于第 3 年的 DiD}
+
+要证 $\beta_3$ 等于“第 3 年相对于基期”的双重差分。思路：对上式按“组 $\times$ 期”取条件期望（$\E(u_{it}\mid d_i,t)=0$），先在组内对时间差分，再在组间差分。
+\begin{align*}
+\E(y\mid d=1,w_{3t}=1)&=\beta_0+\beta_1+\beta_{21}+\beta_3 \why{处理组、第 3 年}\\
+\E(y\mid d=1,\text{基期})&=\beta_0+\beta_1 \why{处理组、第 1--2 年}\\
+\text{处理组：第 3 年}-\text{基期}&=\beta_{21}+\beta_3 \why{两式相减}\\
+\E(y\mid d=0,w_{3t}=1)&=\beta_0+\beta_{21} \why{控制组、第 3 年}\\
+\E(y\mid d=0,\text{基期})&=\beta_0 \why{控制组、基期}\\
+\text{控制组：第 3 年}-\text{基期}&=\beta_{21} \why{两式相减}\\
+\Rightarrow\ \beta_3&=(\beta_{21}+\beta_3)-\beta_{21}=\text{DiD for year 3}. \why{组间再差分}
+\end{align*}
+同理 $\beta_4$、$\beta_5$ 分别是第 4、5 年相对于基期的 DiD。组别差异 $\beta_1$ 被时间差分消去，共同时间效应 $\beta_{21}$ 被组间差分消去。样本中，处理后的 6 个“组 $\times$ 年”格子各有自己的参数组合而被完全拟合，$\hat\beta_0$、$\hat\beta_0+\hat\beta_1$ 只由处理前格子决定，分别等于控制组、处理组第 1--2 年的均值，因此 $\hat\beta_3=(\bar y_{T,3}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,3}-\bar y_{C,\mathrm{pre}})$，与下面的一般结论一致。
+
+\begin{note}[“基期”指所有 $w_{st}$ 为 0 的处理前时期]
+第二个条件有时写作 $\E(y\mid d_i=1,w_{3t}=0)$。它必须理解为基期（处理前、所有 $w_{st}=0$），而不是“除第 3 年以外的任何一年”——否则第 4、5 年（含 $\beta_4,\beta_5$）也会混进来。
+\end{note}
+
+\subsubsection{一般结论：\texorpdfstring{$\hat\tau_s$}{tau\_s hat} 以处理前平均为基期}
+
+\begin{thm}[时变效应的 TWFE 估计]\label{thm:U15b-tv}
+平衡面板、共同处理时点下，回归 \eqref{eq:U15b-tv} 的 OLS 估计满足
+\[
+\hat\tau_s=\bigl(\bar y_{T,s}-\bar y_{T,\mathrm{pre}}\bigr)-\bigl(\bar y_{C,s}-\bar y_{C,\mathrm{pre}}\bigr),\qquad s=T_0+1,\dots,T,
+\]
+其中 $\bar y_{T,\mathrm{pre}}=\frac{1}{N_1T_0}\sum_{i\in\mathcal T}\sum_{t\le T_0}y_{it}$ 是处理组在全部处理前期的平均（控制组同理）。并且
+\[
+\frac1{T_1}\sum_{s>T_0}\hat\tau_s=\hat\beta,
+\]
+$\hat\beta$ 为只含单一交互项 $D_{it}$ 的 TWFE 估计。
+\end{thm}
+
+证明思路：OLS 残差 $\hat u_{it}=y_{it}-\hat\alpha_i-\hat\lambda_t-\sum_{s>T_0}\hat\tau_s d_iw_{st}$ 与每一个虚拟变量正交（正规方程）。先由正规方程得到各组残差之和为 0，再把残差的定义代入、取组内平均。记 $\bar{\hat\alpha}_T=\frac1{N_1}\sum_{i\in\mathcal T}\hat\alpha_i$，$\bar{\hat\alpha}_C=\frac1{N_0}\sum_{i\in\mathcal C}\hat\alpha_i$，$\bar{\hat\lambda}_{\mathrm{pre}}=\frac1{T_0}\sum_{t\le T_0}\hat\lambda_t$。
+
+第一步，正规方程：
+\begin{align*}
+&\textstyle\sum_t\hat u_{it}=0\quad\forall i \why{$\alpha_i$ 的正规方程}\\
+&\textstyle\sum_i\hat u_{is}=0\quad\forall s \why{$\lambda_s$ 的正规方程}\\
+&\textstyle\sum_{i\in\mathcal T}\hat u_{is}=0\quad\forall s>T_0 \why{$\tau_s$ 的正规方程}\\
+\Rightarrow\ &\textstyle\sum_{i\in\mathcal C}\hat u_{is}=0\quad\forall s>T_0 \why{第 2 式减第 3 式}\\
+\Rightarrow\ &\textstyle\sum_{i\in\mathcal C}\sum_{t\le T_0}\hat u_{it}=0 \why{第 1 式对 $i\in\mathcal C$ 求和，减处理后部分}\\
+&\textstyle\sum_{i\in\mathcal T}\sum_{t\le T_0}\hat u_{it}=0 \why{第 1 式对 $i\in\mathcal T$ 求和，减处理后部分}
+\end{align*}
+第二步，代入残差的定义（控制组与处理组的处理前观测没有 $\tau$ 项），取组内平均：
+\begin{align*}
+\bar y_{C,s}&=\bar{\hat\alpha}_C+\hat\lambda_s,\quad s>T_0 \why{$\sum_{i\in\mathcal C}\hat u_{is}=0$，除以 $N_0$}\\
+\bar y_{C,\mathrm{pre}}&=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{pre}} \why{控制组处理前残差和为 0}\\
+\bar y_{T,s}&=\bar{\hat\alpha}_T+\hat\lambda_s+\hat\tau_s,\quad s>T_0 \why{$\sum_{i\in\mathcal T}\hat u_{is}=0$，除以 $N_1$}\\
+\bar y_{T,\mathrm{pre}}&=\bar{\hat\alpha}_T+\bar{\hat\lambda}_{\mathrm{pre}} \why{处理组处理前残差和为 0}\\
+\Rightarrow\ \hat\tau_s&=(\bar y_{T,s}-\bar y_{T,\mathrm{pre}})-(\hat\lambda_s-\bar{\hat\lambda}_{\mathrm{pre}}) \why{第 3 式减第 4 式}\\
+&=(\bar y_{T,s}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,s}-\bar y_{C,\mathrm{pre}}). \why{第 1 式减第 2 式代入}
+\end{align*}
+第三步，对 $s$ 求平均（$\bar y_{\cdot,\mathrm{post}}=\frac1{T_1}\sum_{s>T_0}\bar y_{\cdot,s}$）：
+\begin{align*}
+\frac1{T_1}\sum_{s>T_0}\hat\tau_s&=(\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}) \why{对 $s$ 求平均}\\
+&=\hat\beta. \why{TWFE 与 $2\times2$ DiD 精确相等}
+\end{align*}
+最后一步用的是本章前文“TWFE 回归与 $2\times2$ DiD 精确等价”的结论。$\blacksquare$
+
+\begin{keypt}[这个结论意味着什么]
+共同处理时点下，单一交互项的 $\hat\beta$ 恰好是各期效应 $\hat\tau_s$ 的\key{等权平均}。效应随时间异质并不会让 $\hat\beta$ “错”，它估计的是处理后各期的平均 ATT。真正的问题出在\key{交错处理}（见本章“普通 TWFE 在交错与异质下为何失效”一节）。
+\end{keypt}
+
+\subsubsection{数值例：效应逐年增大}
+
+\begin{exmp}[时变效应的数值例]\label{ex:U15b-tv}
+第 1、2 年为处理前，第 3--5 年为处理后。处理组各年均值为 $(10,11,15,18,20)$，控制组为 $(6,7,8,9,10)$。求 $\hat\tau_3,\hat\tau_4,\hat\tau_5$ 与单一交互项的 $\hat\beta$。
+\solution 处理前平均：处理组 $(10+11)/2=10.5$，控制组 $(6+7)/2=6.5$。由“时变效应的 TWFE 估计”结论：
+\begin{align*}
+\hat\tau_3&=(15-10.5)-(8-6.5)=4.5-1.5=3, \why{第 3 年}\\
+\hat\tau_4&=(18-10.5)-(9-6.5)=7.5-2.5=5, \why{第 4 年}\\
+\hat\tau_5&=(20-10.5)-(10-6.5)=9.5-3.5=6, \why{第 5 年}\\
+\hat\beta&=\tfrac13(3+5+6)=\tfrac{14}{3}\approx4.67. \why{单一交互项 TWFE}
+\end{align*}
+效应逐年增大；单一 $\hat\beta$ 报告的是三年的平均。核对：处理组处理后平均 $53/3$，控制组 $9$，$\hat\beta=(53/3-10.5)-(9-6.5)=14/3$，与等权平均一致。
+\end{exmp}
+
+\subsubsection{案例：警察与汽车盗窃（Hansen \S18.5）}
+
+\begin{exmp}[警察驻守能否减少汽车盗窃]\label{ex:U15b-police}
+Di Tella \& Schargrodsky (2004) 利用一个外生事件：1994 年 7 月布宜诺斯艾利斯的犹太中心遭恐怖袭击后，政府两周内为全国犹太与穆斯林建筑派驻警察。处理组为 37 个有犹太机构的街区，控制组为 839 个其他街区；4--6 月为处理前，8--12 月为处理后（7 月只有半个月的数据，剔除）。每个街区每月的汽车盗窃数：
+
+\begin{center}
+\small
+\begin{tabular}{lccc}
+\toprule
+ & 同一街区（处理） & 非同一街区（控制） & 差 \\
+\midrule
+4--6 月 & 0.112 & 0.095 & $-0.017$\\
+8--12 月 & 0.035 & 0.105 & $0.070$\\
+差 & $-0.077$ & $0.010$ & $-0.087$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\solution DiD $=-0.077-0.010=-0.087$，约为处理前水平的 78\%。由于面板平衡、无控制变量，含街区与月份固定效应的 TWFE 回归给出相同的 $-0.087$。Hansen 进一步检验各月效应是否相同：在保留 $D_{it}$ 的同时加入“处理 $\times$ 处理后月份”的 4 个交互（5 个处理后月份去掉 1 个，原因见下文“同质性检验”），检验其联合为零，$p$ 值为 0.81，不拒绝“效应不随月份变化”。这正是本小节 $\tau_s$ 模型的同质性检验 $H_0:\tau_{\text{8月}}=\dots=\tau_{\text{12月}}$。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{个体异质效应 \texorpdfstring{$\beta_j$}{beta\_j}}
+
+\subsubsection{模型：处理变量 \texorpdfstring{$\times$}{x} 处理单位虚拟变量}
+
+\begin{defn}[个体处理效应的 TWFE]\label{def:U15b-indiv}
+对每个处理单位 $j$ 允许各自的效应 $\beta_j$：
+\[
+y_{it}=\alpha_i+\lambda_t+\sum_{j:\,d_j=1}\beta_j\bigl(D_{it}\cdot e_j(i)\bigr)+u_{it}
+\quad\Longleftrightarrow\quad
+y_{it}=\alpha_i+\lambda_t+\beta_iD_{it}+u_{it},
+\]
+其中 $e_j(i)=\mathbf{1}\{i=j\}$ 为个体虚拟变量。控制单位 $D_{it}\equiv0$，无需（也无法）估计其 $\beta_i$；共有 $N_1$ 个效应参数。
+\end{defn}
+
+\subsubsection{估计量：单位 \texorpdfstring{$j$}{j} 对全体控制单位的 DiD}
+
+\begin{thm}[个体效应估计量]\label{thm:U15b-indiv}
+平衡面板、共同处理时点下，
+\[
+\hat\beta_j=\bigl(\bar y_{j,\mathrm{post}}-\bar y_{j,\mathrm{pre}}\bigr)-\bigl(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}\bigr),
+\]
+即“单位 $j$ 对全体控制单位”的 DiD，其中 $\bar y_{j,\mathrm{post}}=\frac1{T_1}\sum_{t>T_0}y_{jt}$，$\bar y_{j,\mathrm{pre}}=\frac1{T_0}\sum_{t\le T_0}y_{jt}$。并且 $\frac1{N_1}\sum_{j\in\mathcal T}\hat\beta_j=\hat\beta$（单一 $\beta$ 的 TWFE 估计）。
+\end{thm}
+
+\subsubsection{两期情形的证明：处理单位被完全拟合}
+
+$T=2$，$t=0,1$。处理单位 $j$ 只有两个观测，却有两个自己的参数 $(\alpha_j,\beta_j)$，因此被完全拟合、残差为 0：
+\begin{align*}
+y_{j0}&=\hat\alpha_j+\hat\lambda_0, \why{两个方程两个未知数}\\
+y_{j1}&=\hat\alpha_j+\hat\lambda_1+\hat\beta_j, \why{残差为 0}\\
+\hat\lambda_1-\hat\lambda_0&=\bar y_{C,1}-\bar y_{C,0}, \why{$\lambda$ 只由控制组决定}\\
+\hat\beta_j&=(y_{j1}-y_{j0})-(\hat\lambda_1-\hat\lambda_0) \why{前两式相减}\\
+&=\Delta y_j-\Delta\bar y_C. \why{代入第 3 式}
+\end{align*}
+第三行的理由：处理单位的残差恒为 0，对估计 $\lambda_t$ 不提供信息；$\hat\lambda_t$ 等于只用控制组做两期固定效应回归的结果，而两期 FE 的时间效应之差就是控制组的平均变化。
+
+\subsubsection{一般 \texorpdfstring{$T$}{T} 期的证明：\texorpdfstring{$\beta_j$}{beta\_j} 的正规方程}
+
+论证与“时变效应的 TWFE 估计”结论的证明相同，只是把“处理组整体”换成“单位 $j$”。记 $\bar{\hat\lambda}_{\mathrm{post}}=\frac1{T_1}\sum_{t>T_0}\hat\lambda_t$。
+\begin{align*}
+&\textstyle\sum_{t>T_0}\hat u_{jt}=0,\quad \sum_{t\le T_0}\hat u_{jt}=0 \why{$\beta_j$、$\alpha_j$ 的正规方程}\\
+&\textstyle\sum_{i\in\mathcal C}\sum_{t>T_0}\hat u_{it}=0,\quad \sum_{i\in\mathcal C}\sum_{t\le T_0}\hat u_{it}=0 \why{$\lambda_t$ 方程求和，减处理组}\\
+\Rightarrow\ &\bar y_{j,\mathrm{post}}=\hat\alpha_j+\bar{\hat\lambda}_{\mathrm{post}}+\hat\beta_j,\quad \bar y_{j,\mathrm{pre}}=\hat\alpha_j+\bar{\hat\lambda}_{\mathrm{pre}} \why{代入残差定义}\\
+&\bar y_{C,\mathrm{post}}=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{post}},\quad \bar y_{C,\mathrm{pre}}=\bar{\hat\alpha}_C+\bar{\hat\lambda}_{\mathrm{pre}} \why{控制组同理}\\
+\Rightarrow\ &\hat\beta_j=(\bar y_{j,\mathrm{post}}-\bar y_{j,\mathrm{pre}})-(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}). \why{两组各自相减再相减}
+\end{align*}
+第二行：对 $\lambda_t$ 的正规方程 $\sum_i\hat u_{it}=0$ 在 $t>T_0$（或 $t\le T_0$）上求和，再减去由第一行对 $j\in\mathcal T$ 求和得到的处理组部分。对 $j$ 求平均即得 $\frac1{N_1}\sum_j\hat\beta_j=(\bar y_{T,\mathrm{post}}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}})=\hat\beta$。
+
+\subsubsection{性质：单个 \texorpdfstring{$\hat\beta_j$}{beta\_j hat} 无偏但固定 \texorpdfstring{$T$}{T} 时不一致}
+
+把真实模型 $y_{it}=\alpha_i+\lambda_t+\beta_iD_{it}+u_{it}$ 代入上面的估计量公式：
+\begin{align*}
+\bar y_{j,\mathrm{post}}-\bar y_{j,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+\beta_j+(\bar u_{j,\mathrm{post}}-\bar u_{j,\mathrm{pre}}) \why{$\alpha_j$ 被时间差分消去}\\
+\bar y_{C,\mathrm{post}}-\bar y_{C,\mathrm{pre}}&=(\bar\lambda_{\mathrm{post}}-\bar\lambda_{\mathrm{pre}})+(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}}) \why{控制组 $D\equiv0$}\\
+\Rightarrow\ \hat\beta_j&=\beta_j+(\bar u_{j,\mathrm{post}}-\bar u_{j,\mathrm{pre}})-(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}}). \why{两式相减}
+\end{align*}
+\begin{itemize}
+  \item \key{无偏}：严格外生（$\E(u_{it}\mid D)=0$）下两项误差的期望均为 0。
+  \item \key{固定 $T$ 时不一致}：若 $u_{it}$ 为 $\iid(0,\sigma^2)$，两项独立，
+  \[
+  \Var(\hat\beta_j)=\sigma^2\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)+\frac{\sigma^2}{N_0}\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)\ \xrightarrow{N_0\to\infty}\ \sigma^2\Bigl(\frac1{T_1}+\frac1{T_0}\Bigr)>0 .
+  \]
+  增加控制单位只能消除第二项，单个单位的误差平均不掉。一致性需要 $T_0,T_1\to\infty$，与 LSDV 中 $\hat\alpha_i$ 需要 $T\to\infty$ 同理（第 10 章）。
+\end{itemize}
+
+\subsubsection{平均个体效应一致估计 ATT：随机系数视角}
+
+$\frac1{N_1}\sum_j\hat\beta_j=\frac1{N_1}\sum_j\beta_j+\frac1{N_1}\sum_j(\bar u_{j,\mathrm{post}}-\bar u_{j,\mathrm{pre}})-(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}})$。当 $N_1,N_0\to\infty$ 时，两项误差平均都趋于 0，平均个体效应是 ATT $=\E(\beta_i\mid d_i=1)$ 的一致估计。随机系数视角：令 $\beta_i=\beta+\eta_i$，$\E(\eta_i\mid d_i=1)=0$，则共同时点下普通 TWFE 估计的正是均值 $\beta$。
+
+\subsubsection{同质性检验：为什么只加 \texorpdfstring{$N_1-1$}{N1-1} 个交互}
+
+\key{处理效应同质}：$H_0:\beta_1=\dots=\beta_{N_1}$，含 $N_1-1$ 个约束，用 Wald/F 检验（第 6 章）。Hansen 第 18.4 节的做法：保留 $D_{it}$，再加入 $N_1-1$ 个交互 $D_{it}e_j(i)$（$j=2,\dots,N_1$，其系数为 $\beta_j-\beta_1$），检验它们联合为零。为什么不能加全部 $N_1$ 个？因为
+\begin{align*}
+\sum_{j\in\mathcal T}D_{it}e_j(i)&=D_{it}\sum_{j\in\mathcal T}e_j(i) \why{提出 $D_{it}$}\\
+&=D_{it}d_i=D_{it}, \why{$\sum_{j\in\mathcal T}e_j(i)=d_i$}
+\end{align*}
+全部 $N_1$ 个交互之和与 $D_{it}$ 完全共线。Hansen 记控制单位数为 $N_1$、处理单位数为 $N_2$，所以他写作“include $N_2-1$ interactions”。
+
+\key{控制效应同质}：把控制组分成 $N_0$ 个子组（如地区），加入 $N_0-1$ 个“控制子组 $\times$ 处理后”交互 $c_g(i)w_t$，检验其联合为零（Hansen 写作 $N_1-1$）。不能加全部 $N_0$ 个，因为 $\sum_g c_g(i)w_t=(1-d_i)w_t=w_t-D_{it}$，落在时间效应与 $D_{it}$ 张成的空间里。
+
+Hansen 用 Card--Krueger 数据演示：新泽西 3 个地区（处理）加 2 个交互，$p=0.60$，不拒绝处理效应同质；宾夕法尼亚 2 个地区（控制）加 1 个交互，$t=1.2$，$p=0.23$，不拒绝控制效应同质。
+
+\begin{note}[两种异质的严重程度不同]
+Hansen 强调：处理效应异质“不违背处理效应框架，只是更复杂”；\key{控制效应异质}（不同控制子组的时间变化不同）问题更严重——它说明找不到可信的共同控制趋势。若检验拒绝控制效应同质，应视为反对把 DiD 参数解释为处理效应的证据。
+\end{note}
+
+\subsubsection{即时练习：个体效应的手算}
+
+\begin{prac}[个体效应的手算]\label{pr:U15b-indiv}
+两期面板。处理单位：A $(5,9)$，B $(7,8)$；控制单位：C $(4,5)$，D $(6,8)$。(a) 用单一 $\beta$ 的 TWFE 求 $\hat\beta$；(b) 用 $D_{it}\times$ 个体虚拟变量求 $\hat\beta_A,\hat\beta_B$；(c) 验证 (b) 的平均等于 (a)。
+\answer 控制组变化：$\Delta\bar y_C=\frac{(5-4)+(8-6)}{2}=1.5$。
+
+(a) 处理组变化 $\frac{(9-5)+(8-7)}{2}=2.5$，$\hat\beta=2.5-1.5=1$。
+
+(b) $\hat\beta_A=(9-5)-1.5=2.5$；$\hat\beta_B=(8-7)-1.5=-0.5$。两单位效应差异很大。
+
+(c) $\frac{2.5+(-0.5)}{2}=1=\hat\beta$。注意：$\hat\beta_A,\hat\beta_B$ 各只用了一个单位的两期数据，噪声很大。能否认定 A、B 效应不同，需要检验 $H_0:\beta_A=\beta_B$；而两期数据下每个处理单位被完全拟合，残差自由度只来自控制组，检验功效很低。
+\end{prac}
+
+%----------------------------------------------------------------------
+\subsection{个体 \texorpdfstring{$\times$}{x} 时期全异质：单元格效应 \texorpdfstring{$\tau_{it}$}{tau\_it} 与插补}
+
+\subsubsection{每个处理单元格一个虚拟变量}
+
+最一般地，每个处理单元格 $(i,t)$（$D_{it}=1$）都有自己的效应 $\tau_{it}$：
+\begin{equation}\label{eq:U15b-cell}
+y_{it}=\alpha_i+\lambda_t+\sum_{(j,s):\,D_{js}=1}\tau_{js}\,\mathbf{1}\{i=j,\,t=s\}+u_{it}.
+\end{equation}
+
+\subsubsection{\texorpdfstring{$\hat\tau_{it}=y_{it}-\hat\alpha_i-\hat\lambda_t$}{tau\_it hat = y - alpha hat - lambda hat}：用未处理观测插补 \texorpdfstring{$y_{it}(0)$}{y\_it(0)}}
+
+要证 $\hat\tau_{it}$ 等于观测值减去“只用未处理观测估计的”$\hat\alpha_i+\hat\lambda_t$。思路：每个处理单元格有自己的虚拟变量，该观测被完全拟合，从而不影响 $\alpha,\lambda$ 的估计。
+\begin{align*}
+\hat u_{js}&=0\quad\forall (j,s):D_{js}=1 \why{$\tau_{js}$ 的正规方程只含这一个观测}\\
+\Rightarrow\ &\text{处理观测不进入 }\alpha_i,\lambda_t\text{ 的正规方程} \why{它们的残差为 0}\\
+\Rightarrow\ &(\hat\alpha,\hat\lambda)=\text{只用 }\Omega_0=\{(i,t):D_{it}=0\}\text{ 的 TWFE} \why{剩下的正规方程}\\
+\Rightarrow\ \hat\tau_{it}&=y_{it}-\hat\alpha_i-\hat\lambda_t=y_{it}-\hat y_{it}(0),\quad D_{it}=1. \why{由 $\hat u_{it}=0$ 解出}
+\end{align*}
+这正是“用 TWFE 模型插补 $y_{it}(0)$”，即本章开头“处理效应 $=$ 缺失数据插补”的回归实现，也是 Borusyak, Jaravel \& Spiess (2024) 插补估计量的思想（见本章“异质稳健的 DiD 估计量”一节）。可识别的前提：每个处理单位至少有一个未处理时期（才能估计 $\alpha_i$），每个时期至少有一个未处理观测（才能估计 $\lambda_t$）。第 16 章的合成控制（SCM）、面板数据法（PDA）、矩阵补全也都在估计这种“单元格级”效应，只是插补模型从 $\alpha_i+\lambda_t$ 换成了因子模型 $\lambda_i\T f_t$。
+
+\subsubsection{单个 \texorpdfstring{$\hat\tau_{it}$}{tau\_it hat} 无偏但不一致，平均后才一致}
+
+$\hat\tau_{it}-\tau_{it}=u_{it}-(\hat\alpha_i-\alpha_i)-(\hat\lambda_t-\lambda_t)$，其中 $u_{it}$ 是单个观测的误差，样本再大也不会消失：单个 $\hat\tau_{it}$ 无偏但不一致。对 $(i,t)$ 求平均（如对某一批单位、某一期）后误差被平均掉，才得到一致估计。
+
+%----------------------------------------------------------------------
+\subsection{2025 年真题第 2(b) 题：在 TWFE 中允许效应随个体或时间变化}
+
+\begin{keypt}[2(b)：treatment effect not constant across units or over time]
+\tagexam\ 答题要点（逐步作答见第 17 章）：
+\begin{enumerate}
+  \item \key{随个体变}：$Y_{it}=\alpha_i+\lambda_t+\sum_j\beta_jD_{it}\mathbf{1}\{i=j\}+\epsilon_{it}$，$\hat\beta_j=$ 单位 $j$ 对控制组的 DiD；需要每个处理单位有足够多的处理前、处理后时期；可检验 $H_0:\beta_1=\dots=\beta_{N_1}$。
+  \item \key{随时间变}：$Y_{it}=\alpha_i+\lambda_t+\sum_s\tau_sD_{it}\mathbf{1}\{t=s\}+\epsilon_{it}$，$\hat\tau_s=$ 第 $s$ 期相对处理前平均的 DiD；再加入处理前交互即事件研究（下一节）。
+  \item \key{二者都变 / 交错处理}：cohort $\times$ 时期交互 $\tau_{rs}$（Wooldridge 扩展 TWFE），或单元格级插补 $\hat\tau_{it}=Y_{it}-\hat\alpha_i-\hat\lambda_t$；再按需要加权平均得到 ATT。
+  \item \key{警告}：交错处理且效应异质时，只放一个 $D_{it}$ 的普通 TWFE 是“坏”的加权平均（可能出现负权重，Goodman-Bacon 2021；de Chaisemartin \& D'Haultf{\oe}uille 2020），应改用上面的全交互回归或 CS/SA/BJS 等稳健估计量。
+\end{enumerate}
+\end{keypt}
+
+\subsection{Stata 实现：逐期交互与个体交互}
+
+\begin{lstlisting}
+* time-varying effects: generate period dummies, then FE regression
+gen D3 = d*(year==3)
+gen D4 = d*(year==4)
+gen D5 = d*(year==5)
+xtreg y D3 D4 D5 i.year, fe vce(cluster id)
+test D3 = D4 = D5                  // H0: effect constant over time
+* unit-specific effects: one interaction per treated unit (controls have D = 0)
+reghdfe y i.id#c.D, absorb(id year) vce(robust)
+* test homogeneity, e.g. treated units id = 1,2,3
+test 1.id#c.D = 2.id#c.D = 3.id#c.D
+\end{lstlisting}
+
+\begin{english}
+When treatment effects vary over time, we replace the single interaction $d_iw_t$ by period-specific interactions $d_i\mathbf{1}(t=s)$, $s>T_0$. Each coefficient $\tau_s$ is the DiD between period $s$ and the pre-treatment average, and with a common treatment date the single-interaction TWFE coefficient equals the simple average of the $\hat\tau_s$. When effects vary across units, we interact $D_{it}$ with unit dummies; $\hat\beta_j$ equals the DiD between treated unit $j$ and the average control unit. Unit-specific estimates are unbiased but not consistent for fixed $T$, while their average consistently estimates the ATT. With one dummy for every treated cell, the TWFE regression imputes $y_{it}(0)$ from the untreated observations only.
+\end{english}
+
+%======================================================================
+\section{事件研究：动态效应与事前趋势检验}\label{sec:U15b-es}
+
+上一节的逐期交互只放在处理后各期。把交互也放到处理前各期，就得到事件研究：处理后的系数描绘\key{动态效应}，处理前的系数用来\key{检验平行趋势}。本节仍以共同处理时点为主；交错处理下的问题放在后两节。
+
+\subsection{事件时间、前导项与滞后项}
+
+\subsubsection{事件时间 \texorpdfstring{$e=t-E_i$}{e = t - E\_i}}
+
+令 $E_i$ 为单位 $i$ 首次受处理的时期（共同时点下 $E_i=T_0+1$）。\term{事件时间}{event time}（相对时间）定义为
+\[
+e=t-E_i .
+\]
+$e=0$ 是生效期，$e=-1$ 是生效前最后一期，$e=1$ 是生效后第二期。
+
+\subsubsection{事件研究回归的定义}
+
+\begin{defn}[事件研究回归]\label{def:U15b-es}
+\term{事件研究}{event study}回归为
+\[
+y_{it}=\alpha_i+\lambda_t+\sum_{e=-K,\ e\neq-1}^{L}\beta_e\,d_i\,\mathbf{1}\{t-E_i=e\}+u_{it}.
+\]
+$e<0$ 的项称为\term{前导项}{leads}（处理前），$e\ge0$ 的项称为\term{滞后项}{lags}（处理后，动态效应），$e=-1$ 为\term{参照期}{reference period}，其系数被设为 0。
+\end{defn}
+
+\subsubsection{另一种编号：生效期的系数记为 \texorpdfstring{$\beta_1$}{beta\_1}}
+
+另一种常见编号把处理前各期记为 $-2,-1$，处理后各期记为 $1,2,\dots$（跳过 0）。以五年面板为例：第 1、2 年为处理前（记 $-2,-1$），第 3 年为生效期，第 4 年起为处理后；生效期（第 3 年）的系数记为 $\beta_1$，第 4 年的系数记为 $\beta_2$，即
+\[
+y_{it}=\alpha_i+w_t+\beta_{-2}\,(\text{第 1 年})+\beta_{-1}\,(\text{第 2 年})+\beta_1\,(\text{第 3 年})+\beta_2\,(\text{第 4 年})+\cdots,
+\]
+这里 $w_t$ 起时间效应的作用，“$T_0$”有时指生效期（本书的 $T_0$ 是最后一个处理前期）。这种写法的 $\beta_1,\beta_2$ 对应本书的 $\beta_0,\beta_1$。两种编号都常见，答题时先写清定义即可。
+
+\subsection{参照期与虚拟变量陷阱}
+
+\subsubsection{全部事件时间虚拟变量之和等于 \texorpdfstring{$d_i$}{d\_i}}
+
+要说明为什么不能放全所有事件时间。对处理单位，所有事件时间虚拟变量之和恒为 1：
+\begin{align*}
+\sum_e d_i\,\mathbf{1}\{t-E_i=e\}&=d_i\sum_e\mathbf{1}\{t-E_i=e\} \why{提出 $d_i$}\\
+&=d_i \why{每个 $t$ 恰好属于一个事件时间}\\
+&=\textstyle\sum_{j\in\mathcal T}e_j(i)\ \in\ \operatorname{span}\{\text{个体虚拟变量}\}. \why{与 $\alpha_i$ 完全共线}
+\end{align*}
+因此必须略去一个事件时间，惯例是 $e=-1$。这是\term{虚拟变量陷阱}{dummy variable trap}在事件研究中的形式。
+
+\subsubsection{略去 \texorpdfstring{$e=-1$}{e = -1} 后 \texorpdfstring{$\hat\beta_e$}{beta\_e hat} 是相对参照期的 DiD}
+
+以参照期 $E-1$ 为基期，对事件时间 $e$ 的格子取期望（共同时点，$E_i\equiv E$）：
+\begin{align*}
+\E(y_{i,E+e}\mid d_i=1)-\E(y_{i,E-1}\mid d_i=1)&=(\lambda_{E+e}-\lambda_{E-1})+\beta_e \why{处理组；$\beta_{-1}=0$}\\
+\E(y_{i,E+e}\mid d_i=0)-\E(y_{i,E-1}\mid d_i=0)&=\lambda_{E+e}-\lambda_{E-1} \why{控制组无交互项}\\
+\Rightarrow\ \beta_e&=\text{第 }E+e\text{ 期相对第 }E-1\text{ 期的 DiD}. \why{两式相减}
+\end{align*}
+当前导与滞后覆盖除参照期外的全部时期、面板平衡时，模型对“组 $\times$ 期”饱和，样本版本为
+\[
+\hat\beta_e=\bigl(\bar y_{T,E+e}-\bar y_{T,E-1}\bigr)-\bigl(\bar y_{C,E+e}-\bar y_{C,E-1}\bigr).
+\]
+与上一节 $\hat\tau_s$ 的区别只在基期：$\hat\tau_s$ 以\key{全部处理前期的平均}为基期，$\hat\beta_e$ 以\key{参照期 $e=-1$} 为基期。
+
+\subsubsection{\texorpdfstring{$\beta_{-1}=0$}{beta(-1) = 0} 是标准化，\texorpdfstring{$\beta_{-2}=0$}{beta(-2) = 0} 才是可检验的含义}
+
+前导系数常被标注“$=0$”，但两者性质不同。$\beta_{-1}=0$ 是\key{标准化}（参照期的定义），不需要检验。$\beta_{-2}=0$ 则是\key{无预期 $+$ 平行趋势}的可检验含义：
+\begin{align*}
+\beta_{-2}&=\E(y_{E-2}-y_{E-1}\mid d=1)-\E(y_{E-2}-y_{E-1}\mid d=0) \why{上式取 $e=-2$}\\
+&=\E\bigl(y_{E-2}(0)-y_{E-1}(0)\mid d=1\bigr)-\E\bigl(y_{E-2}(0)-y_{E-1}(0)\mid d=0\bigr) \why{无预期：处理前观测 $=y(0)$}\\
+&=0. \why{平行趋势}
+\end{align*}
+
+\subsection{在时变效应模型中加入处理前交互：事前系数检验}
+
+\subsubsection{思路：处理前两组差距不应随时间变化}
+
+在上一节的时变效应模型中再加入处理前各期的交互项 $\delta$。若无预期且平行趋势成立，处理前两组的差距不随时间变化，$\delta$ 应为 0。这一模型可称为“扩展的异质效应模型”（event study: extended heterogeneous model）。
+
+\subsubsection{五期模型的正确写法：避免与 \texorpdfstring{$\beta_1d_i$}{beta\_1 d\_i} 共线}
+
+仍设五年面板，第 1、2 年处理前。若同时放入 $\beta_1d_i$ 和全部 5 个交互 $d_iw_{1t},\dots,d_iw_{5t}$，由于 $d_i=\sum_{s=1}^{5}d_iw_{st}$，完全共线，必须略去一个交互。以第 2 年为参照（略去 $d_iw_{2t}$），时间虚拟变量覆盖第 2--5 年（第 1 年为基期）：
+\[
+y_{it}=\beta_0+\beta_1d_i+\sum_{s=2}^{5}\theta_sw_{st}+\delta_1\,d_iw_{1t}+\beta_3\,d_iw_{3t}+\beta_4\,d_iw_{4t}+\beta_5\,d_iw_{5t}+u_{it}.
+\]
+\begin{itemize}
+  \item 只有两个处理前期时，只剩一个前导系数 $\delta_1$，事前检验为 $H_0:\delta_1=0$——只能检验一个约束。
+  \item 若有三个处理前期（如第 0、1、2 年），以第 0 年为参照可检验 $H_0:\delta_1=\delta_2=0$；以第 2 年为参照则检验 $\delta_0=\delta_1=0$。两者是同一组约束的不同参数化，Wald 统计量相同。
+\end{itemize}
+此时 $\beta_3,\beta_4,\beta_5$ 是相对参照期（第 2 年）的 DiD，而不再是相对处理前平均的 DiD。
+
+\subsubsection{一般的事前趋势 Wald 检验}
+
+设前导项为 $\beta_{-K},\dots,\beta_{-2}$（$e=-1$ 为参照，故共 $K-1$ 个），记 $\hat{\bm b}=(\hat\beta_{-K},\dots,\hat\beta_{-2})\T$ 为 $(K-1)\times1$ 的前导系数向量。\term{事前趋势检验}{pre-trend test}为
+\[
+H_0:\ \beta_{-K}=\dots=\beta_{-2}=0,\qquad
+W=\hat{\bm b}\T\bigl[\widehat{\Var}(\hat{\bm b})\bigr]\inv\hat{\bm b}\ \dto\ \chi^2_{K-1},
+\]
+$\widehat{\Var}(\hat{\bm b})$ 用按单位聚类的稳健方差（Wald 检验见第 6 章；也可用 $F=W/(K-1)$）。
+
+\subsubsection{例：事件研究系数}
+
+\begin{exmp}[事件研究系数：续时变效应数值例]\label{ex:U15b-es}
+沿用上一节的数据：处理组各年均值 $(10,11,15,18,20)$，控制组 $(6,7,8,9,10)$，第 3 年生效。以第 2 年（$e=-1$）为参照，求全部事件研究系数。
+\solution 参照期均值：处理组 11，控制组 7。
+\begin{align*}
+\hat\beta_{-2}&=(10-11)-(6-7)=0, \why{第 1 年：事前系数为 0，支持 PT}\\
+\hat\beta_0&=(15-11)-(8-7)=3, \why{第 3 年}\\
+\hat\beta_1&=(18-11)-(9-7)=5, \why{第 4 年}\\
+\hat\beta_2&=(20-11)-(10-7)=6. \why{第 5 年}
+\end{align*}
+因为本例处理前趋势恰好平行（$\hat\beta_{-2}=0$），以第 2 年为基期与以“处理前平均”为基期的结果相同，都是 $3,5,6$。
+\end{exmp}
+
+\subsection{事件研究图}
+
+\begin{center}
+\begin{tikzpicture}[x=1.15cm,y=0.95cm,>={Stealth[length=2mm]},font=\small]
+\draw[->] (-3.6,0) -- (3.9,0) node[right] {事件时间 $e$};
+\draw[->] (-3.6,-1.4) -- (-3.6,3.8) node[above] {$\hat\beta_e$};
+\draw[dashed,gray] (-0.5,-0.9) -- (-0.5,3.6) node[above,black] {生效};
+\foreach \x in {-3,-2,-1,0,1,2,3} {\draw (\x,0.06) -- (\x,-0.06); \node[font=\footnotesize] at (\x,-1.15) {$\x$};}
+% leads
+\draw (-3,-0.35) -- (-3,0.65); \draw (-3.08,-0.35)--(-2.92,-0.35); \draw (-3.08,0.65)--(-2.92,0.65); \fill (-3,0.15) circle (1.8pt);
+\draw (-2,-0.55) -- (-2,0.45); \draw (-2.08,-0.55)--(-1.92,-0.55); \draw (-2.08,0.45)--(-1.92,0.45); \fill (-2,-0.05) circle (1.8pt);
+\draw (-1,0) circle (2.6pt);
+\node[above] at (-1,0.15) {参照 $=0$};
+% lags
+\foreach \x/\m/\h in {0/1.2/0.5, 1/2.0/0.6, 2/2.5/0.7, 3/2.7/0.8}{
+  \draw (\x,\m-\h) -- (\x,\m+\h); \draw (\x-0.08,\m-\h)--(\x+0.08,\m-\h); \draw (\x-0.08,\m+\h)--(\x+0.08,\m+\h); \fill (\x,\m) circle (1.8pt);}
+\node[align=center,font=\footnotesize] at (-2.4,1.8) {前导：置信区间\\覆盖 0 $\Rightarrow$ 无事前趋势};
+\node[align=center,font=\footnotesize] at (1.6,0.55) {滞后：动态效应};
+\end{tikzpicture}
+\captionof{figure}{事件研究图：点估计与 95\% 置信区间}
+\end{center}
+
+\term{事件研究图}{event-study plot}把 $\hat\beta_e$ 及其置信区间按 $e$ 画出。读图要点：
+\begin{itemize}
+  \item \key{前导系数}应在 0 附近（置信区间覆盖 0），否则提示差异趋势或预期效应；
+  \item \key{滞后系数}描绘效应如何随时间演变：立即出现、逐渐增强，还是逐渐衰减；
+  \item 参照期 $e=-1$ 的点按定义为 0，没有置信区间。
+\end{itemize}
+
+\subsection{放松平行趋势：单位特定线性趋势（Hansen \S18.6）}
+
+\subsubsection{模型与参数个数}
+
+时间跨度长时，变量往往带趋势；若趋势设定错误，模型误设，政策效应因遗漏变量而不一致。若各单位有不同的长期趋势，可在 TWFE 中加入\term{单位特定线性趋势}{unit-specific linear trends}：
+\[
+Y_{it}=\theta D_{it}+X_{it}\T\beta+u_i+v_t+t\,w_i+\varepsilon_{it},
+\]
+$w_i$ 为单位 $i$ 的趋势斜率（Hansen 的记号，不是本书的处理后虚拟变量）。Hansen 的思路是“过度识别”：无控制变量的平衡面板有 $NT$ 个观测，而含政策效应的双向模型只有约 $N+T$ 个系数，除非 $N=T=2$ 都是过度识别的，因此除了异质处理效应，也应考虑异质趋势。较温和的推广是让趋势依赖于控制变量，加入 $Z_i\T\delta\,t$。无控制变量时，单位特定趋势模型共有 $2N+T$ 个系数，$T\ge4$ 时可识别。
+
+\subsubsection{两种估计方法：虚拟变量 \texorpdfstring{$\times t$}{x t} 与广义组内变换}
+
+\begin{itemize}
+  \item \key{$N$ 小}（如州级数据）：直接放入“单位虚拟变量 $\times t$”，与 $D_{it}$、$X_{it}$、单位与时期虚拟变量一起做 OLS；等价地，对含“单位虚拟变量 $\times t$”与时期虚拟变量的方程做单向固定效应。
+  \item \key{$N$ 大}：先对每个单位、每个变量（$Y_{it},D_{it},X_{it}$ 及时期虚拟变量）做线性去趋势回归 $Y_{it}=\hat a_0+\hat a_1t+\dot Y_{it}$，取残差 $\dot Y_{it}$（广义组内变换），再用 $\dot Y_{it}$ 对 $\dot D_{it}$、$\dot X_{it}$ 与去趋势后的时期虚拟变量回归。由 FWL 定理（第 3 章），两种做法给出相同的 $\hat\theta$。
+\end{itemize}
+
+\subsubsection{案例：蓝色法律与酒类销售（Hansen \S18.7）}
+
+\begin{exmp}[放宽周日售酒限制是否增加酒类消费]\label{ex:U15b-bluelaw}
+美国许多州历史上限制周日售酒（“蓝色法律”），近年各州在不同年份陆续放宽。Bernheim, Meer \& Novarro (2016) 用 47 个州 1970--2007 年的面板，因变量为人均酒类销量的对数，含州与年份固定效应，按州聚类。基本模型中周日允许的店内消费售酒时数 OnHours 的系数为 0.011（0.003）；加入州特定线性趋势后降为 0.000（0.002）。
+\solution 各州酒类销量都有趋势且斜率不同；OnHours 本身也带趋势，并且趋势随州而异，于是 OnHours 与“州 $\times t$”相关。遗漏州特定趋势造成\key{遗漏变量偏误}，这就是系数随趋势设定而改变的原因。加入趋势后标准误反而变小，说明效应并非“识别不足”。
+\end{exmp}
+
+\subsubsection{注意：趋势的检验与趋势吸收动态效应}
+
+\begin{note}[单位特定趋势的两个陷阱]
+(1) 按单位聚类时\key{无法检验}单位特定趋势的显著性：每个趋势参数只对应一个聚类，方差估计奇异且向下偏，朴素检验会夸大显著性；只有在更细的层面聚类时才能检验。(2) 若差异趋势是线性的，可以外推修正（见本节练习 (c)）；但趋势若用包含处理后时期的数据估计，而处理效应本身随时间增长（动态效应），模型会把效应误当成趋势而吸收掉。
+\end{note}
+
+\subsection{事前检验的局限}
+
+\begin{extend}[通过事前检验不等于平行趋势成立]
+\begin{enumerate}
+  \item 不拒绝 $H_0$ 不等于 PT 成立：检验功效可能很低；而且 PT 关心的是\key{处理后}的反事实趋势，事前检验只是间接证据。
+  \item 以“通过事前检验”为条件再报告结果会扭曲推断（Roth 2022, \emph{AER: Insights}，“Pretest with Caution”）。
+  \item 可做敏感性分析，允许一定程度违背 PT（Rambachan \& Roth 2023, \emph{Review of Economic Studies}；Stata/R 包 HonestDiD）。
+  \item 交错处理时，TWFE 事件研究的前导、滞后系数会被其他相对期、其他 cohort 的效应“污染”（Sun \& Abraham 2021，见本章“普通 TWFE 失效”一节）。
+\end{enumerate}
+\end{extend}
+
+\subsection{即时练习：差异趋势下的事件研究}
+
+\begin{prac}[事件研究系数与事前检验]\label{pr:U15b-es}
+处理组与控制组的年度均值（第 1--3 年处理前，第 4--5 年处理后）：处理组 $(8,10,12,17,19)$，控制组 $(5,6,7,8,9)$。(a) 以第 3 年为参照，计算 $\hat\beta_{-3},\hat\beta_{-2},\hat\beta_0,\hat\beta_1$；(b) 事前系数说明了什么？(c) 若仍用“处理前平均”为基期的 DiD，第 4 年的效应估计是多少？哪个更可信？
+\answer (a) 参照期第 3 年：处理组 12，控制组 7。
+\begin{align*}
+\hat\beta_{-3}&=(8-12)-(5-7)=-4+2=-2, \why{第 1 年}\\
+\hat\beta_{-2}&=(10-12)-(6-7)=-2+1=-1, \why{第 2 年}\\
+\hat\beta_0&=(17-12)-(8-7)=4, \why{第 4 年}\\
+\hat\beta_1&=(19-12)-(9-7)=5. \why{第 5 年}
+\end{align*}
+(b) 事前系数 $-2,-1,0$（含参照期）呈线性上升：处理组在处理前每年比控制组多涨 1，\key{平行趋势被违背}（存在差异趋势）。
+
+(c) 处理前平均：处理组 $(8+10+12)/3=10$，控制组 $(5+6+7)/3=6$。第 4 年 DiD $=(17-10)-(8-6)=5$。它比以第 3 年为参照的 4 更大，因为处理前平均“更早”，混入了更多的差异趋势。两者都不可信。若差异趋势是线性的，可以外推：第 4 年处理组本应比第 3 年多涨 1，修正后效应约为 $4-1=3$；同理第 5 年约为 $5-2=3$。这相当于加入组别特定线性趋势（Hansen 第 18.6 节）。
+\end{prac}
+
+\subsection{Stata 实现：前导、滞后与事件研究图}
+
+\begin{lstlisting}
+gen rel = year - first_treat            // event time e (missing for never treated)
+forvalues k = 2/4 {
+    gen lead`k' = (rel == -`k')         // leads e = -2,...,-4 ; e = -1 omitted
+}
+forvalues k = 0/3 {
+    gen lag`k' = (rel == `k')           // lags e = 0,...,3
+}
+reghdfe y lead4 lead3 lead2 lag0 lag1 lag2 lag3, absorb(id year) vce(cluster id)
+test lead4 lead3 lead2                  // pre-trend test: all leads = 0
+coefplot, keep(lead* lag*) vertical yline(0)   // event-study plot (SSC: coefplot)
+\end{lstlisting}
+
+\begin{english}
+An event-study regression replaces the single treatment dummy by leads and lags of the treatment date, $y_{it}=\alpha_i+\lambda_t+\sum_{e\neq-1}\beta_ed_i\mathbf{1}(t-E_i=e)+u_{it}$, where the period just before treatment ($e=-1$) is omitted as the reference period to avoid perfect collinearity with the unit fixed effects. The lag coefficients trace out the dynamic treatment effects. Under no anticipation and parallel trends the lead coefficients are zero, so we test $H_0:\beta_{-K}=\dots=\beta_{-2}=0$ with a cluster-robust Wald test. Failing to reject is supportive evidence but does not prove parallel trends.
+\end{english}
+
+%======================================================================
+\section{交错处理：cohort--时期效应 \texorpdfstring{$\tau_{rs}$}{tau\_rs}}\label{sec:U15b-stag}
+
+前两节假定所有处理单位在同一时期进入处理。现实中的政策常常分批推行：不同地区在不同年份实施同一改革。本节建立交错处理的记号、参数与回归；下一节说明为什么此时不能再用只含一个 $D_{it}$ 的普通 TWFE。
+
+\subsection{传统设计与交错设计}
+
+\subsubsection{传统 \texorpdfstring{$2\times2$}{2x2} 设计：只有（处理组，处理后）一格受处理}
+
+在传统设计（traditional design）中，把样本按“组 $\times$ 期”排成 $2\times2$ 表，只有右上格（处理组、处理后）受处理。交错设计（staggered design）中，政策在 $T_0+1$ 期覆盖一批单位，$T_0+2$ 期再覆盖一批，……，直到 $T$ 期。
+
+\subsubsection{交错处理的定义：处理队列 \texorpdfstring{$G_i$}{G\_i} 与吸收性处理}
+
+\begin{defn}[交错处理]\label{def:U15b-stag}
+\term{交错处理}{staggered adoption / staggered treatment}：不同单位在不同时期首次进入处理，且一旦处理就一直处理（\term{吸收性处理}{absorbing treatment}）。记 $G_i\in\{T_0+1,\dots,T,\infty\}$ 为单位 $i$ 的首次处理期，称为其\term{处理队列}{cohort}；$G_i=\infty$ 表示\term{从未处理}{never treated}。处理指示为 $D_{it}=\mathbf{1}\{t\ge G_i\}$。
+\end{defn}
+
+例：美国各州在不同年份放宽“蓝色法律”（Hansen 第 18.7 节）；各地在不同年份推行同一改革。
+
+\subsubsection{五期数值设定：500 个单位分三批进入}
+
+设 $T_0=2$，$T=5$，共 500 个单位：第 3 年 100 个进入处理；第 4 年再进入 50 个（累计 150）；第 5 年再进入 50 个（累计 200）；其余 300 个从未处理。本节反复使用这一设定。
+
+\begin{center}
+\begin{tikzpicture}[x=1.05cm,y=0.55cm,font=\small]
+\foreach \row/\lab/\start in {3/{cohort 3（100）}/3, 2/{cohort 4（50）}/4, 1/{cohort 5（50）}/5, 0/{从未处理（300）}/9}{
+  \node[left] at (0.45,\row+0.5) {\lab};
+  \foreach \t in {1,...,5}{
+    \ifnum\t<\start \draw (\t-0.5,\row+0.08) rectangle (\t+0.5,\row+0.92);
+    \else \draw[fill=gray!45] (\t-0.5,\row+0.08) rectangle (\t+0.5,\row+0.92); \fi}}
+\foreach \t in {1,...,5} \node at (\t,-0.45) {$t=\t$};
+\draw[thick] (2.5,-0.1) -- (2.5,4.3) node[above] {首个政策时点};
+\node[right,align=left,font=\footnotesize] at (5.7,2.2) {灰色 $=$ 已处理（$D_{it}=1$）\\白色 $=$ 未处理};
+\end{tikzpicture}
+\captionof{figure}{五期交错设计：各 cohort 的处理状态}
+\end{center}
+
+\subsection{潜在结果 \texorpdfstring{$y_t(r)$}{y\_t(r)}、\texorpdfstring{$y_t(\infty)$}{y\_t(inf)} 与处理效应 \texorpdfstring{$TE_t(r)$}{TE\_t(r)}}
+
+\subsubsection{定义：以“首次处理期”索引的潜在结果}
+
+\begin{defn}[交错处理下的潜在结果与处理效应]\label{def:U15b-po}
+$y_{it}(r)$：单位 $i$ 若在第 $r$ 期首次受处理，其第 $t$ 期的潜在结果；$y_{it}(\infty)$：从未受处理时的潜在结果。处理效应
+\[
+TE_t(r)=y_t(r)-y_t(\infty),\qquad t\text{ 为日历期},\ r\text{ 为首次处理期}.
+\]
+\term{无预期}{no anticipation}：$t<r$ 时 $y_t(r)=y_t(\infty)$，即 $TE_t(r)=0$；有意义的效应只在 $t\ge r$，例如 $TE_t(T_0+1)=y_t(T_0+1)-y_t(\infty)$，$t\ge T_0+1$。从未处理单位提供 $y_t(\infty)$ 的观测（“$y_t(\infty)$: never treated $\mid$ control units”）。
+\end{defn}
+
+只有两种状态时，$y_t(\infty)$ 就是前文的 $y_t(0)$。交错处理的潜在结果多了一个维度：同一单位在第 $t$ 期的处理后结果取决于它\key{何时}进入处理。
+
+\subsubsection{记号提示：哪个下标表示 cohort}
+
+\begin{note}[$TE_t(r)$ 的两种下标用法]
+上面的写法中 $t$ 是日历期、$r$ 是进入期。另一种常见写法是 $TE_t(r)=\E\bigl(y_t(r)-y_t(0)\mid d_i=1\bigr)$，$r=t,t+1,\dots,T$，“affected at $t$”——这里 $t$ 是进入期（cohort）、$r$ 是日历期，下标含义恰好相反。例如 $\tau_{3,4}=TE_3(4)=\E\bigl(y_4(1)-y_4(0)\mid d_3=1\bigr)$ 表示 cohort 3 在第 4 年的效应，$y_4(1)$、$y_4(0)$ 是第 4 年处理与未处理的潜在结果，$d_3$ 是 cohort 3 的虚拟变量。两种写法对 $\tau_{rs}$ 的用法一致：\key{第一下标 $=$ cohort，第二下标 $=$ 日历期}。本书只用 $\tau_{rs}$；答题时先写清定义。
+\end{note}
+
+\subsection{cohort--时期效应 \texorpdfstring{$\tau_{rs}$}{tau\_rs}}
+
+\subsubsection{定义：第 \texorpdfstring{$r$}{r} 期进入的单位在第 \texorpdfstring{$s$}{s} 期的平均效应}
+
+\begin{defn}[cohort--时期处理效应]\label{def:U15b-taurs}
+\[
+\tau_{rs}=\E\bigl[y_{is}(r)-y_{is}(\infty)\mid G_i=r\bigr],\qquad T_0+1\le r\le s\le T,
+\]
+即第 $r$ 期进入处理的那批单位在第 $s$ 期的平均处理效应（“TE for treated units at post period $s$ if they join the treatment at time $r$”）。Callaway \& Sant'Anna 称之为\term{组--时期平均处理效应}{group-time average treatment effect} $ATT(g,t)$。
+\end{defn}
+
+\subsubsection{五期设定下的六个 \texorpdfstring{$\tau_{rs}$}{tau\_rs}}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{llL}
+\toprule
+cohort（进入期） & 单位数 & cohort--时期效应\\
+\midrule
+第 3 年进入（$d_{3i}=1$） & 100 & $\tau_{3,3}=\E\bigl(y_3(1)-y_3(0)\mid d_3=1\bigr)$，$\tau_{3,4}$，$\tau_{3,5}$\\
+第 4 年进入（$d_{4i}=1$） & 50 & $\tau_{4,4}$，$\tau_{4,5}$\\
+第 5 年进入（$d_{5i}=1$） & 50 & $\tau_{5,5}$（进入当年、也是第 5 年的效应）\\
+从未处理 & 300 & —\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{五期设定下的 cohort--时期效应}
+\end{center}
+
+\subsubsection{两个方向的异质：cohort 内随时间变，同一日历期跨 cohort 也不同}
+
+每个 cohort 内部的效应可以随时间变化（如第 3 年进入的单位，$\tau_{3,3},\tau_{3,4},\tau_{3,5}$ 互不相同）；不同 cohort 在同一日历年的效应也可以不同，如 $\tau_{3,5}\ne\tau_{5,5}$——前者是进入两年后的效应，后者是进入当年的效应。所以交错处理 $=$ 每个 cohort 各自的“随时间异质” $+$ cohort 之间的异质。
+
+\subsection{全交互 TWFE（Wooldridge 扩展 TWFE）}
+
+\subsubsection{回归式：cohort 虚拟变量、时期虚拟变量与全部已处理格子的交互}
+
+\begin{defn}[扩展 TWFE / 全交互 TWFE]\label{def:U15b-etwfe}
+令 $d_{ir}=\mathbf{1}\{G_i=r\}$（cohort 虚拟变量），$w_{st}=\mathbf{1}\{t=s\}$（时期虚拟变量）。\term{扩展双向固定效应回归}{extended TWFE regression}为
+\begin{equation}\label{eq:U15b-etwfe}
+y_{it}=\beta_0+\sum_{r=T_0+1}^{T}\beta_r\,d_{ir}+\sum_{s=2}^{T}\theta_s\,w_{st}+\sum_{r=T_0+1}^{T}\sum_{s=r}^{T}\tau_{rs}\,\bigl(d_{ir}w_{st}\bigr)+u_{it}.
+\end{equation}
+从未处理组是 cohort 虚拟变量的基组，第 1 期是时期虚拟变量的基期。用个体固定效应 $\alpha_i$ 代替 cohort 虚拟变量，$\hat\tau_{rs}$ 完全相同（平衡面板；Wooldridge 2021）。
+\end{defn}
+
+在五期设定下，\eqref{eq:U15b-etwfe} 写成
+\begin{multline*}
+y_{it}=\beta_0+\theta_2w_{2t}+\theta_3w_{3t}+\theta_4w_{4t}+\theta_5w_{5t}+\beta_3d_{3i}+\beta_4d_{4i}+\beta_5d_{5i}\\
++\tau_{3,3}(d_{3i}w_{3t})+\tau_{3,4}(d_{3i}w_{4t})+\tau_{3,5}(d_{3i}w_{5t})+\tau_{4,4}(d_{4i}w_{4t})+\tau_{4,5}(d_{4i}w_{5t})+\tau_{5,5}(d_{5i}w_{5t})+u_{it}.
+\end{multline*}
+cohort 虚拟变量有时称为 staggered treatment dummies，时期虚拟变量称为 effective dummies。
+
+\subsubsection{写法要点：只对已处理单元格放交互}
+
+\begin{note}[扩展 TWFE 的三个写法要点]
+(1) cohort 虚拟变量写成 $\sum_r\beta_rd_{ir}$，$r$ 从 $T_0+1$ 开始，每个 cohort 有自己的系数 $\beta_r$。(2) 各虚拟变量都要带系数：$\beta_r$、$\theta_s$ 不能省略。(3) 只对 $s\ge r$（已处理的单元格）放交互项；$s<r$ 的单元格不放（由无预期保证效应为 0）——若也放，就成了交错设计下事件研究的前导项。
+\end{note}
+
+\subsubsection{扩展 TWFE 等于插补估计量}
+
+\begin{thm}[扩展 TWFE $=$ 插补估计量（Wooldridge 2021；拓展）]\label{thm:U15b-etwfe}
+平衡面板中，\eqref{eq:U15b-etwfe} 的 OLS 估计 $\hat\tau_{rs}$ 满足
+\[
+\hat\tau_{rs}=\frac1{N_r}\sum_{i:\,G_i=r}\bigl(y_{is}-\hat\alpha_i-\hat\lambda_s\bigr),
+\]
+其中 $N_r$ 为 cohort $r$ 的单位数，$\hat\alpha_i,\hat\lambda_t$ 是\key{只用未处理观测}（$D_{it}=0$：从未处理单位的全部时期 $+$ 尚未处理单位的处理前时期）估计的双向固定效应。
+\end{thm}
+
+论证与上一节“单元格效应”相同，只是要在 cohort 层面进行：
+\begin{enumerate}
+  \item 除个体效应外，所有回归元都只在“cohort $\times$ 时期”层面变化；平衡面板中把个体效应换成 cohort 虚拟变量，$\hat\tau_{rs}$ 不变（Mundlak 论证，即定义中所说的等价）。
+  \item 在 cohort $\times$ 时期层面，每个已处理格子都有自己的参数 $\tau_{rs}$，被完全拟合：
+\begin{align*}
+\textstyle\sum_{i:G_i=r}\hat u_{is}&=0,\quad s\ge r \why{$\tau_{rs}$ 的正规方程}\\
+\Rightarrow\ \bar y_{r,s}&=\hat\beta_0+\hat\beta_r+\hat\theta_s+\hat\tau_{rs} \why{格内均值被完全拟合}\\
+\Rightarrow\ \hat\tau_{rs}&=\bar y_{r,s}-(\hat\beta_0+\hat\beta_r+\hat\theta_s), \why{移项}
+\end{align*}
+  其中 $\bar y_{r,s}$ 为 cohort $r$ 在第 $s$ 期的均值。
+  \item 已处理格子的残差和为 0，不影响其余参数，于是 cohort 效应与 $\theta_s$（即 $\lambda_t$）只由未处理格子决定；括号中的拟合值正是 cohort $r$ 各单位插补值 $\hat\alpha_i+\hat\lambda_s$ 的平均。
+\end{enumerate}
+注意：完整的扩展 TWFE 回归里，单个 $\hat\alpha_i$ 并不等于“只用未处理观测”的 $\hat\alpha_i$，相等的是它们在 cohort 内的平均，因此 $\hat\tau_{rs}$ 相同。这与 Borusyak, Jaravel \& Spiess (2024) 的插补估计量数值相同（可用模拟数据核验）。因此在平行趋势（所有 cohort 与从未处理组共享未处理趋势）$+$ 无预期下，$\hat\tau_{rs}$ 无偏，$N_r\to\infty$ 时一致。
+
+\subsection{参数个数：\texorpdfstring{$(T-T_0)(T-T_0+1)/2$}{(T-T0)(T-T0+1)/2}}
+
+\subsubsection{等差数列求和推导}
+
+cohort $r$ 在第 $r,r+1,\dots,T$ 期受处理，有 $T-r+1$ 个 $\tau_{rs}$。对 $r$ 求和：
+\begin{align*}
+\#\{\tau_{rs}\}&=\sum_{r=T_0+1}^{T}\#\{s:\ r\le s\le T\}=\sum_{r=T_0+1}^{T}(T-r+1) \why{cohort $r$ 有 $T-r+1$ 个处理后时期}\\
+&=(T-T_0)+(T-T_0-1)+\dots+1 \why{令 $k=T-r+1$，从 $T-T_0$ 降到 1}\\
+&=\frac{(T-T_0)(T-T_0+1)}{2}. \why{等差数列求和}
+\end{align*}
+验算：$T_0=2$，$T=5$ 时为 $\frac{3\times4}{2}=6$ 个（$\tau_{33},\tau_{34},\tau_{35},\tau_{44},\tau_{45},\tau_{55}$）。此外回归中还有截距 1 个、cohort 虚拟变量 $T-T_0$ 个、时期虚拟变量 $T-1$ 个；五期设定共 $1+3+4+6=14$ 个系数，而“cohort $\times$ 时期”格子有 $4\times5=20$ 个。
+
+\subsubsection{按 cohort 列出 \texorpdfstring{$\tau_{rs}$}{tau\_rs}}
+
+\begin{center}
+\small
+\begin{tabular}{llc}
+\toprule
+cohort（进入期 $r$） & 需估计的效应 & 个数\\
+\midrule
+$T_0+1$ & $\tau_{T_0+1,T_0+1},\ \tau_{T_0+1,T_0+2},\ \dots,\ \tau_{T_0+1,T}$ & $T-T_0$\\
+$T_0+2$ & $\tau_{T_0+2,T_0+2},\ \dots,\ \tau_{T_0+2,T}$ & $T-T_0-1$\\
+$\vdots$ & $\vdots$ & $\vdots$\\
+$T$ & $\tau_{T,T}$ & 1\\
+\bottomrule
+\end{tabular}
+\captionof{table}{按 cohort 列出的 $\tau_{rs}$}
+\end{center}
+
+\begin{note}[从进入当期开始列]
+每个 cohort 的列表必须从进入当期 $s=r$ 开始（$\tau_{T_0+1,T_0+1}$、$\tau_{T_0+2,T_0+2}$……），不要漏掉进入当期的效应；否则个数也会算错。
+\end{note}
+
+\subsubsection{没有从未处理组时：最后进入的 cohort 作控制}
+
+若没有从未处理组，最后一个 cohort（$r=T$）在第 $T$ 期使所有单位都已处理，第 $T$ 期没有未处理观测，$\lambda_T$ 与 $\tau_{\cdot T}$ 无法分离。实践中把最后进入的 cohort 当作控制组，并删去它进入后的时期。
+
+\subsection{交错设计下的识别假设}
+
+\subsubsection{平行趋势：所有 cohort 与从未处理组的未处理趋势相同}
+
+\begin{defn}[交错处理的平行趋势]\label{def:U15b-ptstag}
+所有 cohort 与从未处理组在未处理状态下趋势相同：
+\[
+\E\bigl[y_t(\infty)-y_{t-1}(\infty)\mid G_i=r\bigr]=\E\bigl[y_t(\infty)-y_{t-1}(\infty)\mid G_i=\infty\bigr],\qquad\forall r,\ \forall t.
+\]
+\end{defn}
+
+也可写成相对第 1 期的形式：$\E\bigl(y_t(0)-y_1(0)\mid d_3,d_4,d_5\bigr)=\E\bigl(y_t(0)-y_1(0)\bigr)$，即相对第 1 期的未处理变化不依赖于 cohort（“control units are the same for units affected at different times”）——同一个控制组可以服务于不同时间进入的各 cohort。两种写法等价：
+\begin{align*}
+y_t(0)-y_1(0)&=\textstyle\sum_{k=2}^{t}\bigl(y_k(0)-y_{k-1}(0)\bigr) \why{逐期变化相加}\\
+y_t(0)-y_{t-1}(0)&=\bigl(y_t(0)-y_1(0)\bigr)-\bigl(y_{t-1}(0)-y_1(0)\bigr) \why{两个长差分相减}
+\end{align*}
+对 cohort 取条件期望后可知：逐期变化不依赖 cohort $\Leftrightarrow$ 相对第 1 期的变化不依赖 cohort。
+
+\subsubsection{从未处理组还是尚未处理组作控制}
+
+\begin{itemize}
+  \item 只用\key{从未处理组}作控制：只需各 cohort 与从未处理组趋势平行。
+  \item 也用\term{尚未处理组}{not-yet-treated}作控制（扩展 TWFE、BJS 默认如此）：需要所有 cohort 之间也趋势平行——假设更强，但用到的控制观测更多，效率更高。
+\end{itemize}
+
+\subsubsection{无预期}
+
+$y_t(r)=y_t(\infty)$，$\forall t<r$：进入处理之前，单位不会因为“将要被处理”而改变结果。若存在预期效应，尚未处理的观测就不再是 $y_t(\infty)$ 的干净样本。
+
+\subsection{\texorpdfstring{$\tau_{rs}$}{tau\_rs} 的聚合：按事件时间、按 cohort、总体 ATT}
+
+\subsubsection{三种聚合公式}
+
+$\tau_{rs}$ 太多，通常聚合汇报，权重一般取 cohort 规模 $N_r$：
+\begin{align*}
+\text{按事件时间 }e:\quad \theta(e)&=\frac{\sum_rN_r\,\tau_{r,r+e}}{\sum_rN_r}\quad(\text{对 }r+e\le T\text{ 的 cohort 求和}) \why{动态效应曲线}\\
+\text{按 cohort }r:\quad \theta_r&=\frac{1}{T-r+1}\sum_{s=r}^{T}\tau_{rs} \why{该批单位的平均效应}\\
+\text{总体 ATT}:\quad \theta&=\frac{\sum_r\sum_{s\ge r}N_r\,\tau_{rs}}{\sum_r\sum_{s\ge r}N_r} \why{所有已处理观测等权}
+\end{align*}
+
+\subsubsection{例：五期设定下的聚合}
+
+\begin{exmp}[五期设定下的聚合]\label{ex:U15b-agg}
+设 $\tau_{33}=1,\tau_{34}=2,\tau_{35}=3,\tau_{44}=1,\tau_{45}=2,\tau_{55}=1$（效应只取决于进入后的年数），$N_3=100$，$N_4=50$，$N_5=50$。求 $\theta(0),\theta(1),\theta(2)$ 与总体 ATT。
+\solution
+\begin{align*}
+\theta(0)&=\frac{100\cdot1+50\cdot1+50\cdot1}{200}=1, \why{三个 cohort 都有 $e=0$}\\
+\theta(1)&=\frac{100\cdot2+50\cdot2}{150}=2, \why{cohort 5 没有 $e=1$}\\
+\theta(2)&=\tau_{35}=3, \why{只有 cohort 3}\\
+\theta&=\frac{100(1+2+3)+50(1+2)+50\cdot1}{100\cdot3+50\cdot2+50\cdot1}=\frac{800}{450}\approx1.78. \why{已处理观测共 450 个}
+\end{align*}
+\end{exmp}
+
+\subsubsection{即时练习：交错处理的参数与聚合}
+
+\begin{prac}[交错处理的参数与聚合]\label{pr:U15b-agg}
+$T=6$，政策最早在第 4 期生效，cohort 为 $r=4,5,6$，另有从未处理组。(a) 有多少个 $\tau_{rs}$？逐个列出。(b) 若 $N_4=N_5=N_6=100$，且 $\tau_{rs}=2+(s-r)$，求事件时间 $e=0,1,2$ 的聚合效应与总体 ATT。
+\answer (a) $T_0=3$，$(T-T_0)(T-T_0+1)/2=3\times4/2=6$：cohort 4：$\tau_{44},\tau_{45},\tau_{46}$；cohort 5：$\tau_{55},\tau_{56}$；cohort 6：$\tau_{66}$。
+
+(b) $\tau_{44}=\tau_{55}=\tau_{66}=2$，$\tau_{45}=\tau_{56}=3$，$\tau_{46}=4$。
+\begin{align*}
+\theta(0)&=2,\quad \theta(1)=\frac{100\cdot3+100\cdot3}{200}=3,\quad \theta(2)=\tau_{46}=4; \why{按事件时间}\\
+\theta&=\frac{100(2+3+4)+100(2+3)+100\cdot2}{100(3+2+1)}=\frac{1600}{600}\approx2.67. \why{已处理观测共 600 个}
+\end{align*}
+\end{prac}
+
+\subsection{Stata 实现：手工扩展 TWFE 与 jwdid}
+
+\begin{lstlisting}
+* manual extended TWFE: one dummy per treated cohort x post-period cell
+* first_treat = first treatment year (0 or missing for never treated)
+foreach r of numlist 3/5 {
+    foreach s of numlist `r'/5 {
+        gen tau_`r'_`s' = (first_treat==`r') * (year==`s')
+    }
+}
+reghdfe y tau_*, absorb(id year) vce(cluster id)
+* packaged version (SSC: jwdid, Rios-Avila)
+jwdid y, ivar(id) tvar(year) gvar(first_treat)
+estat simple      // overall ATT
+estat event       // aggregated by event time
+estat group       // aggregated by cohort
+\end{lstlisting}
+
+\tagext\ Stata 18 起另有官方命令 \texttt{xthdidregress}，可估计异质处理效应 DiD（提供 TWFE、AIPW 等方法；具体语法以 \texttt{help xthdidregress} 为准）。
+
+\begin{english}
+In a staggered adoption design, units first receive treatment in different periods. Let $G_i=r$ denote the cohort and define the cohort-time effect $\tau_{rs}=E[y_{is}(r)-y_{is}(\infty)\mid G_i=r]$ for $s\ge r$. Wooldridge's extended TWFE regression includes cohort dummies, time dummies and the full set of interactions $d_{ir}w_{st}$ for $s\ge r$; its coefficients are the imputation estimates based on never-treated and not-yet-treated observations. There are $(T-T_0)(T-T_0+1)/2$ such parameters. Identification requires parallel trends across all cohorts and the never-treated group, together with no anticipation. The $\tau_{rs}$ are then aggregated into an overall ATT, event-time effects or cohort effects.
+\end{english}
+
+%======================================================================
+\section{普通 TWFE 在“交错 \texorpdfstring{$+$}{+} 异质”下为何失效}\label{sec:U15b-fail}
+
+\tagext\ 本节和下一节属于拓展内容（2018--2024 年 DiD 文献的核心进展），但它们回答了真题第 2(b) 题背后的问题：效应异质时，为什么不能只跑一个 $D_{it}$ 的 TWFE？
+
+\subsection{TWFE 系数的权重表示}
+
+\subsubsection{设定：允许每个处理单元格的效应不同}
+
+设真实模型允许每个处理单元格的效应 $\Delta_{it}$ 各不相同，且平行趋势与无预期成立：
+\[
+y_{it}=\alpha_i+\lambda_t+\Delta_{it}D_{it}+u_{it},\qquad \E(u_{it}\mid D)=0 .
+\]
+研究者却跑普通（静态）TWFE：$y_{it}$ 对单一 $D_{it}$ 回归，控制 $\alpha_i$ 与 $\lambda_t$。问题：$\hat\beta$ 是 $\Delta_{it}$ 的什么平均？
+
+\subsubsection{FWL：\texorpdfstring{$\hat\beta$}{beta hat} 是 \texorpdfstring{$y$}{y} 对双向去均值处理变量的回归系数}
+
+由 FWL 定理（第 3 章）与双向组内变换（第 10 章），平衡面板中
+\[
+\hat\beta=\frac{\sum_{i,t}\tilde D_{it}y_{it}}{\sum_{i,t}\tilde D_{it}^2},\qquad
+\tilde D_{it}=D_{it}-\bar D_{i}-\bar D_{t}+\bar D,
+\]
+其中 $\bar D_i=\frac1T\sum_tD_{it}$（单位 $i$ 受处理的期数比例），$\bar D_t=\frac1N\sum_iD_{it}$（第 $t$ 期受处理的单位比例），$\bar D$ 为总平均。$\tilde D_{it}$ 是 $D_{it}$ 对个体与时期虚拟变量回归的残差。
+
+\subsubsection{推导：\texorpdfstring{$\E\hat\beta=\sum w_{it}\Delta_{it}$}{E beta hat = sum of w times Delta}，\texorpdfstring{$w_{it}\propto\tilde D_{it}$}{w proportional to Dtilde}}
+
+思路：把真实模型代入 $\hat\beta$ 的分子，利用 $\tilde D$ 与个体、时期效应正交。
+\begin{align*}
+\textstyle\sum_{i,t}\tilde D_{it}\alpha_i&=\textstyle\sum_i\alpha_i\sum_t\tilde D_{it}=0 \why{$\tilde D$ 对每个 $i$ 求和为 0}\\
+\textstyle\sum_{i,t}\tilde D_{it}\lambda_t&=\textstyle\sum_t\lambda_t\sum_i\tilde D_{it}=0 \why{$\tilde D$ 对每个 $t$ 求和为 0}\\
+\textstyle\sum_{i,t}\tilde D_{it}^2&=\textstyle\sum_{i,t}\tilde D_{it}D_{it}=\sum_{D_{it}=1}\tilde D_{it} \why{$\tilde D$ 与 $\bar D_i,\bar D_t,\bar D$ 正交}\\
+\textstyle\sum_{i,t}\tilde D_{it}y_{it}&=\textstyle\sum_{D_{it}=1}\tilde D_{it}\Delta_{it}+\sum_{i,t}\tilde D_{it}u_{it} \why{代入 $y$，前两式}\\
+\Rightarrow\ \E\hat\beta&=\sum_{(i,t):\,D_{it}=1}w_{it}\,\Delta_{it},\qquad w_{it}=\frac{\tilde D_{it}}{\sum_{D_{js}=1}\tilde D_{js}},\quad \sum w_{it}=1. \why{$\E(u\mid D)=0$}
+\end{align*}
+结论：普通 TWFE 估计的是单元格效应的加权平均，权重之和为 1，正比于 $\tilde D_{it}$；但\key{个别权重可以为负}。
+
+\subsection{负权重（de Chaisemartin \& D'Haultf{\oe}uille 2020）}
+
+\subsubsection{何时 \texorpdfstring{$\tilde D_{it}<0$}{Dtilde < 0}：早处理单位的晚时期}
+
+对已处理观测（$D_{it}=1$），
+\[
+\tilde D_{it}=1-\bar D_i-\bar D_t+\bar D<0\iff \bar D_i+\bar D_t>1+\bar D ,
+\]
+即\key{较早处理的单位}（$\bar D_i$ 大）在\key{较晚的时期}（$\bar D_t$ 大）。直觉：这些观测在 TWFE 里被当成了后进入者的“控制组”。
+
+\subsubsection{三种情形：共同时点、效应同质、交错且异质}
+
+\begin{itemize}
+  \item \key{共同时点}：处理单位 $\bar D_i=p=T_1/T$，处理后时期 $\bar D_t=q=N_1/N$，$\bar D=qp$，于是 $\tilde D_{it}=1-p-q+qp=(1-q)(1-p)>0$ 对所有已处理观测相同 $\Rightarrow$ 等权，没有问题（本章“TWFE 回归与 $2\times2$ DiD 的精确等价”一节）。
+  \item \key{效应同质}（$\Delta_{it}\equiv\beta$）：$\E\hat\beta=\beta\sum w_{it}=\beta$，负权重无害。
+  \item \key{交错 $+$ 异质}：$\hat\beta$ 可以落在所有 $\Delta_{it}$ 的范围之外，甚至符号相反。de Chaisemartin \& D'Haultf{\oe}uille (2020, \emph{American Economic Review}) 系统刻画了这些权重，并提出 $\mathrm{DID}_M$ 估计量；Stata 命令 \texttt{twowayfeweights} 可算出每个单元格的权重。
+\end{itemize}
+
+\subsection{数值例：三期两单位，效应全为正而 TWFE 为负}
+
+\begin{exmp}[效应全为正而 TWFE 为负]\label{ex:U15b-negw}
+单位 A 从第 2 期起受处理，单位 B 从第 3 期起受处理，共 3 期，没有从未处理单位。处理状态 $D$：A $=(0,1,1)$，B $=(0,0,1)$。真实效应随处理时长增大：$\Delta_{A2}=1$，$\Delta_{A3}=4$，$\Delta_{B3}=1$（全为正）。求 TWFE 权重与 $\E\hat\beta_{TWFE}$。
+\solution 先求行、列与总平均：
+\[
+\bar D_A=\tfrac23,\quad \bar D_B=\tfrac13;\qquad \bar D_{t=1}=0,\ \bar D_{t=2}=\tfrac12,\ \bar D_{t=3}=1;\qquad \bar D=\tfrac36=\tfrac12 .
+\]
+再求三个已处理观测的 $\tilde D_{it}=1-\bar D_i-\bar D_t+\bar D$：
+\begin{align*}
+\tilde D_{A2}&=1-\tfrac23-\tfrac12+\tfrac12=\tfrac13, \why{A 在第 2 期}\\
+\tilde D_{A3}&=1-\tfrac23-1+\tfrac12=-\tfrac16<0, \why{早处理单位、晚时期：负}\\
+\tilde D_{B3}&=1-\tfrac13-1+\tfrac12=\tfrac16, \why{B 在第 3 期}\\
+\textstyle\sum_{D=1}\tilde D&=\tfrac13-\tfrac16+\tfrac16=\tfrac13, \why{权重分母}\\
+(w_{A2},w_{A3},w_{B3})&=\Bigl(\tfrac{1/3}{1/3},\ \tfrac{-1/6}{1/3},\ \tfrac{1/6}{1/3}\Bigr)=\bigl(1,\ -\tfrac12,\ \tfrac12\bigr). \why{$w\propto\tilde D$}
+\end{align*}
+于是
+\[
+\E\hat\beta_{TWFE}=1\cdot1-\tfrac12\cdot4+\tfrac12\cdot1=-0.5<0 .
+\]
+用无噪声数据跑 TWFE 回归，确实得到 $-0.5$；而三个处理单元格的简单平均效应是 $(1+4+1)/3=2$。
+\end{exmp}
+
+\subsection{Goodman-Bacon (2021) 分解}
+
+\subsubsection{三类 \texorpdfstring{$2\times2$}{2x2} 比较与禁止比较}
+
+\begin{thm}[Goodman-Bacon 分解（\emph{Journal of Econometrics} 2021）]\label{thm:U15b-bacon}
+交错设计中，普通 TWFE 的 $\hat\beta$ 是数据中所有 $2\times2$ DiD 的加权平均，权重非负、和为 1，权重正比于子样本规模和子样本内处理变量的方差（处理时点越接近面板中段，权重越大）。$2\times2$ 比较有三类：
+\begin{enumerate}
+  \item 处理 cohort $k$ vs.\ 从未处理组 $U$；
+  \item 早处理 $k$ vs.\ 晚处理 $l$（$l$ 尚未处理，作为控制）——“干净”的比较；
+  \item 晚处理 $l$ vs.\ 早处理 $k$（$k$ 已经处理，被当作控制）——\term{禁止比较}{forbidden comparison}。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{禁止比较的偏误：控制组自身的效应在变化}
+
+第 3 类的问题：控制组 $k$ 自身处于处理中，它在窗口内的变化包含了处理效应的变化，于是
+\[
+\hat\beta^{\,l}_{kl}\approx\underbrace{\mathrm{ATT}_l}_{\text{想要的}}-\underbrace{\bigl[\mathrm{ATT}_k(\text{后窗口})-\mathrm{ATT}_k(\text{前窗口})\bigr]}_{\text{早处理组效应的变化}} .
+\]
+早处理组的效应随时间增长时，这一项把估计往下拉。
+
+\subsubsection{概率极限：VWATT \texorpdfstring{$+$}{+} VWCT \texorpdfstring{$-\Delta$}{- Delta}ATT}
+
+总体上 Goodman-Bacon 证明
+\[
+\plim\hat\beta_{TWFE}=\mathrm{VWATT}+\mathrm{VWCT}-\Delta\mathrm{ATT},
+\]
+即方差加权的 ATT（VWATT），加上方差加权的“共同趋势偏差”（VWCT，平行趋势成立时为 0），减去由时变效应引起的偏差 $\Delta$ATT（效应不随时间变化时为 0）。
+
+\subsubsection{续例：干净比较与禁止比较各占一半权重}
+
+\begin{exmp}[续上例：Goodman-Bacon 分解]\label{ex:U15b-bacon}
+沿用上例（A 第 2 期起处理，B 第 3 期起处理，各一期窗口），把 $\hat\beta_{TWFE}=-0.5$ 分解为两个 $2\times2$ 比较。
+\solution 记 $y_{it}=\alpha_i+\lambda_t+\Delta_{it}D_{it}$（无噪声）。
+\begin{align*}
+\text{早 vs 晚（第 1--2 期，B 作控制）}:&\ (y_{A2}-y_{A1})-(y_{B2}-y_{B1}) \why{干净比较}\\
+&=(\lambda_2-\lambda_1+\Delta_{A2})-(\lambda_2-\lambda_1)=\Delta_{A2}=1, \why{B 尚未处理}\\
+\text{晚 vs 早（第 2--3 期，A 作控制）}:&\ (y_{B3}-y_{B2})-(y_{A3}-y_{A2}) \why{禁止比较}\\
+&=(\lambda_3-\lambda_2+\Delta_{B3})-(\lambda_3-\lambda_2+\Delta_{A3}-\Delta_{A2}) \why{A 已处理}\\
+&=\Delta_{B3}-(\Delta_{A3}-\Delta_{A2})=1-3=-2, \why{A 的效应从 1 增到 4}\\
+\hat\beta_{TWFE}&=\tfrac12\cdot1+\tfrac12\cdot(-2)=-0.5. \why{本例两类权重各 $\tfrac12$}
+\end{align*}
+负的 TWFE 估计完全来自禁止比较：A 的效应在第 2--3 期增长了 3，被当作“控制组的时间变化”从 B 的效应中扣掉。Stata 中 \texttt{bacondecomp y D, ddetail}（SSC）输出每类比较的估计与权重。
+\end{exmp}
+
+\subsection{事件研究系数的污染（Sun \& Abraham 2021）}
+
+交错设计中跑 TWFE 事件研究（本章“事件研究”一节），若各 cohort 的动态效应不同，相对期 $e$ 的系数会混入其他相对期（包括被略去的参照期）、其他 cohort 的效应：即使平行趋势成立，前导系数也可能显著不为 0（\key{伪事前趋势}），滞后系数也有偏（Sun \& Abraham 2021, \emph{Journal of Econometrics}）。
+
+\subsection{何时需要担心普通 TWFE}
+
+\begin{keypt}[问题只出在“交错 $+$ 异质”]
+普通 TWFE 只有在“\key{交错处理 $+$ 效应异质}（尤其效应随处理时长变化）”时才有问题。共同时点（哪怕效应随时间变）或效应同质时，普通 TWFE 仍给出合理的平均（本章“时变效应的 TWFE 估计”结论）。英文作答可写：“With staggered adoption and heterogeneous effects, the TWFE coefficient is a weighted average of cell-level effects with possibly negative weights, because already-treated units serve as controls for later-treated units.”
+\end{keypt}
+
+\subsection{即时练习：计算 TWFE 权重}
+
+\begin{prac}[计算 TWFE 权重]\label{pr:U15b-weights}
+三个单位、三期：E 从第 2 期起处理，L 从第 3 期起处理，N 从未处理。(a) 计算各已处理观测的 $\tilde D_{it}$ 与权重 $w_{it}$；(b) 若 $\Delta_{E2}=2,\ \Delta_{E3}=6,\ \Delta_{L3}=1$，求 $\E\hat\beta_{TWFE}$ 与已处理观测的简单平均效应。
+\answer (a) $D$：E $(0,1,1)$，L $(0,0,1)$，N $(0,0,0)$。$\bar D_E=\frac23$，$\bar D_L=\frac13$，$\bar D_N=0$；$\bar D_t=(0,\frac13,\frac23)$；$\bar D=\frac39=\frac13$。
+\begin{align*}
+\tilde D_{E2}&=1-\tfrac23-\tfrac13+\tfrac13=\tfrac13, \why{E 在第 2 期}\\
+\tilde D_{E3}&=1-\tfrac23-\tfrac23+\tfrac13=0, \why{E 在第 3 期}\\
+\tilde D_{L3}&=1-\tfrac13-\tfrac23+\tfrac13=\tfrac13. \why{L 在第 3 期}
+\end{align*}
+分母 $\frac13+0+\frac13=\frac23$，权重 $w_{E2}=\frac12$，$w_{E3}=0$，$w_{L3}=\frac12$。
+
+(b) $\E\hat\beta=\frac12\cdot2+0\cdot6+\frac12\cdot1=1.5$；简单平均 $=\frac{2+6+1}{3}=3$。TWFE 对最大的效应 $\Delta_{E3}=6$ 给了零权重，严重低估。有从未处理组时负权重被缓解（本例没有负权重），但权重仍不合理。
+\end{prac}
+
+\begin{english}
+With staggered treatment timing and heterogeneous effects, the static TWFE estimator is a weighted average of cell-level treatment effects, $E\hat\beta=\sum_{D_{it}=1}w_{it}\Delta_{it}$, where $w_{it}$ is proportional to the two-way demeaned treatment indicator. Some weights are negative, typically for early-treated units in late periods. Goodman-Bacon (2021) shows that $\hat\beta$ averages all $2\times2$ comparisons, including ``forbidden'' comparisons that use already-treated units as controls. If treatment effects grow over time, these comparisons bias the estimate downward, possibly even reversing its sign.
+\end{english}
+
+%======================================================================
+\section{异质稳健的 DiD 估计量}\label{sec:U15b-robust}
+
+\tagext\ 本节为拓展内容。上一节说明了普通 TWFE 在交错且异质时的问题；本节介绍文献中的修正方法，它们都可以看成本章“处理效应 $=$ 缺失数据插补”思想的不同实现。
+
+\subsection{共同思想：只用“干净”的比较——未处理观测作控制}
+
+上一节的病根是“\key{已处理单位被当作控制}”。所有稳健估计量都分两步：
+\begin{enumerate}
+  \item 先估计不受污染的基本构件——cohort--时期效应 $\tau_{rs}$（或单元格效应 $\tau_{it}$），只用\key{从未处理}或\key{尚未处理}的观测来构造反事实；
+  \item 再以研究者明确选定的\key{非负权重}聚合（按事件时间、按 cohort、总体 ATT）。
+\end{enumerate}
+这与“处理效应 $=$ 缺失数据插补”的框架完全一致：先插补缺失的 $y_{it}(0)$，再对 $y_{it}-\hat y_{it}(0)$ 取想要的平均。
+
+\subsection{Callaway \& Sant'Anna (2021)：\texorpdfstring{$ATT(g,t)$}{ATT(g,t)} 与聚合}
+
+\subsubsection{定义与长差分识别}
+
+\begin{defn}[CS 估计量（\emph{Journal of Econometrics} 2021）]\label{def:U15b-cs}
+$ATT(g,t)=\E[y_t(g)-y_t(\infty)\mid G=g]$（即本书的 $\tau_{gt}$）。以 $g-1$ 期为基期的“长差分”识别：
+\begin{align*}
+\text{从未处理组作控制：}\quad ATT(g,t)&=\E[y_t-y_{g-1}\mid G=g]-\E[y_t-y_{g-1}\mid G=\infty];\\
+\text{尚未处理组作控制：}\quad ATT(g,t)&=\E[y_t-y_{g-1}\mid G=g]-\E[y_t-y_{g-1}\mid D_t=0,\ G\ne g].
+\end{align*}
+\end{defn}
+
+以从未处理组为例验证第一式（$t\ge g$）。思路：把观测结果换成潜在结果，加减 $y_t(\infty)$，再用平行趋势消去趋势差。
+\begin{align*}
+\E[y_t-y_{g-1}\mid G=g]&=\E[y_t(g)-y_{g-1}(\infty)\mid G=g] \why{$t\ge g$ 已处理；$g-1$ 期无预期}\\
+&=ATT(g,t)+\E[y_t(\infty)-y_{g-1}(\infty)\mid G=g] \why{加减 $y_t(\infty)$}\\
+\E[y_t-y_{g-1}\mid G=\infty]&=\E[y_t(\infty)-y_{g-1}(\infty)\mid G=\infty] \why{从未处理}\\
+\Rightarrow\ \text{两式之差}&=ATT(g,t). \why{平行趋势：两个长差分相等}
+\end{align*}
+
+\subsubsection{每个 \texorpdfstring{$ATT(g,t)$}{ATT(g,t)} 是一个干净的 \texorpdfstring{$2\times2$}{2x2} DiD}
+
+\begin{itemize}
+  \item 每个 $ATT(g,t)$ 就是一个“干净”的 $2\times2$ DiD：cohort $g$ vs.\ 控制组，基期 $g-1$ vs.\ 第 $t$ 期。已处理单位永远不会充当控制。
+  \item 可加入处理前协变量，用结果回归、逆概率加权（IPW）或\term{双重稳健}{doubly robust}（DR）方法实现\key{条件}平行趋势。
+\end{itemize}
+
+\subsubsection{聚合与推断}
+
+事件时间聚合：
+\[
+\theta_{es}(e)=\sum_g\mathbf{1}\{g+e\le T\}\Pr(G=g\mid G+e\le T)\,ATT(g,g+e),
+\]
+权重是各 cohort 在“能观测到相对期 $e$ 的 cohort”中所占的比例，与上一节的 $\theta(e)$ 相同。还有按 cohort、按日历时间与总体平均的聚合。推断用\term{乘子自助法}{multiplier bootstrap}，可给出一致置信带（uniform confidence bands）。软件：Stata \texttt{csdid}（\texttt{estat event}、\texttt{csdid\_plot}）；R 包 \texttt{did}。
+
+\subsection{Sun \& Abraham (2021)：交互加权（IW）事件研究估计量}
+
+\term{交互加权估计量}{interaction-weighted estimator}分两步：
+\begin{enumerate}
+  \item 回归中放入个体 FE、时间 FE，以及“cohort 虚拟变量 $\times$ 相对期虚拟变量”的全部交互，以从未处理（或最后处理）的 cohort 为控制组，得到每个 cohort 在每个相对期的效应 $CATT_{r,e}$；
+  \item 用各 cohort 在该相对期中所占的样本份额加权平均，得到干净的事件研究系数。
+\end{enumerate}
+它直接修正了上一节所说的 TWFE 事件研究系数的污染。
+
+软件：Stata \texttt{eventstudyinteract}；R \texttt{fixest::sunab()}。
+
+\subsection{Borusyak, Jaravel \& Spiess (2024)：插补估计量}
+
+\begin{method}[BJS 插补估计量的三步]
+\begin{enumerate}
+  \item 只用未处理观测 $\Omega_0=\{(i,t):D_{it}=0\}$ 估计 $y_{it}=\alpha_i+\lambda_t\,(+x_{it}\T\delta)+u_{it}$；
+  \item 对已处理观测插补 $\hat y_{it}(0)=\hat\alpha_i+\hat\lambda_t$，得到 $\hat\tau_{it}=y_{it}-\hat y_{it}(0)$；
+  \item 按目标权重聚合：$\hat\tau_w=\sum_{D_{it}=1}w_{it}\hat\tau_{it}$（如事件时间效应、总体 ATT）。
+\end{enumerate}
+\end{method}
+
+性质：在同方差、无序列相关的误差下，它是最有效的线性无偏估计；事前趋势检验单独用未处理观测完成，避免与估计混在一起；与 Wooldridge 扩展 TWFE 数值相同（本章“扩展 TWFE 等于插补估计量”结论）。发表于 \emph{Review of Economic Studies}（2024）。软件：Stata \texttt{did\_imputation}；R \texttt{didimputation}。
+
+\subsection{de Chaisemartin \& D'Haultf{\oe}uille：\texorpdfstring{$\mathrm{DID}_M$}{DID\_M} 及其动态版本}
+
+$\mathrm{DID}_M$：在相邻两期之间，比较“处理状态发生改变的单位”（\term{转换者}{switchers}）与“状态未变的单位”（\term{保持者}{stayers}），再对所有时期加权平均。它允许处理\key{时开时关}（non-absorbing），这是前面几种方法（都假定吸收性处理）所没有的。后续工作给出了动态（跨期）效应的版本。软件：Stata \texttt{did\_multiplegt}、\texttt{did\_multiplegt\_dyn}；权重诊断用 \texttt{twowayfeweights}。
+
+\subsection{各方法的比较}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLLL}
+\toprule
+方法 & 控制组 & 基期 / 构造 & 特点\\
+\midrule
+Wooldridge 扩展 TWFE & 从未处理 $+$ 尚未处理 & 全部处理前期（平均） & 仍是一条 OLS 回归；$=$ BJS 插补；可加时不变协变量\\
+BJS 插补 & 同上 & 全部未处理观测 & 同方差下最有效；事前检验分开做\\
+Callaway--Sant'Anna & 从未处理或尚未处理（可选） & $g-1$ 单期 & 协变量用 DR；PT 假设较弱（只需从 $g-1$ 期起成立）\\
+Sun--Abraham & 从未处理或最后处理的 cohort & 参照相对期 & 修正 TWFE 事件研究\\
+dCDH $\mathrm{DID}_M$ & 状态未变的单位 & 相邻两期 & 允许处理开关\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{异质稳健 DiD 估计量的比较}
+\end{center}
+
+效应同质且平行趋势成立时，这些估计量与普通 TWFE 估计同一个量；差别在于异质时如何加权、对平行趋势要求多强、效率如何。
+
+\subsection{Stata 命令汇总}
+
+以下均为用户编写命令（SSC 安装）：
+\begin{lstlisting}
+* diagnostics for the static TWFE estimator
+bacondecomp y D, ddetail                        // Goodman-Bacon decomposition (SSC)
+twowayfeweights y id year D, type(feTR)         // dCDH weights (SSC)
+* heterogeneity-robust estimators
+jwdid y, ivar(id) tvar(year) gvar(first_treat)               // Wooldridge ETWFE
+csdid y, ivar(id) time(year) gvar(first_treat) notyet        // Callaway-Sant'Anna
+estat event
+gen never_treat = missing(first_treat)         // indicator of the control cohort
+eventstudyinteract y lead* lag*, cohort(first_treat) control_cohort(never_treat) absorb(i.id i.year) vce(cluster id)
+     // Sun-Abraham
+did_imputation y id year first_treat, horizons(0/5) pretrends(3)           // BJS
+did_multiplegt_dyn y id year D, effects(5) placebo(3)                     // dCDH
+\end{lstlisting}
+注：\texttt{gvar}/\texttt{first\_treat} 对从未处理单位通常取 0 或缺失（各命令约定不同，以帮助文件为准）。
+
+\begin{english}
+Heterogeneity-robust DiD estimators avoid forbidden comparisons by building the estimate from clean comparisons. Callaway and Sant'Anna (2021) estimate group-time effects $ATT(g,t)$ using never-treated or not-yet-treated units as controls and period $g-1$ as the base period, and then aggregate them. Sun and Abraham (2021) estimate cohort-specific event-study effects and average them with cohort-share weights. Borusyak, Jaravel and Spiess (2024) estimate unit and time effects from untreated observations only, impute $y_{it}(0)$ for treated observations and average the implied effects; this is numerically equivalent to Wooldridge's extended TWFE regression.
+\end{english}
+
+%======================================================================
+\section{DiD 方法总结：三个层次、溢出效应与方法选择}\label{sec:U15b-wrap}
+
+\subsection{三个层次：同质 ATT \texorpdfstring{$\to$}{->} 随时间异质 \texorpdfstring{$\to$}{->} 交错处理}
+
+\subsubsection{层次的划分：交错处理是“每个 cohort 各自随时间异质”}
+
+DiD 的内容可以按三个层次组织：同质 ATT（homogeneous ATT）；随时间异质（heterogeneous over time）；交错处理（staggered treatment）。交错处理指回“随时间异质”：下图中第 1 组在 $T_0+1$ 期进入、第 2 组在 $T_0+2$ 期进入，各自的效应从进入期延续到 $T$，每个处理后时期都有效应。交错处理就是\key{每个 cohort 各自的随时间异质}，再加上 \key{cohort 之间的异质}。
+
+\begin{center}
+\begin{tikzpicture}[x=1.25cm,y=0.6cm,font=\small]
+\draw[->] (0,0) -- (7.3,0) node[right] {$t$};
+\foreach \x/\l in {1/1,2.5/T_0,3.5/T_0+1,4.5/T_0+2,6.5/T}{\draw (\x,0.1)--(\x,-0.1) node[below] {$\l$};}
+\node at (5.5,-0.45) {$\cdots$};
+\node[left] at (0.2,2.2) {第 1 组};
+\node[left] at (0.2,1.2) {第 2 组};
+\draw[thick] (0.3,2.2) -- (3.0,2.2); \draw[line width=4pt,gray!55] (3.0,2.2) -- (6.9,2.2);
+\draw[thick] (0.3,1.2) -- (4.0,1.2); \draw[line width=4pt,gray!55] (4.0,1.2) -- (6.9,1.2);
+\node[right,font=\footnotesize] at (6.95,2.2) {$\tau_{T_0+1,s}$};
+\node[right,font=\footnotesize] at (6.95,1.2) {$\tau_{T_0+2,s}$};
+\end{tikzpicture}
+\captionof{figure}{两组交错进入：灰色段为受处理期间}
+\end{center}
+
+\subsubsection{各层次的回归、参数与含义}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLlL}
+\toprule
+层次 & 回归 & 参数 & 估计量的含义\\
+\midrule
+同质 & $y=\alpha_i+\lambda_t+\beta D_{it}+u$ & $\beta$（ATT） & 均值的 DiD（共同时点下数值相等）\\
+随时间异质 & $y=\alpha_i+\lambda_t+\sum_s\tau_sd_iw_{st}+u$ & $\tau_s$，$s>T_0$ & 第 $s$ 期相对处理前平均的 DiD；等权平均 $=\hat\beta$\\
+随个体异质 & $y=\alpha_i+\lambda_t+\sum_j\beta_jD_{it}e_j(i)+u$ & $\beta_j$ & 单位 $j$ 对控制组的 DiD；平均 $=\hat\beta$\\
+事件研究 & 加前导 $+$ 滞后，略去 $e=-1$ & $\beta_e$ & 动态效应；前导 $=0$ 检验 PT\\
+交错处理 & 扩展 TWFE：$\sum_r\sum_{s\ge r}\tau_{rs}d_{ir}w_{st}$ & $\tau_{rs}$ & 插补估计；再聚合\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{DiD 的层次}
+\end{center}
+
+\subsection{溢出效应与 SUTVA 的违背}
+
+\subsubsection{溢出使 DiD \texorpdfstring{$=\mathrm{TE}-S$}{= TE - S}}
+
+SUTVA 要求一个单位的潜在结果不受其他单位处理状态的影响。政策作用于处理组，但处理组与控制组之间可能相互影响，\term{溢出效应}{spillover effect}落到控制组上；处理效应的定义本身依赖 SUTVA。若政策通过溢出改变了控制组的结果，控制组的变化就不再是“纯粹的其他效应”。设溢出使控制组处理后的平均结果改变 $S$，记 $\bar y_{dt}$ 为组 $d$、期 $t$ 的均值：
+\begin{align*}
+\bar y_{01}-\bar y_{00}&=\text{其他效应}+S \why{控制组受到溢出}\\
+\bar y_{11}-\bar y_{10}&=\mathrm{TE}+\text{其他效应} \why{处理组}\\
+\Rightarrow\ \mathrm{DiD}&=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00})=\mathrm{TE}-S. \why{相减}
+\end{align*}
+
+\subsubsection{溢出方向与偏误方向}
+
+\begin{itemize}
+  \item \key{正向溢出}（$S>0$，如邻近地区也受益）：DiD 低估处理效应。
+  \item \key{负向溢出}（$S<0$，如生产要素从控制组流向处理组）：DiD 高估处理效应。
+\end{itemize}
+
+\subsubsection{三种对策：远离的控制组、剔除邻近单位、显式估计溢出}
+
+\begin{enumerate}
+  \item 选择远离处理单位、不会受影响的控制组；
+  \item 剔除与处理单位相邻的单位；
+  \item 显式估计溢出：加入“邻近 $\times$ 处理后”虚拟变量 $S_{it}$，
+  \[
+  y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\gamma S_{it}+u_{it},
+  \]
+  $\beta$ 为直接效应，$\gamma$ 为溢出效应。例如在警察与汽车盗窃数据中，另设“距受保护机构一个街区 $\times$ 处理后”的虚拟变量，检验威慑效应是否扩散到相邻街区。
+\end{enumerate}
+
+\subsection{三重差分与“检查你的代码”（Hansen \S18.8）}
+
+\begin{exmp}[堕胎合法化与犯罪：漏掉的交互固定效应]\label{ex:U15b-ddd}
+Donohue \& Levitt (2001) 研究 1973 年堕胎合法化对 1990 年代犯罪的影响，回归
+\[
+\log(\mathit{Arrests}_{itb})=\beta\,\mathit{Abortion}_{ib}+u_i+\lambda_{tb}+\theta_{it}+\varepsilon_{itb},
+\]
+$i$ 为州、$t$ 为年、$b$ 为出生队列。回归包含州固定效应、队列 $\times$ 年交互与州 $\times$ 年交互，相当于\term{三重差分}{triple differences, DDD}：只利用州内跨出生队列的变化，识别论证比简单的跨州 DiD 强得多。原文报告 $\hat\beta=-0.028$。
+\solution Foote \& Goetz (2008) 复制时发现原代码漏掉了州 $\times$ 年交互 $\theta_{it}$，于是估计混用了跨州与跨队列的变化。补上后 $\hat\beta$ 从 $-0.028$ 变为 $-0.010$（仍显著，但影响大幅缩小）。Hansen 的两点教训：(1) 包含恰当的控制（交互固定效应）；(2) 仔细检查代码。
+\end{exmp}
+
+\subsection{处理变量内生：双向组内变换后做 2SLS}
+
+若处理 $D_{it}$ 与误差 $\varepsilon_{it}$ 相关（例如政策在预期结果变差的地区优先实施），但有与 $\varepsilon_{it}$ 无关、与 $D_{it}$ 相关的工具变量 $z_{it}$，可把第 10 章的双向组内变换与第 8 章的 2SLS 结合。思路：先消去 $\alpha_i,\lambda_t$，再对变换后的方程做 IV。平衡面板中记 $\ddot y_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$（$D$、$z$ 同理）：
+\begin{align*}
+y_{it}&=\theta D_{it}+\alpha_i+\lambda_t+\varepsilon_{it} \why{TWFE 模型}\\
+\ddot y_{it}&=\theta\ddot D_{it}+\ddot\varepsilon_{it} \why{双向组内变换消去 $\alpha_i,\lambda_t$}\\
+\hat\theta_{IV}&=\frac{\sum_{i,t}\ddot z_{it}\ddot y_{it}}{\sum_{i,t}\ddot z_{it}\ddot D_{it}}. \why{恰好识别的 IV}
+\end{align*}
+多个工具时对变换后的方程做 2SLS；标准误按单位聚类。
+
+\subsection{DiD 方法选择流程}
+
+\begin{method}[DiD 方法选择流程]
+\begin{enumerate}
+  \item \key{先确认识别}：SUTVA（有无溢出）、无预期、平行趋势（画事前趋势图、做事件研究）。
+  \item \key{共同时点}：$2\times2$ 回归 / TWFE；需要动态效应时用逐期交互或事件研究；关注个体差异时用 $D_{it}\times$ 个体交互。
+  \item \key{交错时点}：不要只跑一个 $D_{it}$ 的 TWFE；先用 \texttt{bacondecomp} / \texttt{twowayfeweights} 诊断，再用扩展 TWFE（\texttt{jwdid}）、CS、SA 或 BJS。
+  \item \key{协变量}：只用处理前或时不变的协变量，并说明条件平行趋势（本章“协变量”一节）。
+  \item \key{处理单位很少}：按单位聚类不可靠，用置换推断；只有 1 个处理单位时转用 SCM/PDA（第 16 章）。
+  \item \key{处理内生}：有工具变量时，对双向组内变换后的方程做 2SLS。
+\end{enumerate}
+\end{method}
+
+\begin{english}
+The DiD toolkit can be organized in three layers: a homogeneous ATT estimated by the basic TWFE regression; effects that vary over time, estimated with period-specific interactions or an event study; and staggered adoption, where each cohort has its own time-varying effects $\tau_{rs}$. Spillovers violate SUTVA: if the policy also affects the control group by $S$, the DiD estimand becomes $TE-S$. Researchers should choose control units that are unaffected by the policy, or model spillovers explicitly with an additional exposure indicator.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U15b-summary}
+
+\subsection{核心公式与结论}
+
+{\small
+\begin{longtable}{@{}p{0.17\linewidth}p{0.50\linewidth}p{0.27\linewidth}@{}}
+\toprule
+主题 & 公式 / 结论 & 要点\\
+\midrule
+\endfirsthead
+\toprule
+主题 & 公式 / 结论 & 要点\\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+ATT & $\mathrm{ATT}=\E[y_{it}(1)\mid d_i=1]-\E[y_{it}(0)\mid d_i=1]$ & 第一项可观测，第二项缺失需插补\\
+模型无关 DiD & $\hat\Delta=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00})$；反事实 $\hat y_{11}(0)=\bar y_{10}+(\bar y_{01}-\bar y_{00})$ & 处理前水平 $+$ 控制组变化\\
+识别 & SUTVA（无溢出）$+$ 无预期 $+$ PT：$\E[y_1(0)-y_0(0)\mid d=1]=\E[y_1(0)-y_0(0)\mid d=0]$ $\Rightarrow$ DiD $=$ ATT & 识别的是 ATT，不是 ATE\\
+TWFE 四格 & $y=\beta_0+\beta_1d+\beta_2w+\beta dw+u$：$A=\beta_0$，$B=\beta_0+\beta_2$，$C=\beta_0+\beta_1$，$D=\beta_0+\beta_1+\beta_2+\beta$ & $\beta=D-C-(B-A)$\\
+TWFE $=$ DiD & 共同时点、平衡面板：$\tilde D_{it}=(d_i-q)(w_t-p)$，$\bar D=N_1T_1/(NT)$，$\hat\beta_{FE}=\hat\beta_{DiD}$ & 数值精确相等\\
+协变量 & $\mathrm{DiD}=\beta+[(x_{11}-x_{10})-(x_{01}-x_{00})]\T\delta$；$\hat\beta=\mathrm{DiD}(\bar y)-\mathrm{DiD}(\bar x)\T\hat\delta$ & 只用处理前或时不变协变量\\
+少数处理单位 & $\hat\beta=\beta+(\bar u_{T,\mathrm{post}}-\bar u_{T,\mathrm{pre}})-(\bar u_{C,\mathrm{post}}-\bar u_{C,\mathrm{pre}})$ & 无偏但不一致；置换推断\\
+时变效应 & $\hat\tau_s=(\bar y_{T,s}-\bar y_{T,\mathrm{pre}})-(\bar y_{C,s}-\bar y_{C,\mathrm{pre}})$；$\frac1{T_1}\sum_s\hat\tau_s=\hat\beta$ & 以处理前平均为基期\\
+个体效应 & $\hat\beta_j=\Delta\bar y_j-\Delta\bar y_C$；$\frac1{N_1}\sum_j\hat\beta_j=\hat\beta$ & 固定 $T$ 时不一致；同质性检验 $N_1-1$ 个约束\\
+单元格效应 & $\hat\tau_{it}=y_{it}-\hat\alpha_i-\hat\lambda_t$，$(\hat\alpha,\hat\lambda)$ 只用 $D_{it}=0$ 的观测 & TWFE 插补 $y_{it}(0)$\\
+事件研究 & 略去 $e=-1$；$\hat\beta_e=(\bar y_{T,E+e}-\bar y_{T,E-1})-(\bar y_{C,E+e}-\bar y_{C,E-1})$；$H_0$：前导全为 0，$W\dto\chi^2_{K-1}$ & 不拒绝 $\ne$ PT 成立\\
+交错处理 & $\tau_{rs}=\E[y_s(r)-y_s(\infty)\mid G=r]$，个数 $(T-T_0)(T-T_0+1)/2$ & 扩展 TWFE $=$ 插补估计\\
+聚合 & 事件时间：$\theta(e)=\sum_rN_r\tau_{r,r+e}\big/\sum_rN_r$\newline cohort：$\theta_r=\frac{1}{T-r+1}\sum_{s\ge r}\tau_{rs}$\newline 总体：$\theta=\sum_r\sum_{s\ge r}N_r\tau_{rs}\big/\sum_r\sum_{s\ge r}N_r$ & 权重取 cohort 规模；$\theta(e)$ 只对 $r+e\le T$ 求和\\
+普通 TWFE 权重 & $\E\hat\beta=\sum_{D_{it}=1}w_{it}\Delta_{it}$，$w_{it}\propto\tilde D_{it}$ & 交错 $+$ 异质时可为负\\
+Goodman-Bacon & $\plim\hat\beta_{TWFE}=\mathrm{VWATT}+\mathrm{VWCT}-\Delta\mathrm{ATT}$ & 禁止比较：已处理者作控制\\
+溢出 & $\mathrm{DiD}=\mathrm{TE}-S$ & 正溢出低估，负溢出高估\\
+\end{longtable}
+}
+
+\noindent\key{一句话结论}：DiD 用“处理前水平 $+$ 控制组变化”插补处理组的反事实；TWFE 是它的回归形式，在共同时点下与四格均值的双重差分精确相等；效应异质且交错处理时，必须改用全交互（cohort $\times$ 时期）或插补类稳健估计量。
+
+\begin{english}[chapter takeaway]
+DiD imputes the missing counterfactual of the treated group by its pre-treatment level plus the change observed in the control group. The TWFE regression is the regression form of DiD and, with a common treatment date and a balanced panel, it reproduces the four-cell difference in differences exactly. When treatment effects are heterogeneous and adoption is staggered, the single-coefficient TWFE estimator can put negative weights on some effects, so one should estimate cohort-time effects with a fully interacted (cohort-by-period) regression or an imputation-type robust estimator and then aggregate them.
+\end{english}
+
+\subsection{方法对照与选择要点}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+情形 & 推荐做法 & 注意\\
+\midrule
+共同时点、效应同质 & $2\times2$ DiD / 单一 $D_{it}$ 的 TWFE & 按单位聚类；画事前趋势图\\
+共同时点、效应随时间变 & 逐期交互 $\tau_s$；事件研究 $\beta_e$ & 单一 $\hat\beta$ 仍是各期等权平均\\
+共同时点、效应随个体变 & $D_{it}\times$ 个体虚拟变量 & 单个 $\hat\beta_j$ 不一致；检验用 $N_1-1$ 个交互\\
+交错时点 & 扩展 TWFE、CS、SA、BJS；先做 Bacon 分解 / 权重诊断 & 不要只跑一个 $D_{it}$\\
+处理开关（非吸收） & dCDH $\mathrm{DID}_M$ & 比较 switchers 与 stayers\\
+平行趋势可疑 & 单位特定线性趋势；敏感性分析（HonestDiD） & 趋势可能吸收动态效应\\
+处理单位极少 & 置换推断、Conley--Taber；1 个处理单位用 SCM/PDA & 聚类标准误不可靠\\
+存在溢出 & 远离的控制组；剔除邻近单位；加入暴露变量 $S_{it}$ & DiD $=$ TE $-S$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{DiD 方法对照}
+\end{center}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item 把 DiD 识别的对象说成 ATE。它在 SUTVA、无预期、平行趋势下识别的是 \key{ATT}。
+  \item 逐期交互时只放一个处理后虚拟变量，或漏掉某期的时间虚拟变量：该期的 $\tau_s$ 会混入共同时间效应。
+  \item 把“基期”理解为“除第 $s$ 期外的任何时期”。基期是所有 $w_{st}=0$ 的处理前时期。
+  \item 事件研究放全所有事件时间虚拟变量，或在含 $\beta_1d_i$ 的回归中放全部 $d_iw_{st}$：完全共线。必须略去参照期 $e=-1$。
+  \item 把 $\beta_{-1}=0$ 当作检验结果（它只是标准化）；把“事前检验不拒绝”当作平行趋势成立的证明。
+  \item 同质性检验加入全部 $N_1$ 个交互（应为 $N_1-1$ 个，否则与 $D_{it}$ 共线）。
+  \item 认为单个 $\hat\beta_j$ 或 $\hat\tau_{it}$ 随控制单位增多而一致：单个处理单位的误差平均不掉。
+  \item 交错处理且效应异质时，仍只跑一个 $D_{it}$ 的 TWFE 并把 $\hat\beta$ 解释为 ATT。
+  \item 列 $\tau_{rs}$ 时漏掉进入当期 $s=r$ 的效应，或把参数个数算错；正确个数为 $(T-T_0)(T-T_0+1)/2$。
+  \item 混淆 $TE_t(r)$ 的两个下标；答题时先写清哪个是 cohort、哪个是日历期。
+  \item 控制受处理影响的协变量（坏控制），剔除了经由 $x$ 的间接效应；或 TWFE 的线性同质设定与条件平行趋势不符（Caetano \& Callaway 2024）。
+  \item 处理单位很少时仍用按单位聚类的标准误。应改用置换（安慰剂）检验：把处理轮流分配给控制单位，得到 $\hat\beta$ 的安慰剂分布并按排名算 $p$ 值；或用 Conley \& Taber (2011) 的方法，以控制组残差估计处理组误差的分布。
+  \item 按单位聚类时检验单位特定趋势的显著性（方差估计奇异）。
+  \item 忽视溢出、用相邻单位作控制组。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[$2\times2$ DiD with TWFE notation]\label{pr:U15b-c1}
+Consider $Y_{it}=\alpha_i+\lambda_t+\beta D_{it}+\epsilon_{it}$ with two groups (treated $T$, control $C$) and two periods ($t=0,1$); $D_{it}=1$ only for the treated group at $t=1$. The group means are $\bar Y_{T,0}=12$, $\bar Y_{T,1}=20$, $\bar Y_{C,0}=9$, $\bar Y_{C,1}=13$. (a) Write $E(Y_{it})$ for the four group-period cells in terms of $(\alpha_T,\alpha_C,\lambda_0,\lambda_1,\beta)$ and derive $\beta$. (b) Compute the DiD estimate and the imputed counterfactual for the treated group at $t=1$. (c) What assumption is needed to interpret $\beta$ as the ATT? Interpret $\lambda_1-\lambda_0$.
+\answer (a) 四格期望与差分：
+\begin{align*}
+E(Y\mid T,0)&=\alpha_T+\lambda_0,\quad E(Y\mid T,1)=\alpha_T+\lambda_1+\beta \why{处理组}\\
+E(Y\mid C,0)&=\alpha_C+\lambda_0,\quad E(Y\mid C,1)=\alpha_C+\lambda_1 \why{控制组}\\
+\text{处理组变化}&=\lambda_1-\lambda_0+\beta,\quad \text{控制组变化}=\lambda_1-\lambda_0 \why{组内时间差分消去 $\alpha$}\\
+\beta&=(\lambda_1-\lambda_0+\beta)-(\lambda_1-\lambda_0). \why{组间差分消去 $\lambda$}
+\end{align*}
+(b) $\hat\beta=(20-12)-(13-9)=8-4=4$；反事实 $\hat Y_{T,1}(0)=12+4=16$，$20-16=4$。等价地 $(\bar Y_{T,1}-\bar Y_{C,1})-(\bar Y_{T,0}-\bar Y_{C,0})=7-3=4$。
+
+(c) 平行趋势（以及无预期、SUTVA）：没有处理时，处理组的平均变化也会是 $\lambda_1-\lambda_0=4$。$\lambda_1-\lambda_0$ 是与政策无关的共同时间效应（“other effects”），由控制组估计。
+\end{prac}
+
+\begin{prac}[Heterogeneous effects in TWFE]\label{pr:U15b-c2}
+A panel has $N_1=3$ treated firms and $N_0=50$ control firms observed for $T=6$ years; treatment starts in year 4 for all treated firms. (a) Write a TWFE regression that allows the treatment effect to differ across treated firms, and give the formula of the OLS estimate $\hat\beta_j$. (b) Write a TWFE regression that allows the effect to vary by year, and explain how to test whether the effect is constant over time. (c) Is $\hat\beta_j$ consistent as $N_0\to\infty$? Explain.
+\answer (a) $Y_{it}=\alpha_i+\lambda_t+\sum_{j=1}^{3}\beta_jD_{it}\mathbf{1}\{i=j\}+\epsilon_{it}$。平衡面板下
+\[
+\hat\beta_j=(\bar Y_{j,4\text{--}6}-\bar Y_{j,1\text{--}3})-(\bar Y_{C,4\text{--}6}-\bar Y_{C,1\text{--}3}).
+\]
+(b) $Y_{it}=\alpha_i+\lambda_t+\tau_4d_iw_{4t}+\tau_5d_iw_{5t}+\tau_6d_iw_{6t}+\epsilon_{it}$；$\hat\tau_s$ 为第 $s$ 年相对处理前平均的 DiD。检验 $H_0:\tau_4=\tau_5=\tau_6$（2 个约束），用聚类稳健的 Wald/F 检验。若再加入处理前交互（略去第 3 年），即事件研究，可同时检验事前趋势。
+
+(c) 不一致。
+\[
+\hat\beta_j-\beta_j=(\bar\epsilon_{j,\mathrm{post}}-\bar\epsilon_{j,\mathrm{pre}})-(\bar\epsilon_{C,\mathrm{post}}-\bar\epsilon_{C,\mathrm{pre}}),
+\]
+$N_0\to\infty$ 只能消除第二项，单个企业的误差平均不会消失；需要处理前、处理后的期数都趋于无穷。它是无偏的；三个 $\hat\beta_j$ 的平均就是普通 TWFE 的 $\hat\beta$。
+\end{prac}
+
+\begin{prac}[Staggered adoption and the TWFE estimator]\label{pr:U15b-c3}
+Three units are observed for three periods. Unit E is treated from period 2, unit L from period 3, and unit N is never treated. Observed outcomes are E: $(5,9,15)$, L: $(8,10,13)$, N: $(10,12,14)$. (a) Assuming parallel trends and no anticipation, estimate $\tau_{E2},\tau_{E3},\tau_{L3}$ using the never-treated unit as the control and period $g-1$ as the base period. (b) The static TWFE regression of $y$ on $D_{it}$ with unit and time fixed effects gives $\hat\beta=1.5$. Explain why it differs from the simple average of the three effects. (c) Which regression would recover the three effects exactly?
+\answer (a) E 的基期为第 1 期，L 的基期为第 2 期：
+\begin{align*}
+\hat\tau_{E2}&=(9-5)-(12-10)=2, \why{E vs N，第 1→2 期}\\
+\hat\tau_{E3}&=(15-5)-(14-10)=6, \why{E vs N，第 1→3 期}\\
+\hat\tau_{L3}&=(13-10)-(14-12)=1. \why{L vs N，第 2→3 期}
+\end{align*}
+(b) 简单平均为 $(2+6+1)/3=3$。普通 TWFE 的权重（见“计算 TWFE 权重”练习）为 $w_{E2}=w_{L3}=\frac12$，$w_{E3}=0$：$\hat\beta=\frac12\cdot2+\frac12\cdot1=1.5$。原因是交错处理下 E 在第 3 期被部分当作 L 的“控制”，其不断增长的效应被抵消（Goodman-Bacon 分解中的禁止比较）。
+
+(c) 扩展 TWFE：$y_{it}=\alpha_i+\lambda_t+\tau_{E2}\mathbf{1}\{i=E,t=2\}+\tau_{E3}\mathbf{1}\{i=E,t=3\}+\tau_{L3}\mathbf{1}\{i=L,t=3\}+u_{it}$。其 OLS 估计即插补估计：用未处理观测（E1，L1，L2，N1，N2，N3）估计双向效应，得 $\hat\lambda_2-\hat\lambda_1=2$（L 与 N 都涨 2），$\hat\lambda_3-\hat\lambda_1=4$（由 N），$\hat\alpha_L-\hat\alpha_N=-2$；插补 $\hat y_{E2}(0)=5+2=7$，$\hat y_{E3}(0)=5+4=9$，$\hat y_{L3}(0)=14-2=12$，于是 $\hat\tau=(9-7,\ 15-9,\ 13-12)=(2,6,1)$，与 (a) 相同。
+\end{prac}
+
+\begin{prac}[Event study and pre-trends]\label{pr:U15b-c4}
+A researcher estimates $y_{it}=\alpha_i+\lambda_t+\sum_{e\ne-1}\beta_ed_i\mathbf{1}(t-E=e)+u_{it}$ with leads $e=-4,-3,-2$ and lags $e=0,1,2$. The estimated leads are $0.10\,(0.20)$, $-0.05\,(0.18)$, $0.02\,(0.15)$ (standard errors in parentheses), and the joint Wald statistic for the leads is 0.4. (a) Why is $e=-1$ omitted? (b) State the null hypothesis of the pre-trend test and its asymptotic distribution; what do you conclude at 5\%? (c) Does the result prove that parallel trends holds?
+\answer (a) 对处理单位，所有事件时间虚拟变量之和 $=d_i$，与个体固定效应完全共线，必须略去一个；$e=-1$ 作参照期，其余系数都是相对处理前一期的 DiD。
+
+(b) $H_0:\beta_{-4}=\beta_{-3}=\beta_{-2}=0$，Wald 统计量渐近服从 $\chi^2_3$，5\% 临界值 7.81。$0.4<7.81$，不拒绝：没有证据表明处理前存在差异趋势或预期效应。
+
+(c) 不能证明。平行趋势是关于处理后反事实趋势的假设，事前检验只是间接证据，且可能功效不足；可补充敏感性分析（Rambachan \& Roth 2023）。
+\end{prac}

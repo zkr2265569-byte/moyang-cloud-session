@@ -1,0 +1,414 @@
+\chapter{机器学习概述}
+\noindent\key{本章速览}\quad 机器学习 = 从数据中学一个函数 $f$。\key{三要素}：模型（假设空间）—学习准则（风险）—优化（GD/SGD）。线性回归\key{四种估计}：ERM = 最小二乘，SRM = 岭回归，MLE（高斯噪声）= 最小二乘，MAP（高斯先验）= 岭回归（$\lambda=\sigma^2/\nu^2$）。\\
+\key{记号}\quad $\bm x^{(n)}$ 第 $n$ 个样本的特征（列向量，上标不是幂），$y^{(n)}$ 标签，$\mathcal D=\{(\bm x^{(n)},y^{(n)})\}_{n=1}^N$；原始 $\bm x\in\R^K$，增广后 $\hat{\bm x}\in\R^D$，$D=K+1$（§1.7 起默认已增广）；$X=[\bm x^{(1)},\dots,\bm x^{(N)}]\in\R^{D\times N}$ \key{每列一个样本}，计量习惯 $\tilde X=X^\top\in\R^{N\times D}$；$\mathcal R(f)$ 期望风险，$\mathcal R^{emp}_{\mathcal D}(\theta)$ 经验风险，$\mathcal L$ 损失，$\mathcal F$ 假设空间。
+
+% ======================================================================
+\section{什么是机器学习}
+
+\subsection{机器学习 \texorpdfstring{$\approx$}{≈} 构建映射函数 \texorpdfstring{$y=f(x)$}{y=f(x)}；为什么需要机器学习}
+语音识别 $f(\text{波形})=$“你好”；图像识别 $f(\text{猫照片})=$“猫”；围棋 $f(\text{棋局})=$“5-5”（落子位置）；对话系统 $f(\text{“你好”})=$“今天天气真不错”——\key{模型就是函数，学习就是从候选函数里挑一个好的}。为什么需要：(1) \key{现实世界的问题都比较复杂}（语音波形因人而异）；(2) \key{很难通过规则来手工实现}（手写数字写法无数）→ 让机器从数据中归纳规律（与专家系统之别：规律来自数据，而非来自人写的规则）。
+
+\subsection{机器学习的定义：从数据中学习规律（决策函数）}
+\begin{defn}[机器学习]
+\term{机器学习}{machine learning}：通过算法使得机器能从大量数据中学习规律，从而对新的样本做决策。\key{规律 = 决策（预测）函数}。
+\end{defn}
+名词解释四要点：\key{算法 + 大量数据 + 规律（决策函数）+ 对新样本做决策}（关心泛化，不只拟合已有数据）。\textit{Machine learning uses algorithms to learn patterns (decision functions) from large amounts of data and make decisions on new samples.}
+
+\subsection{学习框图：训练集 \texorpdfstring{$\mathcal D$}{D}、假设空间 \texorpdfstring{$\mathcal F$}{F}、学习算法 \texorpdfstring{$A$}{A}、输出 \texorpdfstring{$\hat y$}{y-hat} 或 \texorpdfstring{$\hat p(y|x)$}{p(y|x)}}
+流程：$\mathcal D$（i.i.d.\ 于 $p(\bm x,y)$）$\xrightarrow{\text{学习算法 }A}$ 从 $\mathcal F$ 中挑出 $f^*$；新输入 $\bm x\to f^*(\bm x)\to\hat y$ 或 $\hat p(y|\bm x)$。作图/作答须写全六部件：$\bm x$、$f^*$、$\hat y/\hat p(y|\bm x)$、$\mathcal D$（i.i.d.）、$A$、$\mathcal F$。
+\begin{itemize}
+\item \key{训练集} $\mathcal D$：$N$ 个\term{样本}{sample/instance}，每个含\term{特征}{feature} $\bm x$ 与\term{标签}{label} $y$。\term{独立同分布}{independent and identically distributed, i.i.d.}：每个样本\key{独立地从同一个未知联合分布 $p(\bm x,y)$ 中抽取}，新样本也来自该分布。“同分布”→ 规律能迁移到新样本（训练用 2010 年、预测 2024 年市场可能失效）；“独立”→ 似然可写成连乘（§1.10）、大数定律使经验风险 $\to$ 期望风险。
+\item \term{假设空间}{hypothesis space} $\mathcal F=\{f_1(\bm x),f_2(\bm x),\cdots\}$：全部候选函数（如所有 $\bm w^\top\bm x+b$）；真实规律不在 $\mathcal F$ 中则学不到（偏差，§1.14）。
+\item \term{学习算法}{learning algorithm} $A$：从 $\mathcal F$ 中挑出“最好”的 $f^*$；“最好”由学习准则规定，“怎么挑”由优化完成。
+\item 输出：预测值 $\hat y$，或条件概率 $\hat p(y|\bm x)$（信息更多，取概率最大类即得 $\hat y$；如 Logistic/Softmax 回归）。
+\end{itemize}
+
+\subsection{三类常见问题：回归、分类、聚类}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.7cm}p{1.6cm}p{2.9cm}Lp{1.2cm}@{}}
+\toprule
+问题 & 标签 $y$ & 目标 & 典型图示 & 类型 \\
+\midrule
+回归 regression & 连续实数 & 预测数值 & 散点 + 拟合直线 $y=0.60x+0.52$ & 监督 \\
+分类 classification & 离散类别 & 预测类别 & 两类点被弯曲的\term{决策边界}{decision boundary}分开 & 监督 \\
+聚类 clustering & 无标签 & 相似样本归成簇 & 点聚成若干团，另有零星离群点 & 无监督 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{机器学习三要素（一）：模型}
+
+\subsection{三要素总览：模型、学习准则、优化}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.5cm}p{4.3cm}L@{}}
+\toprule
+要素 & 回答的问题 & 包括 \\
+\midrule
+\term{模型}{model} & 候选函数长什么样（$\mathcal F$）& 线性方法；广义线性方法；神经网络 \\
+\term{学习准则}{learning criterion} & 怎样算“好”的函数 & 期望风险；经验风险；正则化风险 \\
+\term{优化}{optimization} & 怎样找到最好的函数 & 梯度下降；随机梯度下降；动量方法；Adam \\
+\bottomrule
+\end{tabularx}
+\end{center}
+口诀：\key{模型定范围，准则定标准，优化定方法}。
+
+\subsection{线性模型、广义线性模型（基函数 \texorpdfstring{$\phi(x)$}{phi(x)}）与神经网络}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.8cm}>{\raggedright\arraybackslash}p{4.6cm}L@{}}
+\toprule
+模型 & 形式 & 要点 \\
+\midrule
+线性 & $f(\bm x;\theta)=\bm w^\top\bm x+b$，$\theta=(\bm w,b)$ & $\bm w\in\R^K$ \term{权重}{weight}，$b\in\R$ \term{偏置}{bias}；一元线性回归 $f(x;w,b)=wx+b$ \\
+广义线性 & $f(\bm x;\theta)=\bm w^\top\phi(\bm x)+b$，$\phi=(\phi_1,\dots,\phi_M)^\top$ & \key{固定的}非线性\term{基函数}{basis function}：对 $\bm x$ 非线性、\key{对 $\bm w$ 仍线性} → 解法同线性模型；如多项式 $\phi(x)=(x,\dots,x^M)^\top$（§1.12），计量中加 $x^2$、$\ln x$、交互项 \\
+神经网络 & $\phi(\bm x)$ \key{可学习}，如 $\phi(\bm x)=\sigma(W\bm x+\bm c)$ & 若 $\phi(\bm x)$ 为可学习的非线性基函数，$f(\bm x;\theta)$ 就等价于神经网络；自动学习特征表示，代价是优化非凸（第 3 章）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错} (1) 判断线性与否看\key{参数是否只以线性方式出现}，与 $x$ 无关：$w_1\ln x_1+w_2x_1x_2+b$ 是广义线性，$w_2\tanh(w_1x+c)+b$ 是非线性（单隐藏单元神经网络）。(2) 偏置 $b$（= 截距）$\neq$ 偏差 bias$^2$（估计量系统误差，§1.14）。(3) 此处“广义线性”= 对基函数线性，不同于统计学 GLM（线性预测子经连接函数，如 Logit/Probit）。
+
+% ======================================================================
+\section{机器学习三要素（二）：学习准则}
+
+\subsection{损失函数：0-1、平方、交叉熵、Hinge 损失速查}
+\term{损失函数}{loss function} $\mathcal L(y,f(\bm x;\theta))$：\key{非负实数函数}，衡量预测 $f(\bm x;\theta)$ 与真实 $y$ 的差异。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.7cm}>{\raggedright\arraybackslash}p{5.4cm}>{\raggedright\arraybackslash}p{2.5cm}L@{}}
+\toprule
+损失 & 公式 & 标签约定 & 用途与要点 \\
+\midrule
+0-1 & $\mathcal L=0$（$y=f(\bm x;\theta)$），$=1$（$y\neq f(\bm x;\theta)$），即 $\mathbf 1\{y\neq f(\bm x;\theta)\}$ & 任意类别 & 分类；均值 = 错误率；\key{不连续、导数几乎处处为 0，不能梯度优化} → 训练用替代损失 \\
+平方 & $\big(y-f(\bm x;\theta)\big)^2$ & $y\in\R$ & 回归；光滑可导，最小二乘基础 \\
+交叉熵 & $-[y\log\hat p+(1-y)\log(1-\hat p)]$；多分类 $-\sum_{c=1}^Cy_c\log\hat p_c$ & $y\in\{0,1\}$，$\hat p=\hat p(y{=}1|\bm x)$；$\bm y$ one-hot & Logistic、Softmax、神经网络；= 负对数似然 \\
+Hinge & $\max\{0,\,1-yf(\bm x)\}$ & $y\in\{-1,+1\}$ & SVM（第 2 章）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{期望风险、经验风险、结构风险；ERM 与 SRM}
+\noindent 期望风险（不能算）、经验风险（能算）与 ERM、SRM：
+\begin{align*}
+&\mathcal R(f)=\E_{(\bm x,y)\sim p(\bm x,y)}\big[\mathcal L(f(\bm x),y)\big],\qquad
+\mathcal R^{emp}_{\mathcal D}(\theta)=\frac1N\sum_{n=1}^N\mathcal L\big(y^{(n)},f(\bm x^{(n)};\theta)\big),\\
+&\text{ERM：}\ \theta^*=\argmin_\theta\mathcal R^{emp}_{\mathcal D}(\theta),\qquad
+\text{SRM：}\ \theta^*=\argmin_\theta\underbrace{\mathcal R^{emp}_{\mathcal D}(\theta)}_{\text{经验风险}}+\underbrace{\lambda\,\Omega(\theta)}_{\text{正则化项}}.
+\end{align*}
+\begin{itemize}
+\item \term{期望风险}{expected risk} $\mathcal R(f)$：真实分布 $p(\bm x,y)$ 上的平均损失，是真正想最小化的目标，但\key{分布未知、不能计算}（配图：左为真实分布 $p_r$ 的等高线，右为抽出的有限样本散点——手里只有右图）。
+\item \term{经验风险}{empirical risk} $\mathcal R^{emp}_{\mathcal D}$：训练集上的平均损失，\key{能计算}；样本均值估计总体期望，大数定律下 $N\to\infty$ 时 $\to\mathcal R$。
+\item \key{结构风险 = 正则化风险}（regularized risk）：经验风险 $+\lambda\,\Omega(\theta)$，$\Omega$ 衡量复杂度（常用 $\|\bm w\|_2^2$、$\|\bm w\|_1$），$\lambda\ge0$ 为\term{正则化系数}{regularization coefficient}，能计算。
+\end{itemize}
+\term{经验风险最小化}{Empirical Risk Minimization, ERM}：选择合适的风险函数后，寻找参数 $\theta^*$ 使经验风险最小 → \key{机器学习问题转化为最优化问题}（线性回归 + 平方损失 + ERM = 最小二乘）。\term{结构风险最小化}{Structural Risk Minimization, SRM}：只最小化经验风险可能过拟合，故加惩罚复杂度的\term{正则化项}{regularization term}。示意：$f(x)=0.5x+1$，$\mathcal D=\{(0,1),(1,3),(2,2)\}$，残差 $0,1.5,0$ → 平方损失经验风险 $\frac13\times2.25=0.75$，0-1 损失（错误率）$1/3$。
+
+% ======================================================================
+\section{机器学习三要素（三）：优化}
+
+\subsection{凸优化与非凸优化：全局最小与局部最小}
+\term{凸函数}{convex function}：$\forall\bm a,\bm b,\ t\in[0,1]$，$f(t\bm a+(1-t)\bm b)\le tf(\bm a)+(1-t)f(\bm b)$（弦在曲线上方）。\term{全局最小}{global minimum}：$f(\theta^*)\le f(\theta)\ \forall\theta$；\term{局部最小}{local minimum}：仅在 $\theta^*$ 某邻域内成立。\key{凸函数局部最小即全局最小；可导凸函数驻点即全局最小}。线性回归平方损失凸（Hessian $XX^\top$ 半正定）→ 令梯度为 0；神经网络非凸、多个低谷，GD 可能停在局部最小，结果依赖初值。
+
+\subsection{梯度下降法：更新公式、负梯度方向与步长}
+\noindent\term{梯度下降法}{Gradient Descent, GD}：从初值 $\theta_0$ 出发反复沿负梯度方向更新（第二个等号：$\mathcal R=\frac1N\sum_i\mathcal L_i$，求导与求和可交换）：
+\[
+\theta_{t+1}=\theta_t-\alpha\frac{\partial\mathcal R(\theta)}{\partial\theta_t}
+=\theta_t-\alpha\frac1N\sum_{i=1}^N\frac{\partial\mathcal L(\theta_t;\bm x^{(i)},y^{(i)})}{\partial\theta},
+\qquad \alpha>0\ \text{为搜索步长 = \term{学习率}{learning rate}}.
+\]
+\begin{itemize}
+\item 为什么沿负梯度（一阶泰勒）：$\mathcal R(\theta-\alpha\bm g)\approx\mathcal R(\theta)+\bm g^\top(-\alpha\bm g)=\mathcal R(\theta)-\alpha\|\bm g\|^2\le\mathcal R(\theta)$，$\bm g=\nabla\mathcal R(\theta)$；$\alpha$ 足够小且 $\bm g\neq\bm 0$ 时必下降；同长度方向中 $-\bm g$ 下降最多（柯西–施瓦茨）→“最速下降”。
+\item 为什么越近最低点步子越小：步长 $=\alpha\|\bm g\|$，越近最低点梯度越小；$\bm g=\bm 0$ 时参数不变 = \term{收敛}{convergence}。
+\item 等高线 $f(x,y)=x^2+2y^2$（椭圆，路径从约 $(-2.5,2.5)$ 到 $(0,0)$）：\key{梯度方向垂直于等高线}；椭圆越扁（各方向曲率差越大）越易“之”字形震荡。
+\end{itemize}
+
+\subsection{手算梯度下降一步：步骤与数值示意}
+\key{步骤}：(1) 写损失对各参数的偏导（$\mathcal L=\frac12(y-wx-b)^2$：$\partial\mathcal L/\partial w=-(y-\hat y)x$，$\partial\mathcal L/\partial b=-(y-\hat y)$，\key{别丢负号}）；(2) GD 对全部样本求平均（SGD 只用一个样本）；(3) $\theta\leftarrow\theta-\alpha\cdot$梯度；(4) 代回算损失，确认下降。
+\textbf{示意}：$f=x^2+2y^2$，$\nabla f=(2x,4y)^\top$，$(-2.5,2.5)$、$\alpha=0.1$ → $\nabla f=(-5,10)$，$(x_1,y_1)=(-2,1.5)$，$f$：$18.75\to8.5$；一般 $x_{t+1}=(1-2\alpha)x_t$，$y_{t+1}=(1-4\alpha)y_t$。线性回归 $\{(0,1),(1,3),(2,2)\}$、$w_0=b_0=0$、$\alpha=0.3$：$\partial\mathcal R/\partial w=-\frac73$，$\partial\mathcal R/\partial b=-2$ → $(0.7,0.6)$，$\mathcal R$：$2.333\to0.508$，最终收敛到最小二乘解 $(0.5,1.5)$。
+
+\subsection{学习率是重要的超参数：超参数 vs 模型参数}
+\term{超参数}{hyperparameter}：在模型训练开始之前需要人为设定、且不通过训练数据直接学习得到的参数（学习率 $\alpha$、正则化系数 $\lambda$、多项式阶数 $M$、迭代轮数、批量大小、网络层数），用验证集/交叉验证选。\key{模型参数}（$\bm w,b$）由训练算法最小化训练目标从数据中学出。
+
+\subsection{loss–epoch 曲线：四种学习率的表现与收敛条件}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}p{6.4cm}L@{}}
+\toprule
+学习率 & 曲线形态（横轴 epoch，纵轴 loss）& 原因 \\
+\midrule
+very high（黄）& 短暂下降后迅速飙升，\key{发散} & 步子太大，越过最低点越弹越远 \\
+high（绿）& 开始降得快，随后\key{停在较高 loss} & 在谷底两侧来回震荡 \\
+low（蓝）& 下降缓慢、近似线性，最后仍在降 & 步子太小，收敛太慢 \\
+good（红）& 下降快且持续降到最低 & 步长合适 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{收敛条件}（二次函数）：$0<\alpha<2/\lambda_{\max}$（$\lambda_{\max}$ 为 Hessian 最大特征值）。$f=x^2+2y^2$：Hessian $=\diag(2,4)$ → $0<\alpha<0.5$；$\alpha=0.1$ 乘数 $0.8,0.6$（good），$\alpha=0.01$ 乘数 $0.98,0.96$（low）；$\alpha=0.4$ 时 $y$ 乘数 $-0.6$（之字形），$\alpha=0.6$ 时 $-1.4$（$f$：$18.75\to24.75\to48.03$，发散）。$f(w)=(w-3)^2$：$w_{t+1}-3=(1-2\alpha)(w_t-3)$，$0<\alpha<1$ 收敛，$\alpha=1$ 在 0、6 间来回跳，$\alpha=0.5$ 一步到位。
+
+\subsection{随机梯度下降（SGD）、小批量梯度下降与 epoch、iteration}
+\begin{itemize}
+\item GD（\term{批量梯度下降}{batch gradient descent}）缺点：每次\key{遍历全部样本}，计算代价高、训练效率差。简答“GD vs SGD”：全部样本 vs 一个随机样本，从计算量、更新频率、适用规模、梯度噪声四方面比。
+\item \term{随机梯度下降法}{Stochastic Gradient Descent, SGD}，也叫\term{增量梯度下降}{incremental gradient descent}：每次只随机使用一个样本，$\theta_{t+1}=\theta_t-\alpha\,\partial\mathcal L(\theta_t;\bm x^{(t)},y^{(t)})/\partial\theta$。优点：\key{更新计算量小；参数更新频繁；适合大规模数据}。
+\item 无偏性：$i$ 均匀抽取时 $\E_i[\partial\mathcal L_i/\partial\theta]=\sum_{i=1}^N\frac1N\partial\mathcal L_i/\partial\theta=\partial\mathcal R/\partial\theta$——方向平均正确、单次有噪声 → loss 抖动，需较小或递减的学习率；噪声有助跳出浅局部最小、有正则化作用。示意：上例抽到 $(1,3)$，梯度 $(-3,-3)$ → $(0.9,0.9)$。
+\item \term{小批量梯度下降}{mini-batch gradient descent}：每次取 $B$ 个（$1<B<N$，如 32/64/128），$\theta_{t+1}=\theta_t-\alpha\frac1B\sum_{i\in\mathcal B_t}\partial\mathcal L_i/\partial\theta$；框架中的“SGD”通常指它。\key{一次参数更新 = 一次 iteration；训练集过一遍 = 一个 epoch}。
+\item 批量 GD / 小批量 / SGD：每次样本数 $N$ / $B$ / 1；每 epoch 更新 1 / $N/B$ / $N$ 次；单次计算量大 / 中 / 小；梯度噪声无 / 中 / 大。
+\end{itemize}
+
+\subsection{算法 2.1：带验证集提前停止的随机梯度下降}
+\noindent\begin{minipage}[t]{0.5\linewidth}\vspace{0pt}
+\begin{method}[算法 2.1：随机梯度下降法]
+\small 输入：训练集 $\mathcal D$，验证集 $\mathcal V$，学习率 $\alpha$\\
+1\quad 随机初始化 $\theta$；\\
+2\quad \textbf{repeat}\\
+3\quad\quad 对训练集 $\mathcal D$ 中的样本随机重排序；\\
+4\quad\quad \textbf{for} $n=1\cdots N$ \textbf{do}\\
+5\quad\quad\quad 选取样本 $(\bm x^{(n)},y^{(n)})$；\\
+6\quad\quad\quad $\theta\leftarrow\theta-\alpha\frac{\partial\mathcal L(\theta;\bm x^{(n)},y^{(n)})}{\partial\theta}$；\\
+7\quad\quad \textbf{end}\\
+8\quad \textbf{until} $f(\bm x;\theta)$ 在\key{验证集 $\mathcal V$} 上的错误率不再下降；\\
+输出：$\theta$
+\end{method}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}\vspace{2pt}\small
+\begin{itemize}
+\item 第 1 行：随机初始化（神经网络不能全设 0）。
+\item 第 2–8 行外层循环一次 = 一个 epoch；第 3 行每 epoch 打乱顺序，避免数据固有顺序（按时间、类别）带来系统偏差；第 4–7 行一个 epoch 更新 $N$ 次。
+\item \key{为什么看验证集（Why?）}：训练集错误率随迭代一直下降，用它永远不会停 → 过拟合；验证集不参与训练，其错误率近似泛化误差；不再下降即停止 = 提前停止。
+\end{itemize}
+\end{minipage}
+
+\subsection{其他优化算法：动量法与 Adam}
+\term{动量法}{momentum method}：过去梯度的指数加权平均，减轻之字形震荡、加速收敛；\term{Adam}{Adam}：动量 + 每个参数自适应学习率（第 3 章）。
+
+% ======================================================================
+\section{过拟合、泛化与正则化}
+
+\subsection{机器学习 \texorpdfstring{$\neq$}{≠} 优化：过拟合与欠拟合的定义与成因}
+“机器学习 = 优化？\key{NO！}”优化只管训练集经验风险最低，机器学习要新样本上表现好。同一组 U 形散点：水平直线（欠拟合）、抛物线（正常）、穿过每个点的高阶多项式（过拟合）。
+\begin{defn}[过拟合与欠拟合]
+\term{过拟合}{overfitting}：经验风险最小化原则很容易导致模型在训练集上错误率很低，但是在未知数据上错误率很高；往往是由于\key{训练数据少和噪声}等原因造成的。\term{欠拟合}{underfitting}：模型能力不足，训练集和未知数据上错误率都高。
+\end{defn}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.4cm}p{2.4cm}p{2.9cm}L@{}}
+\toprule
+状态 & 训练误差 & 测试误差 & 典型原因 \\
+\midrule
+欠拟合 & 高 & 高 & 模型太简单（直线拟合 U 形）、正则过强、训练不足 \\
+正常 & 低 & 低（接近训练误差）& 复杂度合适 \\
+过拟合 & 很低（甚至 0）& 高 & 模型太复杂、数据少、噪声大、训练过久：把噪声当规律“背下来” \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{泛化误差 \texorpdfstring{$\mathcal G_{\mathcal D}(f)=\mathcal R(f)-\mathcal R^{emp}_{\mathcal D}(f)$}{G = R - Remp}；减少泛化误差的两条路}
+\term{泛化误差}{generalization error}：期望风险 $\neq$ 经验风险，二者之差 $\mathcal G_{\mathcal D}(f)=\mathcal R(f)-\mathcal R^{emp}_{\mathcal D}(f)$；泛化能力好 $\iff\mathcal G_{\mathcal D}$ 小。\textbf{易错}：有的教材把 $\mathcal R(f)$（测试误差）本身叫泛化误差，此处特指差值（泛化差距，generalization gap）。由 $\mathcal R=\mathcal R^{emp}_{\mathcal D}+\mathcal G_{\mathcal D}$：\key{优化}——经验风险最小；\key{正则化}——降低模型复杂度（控制 $\mathcal G_{\mathcal D}$）。配图：“优化”箭头绕圈、“正则化”箭头笔直——一味拟合训练集会绕远路。
+
+\subsection{正则化的广义定义：所有损害优化的方法都是正则化}
+狭义 = 损失上加惩罚项；广义：\key{所有损害优化的方法都是正则化}（故意不把训练集拟合到极致以提高泛化）。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}p{1.9cm}L@{}}
+\toprule
+类别 & 方法 & 机制 \\
+\midrule
+\multirow{3}{=}{增加优化约束} & L2 正则化 & 加 $\frac\lambda2\|\bm w\|_2^2=\frac\lambda2\sum_jw_j^2$，惩罚大权重，权重整体变小（岭回归）\\
+ & L1 正则化 & 加 $\lambda\|\bm w\|_1=\lambda\sum_j|w_j|$，部分权重恰为 0 → \key{稀疏}（Lasso，第 4 章）\\
+ & 数据增强 & 不改变标签的变换（旋转、裁剪、加噪声；文本同义词替换）扩充数据（data augmentation）\idx{数据增强}{data augmentation} \\
+\midrule
+\multirow{3}{=}{干扰优化过程} & 权重衰减 & $\theta\leftarrow(1-\beta)\theta-\alpha\bm g$，$0<\beta<1$；标准 SGD 下等价于 L2（$\beta=\alpha\lambda$），Adam 等自适应方法下不等价（weight decay）\idx{权重衰减}{weight decay}\\
+ & 随机梯度下降 & 梯度噪声使优化不精确，不易陷入只适合训练集的尖锐极小值 \\
+ & 提前停止 & 训练集风险未降到最低就停 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{L2 与 L1 的几何：等高线与圆/菱形的切点、稀疏性}
+惩罚形式 $\min\text{cost}(\bm w)+\lambda\|\bm w\|_2^2$ $\iff$ 约束形式 $\min\text{cost}(\bm w)$ s.t.\ $\|\bm w\|_2^2\le\tau$（拉格朗日一阶条件相同，$\lambda\leftrightarrow\tau$ 一一对应）。$(w_1,w_2)$ 平面三点：椭圆等高线中心 = Minimize cost（最小二乘解）；原点 = Minimize penalty；\key{等高线与圆盘边界的切点 = Minimize cost + penalty}（若相交而非相切，沿圆周还能移到更低等高线）→ 解被拉向原点（\key{收缩}）。L1 约束 $|w_1|+|w_2|\le s$ 为\key{菱形}，尖角在坐标轴上，等高线往往先碰尖角 → 某坐标恰为 0；圆无尖角 → L2 几乎不产生 0。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{6.3cm}L@{}}
+\toprule
+ & L2（岭回归 Ridge）& L1（Lasso）\\
+\midrule
+惩罚 / 约束域 & $\lambda\sum w_j^2$ / 圆（球）& $\lambda\sum|w_j|$ / 菱形（有尖角）\\
+解的特点 & 系数整体（范数）向 0 收缩，一般不恰为 0 & 部分系数恰为 0（稀疏），兼做变量选择 \\
+闭式解 & 有：$(XX^\top+\lambda I)^{-1}X\bm y$ & 一般没有（$|w|$ 在 0 处不可导）\\
+贝叶斯解释 & 高斯先验（§1.11）& 拉普拉斯先验（§1.11）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错}：$(XX^\top+\lambda I)^{-1}X\bm y$ 对应 $\|\bm y-X^\top\bm w\|^2+\lambda\|\bm w\|^2$ 或 $\frac12\|\bm y-X^\top\bm w\|^2+\frac\lambda2\|\bm w\|^2$；若写 $\frac12\|\cdot\|^2+\lambda\|\bm w\|^2$，解中 $\lambda$ 换成 $2\lambda$。
+
+\subsection{提前停止；训练集、验证集、测试集与 \texorpdfstring{$K$}{K} 折交叉验证}
+\begin{itemize}
+\item \term{提前停止}{early stopping}：使用一个\term{验证集}{validation set}来测试每一次迭代的参数在验证集上是否最优；如果在验证集上的错误率不再下降，就停止迭代。曲线：\key{训练集错误率一直降，验证集先降后升}，在验证集最低点停（之后为过拟合）。实践设\key{耐心值}（patience）：连续若干 epoch 不创新低才停，并回退到验证误差最低时的参数。
+\item 三分法：\key{训练集}学参数 $\theta$；\key{验证集}选超参数（$\alpha,\lambda,M$、停止时刻）；\key{测试集}最后只用一次报告性能（参与过选择就不再是无偏估计）。常见 60/20/20、70/15/15。
+\item \term{$K$ 折交叉验证}{K-fold cross-validation}：均分 $K$ 份，轮流 1 份验证、$K-1$ 份训练，$\mathrm{CV}(\lambda)=\frac1K\sum_{k=1}^Ke_k(\lambda)$，选最小者；$K=N$ 为留一法 LOOCV。\textbf{易错}：时间序列不能随机打乱，应按时间“用过去预测未来”（滚动窗口）。
+\end{itemize}
+
+\subsection{防止过拟合的方法汇总（简答模板）}
+(1) 增加数据 / 数据增强；(2) 降低模型复杂度（减少特征、降低多项式阶数 $M$）；(3) 正则化 L2（岭回归/权重衰减）、L1（Lasso）；(4) 干扰优化：提前停止、SGD；(5) 集成（Bagging、随机森林，主要降方差）；(6) 神经网络 Dropout。原理：偏差–方差权衡，牺牲一点训练拟合换取更小的方差与泛化误差（§1.14）。
+
+% ======================================================================
+\section{线性回归：模型、四种估计方法与矩阵微积分}
+
+\subsection{线性回归模型与增广向量 \texorpdfstring{$\hat x=x\oplus1$}{x-hat}、\texorpdfstring{$\hat w=w\oplus b$}{w-hat}}
+模型 $f(\bm x;\bm w,b)=\bm w^\top\bm x+b$。\term{增广特征向量}{augmented feature vector} $\hat{\bm x}=\bm x\oplus1=(x_1,\dots,x_K,1)^\top$，\term{增广权重向量}{augmented weight vector} $\hat{\bm w}=\bm w\oplus b=(w_1,\dots,w_K,b)^\top$（$\oplus$ = 上下拼接）$\Rightarrow f(\bm x;\hat{\bm w})=\hat{\bm w}^\top\hat{\bm x}=\sum_kw_kx_k+b\cdot1$。等同计量中“$X$ 加一列常数 1 估计截距”；此后写 $f(\bm x;\bm w)=\bm w^\top\bm x$（已增广）。
+
+\subsection{四种参数估计方法总览；数据矩阵 \texorpdfstring{$X$}{X} 的两种摆放}
+四种方法：\key{经验风险最小化}（ERM，损失视角）→ 最小二乘（§1.7）；\key{结构风险最小化}（SRM，损失 + 正则）→ 岭回归（§1.8）；\key{最大似然估计}（Maximum Likelihood Estimation, MLE，概率视角）→ 高斯噪声下 = 最小二乘（§1.10）；\key{最大后验估计}（Maximum A Posteriori, MAP，概率 + 先验）→ 高斯先验下 = 岭回归（§1.11）。
+\key{列为样本}（本册）：$X\in\R^{D\times N}$，预测 $X^\top\bm w$，最小二乘 $(XX^\top)^{-1}X\bm y$，岭回归 $(XX^\top+\lambda I)^{-1}X\bm y$；\key{行为样本}（计量习惯）：$\tilde X=X^\top\in\R^{N\times D}$（第 $n$ 行 $\bm x^{(n)\top}$），预测 $\tilde X\bm w$，最小二乘 $(\tilde X^\top\tilde X)^{-1}\tilde X^\top\bm y$（MLE 处常写 $(X^\top X)^{-1}X^\top\bm y$），岭回归 $(\tilde X^\top\tilde X+\lambda I)^{-1}\tilde X^\top\bm y$。两者只差一次转置；作答先声明 $X$ 的维度并全卷一致（Hansen：$\hat\beta=(X'X)^{-1}X'Y$）。
+
+\subsection{矩阵微积分（分母布局）：标量/向量对向量求导与常用公式}
+\key{分母布局}（denominator layout）：对谁求导，结果按谁的形状排。标量对向量：$\bm x\in\R^M$，$\frac{\partial y}{\partial\bm x}=\big[\frac{\partial y}{\partial x_1},\cdots,\frac{\partial y}{\partial x_M}\big]^\top\in\R^M$（与 $\bm x$ 同形 = 梯度）。向量对向量：$\bm y=f(\bm x)\in\R^N$，$\frac{\partial f(\bm x)}{\partial\bm x}\in\R^{M\times N}$，第 $(i,j)$ 元 $=\partial y_j/\partial x_i$——\key{行对应自变量、列对应因变量}，是雅可比矩阵（分子布局 $N\times M$）的转置。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{7.2cm}L@{}}
+\toprule
+公式 & 说明 \\
+\midrule
+$\frac{\partial\bm x}{\partial\bm x}=I$，\ $\frac{\partial A\bm x}{\partial\bm x}=A^\top$，\ $\frac{\partial\bm x^\top A}{\partial\bm x}=A$ & 三个基本公式。$y_j=\sum_kA_{jk}x_k\Rightarrow\partial y_j/\partial x_i=A_{ji}$，放 $(i,j)$ 位即 $A^\top$；$\bm x^\top A=(A^\top\bm x)^\top$ \\
+$\frac{\partial\bm a^\top\bm x}{\partial\bm x}=\bm a$；\ $\frac{\partial\bm x^\top A\bm x}{\partial\bm x}=(A+A^\top)\bm x\overset{A\text{ 对称}}{=}2A\bm x$；\ $\frac{\partial\|\bm x\|^2}{\partial\bm x}=2\bm x$ & 逐分量；乘积法则（两处 $\bm x$ 各求一次导）；取 $A=I$ \\
+$\frac{\partial f(\bm z)}{\partial\bm x}=\frac{\partial\bm z}{\partial\bm x}\frac{\partial f}{\partial\bm z}$，$\bm z=g(\bm x)\in\R^K$ & 链式法则 $(M\times K)(K\times1)$，\key{靠近自变量的导数在最左边}；分子布局顺序相反 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错}：$2A\bm x$ 仅当 $A$ 对称成立，如 $A=\left[\begin{smallmatrix}1&2\\0&3\end{smallmatrix}\right]$：$\partial(\bm x^\top A\bm x)/\partial\bm x=(2x_1+2x_2,\,2x_1+6x_2)^\top=(A+A^\top)\bm x\neq2A\bm x=(2x_1+4x_2,\,6x_2)^\top$。
+
+% ======================================================================
+\section{经验风险最小化：最小二乘法}
+
+\subsection{学习准则（求和→矩阵形式）、梯度推导与正规方程 \texorpdfstring{$XX^\top w=Xy$}{XX'w=Xy}}
+\noindent 模型 $f(\bm x;\bm w)=\bm w^\top\bm x$（已增广），$X\in\R^{D\times N}$，$\bm y=(y^{(1)},\dots,y^{(N)})^\top$；优化：令 $\partial\mathcal R/\partial\bm w=\bm 0$。
+\begin{align*}
+\mathcal R(\bm w)&=\sum_{n=1}^N\mathcal L\big(y^{(n)},f(\bm x^{(n)};\bm w)\big)=\frac12\sum_{n=1}^N\big(y^{(n)}-\bm w^\top\bm x^{(n)}\big)^2=\frac12\|\bm y-X^\top\bm w\|^2 \why{$X^\top\bm w$ 第 $n$ 分量 $=\bm w^\top\bm x^{(n)}$}\\
+\text{法一}&:\ \bm z=\bm y-X^\top\bm w,\ \tfrac{\partial\bm z}{\partial\bm w}=-X,\ \tfrac{\partial\mathcal R}{\partial\bm z}=\bm z\ \Rightarrow\ \tfrac{\partial\mathcal R}{\partial\bm w}=\tfrac{\partial\bm z}{\partial\bm w}\tfrac{\partial\mathcal R}{\partial\bm z}=-X(\bm y-X^\top\bm w) \why{链式法则，$(D\times N)(N\times1)$}\\
+\text{法二}&:\ \mathcal R=\tfrac12\big(\bm y^\top\bm y-2\bm w^\top X\bm y+\bm w^\top XX^\top\bm w\big)\ \Rightarrow\ \tfrac{\partial\mathcal R}{\partial\bm w}=-X\bm y+XX^\top\bm w \why{$\bm y^\top X^\top\bm w=\bm w^\top X\bm y$；$XX^\top$ 对称}\\
+\text{令 }\bm 0&:\ -X(\bm y-X^\top\bm w)=\bm 0\iff XX^\top\bm w=X\bm y \why{正规方程 normal equations}
+\end{align*}
+求和/平均、乘不乘 $\frac12$ 都不改变最小点（$\frac12$ 只为消去求导的 2）。正规方程含义：\key{残差与每个特征（$X$ 的每一行）正交}，$\sum_nx_k^{(n)}e^{(n)}=0$，即计量 OLS 一阶条件 $X'\hat e=0$。
+
+\subsection{闭式解 \texorpdfstring{$w^*=(XX^\top)^{-1}Xy$}{w*=(XX')^-1 Xy}、凸性、可逆条件与手算步骤}
+\begin{thm}[最小二乘解]
+若 $XX^\top$（$D\times D$）可逆，平方损失 ERM 的唯一解为 $\bm w^*=(XX^\top)^{-1}X\bm y$（\term{最小二乘法}{least squares method}，总结表记 $\bm w^{ML}$）。
+\end{thm}
+\begin{itemize}
+\item 最小而非最大：Hessian $=XX^\top$，$\bm v^\top XX^\top\bm v=\|X^\top\bm v\|^2\ge0$ 半正定 → 凸 → 驻点即全局最小。
+\item 可逆 $\iff\rank(X)=D\iff X$ 的 $D$ 行线性无关（需 $N\ge D$）。不可逆：(1) 完全共线（“男”“女”虚拟变量 + 常数项 = 虚拟变量陷阱）；(2) $D>N$（成千上万个词频特征）→ 解不唯一，需正则化。
+\item 手算（一元 $f=wx+b$）：$XX^\top=\left[\begin{smallmatrix}\sum x^2&\sum x\\\sum x&N\end{smallmatrix}\right]$，$X\bm y=\left[\begin{smallmatrix}\sum xy\\\sum y\end{smallmatrix}\right]$；$\left[\begin{smallmatrix}a&b\\c&d\end{smallmatrix}\right]^{-1}=\frac1{ad-bc}\left[\begin{smallmatrix}d&-b\\-c&a\end{smallmatrix}\right]$；自检残差和 $=0$、$\sum xe=0$。示意 $\{(0,1),(1,3),(2,2)\}$：$XX^\top=\left[\begin{smallmatrix}5&3\\3&3\end{smallmatrix}\right]$，$X\bm y=(7,6)^\top$，$\hat{\bm w}=\frac16(3,9)^\top=(0.5,1.5)^\top$。
+\item 闭式解 vs 梯度下降：求逆约 $O(D^3)$ 且要存 $XX^\top$；$D$ 很大或 $N$ 极大 → GD/SGD；近奇异时求逆不稳 → 正则化或迭代。只有线性/岭回归等少数模型有闭式解，Logistic 回归、神经网络只能迭代。
+\end{itemize}
+
+% ======================================================================
+\section{结构风险最小化：岭回归}
+
+\subsection{岭回归准则与闭式解 \texorpdfstring{$w^*=(XX^\top+\lambda I)^{-1}Xy$}{w*=(XX'+lambda I)^-1 Xy}}
+\noindent 结构风险 = 平方误差 + L2 正则，在最小二乘梯度上多一项 $\lambda\bm w$：
+\begin{align*}
+\mathcal R(\bm w)=\tfrac12\|\bm y-X^\top\bm w\|^2+\tfrac12\lambda\|\bm w\|^2\ (\lambda>0),\quad
+\tfrac{\partial\mathcal R}{\partial\bm w}=-X(\bm y-X^\top\bm w)+\lambda\bm w=\bm 0 \why{$\partial\frac\lambda2\|\bm w\|^2/\partial\bm w=\lambda\bm w$}\\
+\Rightarrow\ (XX^\top+\lambda I)\bm w=X\bm y\ \Rightarrow\ \bm w^*=(XX^\top+\lambda I)^{-1}X\bm y \why{$\lambda\bm w=\lambda I\bm w$；$\lambda>0$ 时可逆}
+\end{align*}
+称为\term{岭回归}{ridge regression}（Hoerl 与 Kennard，1970）。作答四步：写准则 → 求梯度 → 令 0 得闭式解 → 说明 $\lambda I$ 使矩阵正定可逆（解决共线/高维），并把系数向 0 收缩、降方差、防过拟合。
+
+\subsection{\texorpdfstring{$\lambda I$}{lambda I} 保证可逆：正定性与特征值；收缩性质}
+\textbf{结论}：只要 $\lambda>0$，$XX^\top+\lambda I$ 一定可逆，即使 $XX^\top$ 不可逆。(1) 正定：$\bm v^\top(XX^\top+\lambda I)\bm v=\|X^\top\bm v\|^2+\lambda\|\bm v\|^2>0$（$\bm v\neq\bm 0$）。(2) 特征值：$XX^\top=Q\Lambda Q^\top$，$d_j\ge0$ → $XX^\top+\lambda I=Q(\Lambda+\lambda I)Q^\top$，特征值 $d_j+\lambda>0$，最小特征值 $\ge\lambda$ → 良态、求逆稳定（“岭”= 对角线加 $\lambda$）。(3) 收缩：$\|\bm w^*(\lambda)\|$ 随 $\lambda$ 单调减小，$\lambda\to0$ 退化为最小二乘，$\lambda\to\infty$ 时 $\bm w^*\to\bm 0$。
+
+\subsection{共线特征下岭回归仍可解；收缩的是范数，不一定是每个系数}
+\begin{itemize}
+\item 完全共线：$\bm x^{(1)}=(1,1)^\top,\bm x^{(2)}=(2,2)^\top,\bm y=(1,2)^\top$，$XX^\top=\left[\begin{smallmatrix}5&5\\5&5\end{smallmatrix}\right]$ 奇异，$w_1+w_2=1$ 上全是最小二乘解（不可识别）；岭回归 $w_1=w_2=5/(10+\lambda)$（$\lambda=1$：$5/11$），\key{平分权重}，$\lambda\to0$ 趋于范数最小解 $(0.5,0.5)$；代价是有偏。
+\item 截距也被惩罚：三点数据 $\lambda=1$，$\hat{\bm w}=(2/3,1)^\top$ vs 最小二乘 $(0.5,1.5)$——斜率反而变大，范数平方 $2.5\to1.444$。\key{只保证整体范数收缩}。实践：中心化、不惩罚截距、标准化特征（否则惩罚随单位变化）。
+\end{itemize}
+
+\subsection{\texorpdfstring{$\lambda$}{lambda} 的作用与选择}
+$\lambda=0$：最小二乘；$\lambda\uparrow$：范数 $\downarrow$、模型变简单、\key{方差 $\downarrow$ 偏差 $\uparrow$}（§1.14）；$\lambda$ 过大：欠拟合。$\lambda$ 是超参数，用验证集/交叉验证选。\tagext\ Hansen 定理 29.1：同方差线性回归中 $0<\lambda<2\sigma^2/\beta'\beta$ 时岭估计 MSE 矩阵严格小于 OLS（有偏但更准；上界含未知参数，不能直接用来选 $\lambda$）。sklearn 的 \texttt{Ridge(alpha=lam)} 目标为 $\|\bm y-\tilde X\bm w\|^2+\alpha\|\bm w\|^2$（$\alpha$ 即本册 $\lambda$），默认不惩罚截距。
+
+% ======================================================================
+\section{概率基础}
+
+\subsection{概率、随机变量、离散分布；伯努利、二项（\texorpdfstring{$k$}{k} 从 0 开始）与高斯分布}
+\term{概率}{probability}：随机事件发生可能性大小，$[0,1]$ 中实数。\term{随机变量}{random variable}：如骰子点数 $X\in\{1,\dots,6\}$。离散\term{概率分布}{probability distribution}：$P(X=x_i)=p(x_i)$，$\sum_{i=1}^np(x_i)=1$，$p(x_i)\ge0$。连续随机变量取任一具体值概率为 0，用\term{概率密度函数}{Probability Density Function, PDF} 描述：$P(a\le X\le b)=\int_a^bp(x)\dd x$，$\int_{-\infty}^{+\infty}p(x)\dd x=1$，$p(x)\ge0$（\textbf{易错}：密度可 $>1$，面积才是概率）。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}>{\raggedright\arraybackslash}p{5.5cm}p{2cm}L@{}}
+\toprule
+分布 & 概率（密度）& 均值/方差 & 要点 \\
+\midrule
+伯努利 & $p(x)=\mu^x(1-\mu)^{1-x}$，$x\in\{0,1\}$ & $\mu$ / $\mu(1-\mu)$ & 一次试验中 $A$ 出现次数；取对数即交叉熵来源 \\
+二项 & $P(X{=}k)=\binom nk\mu^k(1-\mu)^{n-k}$，$k=0,1,\dots,n$ & $n\mu$ / $n\mu(1-\mu)$ & $n$ 次独立伯努利中 $A$ 出现次数；$\binom nk=\frac{n!}{k!(n-k)!}$ 为从 $n$ 个取 $k$ 个不计顺序的组合数；特定顺序概率 $\mu^k(1-\mu)^{n-k}$（独立），共 $\binom nk$ 种；\textbf{易错} $k$ 从 0 起，否则概率和 $\neq1$。$n{=}5,\mu{=}0.3$：$P(X{=}2)=0.3087$，$P(X{=}0)=0.168$（漏掉则和为 $0.832$）\\
+高斯 & $p(x)=\frac1{\sqrt{2\pi}\sigma}\exp\big(-\frac{(x-\mu)^2}{2\sigma^2}\big)$ & $\mu$ / $\sigma^2$ & 峰在 $x=\mu$，高 $1/(\sqrt{2\pi}\sigma)$（$\sigma{=}1$：0.399；图中峰高约 0.8 $\Rightarrow\sigma\approx0.5$）；$\pm1,2,3\sigma$ 内约 68/95/99.7\%；$\bm w\sim\mathcal N(\bm 0,\nu^2I)$（各分量独立）：$(2\pi\nu^2)^{-D/2}\exp\!\big(-\frac{\bm w^\top\bm w}{2\nu^2}\big)$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{联合概率、边缘概率、条件概率与贝叶斯公式（性别 × 行业表）}
+$p(y|x)=\dfrac{p(x,y)}{p(x)}$，$p(x)=\sum_yp(x,y)$；\quad\term{贝叶斯公式}{Bayes' theorem}：$p(y|x)=\dfrac{p(x|y)p(y)}{p(x)}$，$p(x)=\sum_yp(x|y)p(y)$（全概率公式）。\term{联合概率}{joint probability} $p(x,y)$；\term{边缘概率}{marginal probability} = 联合概率表按行/列加总；\term{条件概率}{conditional probability}：$P(B|A)=P(A\text{ and }B)/P(A)$（样本空间缩小为 $A$）。贝叶斯推导：$p(x,y)=p(y|x)p(x)=p(x|y)p(y)$；作用：把 $p(x|y)$ 翻转为 $p(y|x)$（朴素贝叶斯、MAP 的基础）。
+
+\noindent\begin{minipage}[c]{0.36\linewidth}\small\centering
+\begin{tabular}{@{}lccc@{}}
+\toprule
+性别\textbackslash 行业 & 计算机 & 教育 & 边缘 \\
+\midrule
+男 & 0.4 & 0.1 & 0.5 \\
+女 & 0.2 & 0.3 & 0.5 \\
+边缘 & 0.6 & 0.4 & 1 \\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.62\linewidth}\small
+步骤：先求边缘（列和）$p(\text{计算机})=0.6$ → $p(\text{男}|\text{计算机})=0.4/0.6=2/3$；$p(\text{计算机}|\text{男})=0.4/0.5=0.8$；贝叶斯验证 $0.8\times0.5/0.6=2/3$。\textbf{易错}：$p(\text{男}|\text{计算机})\neq p(\text{计算机}|\text{男})$；$p(\text{男})p(\text{计算机})=0.3\neq0.4$ → 不独立。
+\end{minipage}
+
+% ======================================================================
+\section{最大似然估计}
+
+\subsection{概率视角的线性回归、似然函数（i.i.d.\ 连乘）与 MLE 定义}
+\begin{itemize}
+\item 假设 $y$ 服从以 $\bm w^\top\bm x$ 为均值、$\sigma^2$ 为方差的高斯分布：$p(y|\bm x;\bm w,\sigma)=\mathcal N(y;\bm w^\top\bm x,\sigma^2)=\frac1{\sqrt{2\pi}\sigma}\exp\!\big(-\frac{(y-\bm w^\top\bm x)^2}{2\sigma^2}\big)$，即 $y=\bm w^\top\bm x+\epsilon$，$\epsilon\sim\mathcal N(0,\sigma^2)$ 与 $\bm x$ 独立。
+\item \term{似然函数}{likelihood function}：$p(\bm y|X;\bm w,\sigma)=\prod_{n=1}^Np(y^{(n)}|\bm x^{(n)};\bm w,\sigma)=\prod_{n=1}^N\mathcal N(y^{(n)};\bm w^\top\bm x^{(n)},\sigma^2)$，连乘靠\key{样本独立}；同一式子看成 $\bm y$ 的函数是密度，固定数据看成 $\bm w$ 的函数是似然。
+\item \term{最大似然估计}{Maximum Likelihood Estimation, MLE}：找 $\bm w$ 使似然 $p(\bm y|X;\bm w,\sigma)$ 最大（让已观测数据出现的可能性最大）。取对数：单调不改变最大点；连乘变连加；避免下溢。
+\end{itemize}
+
+\subsection{推导：高斯噪声下 MLE \texorpdfstring{$\equiv$}{=} 最小二乘}
+\noindent 思路：写出对数似然，与 $\bm w$ 有关的部分恰为负的平方误差和。
+\begin{align*}
+\log p(\bm y|X;\bm w,\sigma)&=\sum_{n=1}^N\Big[-\log(\sqrt{2\pi}\sigma)-\frac{(y^{(n)}-\bm w^\top\bm x^{(n)})^2}{2\sigma^2}\Big] \why{连乘取对数，代入高斯密度}\\
+&=-\frac N2\log(2\pi\sigma^2)-\frac1{\sigma^2}\cdot\underbrace{\tfrac12\|\bm y-X^\top\bm w\|^2}_{\text{最小二乘的 }\mathcal R(\bm w)} \why{$\log\sqrt{2\pi}\sigma=\frac12\log(2\pi\sigma^2)$}\\
+\Rightarrow\ \bm w^{ML}&=\argmin_{\bm w}\tfrac12\|\bm y-X^\top\bm w\|^2=(XX^\top)^{-1}X\bm y=(\tilde X^\top\tilde X)^{-1}\tilde X^\top\bm y \why{首项与 $\bm w$ 无关，$1/\sigma^2>0$}
+\end{align*}
+结论：\key{平方损失 $\Leftrightarrow$ 高斯噪声假设}；拉普拉斯噪声下 MLE 对应绝对值损失 $|y-\bm w^\top\bm x|$（最小一乘）。
+\textit{Under i.i.d.\ Gaussian noise, maximizing the log-likelihood is equivalent to minimizing the sum of squared errors, so the MLE coincides with the least squares estimator.}
+
+\subsection{\texorpdfstring{$\sigma^2$}{sigma2} 的 MLE 与正态回归模型；伯努利参数的 MLE}
+$-\frac N{2\sigma^2}+\frac1{2\sigma^4}\sum_ne_n^2=0\Rightarrow\hat\sigma^2_{ML}=\frac1N\sum_n(y^{(n)}-\bm w^{ML\top}\bm x^{(n)})^2$（\key{有偏}）；无偏 $s^2=\frac1{N-D}\sum e_n^2$。Hansen 第 5 章：正态误差下 OLS 即 MLE。伯努利：$N$ 次中 $m$ 次为 1，$\ell(\mu)=m\log\mu+(N-m)\log(1-\mu)$ → $\hat\mu_{ML}=m/N$；$-\ell/N$ 即二分类交叉熵（交叉熵 = 负对数似然）。
+
+% ======================================================================
+\section{最大后验估计}
+
+\subsection{贝叶斯公式：后验 \texorpdfstring{$\propto$}{∝} 似然 \texorpdfstring{$\times$}{×} 先验；MAP 定义与分母为何可丢}
+$p(\bm w|X)=\dfrac{p(X|\bm w)p(\bm w)}{p(X)}\propto p(X|\bm w)p(\bm w)$：\textbf{posterior $\propto$ likelihood $\times$ prior}。\key{后验}：看到数据后对参数的信念；\key{似然}：参数为 $\bm w$ 时数据出现的可能性；\key{先验}：看数据前的信念。MLE 视 $\bm w$ 为固定未知常数（频率学派），MAP 视 $\bm w$ 为随机变量（贝叶斯学派）。
+\[
+\bm w^{MAP}=\argmax_{\bm w}p(\bm w|X,\bm y;\nu,\sigma),\qquad
+p(\bm w|X,\bm y;\nu,\sigma)=\frac{p(\bm w,\bm y|X;\nu,\sigma)}{\sum_{\bm w}p(\bm w,\bm y|X;\nu,\sigma)}\propto\underbrace{p(\bm y|X,\bm w;\sigma)}_{\text{似然}}\underbrace{p(\bm w;\nu)}_{\text{先验}}.
+\]
+\term{最大后验估计}{Maximum A Posteriori, MAP}：给定数据，选参数使“后验概率”最大。\key{分母已把 $\bm w$ 求和（积分）掉，与 $\bm w$ 无关}，可丢；分子拆成似然 × 先验（先验与 $X$ 无关）。$\bm w$ 连续时分母严格为 $\int p(\bm w,\bm y|X)\dd\bm w$。
+
+\subsection{推导：高斯先验下 MAP \texorpdfstring{$\equiv$}{=} 岭回归，\texorpdfstring{$\lambda=\sigma^2/\nu^2$}{lambda=sigma2/nu2}}
+似然同 §1.10，先验 $p(\bm w;\nu)=\mathcal N(\bm w;\bm 0,\nu^2I)$（相信各权重在 0 附近，标准差 $\nu$）：
+\begin{align*}
+\log p(\bm w|X,\bm y)&=\log p(\bm y|X,\bm w;\sigma)+\log p(\bm w;\nu)+C_1 \why{对 $\propto$ 取对数}\\
+&=-\frac1{2\sigma^2}\|\bm y-X^\top\bm w\|^2-\frac1{2\nu^2}\bm w^\top\bm w+C \why{$C=C_1+C_2-\frac D2\log(2\pi\nu^2)$}\\
+\bm w^{MAP}&=\argmin_{\bm w}\tfrac12\|\bm y-X^\top\bm w\|^2+\tfrac12\cdot\tfrac{\sigma^2}{\nu^2}\|\bm w\|^2=(XX^\top+\lambda I)^{-1}X\bm y,\ \ \lambda=\frac{\sigma^2}{\nu^2} \why{乘 $-\sigma^2$，max 变 min}
+\end{align*}
+其中 $\log p(\bm y|X,\bm w;\sigma)=-\frac1{2\sigma^2}\sum_n(y^{(n)}-\bm w^\top\bm x^{(n)})^2+C_2$，$\log p(\bm w;\nu)=-\frac D2\log(2\pi\nu^2)-\frac1{2\nu^2}\bm w^\top\bm w$；两项依次为\key{平方误差项}与\key{正则项}。结论：\key{高斯先验下 MAP = 岭回归，正则项就是先验的负对数}。\textbf{易错}：取对数后是“相差与 $\bm w$ 无关的加法常数”，不是“$\propto$”。
+\textit{With a Gaussian prior $\mathcal N(\bm 0,\nu^2I)$, the MAP estimator equals ridge regression with $\lambda=\sigma^2/\nu^2$; the penalty is the negative log-prior.}
+
+\subsection{\texorpdfstring{$\lambda=\sigma^2/\nu^2$}{lambda=sigma2/nu2} 的含义；四种方法的 2×2 总结表}
+$\nu^2\downarrow$（越信 $\bm w\approx\bm 0$）→ $\lambda\uparrow$ 正则越强，$\nu\to0$ 时 $\bm w^{MAP}\to\bm 0$；$\nu\to\infty$（先验平坦）→ $\lambda\to0$，\key{MAP 退化为 MLE}；$\sigma^2\uparrow$（数据不可靠）→ $\lambda\uparrow$ 更依赖先验；$N\uparrow$ 似然项占主导，先验影响变小。一维：$y_n\overset{\iid}{\sim}\mathcal N(w,\sigma^2)$、$w\sim\mathcal N(0,\nu^2)$ → $\hat w_{ML}=\bar y$，$\hat w_{MAP}=\frac N{N+\lambda}\bar y$（向 0 收缩）。
+\begin{center}\small
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & 无先验 & 引入先验 \\
+\midrule
+平方误差（损失视角）& 经验风险最小化（最小二乘）& 结构风险最小化（岭回归）\\
+概率（概率视角）& 最大似然估计 & 最大后验估计 \\
+解 & $\bm w^{ML}=(XX^\top)^{-1}X\bm y$ & $\bm w^*=(XX^\top+\lambda I)^{-1}X\bm y$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+同列给出同一解：\key{ERM $\equiv$ MLE}（高斯噪声），\key{SRM $\equiv$ MAP}（高斯噪声 + 高斯先验，$\lambda=\sigma^2/\nu^2$）。推导五步：写似然（独立→连乘）→ 取对数 → 去掉与 $\bm w$ 无关项 → 乘负常数变最小化 → 对照准则写出 $\lambda$。
+
+\subsection{拓展：拉普拉斯先验与 L1 正则（Lasso）}
+\tagext\ 先验取独立拉普拉斯分布 $p(w_j)=\frac1{2\beta}\exp(-|w_j|/\beta)$：$-\log p(\bm w)=\frac1\beta\|\bm w\|_1+$常数，乘 $\sigma^2$ 得 $\min_{\bm w}\frac12\|\bm y-X^\top\bm w\|^2+\frac{\sigma^2}\beta\|\bm w\|_1$ = L1 正则（Lasso）；拉普拉斯在 0 处尖峰（更相信很多系数恰为 0）→ 稀疏性（第 4 章）。

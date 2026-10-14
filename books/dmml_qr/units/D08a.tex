@@ -1,0 +1,416 @@
+% ======================================================================
+% 单元 D08a：文本分析综述、文件处理、jieba 分词、词频、TF-IDF、TfidfVectorizer、MD&A 与词云
+% ======================================================================
+\chapter{Python 文本分析}
+\begingroup\sloppy\setlength{\emergencystretch}{3em}
+\newenvironment{tabD08a}{\par\smallskip\noindent\footnotesize}{\par\smallskip}
+\lstdefinestyle{pyD08a}{language=Python,basicstyle=\ttfamily\footnotesize,aboveskip=3pt,belowskip=3pt,framesep=2pt}
+\noindent\key{本章速览}\quad 文本 → 变量：获取（PDF→TXT、正则取代码/简称/年份、openpyxl 写表）→ 预处理（jieba 精确模式、自定义词典、停用词）→ 计量（相对词频、Counter 取 Top-N、TF-IDF 手写与 \texttt{TfidfVectorizer}）→ 指标。\key{符号}：$N$ 文档总数；$n_{w,d}$ 词 $w$ 在文档 $d$ 中的次数；$n_d=\sum_w n_{w,d}$ 文档（有效）总词数；$\mathrm{df}(w)$ 含 $w$ 的文档数（一篇多次只算 1）；$|V|$ 词表大小；未注底数的 $\log$ 均为 $\ln$（= \texttt{math.log}）。
+
+% ======================================================================
+\section{文本分析研究综述：文本怎样成为经济变量}
+
+\subsection{软信息、文本来源与研究视角、体量特征}
+\key{定义}：文本是经济主体（企业、政府、投资者、媒体）行为和认知的\key{语言化表达}，承载难以直接量化的\term{软信息}{soft information}：\key{风险认知、战略取向、情绪与预期、信息披露动机}；\key{目标}：将语言信息转化为可用于实证分析的变量（如 MD\&A → “语调 = 0.35”；财务数字是“硬信息”）。\key{体量特征}：覆盖范围广、观测数量大、更新速度快 → 人工阅读难以应对；文本分析的兴起本质上是对“\key{大规模非结构化数据}”（无预定义行列格式：文字、图片、音频）的研究回应，通常需结合数据获取与清洗能力。
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{2.1cm}LLL@{}}
+\toprule
+来源 & 典型文本 & 研究视角 & 例 \\
+\midrule
+企业文本 & 定期报告（年报、MD\&A）、IPO 招股说明书、分析师研究报告、招聘广告、会议纪要 & 公司行为与决策 & 数字化转型词频 → 数字化程度 \\
+政府与政策文本 & 政府工作报告、政策文件与执行报告 & 宏观环境与监管预期 & “稳增长”提及频率 \\
+市场与公众文本 & 社交媒体（微博、Twitter）、论坛帖子、消费者评论、微信公众号文章 & 情绪、舆论与市场反应 & 股吧帖子情绪 → 次日收益 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+
+\subsection{发展脉络三阶段与一般研究流程四步}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}LL@{}}
+\toprule
+阶段 & 代表方法 & 用于／代表问题 \\
+\midrule
+一、基于人工词典的文本计量 & 关键词计数、词频、比例 & 企业不确定性、风险披露、语气（乐观／悲观）\\
+二、统计学习与主题模型 & TF-IDF；LDA 主题模型 & 识别“企业在说什么”；提取潜在主题结构 \\
+三、机器学习与深度学习 & Word2Vec/Doc2Vec；BERT/FinBERT/中文预训练模型 & 语义理解、语境依赖、情感与立场识别 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+演进：研究者预先指定词表 → 数据自己说话（TF-IDF 找区分度高的词、LDA 找主题）→ 理解语境（“风险可控”与“风险加剧”）。\\
+\key{四步流程}：(1) \key{文本获取}（爬虫／PDF）；(2) \key{文本预处理}：文本清洗（去噪、格式统一）、分词（中文／英文）、去停用词、词形还原／同义词处理；(3) \key{文本信息提取}：基于词典（关键词计数、词频比例）、基于统计模型（TF-IDF、LDA）、基于机器学习（向量表示、语义嵌入）；(4) \key{文本指标构建}：加工为研究变量——不确定性指数、情绪指数、风险披露程度、主题强度指标。注：\term{词形还原}{lemmatization} went/goes → go；\term{词干提取}{stemming} connection → connect；中文无词形变化，对应分词 + 同义词合并（“数字化”“数智化”）。
+
+\subsection{经济、金融、财会领域的应用与代表文献}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{2.2cm}L@{}}
+\toprule
+问题 & 代表文献：文本来源与做法 \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{经济学}（沈艳、陈斌、黄卓，2019，《经济学（季刊）》第 4 期）}\\
+经济政策不确定性 & Baker et al. (2016)：新闻 → EPU 指数及货币、财政、国防等分类子指数，研究与其他经济变量的关系 \\
+行业动态分类 & Hoberg \& Phillips (2015)：产品描述相似度 → 文本网络行业分类 TNIC，定义行业边界与竞争 \\
+经济周期 & Thorsrud (2018)；Shapiro et al. (2018)：日度商业新闻 + 季度 GDP → 日度经济周期指数；媒体情绪与联邦基金利率、非农就业等同期强相关 \\
+媒体政治倾向 & Gentzkow \& Shapiro (2010)：报纸语言与国会共和党、民主党语言的相似性 → 倾向指数 \\
+\multicolumn{2}{@{}l}{\textbf{金融学}（同上综述）}\\
+关注度 & Antweiler \& Frank (2004)；Fang \& Peress (2009)；Garcia (2013)：关注是稀缺资源（Kahneman 1973），是信息反应的前提（Ben-Rephael et al. 2017）。投资者关注（搜索次数、发帖量）；媒体关注（报道量；影响资产价格、管理层与分析师行为）\\
+情绪或语调 & Tetlock (2007)；Li (2010)；Da et al. (2011)；Loughran \& McDonald (2011)；Jegadeesh \& Wu (2013)；Kim \& Kim (2014)；Tsukioka et al. (2018)：情绪使价格偏离正常水平（De Long et al. 1990）；媒体情绪、管理层语调（年报、盈余公告、招股书）、投资者情绪（网络平台）\\
+新闻隐含波动率 & Manela \& Moreira (2017)：新闻文本度量金融市场不确定性（NVIX）\\
+意见分歧 & Antweiler \& Frank (2004)；Hillert et al. (2018)：异质信念产生交易（Harris \& Raviv 1993）；留言板帖子情绪得分的\key{标准差} = 分歧指数 → 交易量、价格 \\
+\multicolumn{2}{@{}l}{\textbf{财会}（马长峰、陈志娟、张顺明，2020，《管理科学学报》23(9)）}\\
+信息相关 & 信息质量（可读性：词句难度、文件大小、平实英语）；信息含量（语调对财务指标的影响、增量信息）；策略性披露（自愿、选择性披露）；财务欺诈（识别、分类、特征挖掘）\\
+新指标新变量 & 财务约束（Bodnaruk 等：年报“约束”类词频）；创新（Bellstam 等：分析师报告 + LDA）；竞争（Li 等：年报提及竞争对手频率）；知识（Li 等：业绩说明会文本）；产品相似性（Hoberg \& Phillips：年报产品描述）\\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\tagext\ 英文综述：Gentzkow, Kelly \& Taddy (2019) “Text as Data”, \textit{JEL}；Loughran \& McDonald (2016), \textit{JAR}。\textit{Textual analysis converts unstructured text into quantitative variables (tone, uncertainty, similarity) for empirical research.}
+
+% ======================================================================
+\section{文本获取与文件处理：从年报 PDF 到 TXT 与 Excel}
+
+\subsection{open() 三种模式 r／w／a、encoding、errors='ignore' 与 with}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{0.9cm}p{2.4cm}p{3.6cm}p{2.8cm}L@{}}
+\toprule
+模式 & 含义 & 文件不存在 & 文件已存在 & 典型用途 \\
+\midrule
+\texttt{'r'} & read 只读（默认）& 报 \texttt{FileNotFoundError} & 从头读取 & 读 TXT \\
+\texttt{'w'} & write 写入 & 自动创建（\key{不建目录}）& \leavevmode\key{清空后覆盖} & PDF 文本写入 TXT \\
+\texttt{'a'} & append 追加 & 自动创建 & \leavevmode\key{末尾追加}，不覆盖 & 记录失败文件 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\texttt{encoding='utf-8'}：中文（含中文路径、文件名）不乱码（Windows 默认 GBK，不写易乱码或 \texttt{UnicodeDecodeError}）。\texttt{errors='ignore'}：读时无法解码、写时无法编码的字符直接跳过，不抛异常（代价：字符悄悄丢失）。\texttt{with open(...) as f}：离开代码块\key{自动关闭文件}（= \texttt{f.close()}），出异常也关闭。\texttt{f.write(s)} 不自动换行。读：\texttt{fp.readlines()} 行列表（含行尾 \texttt{'\textbackslash n'}，适合逐行 \texttt{line.count}）；\texttt{fp.read()} 一个大字符串（= \texttt{"".join(readlines())}，整篇分词）；\texttt{for line in fp} 逐行迭代（超大文件）。
+
+\subsection{单个 PDF 转 TXT 三步与自动命名：makedirs、basename、splitext、join}
+三步：(1) 打开相应 PDF；(2) 逐页读取内容，写入 TXT；(3) 关闭 PDF。
+\begin{lstlisting}[style=pyD08a]
+import os, pdfplumber
+txt_root_path = r'D:\txt'                      # r'' 原始字符串: 反斜杠不转义
+if not os.path.exists(txt_root_path): os.makedirs(txt_root_path)   # 确保目录存在(可建多级; 或 exist_ok=True)
+def pdf_to_txt(pdf_path, txt_root_path):
+    pdf_name = os.path.basename(pdf_path)                  # 取文件名
+    txt_name = os.path.splitext(pdf_name)[0] + '.txt'      # 主名 + '.txt'
+    txt_path = os.path.join(txt_root_path, txt_name)       # 拼出 TXT 路径
+    text = ''
+    with pdfplumber.open(pdf_path) as pdf:     # (1) 打开; with 结束即 (3) 关闭
+        for page in pdf.pages:                 # (2) 逐页读取
+            text += page.extract_text() or ''  # 空白页/扫描页返回 None
+    with open(txt_path, 'w', encoding='utf-8') as txt_file:
+        txt_file.write(text)                   # (2) 写入 TXT
+\end{lstlisting}
+\texttt{basename}：取路径最后一段 → \texttt{'000019\_2023\_深粮控股\_2023年年度报告\_2024-04-16.pdf'}；\texttt{splitext}：拆成 (主名, \texttt{'.pdf'})，只拆最后一个点，\texttt{[0]} 取主名；\texttt{join}：按系统分隔符拼接。TXT 与 PDF 同名 → 保留代码、年份信息供正则提取。\textbf{易错}：\texttt{'w'} 只建文件不建目录，目录不存在时 \texttt{open} 报 \texttt{FileNotFoundError} → 先 \texttt{makedirs}。
+
+\subsection{批量转换三步、try–except 与追加模式记录失败文件}
+思路：(1) 定义单个 PDF 转换函数；(2) 获取文件夹中所有 PDF；(3) 遍历所有 PDF。\tagext\ 用 try–except 包住单个文件：加密、损坏、扫描版出错时记录并继续，不让整个程序崩溃。
+\begin{lstlisting}[style=pyD08a]
+pdf_dir = r'D:\pdf'
+file_list = [f for f in os.listdir(pdf_dir) if f.lower().endswith('.pdf')]   # (2)
+for i in range(len(file_list)):                                              # (3)
+    try:
+        pdf_to_txt(os.path.join(pdf_dir, file_list[i]), txt_root_path)      # (1)
+    except Exception:
+        with open('错误信息.txt', 'a', encoding='utf-8', errors='ignore') as f:
+            f.write(file_list[i] + '\n')      # 每个失败文件占一行
+\end{lstlisting}
+\key{四个参数}：(1) 文件名：当前目录下不存在 → 创建，已存在 → 打开；(2) \texttt{'a'} 追加：新内容写在末尾，不覆盖之前的记录（误用 \texttt{'w'} 每次清空、最后只剩一条）；(3) \texttt{encoding='utf-8'}：中文路径、文件名不乱码；(4) \texttt{errors='ignore'}：无法编码的字符忽略、不抛异常。\texttt{+ '\textbackslash n'}：write 本身不换行。
+
+\subsection{正则从文件名提取股票代码、公司名称、年份}
+命名约定“代码\_年份\_简称\_标题\_披露日期”，如 \texttt{000019\_2023\_深粮控股\_2023年年度报告\_2024-04-16}。三步固定写法：\texttt{pat = re.compile(r"模式")} → \texttt{pat.findall(file\_name)}（\key{永远返回列表}）→ \texttt{[0]} 取第一个；\texttt{re.findall(模式, s)} 与先 compile 等价。
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{1.3cm}p{3.5cm}p{1.5cm}L@{}}
+\toprule
+信息 & 模式 & 结果 & 解释 \\
+\midrule
+股票代码 & \texttt{r"\textasciicircum[0-9]\{6\}"} & \texttt{'000019'} & \texttt{\textasciicircum} 字符串开头；\texttt{[0-9]} 任一数字；\texttt{\{6\}} 恰好 6 次 \\
+公司名称 & \texttt{r"\_([\textbackslash u4e00-\textbackslash u9fa5]+)\_"} & \texttt{'深粮控股'} & 下划线 + 一段连续常用汉字（Unicode 区间，\texttt{+} 一个或多个）+ 下划线；\texttt{(...)} \term{捕获组}{capturing group}：有组时 findall 只返回组内内容；\texttt{\_2023\_} 以数字开头不满足 \\
+年份 & \texttt{r"([0-9]\{4\})年"} & \texttt{'2023'} & 4 位数字 + “年”，组只留数字；若写 \texttt{r"[0-9]\{4\}"}，\texttt{[0]} 得代码前 4 位 \texttt{'0001'} \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\tagext\ 元字符：\texttt{\textasciicircum/\$} 开头／结尾；\texttt{.} 除换行外任一字符；\texttt{[0-9]}$\equiv$\texttt{\textbackslash d}；\texttt{[\textasciicircum...]} 不在括号内的字符；\texttt{\{n\}/\{m,n\}} 恰好 $n$ 次／$m$ 到 $n$ 次；\texttt{+ * ?} $\ge1$／$\ge0$／0 或 1 次；\texttt{\textbackslash s} 空白；\texttt{(...)} 捕获组。\texttt{re.findall} 返回全部匹配列表；\texttt{re.search} 返回第一个匹配对象（\texttt{.group()} 取值，找不到为 \texttt{None}）；\texttt{re.match} 只从开头匹配；\texttt{re.sub(模式, 替换, 文本)} 用于清洗。\\
+\textbf{易错}：不匹配时 findall 返回 \texttt{[]}，再取 \texttt{[0]} 报 \texttt{IndexError}（如“TCL科技”以字母开头）→ \texttt{res[0] if res else ''}，或 \texttt{code, yr, name, title, date = file\_name.split('\_')}。
+
+\subsection{openpyxl 写 Excel：Workbook–Worksheet–Cell、cell(row, column, value) 与 save}
+三层结构一一对应：Excel 文件（工作簿）$\leftrightarrow$ \texttt{Workbook}；工作表 $\leftrightarrow$ \texttt{Worksheet}；单元格 $\leftrightarrow$ \texttt{Cell}。\texttt{from openpyxl import Workbook} 只导入“创建 Excel 文件”所需的核心类。
+\begin{lstlisting}[style=pyD08a]
+from openpyxl import Workbook
+book = Workbook()                          # 新工作簿, 自带默认表 "Sheet"
+book.remove(book.worksheets[0])            # 删除默认工作表
+sheet1 = book.create_sheet('word_freq')    # 新建工作表
+sheet1.cell(row=1, column=1, value='股票代码')     # 表头: 第 1 行第 1 列
+for i, word in enumerate(keywords):                # i = 0, 1, 2, ...
+    sheet1.cell(row=i+2, column=1, value=word)     # 第 1 行是表头, 数据从第 2 行写
+book.save('word_freq.xlsx')                # 不保存不生成文件; 文件在 Excel 中打开时报 PermissionError
+\end{lstlisting}
+\textbf{易错}：行号、列号\key{从 1 开始}，\texttt{row=0} 报 \texttt{ValueError: Row or column values must be at least 1}；\texttt{enumerate} 从 0 开始 → 无表头写 \texttt{i+1}、有表头写 \texttt{i+2}；前 3 列为代码／名称／年份时关键词从第 4 列写 → \texttt{column=ind+4}。\texttt{book.save} 为 \tagext。
+
+% ======================================================================
+\section{中文分词：jieba 与停用词}
+
+\subsection{不分词的逐行 line.count 及其问题；为什么中文要分词}
+对每个关键词 \texttt{for ind, word in enumerate(keywords)}，令 \texttt{num = 0}，再 \texttt{for line in text: num += line.count(word)}（\texttt{text} 为 readlines 行列表，逐行子串计数累加得全文次数）。简单、不需第三方库，但 \texttt{str.count} 只看字符是否连续出现，\key{不管是不是一个词}（数“学习”时“深度学习”里的也算）→ 需先分词。\term{中文分词}{Chinese word segmentation}：把连续的中文字符序列切分为有意义的词语；英文天然空格分隔，中文没有，计算机需识别词语才能做情感分析、关键词提取等。例：“苹果手机价格”误切为“苹果/手/机价格”语义错误，正确语义单元“苹果手机/价格”。切出的单位称词项（token），过程称 tokenization。
+
+\subsection{jieba 三种分词模式：精确模式、全模式、搜索引擎模式}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}Lp{4.6cm}@{}}
+\toprule
+调用 & 模式与特点 & “我来到北京清华大学” \\
+\midrule
+\texttt{jieba.lcut(s)} & \leavevmode\key{精确模式}（默认）：切分最合理、不重叠，适合文本分析、词频统计 & 我/来到/北京/清华大学 \\
+\texttt{jieba.lcut(s, cut\_all=True)} & 全模式：列出所有可能成词的片段，有重叠、有歧义 & 我/来到/北京/清华/清华大学/华大/大学 \\
+\texttt{jieba.lcut\_for\_search(s)} & 搜索引擎模式：在精确模式基础上对长词再切分，提高召回，适合建索引 & 我/来到/北京/清华/华大/大学/清华大学 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\texttt{jieba.cut} 返回\key{生成器}（只能遍历一次，打印看不到内容），\texttt{jieba.lcut} 返回\key{列表}（要用 \texttt{.count}、切片须用 lcut 或 \texttt{list(jieba.cut(s))}）。词频统计用精确模式（另两种重复计数“清华”“大学”“清华大学”）。\tagext\ 原理：前缀词典 + 动态规划求最大概率切分；词典外的词默认用 HMM 做新词发现。
+
+\subsection{分词后计数 join + lcut + list.count；str.count 与 list.count 的区别}
+\begin{lstlisting}[style=pyD08a]
+text_jieba = jieba.lcut("".join(text))     # 行列表拼成一个字符串, 再分词 -> 词列表
+for ind, word in enumerate(keywords):
+    num = text_jieba.count(word)            # 列表中"等于 word 的元素"个数
+    sheet1.cell(row=row_index, column=ind + 4, value=num)   # row_index: 当前文件所在行
+\end{lstlisting}
+\vspace{-4pt}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}LL@{}}
+\toprule
+ & \texttt{str.count}（子串计数）& \texttt{list.count}（词项计数）\\
+\midrule
+对象／规则 & 字符串；字符连续出现即算 & 分词后的列表；元素与关键词\key{完全相等}才算 \\
+“深度学习很火，但学习方法也很重要”数“学习” & 2 & 默认词典 2（切成 深度/学习，“深度学习”计 0）；\texttt{add\_word} 后 1 \\
+风险 & 高估：长词内部片段也被数进去 & 依赖词典：未收录的复合词被拆散；收录的长词“吞掉”短词 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+例：\texttt{"资产负债表显示资产增加，资产质量提升".count("资产")} = 3。两个方向都可能出错：“…净利润有所下降”数“利润”，子串 1、词项 0（“净利润”是整体词）→ \key{关键词表须与分词词典口径一致}（写“净利润”或把关注词加入词典）。
+
+\subsection{自定义词典：jieba.add\_word、load\_userdict 与 THUOCL}
+\begin{lstlisting}[style=pyD08a]
+jieba.add_word("深度学习")             # 临时加入一个词 -> ['深度学习','很火',...]: '学习'=1, '深度学习'=1
+jieba.load_userdict("userdict.txt")    # 词多时一次性加载, 然后重新分词与计数
+# userdict.txt 每行 "词语 词频 词性"(词频、词性可省; n=名词), 如:
+# 资产负债表 10000 n / 现金流量表 10000 n / 年度报告 10000 n / 审计报告 8000 n
+\end{lstlisting}
+词频越大越倾向被整体切出。\term{THUOCL}{THU Open Chinese Lexicon}：清华大学自然语言处理与社会人文计算实验室整理推出的高质量中文词库，词表来自主流网站的社会标签、搜索热词、输入法词库等，分财经、IT、法律、医学等子词库（\texttt{github.com/thunlp/THUOCL}）；财经研究常用其财经词库作用户词典。\textbf{易错}：词典决定计数口径（加载“资产负债表”后，上例“资产”词项计数由 3 变 2），研究中应报告所用词典并做稳健性检验。
+
+\subsection{去除停用词：定义、哈工大停用词表、列表推导式与 w.strip()}
+\term{停用词}{stop words}：对文本意义没有贡献的词汇（“的”“和”）。jieba \key{不自带}官方停用词表：可按研究目的自行定义，或用已有通用中文停用词表再调整；最常用\key{哈工大停用词表}（HIT Stopwords）（另有百度、川大停用词表；年报研究常再加“公司”“报告期”等套话）。流程：原始文本 → jieba 分词 → 去除停用词 → 词频统计。
+\begin{lstlisting}[style=pyD08a]
+with open('hit_stopwords.txt', 'r', encoding='utf-8') as f:
+    stopwords = set(line.strip() for line in f)    # 每行一词; set 哈希查找, 比 list 快
+tokens_clean = [w for w in tokens if w not in stopwords and w.strip()]
+\end{lstlisting}
+\begin{itemize}
+\item 列表推导式 \texttt{[表达式 for 变量 in 列表 if 条件]}：对 tokens 中每个 w，若不在停用词表中就保留；等价循环：\texttt{tokens\_clean = []}，\texttt{for w in tokens: if w not in stopwords: tokens\_clean.append(w)}。
+\item \texttt{and w.strip()}：\texttt{strip()} 去两端空格、换行；jieba 会把 \texttt{'\textbackslash n'}、\texttt{' '} 也当作“词”输出，strip 后为空串 \texttt{''}，布尔值 \texttt{False} → 被过滤（否则 TF 分母被虚增）。
+\item \texttt{jieba.analyse.set\_stop\_words(文件)} 只影响关键词提取 \texttt{jieba.analyse.extract\_tags}／\texttt{textrank}，\texttt{lcut} 不过滤任何词 → 词频统计须自己用集合过滤。停用词表读入为 \tagext。
+\end{itemize}
+
+% ======================================================================
+\section{词频统计：相对词频 TF、批量统计与全文 Top-N}
+
+\subsection{相对词频 TF：定义、除以总词数的理由与除零保护}
+\[
+\mathrm{TF}(w,d)=\frac{\text{词 } w \text{ 在文档 } d \text{ 中出现的次数}}{\text{文档 } d \text{ 的总词数}}=\frac{n_{w,d}}{n_d}.
+\]
+\key{理由}：不受文档长度影响，不同年报之间可比（大公司年报长，直接用次数，“词频高”可能只是“年报长”的代理）。示意：\texttt{['资产','负债','资产','公司']} 中 TF(资产) $=2/4=0.5$；40000 词的年报出现 200 次，TF $=0.005$。代码：\texttt{tf = num / total\_words if total\_words > 0 else 0}（条件表达式 \texttt{A if 条件 else B}，防除以 0）。\textbf{易错}：分母可为分词后全部词数或去停用词、去标点后的有效词数 \texttt{len(tokens\_clean)}，须写明；\tagext\ 变体：关键词数／总词数 $\times100$、$\ln(1+\text{关键词数})$。
+
+\subsection{批量统计关键词词频的五步程序结构}
+五步：(1) 定义单个词频统计函数；(2) 创建 Excel 和画表头；(3) 获得文件夹下所有 TXT；(4) 主程序遍历每个 TXT；(5) 储存。
+\begin{lstlisting}[style=pyD08a]
+def count_one_file(file_path, file_name, row_index):    # (1) 读 TXT -> 第 1-3 列写正则取出的代码/名称/年份
+    ...                                                 #     -> lcut -> 第 ind+4 列写 text_jieba.count(word)
+# (2) Workbook() + 第 1 行表头 ["股票代码","公司名称","年份"] + keywords
+file_list = [f for f in os.listdir(txt_dir) if f.endswith('.txt')]                  # (3)
+for i, file_name in enumerate(file_list):                                           # (4)
+    count_one_file(os.path.join(txt_dir, file_name), file_name, row_index=i + 2)
+book.save('word_freq.xlsx')                                                         # (5)
+\end{lstlisting}
+输出“一行一个文档”：第 1–3 列代码、名称、年份，第 4 列起各关键词次数 = 面板回归需要的“公司—年度”格式。
+
+\subsection{全文词频 Top-N 六步：Counter、sorted(key=lambda x: x[1], reverse=True) 与写入两列}
+六步：(1) 得到 \texttt{tokens\_clean}（分词 + 去停用词）；(2) 用 Counter 统计所有词出现次数；(3) 计算每个词的 TF；(4) 按 TF 从大到小排序；(5) 取 Top-N；(6) 写入 Excel（一行一个文档）。
+\begin{lstlisting}[style=pyD08a]
+from collections import Counter
+total_words = len(tokens_clean)        # 有效词总数 = TF 的分母
+if total_words == 0: return            # 空文档(扫描版转出空 TXT): 位于单文档函数内, 防除以 0
+counter = Counter(tokens_clean)        # "词: 次数" 字典, 如 {'资产': 2, '负债': 1, '公司': 1}
+tf_sorted = sorted(counter.items(),    # (词, 次数) 二元组: [('资产',120), ('负债',95), ...]
+                   key=lambda x: x[1], # 只按元组第 2 个元素(次数)排序
+                   reverse=True)[:10]  # 默认升序 -> 降序; 切片取前 10
+col = 4                                # 前 3 列: 代码/名称/年份; 每词占两列(Top1 第 4-5 列 ... Top10 到第 23 列)
+for word, count in tf_sorted:
+    sheet1.cell(row=row_index, column=col, value=word)
+    sheet1.cell(row=row_index, column=col + 1, value=round(count / total_words, 4))   # TF
+    col += 2
+\end{lstlisting}
+要点：Counter 来自标准库 \texttt{collections}，是 dict 子类，缺失键返回 0；\tagext\ \texttt{counter.most\_common(10)} 等价于上面的排序。\texttt{lambda 参数: 返回值} 为匿名函数，写 \texttt{x[0]} 则按词本身（Unicode 码）排。sorted 是\key{稳定排序}：次数相同的词保持在 Counter 中首次出现的先后。同一文档 TF 分母相同 → 按次数排 = 按 TF 排，TF 写入时再算。
+
+% ======================================================================
+\section{TF-IDF：原理、多种口径与手写实现}
+
+\subsection{\texorpdfstring{动机与定义：TF-IDF $=$ TF $\times\ln(N/\mathrm{df})$ 及其性质}{动机与定义：TF-IDF = TF × ln(N/df) 及其性质}}
+动机：各年报 TF 最高的词几乎都是“公司”“资产”“报告期”，说明不了公司特色——真正想找的不是“出现最多的词”，而是“\key{只在少数文档里频繁出现的词}”。
+\[
+\mathrm{TF\text{-}IDF}(w,d)=\mathrm{TF}(w,d)\times\mathrm{IDF}(w),\qquad \mathrm{IDF}(w)=\log\frac{N}{\mathrm{df}(w)} .
+\]
+TF 衡量词在本文档中多重要；\term{逆文档频率}{inverse document frequency, IDF}衡量词在整个语料库中多稀有。直觉：$\mathrm{IDF}=-\log\frac{\mathrm{df}}{N}$ 是“随机抽一篇含 $w$”的信息量；TF-IDF 高 $\Leftrightarrow$ 本文档频繁且其他文档少见；取对数压缩尺度。示意（$N=100$）：公司 df $=100$ → 0；资产 95 → 0.0513；光刻机 3 → 3.5066；钙钛矿 1 → 4.6052。\\
+\key{性质}（$1\le\mathrm{df}\le N$）：(1) $0\le\mathrm{IDF}\le\ln N$；(2) $\mathrm{df}=N\Rightarrow\mathrm{IDF}=0$，该词在所有文档中 TF-IDF $=0$；(3) IDF 关于 df 单调递减；(4) 换对数底只乘同一常数，\key{不改变排序}。\textit{TF-IDF up-weights terms that are frequent in a document but rare across the corpus.}
+
+\subsection{IDF、TF 与归一化的多种口径对比}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}p{2.5cm}p{3.1cm}L@{}}
+\toprule
+口径 & IDF & 取值范围 & 特点 \\
+\midrule
+\textbf{A} 标准 & $\ln\dfrac{N}{\mathrm{df}}$ & $[0,\ln N]$ & 篇篇出现的词为 0；df $=0$（新文本中的新词）无定义 \\
+\textbf{B} 分母加 1 & $\ln\dfrac{N}{\mathrm{df}+1}$ & $\big[\ln\frac{N}{N+1},\ln\frac N2\big]$ & 防除以 0，但 df $=N$ 时\key{为负}、df $=N-1$ 时为 0；$N$ 小时问题严重 \\
+\textbf{C} sklearn 默认 \texttt{smooth\_idf=True} & $\ln\dfrac{1+N}{1+\mathrm{df}}+1$ & $\big[1,\ln\frac{1+N}{2}+1\big]$ & 相当于多加一篇“含所有词各一次”的虚拟文档；末尾 $+1$ 使篇篇出现的词权重为 1 而非 0 \\
+\textbf{D} \texttt{smooth\_idf=False} & $\ln\dfrac{N}{\mathrm{df}}+1$ & $[1,\ln N+1]$ & 不平滑 \\
+\textbf{E} 换底数 & $\log_{10}\dfrac{N}{\mathrm{df}}$ & $[0,\log_{10}N]$ & 与 A 只差常数倍 $1/\ln10$，排序相同 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\key{TF 口径}：相对词频 $n_{w,d}/n_d$；sklearn 用原始次数 $n_{w,d}$；\texttt{sublinear\_tf=True} 用 $1+\ln n_{w,d}$（压缩高频词）；0/1 版只看是否出现。\key{归一化}：不归一化；sklearn 默认 \texttt{norm='l2'}，每行除以欧氏长度、平方和为 1。L2 归一化整行同乘常数 → “原始次数 + L2”与“相对词频 + L2”\key{结果完全相同}（$n_d$ 被约掉）。
+
+\subsection{手写两遍扫描：defaultdict(int) 求 DF、set 去重、逐篇算 TF-IDF}
+TF 只需本文档，IDF 需整个语料库 → \key{扫描两遍}：第一遍遍历所有文档求 DF，第二遍逐篇算 TF-IDF。
+\begin{lstlisting}[style=pyD08a]
+import math
+from collections import defaultdict, Counter
+def compute_df(file_list):                  # 第一遍: 文档频率
+    doc_freq = defaultdict(int)             # 缺失键自动取 int()=0; 普通 {} 做 d[w] += 1 报 KeyError
+    for file in file_list:
+        for w in set(preprocess(read_txt(file))):   # 关键: set 去重, 每篇文档每个词只算一次
+            doc_freq[w] += 1
+    return doc_freq
+# 第二遍(逐篇): counter = Counter(words); total_words = len(words); total_docs = len(file_list) = N
+tfidf_dict = {w: (c / total_words) * math.log(total_docs / doc_freq[w])   # TF x IDF(口径 A; df>=1 不除 0)
+              for w, c in counter.items()}
+top10 = sorted(tfidf_dict.items(), key=lambda x: x[1], reverse=True)[:10]
+\end{lstlisting}
+\textbf{易错}：(1) 忘记 \texttt{set} → 统计的是总出现次数，单篇内反复出现的词（最能刻画该文档的词）df 被抬高、IDF 被系统性低估，总次数 $>N$ 时 IDF 甚至为负；(2) 两遍须用同一个预处理函数。
+
+\subsection{\texorpdfstring{分母加 1 口径 $\ln\frac{N}{\mathrm{df}+1}$ 的陷阱：两份年报时 TF-IDF 全为 0}{分母加 1 口径 ln(N/(df+1)) 的陷阱：两份年报时 TF-IDF 全为 0}}
+写成 \texttt{math.log(total\_docs / (doc\_freq[word] + 1))}（口径 B）且 $N=2$ 时：
+\[
+\mathrm{df}=1:\ \mathrm{IDF}=\ln\tfrac{2}{1+1}=0;\qquad \mathrm{df}=2:\ \mathrm{IDF}=\ln\tfrac{2}{2+1}=-0.4055<0
+\;\Longrightarrow\; \mathrm{TF\text{-}IDF}=\underbrace{\mathrm{TF}}_{\ge0}\times\mathrm{IDF}\le0 .
+\]
+\key{现象}：两份年报（深粮控股、中兴通讯）输出的 Top 词 TF-IDF 全为 0，且是公司简称、“第一节”“释义”、董事高管姓名——并列为 0 的词很多，sorted 稳定（\texttt{reverse=True} 也稳定）+ \texttt{counter.items()} 按首次出现排列 → Top 10 就是年报最前面的词。一般地，口径 B 下只有 df $\le N-2$ 的词才可能为正。示意：深粮 $=$[粮食, 储备, 公司, 粮食, 大米]、中兴 $=$[通信, 公司, 芯片, 通信, 5G]：口径 B 粮食／储备／大米均为 0、公司 $-0.0811$，无从区分；口径 A 粮食 $0.4\ln2=0.2773$、储备／大米 0.1386、公司 0。\\
+\key{修正}：(1) 改回 \texttt{math.log(total\_docs / doc\_freq[word])}；(2) 或用 sklearn 平滑 $\ln\frac{1+N}{1+\mathrm{df}}+1\ (\ge1)$；(3) 扩大语料（2 篇无法可靠衡量“稀有”）；(4) 即使 IDF 正确，Top 词仍会混入人名、“第一节”“释义”“二三年”→ 做完整预处理（去数字、停用词、短词）。
+
+\subsection{三种口径数值示意（三文档语料）}
+$d_1=$[资产, 负债, 资产, 公司]，$d_2=$[资产, 现金流, 公司]，$d_3=$[光刻机, 公司, 光刻机, 研发]，$N=3$；DF：公司 3、资产 2、其余 1。
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{3cm}p{0.6cm}p{2cm}p{2.2cm}p{2.4cm}L@{}}
+\toprule
+词 & df & A $\ln\frac N{\mathrm{df}}$ & B $\ln\frac N{\mathrm{df}+1}$ & C $\ln\frac{1+N}{1+\mathrm{df}}+1$ & $d_1$ 的 TF-IDF：A ／ B ／ C \\
+\midrule
+公司 & 3 & 0 & $-0.2877$ & 1.0000 & 0 ／ $-0.0719$ ／ 0.3086 \\
+资产 & 2 & 0.4055 & 0 & 1.2877 & 0.2027 ／ 0 ／ \textbf{0.7948} \\
+负债／现金流／光刻机／研发 & 1 & 1.0986 & 0.4055 & 1.6931 & 负债 \textbf{0.2747} ／ \textbf{0.1014} ／ 0.5225 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+C 的步骤：原始次数 × IDF（资产 $2\times1.2877=2.5754$、负债 1.6931、公司 1）→ 欧氏长度 $\sqrt{2.5754^2+1.6931^2+1^2}=3.2403$ → 逐元素相除。A 下 $d_1$ 最高的是只在 $d_1$ 出现的“负债”；C 下 IDF 被 $+1$ 抬高、常见词与稀有词差距缩小（1.29 vs 1.69，A 为 0.41 vs 1.10），“资产”排第一 → \key{口径会改变排序，论文须报告口径}。
+
+\subsection{完整文本预处理八步与 preprocess 模板}
+八步：(1) 文本数据读取；(2) 去除无关字符（多余空白、页眉页脚、网址）；(3) 去除标点符号；(4) 去除数字；(5) 加载词典；(6) 分词；(7) 去除停用词；(8) 去除长度过短的词（单字“的”“年”、残余字母）。\key{顺序}：标点、数字须在分词前去（否则“2023”“，”成词项），词典在分词前加载，停用词与短词在分词后去。
+\begin{lstlisting}[style=pyD08a]
+import re, jieba
+jieba.load_userdict("userdict.txt")                                 # (5) 加载词典
+def preprocess(raw_text):
+    text = re.sub(r'\s+', '', raw_text)                            # (2) 去空白等无关字符
+    text = re.sub(r'[^\u4e00-\u9fa5a-zA-Z0-9]', '', text)          # (3) 只留汉字/字母/数字 = 去标点
+    text = re.sub(r'[0-9]+', '', text)                             # (4) 去数字
+    tokens = jieba.lcut(text)                                      # (6) 分词
+    return [w for w in tokens
+            if w not in stopwords and w.strip() and len(w) > 1]   # (7)(8) 去停用词、空串、短词
+\end{lstlisting}
+批量 TF-IDF 程序结构六步：(1) 定义文本预处理函数；(2) 定义统计 DF 的函数（\texttt{compute\_df}）；(3) 定义单个文件 TF-IDF 函数（预处理 → Counter → TF×IDF → 排序取 Top-N → 写两列，\texttt{round(value, 6)}）；(4) 获得文件夹下所有 TXT；(5) 创建表格；(6) 主程序调用并储存。
+
+% ======================================================================
+\section{TF-IDF 的 sklearn 实现：TfidfVectorizer}
+
+\subsection{输入格式、fit／transform／fit\_transform 与 get\_feature\_names\_out}
+\begin{lstlisting}[style=pyD08a]
+from sklearn.feature_extraction.text import TfidfVectorizer
+documents = [" ".join(toks) for toks in all_docs_tokens]  # 每篇 = 空格连接的字符串, 不是词列表
+vectorizer = TfidfVectorizer()                            # 构建词表的工具
+tfidf_matrix = vectorizer.fit_transform(documents)        # N x |V| 稀疏矩阵(CSR)
+feature_names = vectorizer.get_feature_names_out()        # 每一列对应的词
+\end{lstlisting}
+\vspace{-4pt}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}L@{}}
+\toprule
+步骤／对象 & 作用 \\
+\midrule
+输入 & \texttt{list[document\_string]}：\texttt{"资产 负债 现金流"} 可以，\texttt{['资产','负债','现金流']} 不行；内部按 \texttt{token\_pattern} 切词，中文须先 jieba 分词再空格连接 \\
+\texttt{fit}（学习）& 学两样：(1) 词表 \texttt{vocabulary\_}（每词一个列号）；(2) IDF \texttt{idf\_}（统计每词出现在多少篇文档，\key{在整个语料库上算}，不是单篇）\\
+\texttt{transform}（转换）& 每篇 → 长度 $=|V|$ 的向量，每列值 = 该词在该文档的 TF-IDF 权重；\texttt{fit\_transform} = 先 fit 再 transform \\
+\texttt{tfidf\_matrix} & $N\times|V|$ \term{文档—词矩阵}{document-term matrix, DTM}：行 = 文档（第 $i$ 篇年报），列 = 词，值 = TF-IDF；绝大多数为 0 → 稀疏矩阵只存非零元的位置与值 \\
+\texttt{get\_feature\_names\_out()} & “列名”；列按字母／Unicode 序排（不按出现先后）；旧名 \texttt{get\_feature\_names()} 自 1.2 版移除 \\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+\textbf{易错}：中文不分词直接 fit，整句被当成一个“词”：\texttt{["资产负债现金流", "公司资产"]} → 词表 \texttt{['公司资产', '资产负债现金流']}。
+
+\subsection{逐篇取 Top 10：toarray、flatten、argsort()[::-1][:10] 与写入 Excel}
+\begin{lstlisting}[style=pyD08a]
+for i in range(tfidf_matrix.shape[0]):
+    row = tfidf_matrix[i].toarray().flatten()   # 第 i 行(稀疏 1x|V|) -> 稠密数组 -> 一维
+    top_idx = row.argsort()[::-1][:10]          # 升序索引 -> 反转为降序 -> 前 10 个(索引, 不是词)
+    col = 4
+    for idx in top_idx:
+        sheet1.cell(row=i+2, column=col,   value=feature_names[idx])   # 索引翻译成真实的词
+        sheet1.cell(row=i+2, column=col+1, value=round(row[idx], 6))   # 权重, 保留 6 位小数
+        col += 2
+\end{lstlisting}
+\texttt{row[j]} = 第 $j$ 个词在第 $i$ 篇中的 TF-IDF。\texttt{toarray()}：稀疏 → 稠密（稀疏格式不存 0，不便排序查看）；\texttt{flatten()}：$1\times|V|$ 二维 → 长度 $|V|$ 一维。示意：\texttt{row=[0.2,0.8,0.1,0.5]} → \texttt{argsort()=[2,0,3,1]} → \texttt{[::-1]=[1,3,0,2]} → \texttt{[:2]=[1,3]} → \texttt{feature\_names[1], [3]}。\texttt{row=i+2}：$i$ 从 0 起、第 1 行为表头；\texttt{column=col+1}：紧挨词的下一列写数值。\tagext\ 并列值次序不保证，需要时 \texttt{argsort(kind='stable')}。
+
+\subsection{TfidfVectorizer 默认参数的坑 \texorpdfstring{\tagext}{}}
+\begin{tabD08a}
+\begin{tabularx}{\linewidth}{@{}p{5.2cm}L@{}}
+\toprule
+默认参数 & 含义与影响 \\
+\midrule
+\texttt{smooth\_idf=True} & IDF $=\ln\frac{1+N}{1+\mathrm{df}}+1\ (\ge1)$，口径 C，与 $\ln\frac N{\mathrm{df}}$ 手算不同 \\
+\texttt{norm='l2'} & 每行除以欧氏长度；两篇文档的点积即余弦相似度 \\
+\texttt{use\_idf=True, sublinear\_tf=False} & TF 用原始次数；\texttt{sublinear\_tf=True} 改用 $1+\ln n_{w,d}$ \\
+\texttt{token\_pattern=r"(?u)\textbackslash b\textbackslash w\textbackslash w+\textbackslash b"} & 只留 $\ge2$ 字符的词，\key{丢弃中文单字词}（“不”“很”“好”“差”）→ 情感分析丢失否定信息。保留：\texttt{token\_pattern=r"(?u)\textbackslash b\textbackslash w+\textbackslash b"}，或 \texttt{tokenizer=jieba.lcut, token\_pattern=None}（直接切原句，还会含标点）\\
+\texttt{lowercase=True} & 英文统一小写，Hello/hello 合并 \\
+\texttt{min\_df=1, max\_df=1.0, max\_features=None, ngram\_range=(1,1)} & 不按文档频率筛词、不限词表、只用单个词；可设 \texttt{max\_df=0.9}（去掉 90\% 以上文档都有的词）、\texttt{min\_df=5}（去极少见词）、\texttt{ngram\_range=(1,2)}（加相邻两词组合）\\
+\bottomrule
+\end{tabularx}
+\end{tabD08a}
+
+\subsection{fit 与 transform 的分工：新文本只能 transform}
+训练好的词表与 IDF 是“度量衡”，测试集、新一年年报只调用 \texttt{transform(new\_docs)}：(1) 再 fit 会\key{重建词表}，列含义改变，与已训练模型的输入维度对不上；(2) 在含测试集的全部数据上 fit，测试集的 DF 信息流入训练 = \term{数据泄露}{data leakage}，规范写法是\key{先划分、只在训练集上 fit}；(3) transform 时词表中没有的\term{未登录词}{out-of-vocabulary, OOV}被直接忽略（上节三文档语料 fit 后，\texttt{transform(["光刻机 芯片 芯片 公司"])} 只得光刻机 0.8610、公司 0.5085，“芯片”被忽略）。
+
+% ======================================================================
+\section{MD\&A 文本与词云}
+
+\subsection{管理层讨论与分析（MD\&A）及从年报中截取}
+\term{管理层讨论与分析}{Management's Discussion and Analysis, MD\&A}：年报中管理层对报告期经营状况、所处行业、主要风险和未来发展所作的讨论（A 股年报“第三节 管理层讨论与分析”，首小节“一、报告期内公司所处行业情况”；美国 10-K 的 Item 7）。是语调、前瞻性信息、风险披露等指标\key{最常用的取材段落}：(1) 管理层主观判断，最能体现软信息；(2) 前瞻性表述多（“预计”“将”“面临”）；(3) 模板化套话少于财务报表附注。\tagext\ 截取：
+\begin{lstlisting}[style=pyD08a]
+starts = [m.start() for m in re.finditer(r"第三节\s*管理层讨论与分析", text)]
+s = starts[-1]                          # 第一次出现在目录里, 取最后一次(正文)
+ends = [m.start() for m in re.finditer(r"第四节", text) if m.start() > s]
+mdna = text[s:(ends[0] if ends else len(text))]   # 找不到下一节就取到文末
+\end{lstlisting}
+较早年份标题常为“经营情况讨论与分析”、节次不同 → 规则按年份调整并抽样人工核对。
+
+\subsection{词云 WordCloud：安装、模板与两个要点}
+安装 \texttt{pip install wordcloud matplotlib}。\term{词云}{word cloud}：把词按频率画成大小不同的字，频率越高字越大，直观展示一段文本（如 MD\&A）的主题；只是描述性展示，不能替代统计指标。
+\begin{lstlisting}[style=pyD08a]
+from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+wc = WordCloud(font_path='simhei.ttf', width=800, height=600,    # 中文必须指定中文字体
+               background_color='white', max_words=100)
+wc.generate_from_frequencies(Counter(tokens_clean))   # 分词+去停用词后的词频; 或 wc.generate(" ".join(tokens_clean))
+plt.imshow(wc); plt.axis('off'); plt.show()           # 不显示坐标轴; 或 wc.to_file('mdna.png')
+\end{lstlisting}
+\textbf{易错}：(1) 不设 \texttt{font\_path} → 默认字体无汉字，显示为方框；(2) 直接 \texttt{generate(未分词原文)} → generate 按空格和标点切词，整句成为一个“词”。
+\endgroup

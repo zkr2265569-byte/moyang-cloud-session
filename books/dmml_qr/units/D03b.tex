@@ -1,0 +1,324 @@
+% ======================================================================
+% D03b  第 3 章 前馈神经网络（后半）：矩阵微积分、反向传播、计算图与自动微分、优化问题、拓展技术
+% ======================================================================
+\section{矩阵微积分与链式法则}
+\noindent\key{记号}\quad $\mathcal L=\mathcal L(\bm y,\hat{\bm y})$ 为单样本损失（标量）；$L$ 为层数；$\odot$ 为按元素相乘（Hadamard 积），$\oslash$ 为按元素相除；$\bm z^{(l)}=W^{(l)}\bm a^{(l-1)}+\bm b^{(l)}$，$\bm a^{(l)}=f_l(\bm z^{(l)})$，$W^{(l)}\in\R^{M_l\times M_{l-1}}$。
+
+\subsection{分母布局：标量对向量、向量对向量、标量对矩阵（梯度与参数同形）}
+\term{矩阵微积分}{matrix calculus}：用矩阵和向量表示因变量每个成分关于自变量每个成分的偏导数。\term{分母布局}{denominator layout}：结果的\key{行数跟分母（自变量）走}。设 $\bm x\in\R^p$：
+\begin{itemize}
+\item 标量对向量：$\frac{\partial y}{\partial\bm x}=\big[\frac{\partial y}{\partial x_1},\dots,\frac{\partial y}{\partial x_p}\big]^\top\in\R^{p\times1}$（列向量）。
+\item 向量对向量：$\bm y=f(\bm x)\in\R^q$，$\frac{\partial f(\bm x)}{\partial\bm x}\in\R^{p\times q}$，第 $(i,j)$ 元 $=\partial y_j/\partial x_i$；它是通常雅可比矩阵（$q\times p$，分子布局）的\key{转置}。
+\item 标量对矩阵：$W\in\R^{m\times n}$，$\frac{\partial\mathcal L}{\partial W}\in\R^{m\times n}$，第 $(i,j)$ 元 $\partial\mathcal L/\partial w_{ij}$。\key{梯度与参数同形}，才能直接 $W\leftarrow W-\alpha\frac{\partial\mathcal L}{\partial W}$；维度一致是自查推导最有效的手段。
+\end{itemize}
+
+\subsection{分母布局四个基本公式}
+(1) $\bm y=W\bm x$（$W\in\R^{q\times p}$）$\Rightarrow\frac{\partial\bm y}{\partial\bm x}=W^\top\in\R^{p\times q}$ \whyin{$y_j=\sum_kw_{jk}x_k$，$\partial y_j/\partial x_i=w_{ji}=[W^\top]_{ij}$}；
+(2) $\bm z=\bm u+\bm b\Rightarrow\frac{\partial\bm z}{\partial\bm b}=I$；
+(3) $\bm a=f(\bm z)$ 逐元素作用 $\Rightarrow\frac{\partial\bm a}{\partial\bm z}=\diag\big(f'(\bm z)\big)$ \whyin{$a_j$ 只依赖 $z_j$，只有对角线非零}；
+(4) $\diag(\bm u)\,\bm v=\bm u\odot\bm v$。
+
+\subsection{链式法则的三种情形与维度核对}
+分母布局下按“\key{从自变量到因变量}”的顺序\key{从左往右乘}：
+\begin{enumerate}
+\item $x\in\R$，$\bm u=u(x)\in\R^s$，$\bm g=g(\bm u)\in\R^t$：$\frac{\partial\bm g}{\partial x}=\frac{\partial\bm u}{\partial x}\frac{\partial\bm g}{\partial\bm u}\in\R^{1\times t}$，$(1\times s)(s\times t)$。
+\item $\bm x\in\R^p$，$\bm y=g(\bm x)\in\R^s$，$\bm z=f(\bm y)\in\R^t$：$\frac{\partial\bm z}{\partial\bm x}=\frac{\partial\bm y}{\partial\bm x}\frac{\partial\bm z}{\partial\bm y}\in\R^{p\times t}$，$(p\times s)(s\times t)$——用于误差项递推。
+\item $X\in\R^{p\times q}$，$\bm y=g(X)\in\R^s$，$z=f(\bm y)\in\R$：$\frac{\partial z}{\partial x_{ij}}=\frac{\partial\bm y}{\partial x_{ij}}\frac{\partial z}{\partial\bm y}\in\R$，$(1\times s)(s\times1)$——用于 $\partial\mathcal L/\partial w^{(l)}_{ij}$（$X=W^{(l)}$，$\bm y=\bm z^{(l)}$，$z=\mathcal L$）。
+\end{enumerate}
+示意：$\mathcal L=\frac12\|W\bm x-\bm y\|^2$，令 $\bm u=W\bm x$，$\bm e=\bm u-\bm y$：$\frac{\partial\mathcal L}{\partial\bm x}=\frac{\partial\bm u}{\partial\bm x}\frac{\partial\bm e}{\partial\bm u}\frac{\partial\mathcal L}{\partial\bm e}=W^\top I\bm e=W^\top(W\bm x-\bm y)$，$(p\times q)(q\times q)(q\times1)=p\times1$，与 $\bm x$ 同形。$\bm a=\tanh(W\bm x+\bm b)$：$\frac{\partial\bm a}{\partial\bm x}=W^\top\diag(1-\tanh^2\bm z)$。
+
+% ======================================================================
+\section{反向传播算法}
+
+\subsection{思想：“前向算损失，反向算梯度，梯度来更新”}
+把模型预测的误差从输出层一层一层往回传递，算出每个参数需要调整的方向和幅度：(1) \term{前向传播}{forward pass}计算每个神经元的输出，得到预测值和损失；(2) \term{反向传播}{backward pass}从输出层开始沿网络结构反向传递误差，计算损失对每个参数的梯度；(3) 用梯度下降等优化算法更新参数，最小化损失。\textit{A forward pass computes the loss, a backward pass computes the gradients, and gradient descent updates the parameters.}
+
+\subsection{第一步：链式分解（4.49）；\texorpdfstring{$\partial\bm z^{(l)}/\partial w^{(l)}_{ij}$}{dz/dw\_ij} 与 \texorpdfstring{$\partial\bm z^{(l)}/\partial\bm b^{(l)}$}{dz/db}}
+$w^{(l)}_{ij}$ 与 $\bm b^{(l)}$ 只通过本层净输入 $\bm z^{(l)}$ 影响损失（链式法则情形 3、2）：
+\begin{equation}
+\frac{\partial\mathcal L}{\partial w^{(l)}_{ij}}=\underbrace{\frac{\partial\bm z^{(l)}}{\partial w^{(l)}_{ij}}}_{1\times M_l}\underbrace{\frac{\partial\mathcal L}{\partial\bm z^{(l)}}}_{M_l\times1},\qquad
+\frac{\partial\mathcal L}{\partial\bm b^{(l)}}=\underbrace{\frac{\partial\bm z^{(l)}}{\partial\bm b^{(l)}}}_{M_l\times M_l}\underbrace{\frac{\partial\mathcal L}{\partial\bm z^{(l)}}}_{M_l\times1}.\tag{4.49}
+\end{equation}
+\begin{itemize}
+\item $z^{(l)}_k=\sum_mw^{(l)}_{km}a^{(l-1)}_m+b^{(l)}_k\Rightarrow\frac{\partial z^{(l)}_k}{\partial w^{(l)}_{ij}}=a^{(l-1)}_j\mathbf 1\{k=i\}$，故 $\frac{\partial\bm z^{(l)}}{\partial w^{(l)}_{ij}}=\big[0,\dots,\underbrace{a^{(l-1)}_j}_{\text{第 }i\text{ 个}},\dots,0\big]\triangleq\mathbb I_i\big(a^{(l-1)}_j\big)$（$1\times M_l$；$w_{ij}$ 只影响 $z_i$）。
+\item $\frac{\partial\bm z^{(l)}}{\partial\bm b^{(l)}}=I_{M_l}\in\R^{M_l\times M_l}$（基本公式 2）；剩下两式共有的 $\frac{\partial\mathcal L}{\partial\bm z^{(l)}}$ 即误差项。
+\end{itemize}
+
+\subsection{误差项 \texorpdfstring{$\bm\delta^{(l)}$}{delta(l)} 的定义与含义}
+$\bm\delta^{(l)}\triangleq\dfrac{\partial\mathcal L(\bm y,\hat{\bm y})}{\partial\bm z^{(l)}}\in\R^{M_l}$。$\delta^{(l)}_i$：第 $l$ 层第 $i$ 个神经元净输入变化一点时损失变化多少，即该神经元对最终误差的“责任”（敏感度）。\textit{The error term $\bm\delta^{(l)}=\partial\mathcal L/\partial\bm z^{(l)}$ measures how sensitive the loss is to the net input of layer $l$.}
+
+\subsection{误差项的反向递推 \texorpdfstring{$\bm\delta^{(l)}=f_l'(\bm z^{(l)})\odot\big((W^{(l+1)})^\top\bm\delta^{(l+1)}\big)$}{delta(l)=f'(z) . (W'delta(l+1))}}
+$\bm z^{(l)}$ 只经 $\bm z^{(l)}\to\bm a^{(l)}\to\bm z^{(l+1)}\to\cdots\to\mathcal L$ 影响损失（无跨层连接、无反馈），用情形 2：
+\begin{align*}
+\bm\delta^{(l)}&=\underbrace{\frac{\partial\bm a^{(l)}}{\partial\bm z^{(l)}}}_{M_l\times M_l}\cdot\underbrace{\frac{\partial\bm z^{(l+1)}}{\partial\bm a^{(l)}}}_{M_l\times M_{l+1}}\cdot\underbrace{\frac{\partial\mathcal L}{\partial\bm z^{(l+1)}}}_{M_{l+1}\times1}
+=\diag\big(f_l'(\bm z^{(l)})\big)(W^{(l+1)})^\top\bm\delta^{(l+1)} \why{基本公式 3、1；偏置与 $\bm a^{(l)}$ 无关}\\
+&=f_l'(\bm z^{(l)})\odot\big((W^{(l+1)})^\top\bm\delta^{(l+1)}\big),\qquad
+\delta^{(l)}_i=f_l'\big(z^{(l)}_i\big)\sum_{j=1}^{M_{l+1}}w^{(l+1)}_{ji}\delta^{(l+1)}_j \why{基本公式 4}
+\end{align*}
+\key{为什么叫“反向传播”}：第 $i$ 个神经元的误差 = 它连向下一层所有神经元的权重 $w^{(l+1)}_{ji}$ 对下一层误差的加权和 × 本神经元激活函数的斜率 $f_l'(z^{(l)}_i)$。前向时 $a^{(l)}_i$ 经 $w^{(l+1)}_{ji}$ 影响 $z^{(l+1)}_j$，反向时 $\delta^{(l+1)}_j$ 经同一 $w^{(l+1)}_{ji}$ 流回；求和号即“多路径求和”（$M_{l+1}$ 条出边）。
+
+\subsection{梯度的最终形式：\texorpdfstring{$\partial\mathcal L/\partial W^{(l)}=\bm\delta^{(l)}(\bm a^{(l-1)})^\top$}{dL/dW=delta a'}，\texorpdfstring{$\partial\mathcal L/\partial\bm b^{(l)}=\bm\delta^{(l)}$}{dL/db=delta}}
+代回 (4.49)：$\frac{\partial\mathcal L}{\partial w^{(l)}_{ij}}=\mathbb I_i(a^{(l-1)}_j)\,\bm\delta^{(l)}=\delta^{(l)}_ia^{(l-1)}_j$，排成矩阵即外积：
+\[
+\frac{\partial\mathcal L}{\partial W^{(l)}}=\underbrace{\bm\delta^{(l)}}_{M_l\times1}\underbrace{\big(\bm a^{(l-1)}\big)^\top}_{1\times M_{l-1}}\in\R^{M_l\times M_{l-1}},\qquad
+\frac{\partial\mathcal L}{\partial\bm b^{(l)}}=I_{M_l}\bm\delta^{(l)}=\bm\delta^{(l)} .
+\]
+直观：权重梯度 = \key{终点神经元的误差 × 起点神经元的输出}；起点输出为 0（如 $x_j=0$）则该连线（$W^{(1)}$ 第 $j$ 列）梯度为 0；偏置 = 起点输出恒为 1 的连线。\textbf{易错} $\bm\delta^{(l)}(\bm a^{(l)})^\top$ 是错的：它是 $M_l\times M_l$，与 $W^{(l)}$ 不同形，应乘\key{上一层}输出 $\bm a^{(l-1)}$。示意（隐藏层 Tanh）：$\bm z^{(1)}=(0,1)^\top$，$(W^{(2)})^\top\bm\delta^{(2)}=(0,-0.25)^\top$，$\bm x=(1,-2)^\top$ $\Rightarrow$ $\bm\delta^{(1)}=(1,0.42)^\top\odot(0,-0.25)^\top=(0,-0.105)^\top$，$\frac{\partial\mathcal L}{\partial W^{(1)}}=\bm\delta^{(1)}\bm x^\top=\begin{psmallmatrix}0&0\\-0.105&0.21\end{psmallmatrix}$。
+
+\subsection{输出层误差 \texorpdfstring{$\bm\delta^{(L)}$}{delta(L)}：一般公式与四种“输出激活 + 损失”组合}
+一般公式（输出激活逐元素作用）：$\bm\delta^{(L)}=\frac{\partial\bm a^{(L)}}{\partial\bm z^{(L)}}\frac{\partial\mathcal L}{\partial\bm a^{(L)}}=\diag\big(f_L'(\bm z^{(L)})\big)\frac{\partial\mathcal L}{\partial\hat{\bm y}}=f_L'(\bm z^{(L)})\odot\frac{\partial\mathcal L}{\partial\hat{\bm y}}$。
+
+\noindent\begin{tabularx}{\linewidth}{@{}p{2.9cm}p{3.6cm}p{2.3cm}p{2.5cm}L@{}}
+\toprule
+组合 & 损失 $\mathcal L$ & $\partial\mathcal L/\partial\hat{\bm y}$ & $\bm\delta^{(L)}$ & 说明 \\
+\midrule
+回归：恒等 + 平方 & $\frac12\|\bm y-\hat{\bm y}\|^2$，$\hat{\bm y}=\bm z^{(L)}$ & $\hat{\bm y}-\bm y$ & $\hat{\bm y}-\bm y$ & $f_L'=1$ \\
+Logistic + 平方 & $\frac12(y-\hat y)^2$ & $\hat y-y$ & $(\hat y-y)\hat y(1-\hat y)$ & 多出因子 $\hat y(1-\hat y)\le\frac14$：错得离谱（$\hat y\approx0$，$y=1$）时因子 $\approx0$，梯度反而小、学得慢 \\
+二分类：Logistic + 交叉熵 & $-[y\log\hat y+(1-y)\log(1-\hat y)]$ & $\frac{\hat y-y}{\hat y(1-\hat y)}$ & $\hat y-y$ & $\sigma'=\hat y(1-\hat y)$ 被约掉 \\
+多分类：Softmax + 交叉熵 & $-\bm y^\top\log\hat{\bm y}$（$\bm y$ one-hot） & $-\bm y\oslash\hat{\bm y}$ & $\hat{\bm y}-\bm y$ & Softmax 非逐元素，须用完整雅可比 \\
+\bottomrule
+\end{tabularx}
+
+\noindent Softmax 推导骨架（$\bm z=\bm z^{(L)}$，$S=\sum_me^{z_m}$，$\hat y_k=e^{z_k}/S$）：
+$\frac{\partial\hat y_k}{\partial z_i}=\frac{\mathbf 1\{k=i\}e^{z_k}S-e^{z_k}e^{z_i}}{S^2}=\hat y_k\big(\mathbf 1\{k=i\}-\hat y_i\big)$ \whyin{商的求导法则}$\Rightarrow\frac{\partial\hat{\bm y}}{\partial\bm z}=\diag(\hat{\bm y})-\hat{\bm y}\hat{\bm y}^\top$；
+$\bm\delta^{(L)}=\big(\diag(\hat{\bm y})-\hat{\bm y}\hat{\bm y}^\top\big)(-\bm y\oslash\hat{\bm y})=-\bm y+\hat{\bm y}\sum_ky_k=\hat{\bm y}-\bm y$ \whyin{one-hot 各分量和为 1}。
+\key{结论（“预测减真实”）}：恒等 + 平方、Logistic + 交叉熵、Softmax + 交叉熵三种\key{配套组合}都有 $\bm\delta^{(L)}=\hat{\bm y}-\bm y$；Logistic 回归作最后一层时 $\frac{\partial\mathcal L}{\partial\bm w}=(\hat y-y)\bm a^{(L-1)}$，与 Logistic 回归梯度同形。消去 $\sigma'$ 因子是分类用交叉熵而不用平方损失的理由之一（两种损失的曲面见下文“凸函数与非凸函数”）。示意：$\hat{\bm y}\approx(0.665,0.245,0.090)^\top$，$\bm y=(1,0,0)^\top\Rightarrow\bm\delta^{(L)}\approx(-0.335,0.245,0.090)^\top$：真实类分量为负（梯度下降增大 $z_1$），其余为正，分量和为 0。
+
+\subsection{加入正则项与多个样本：小批量的矩阵形式}
+结构化风险 $\mathcal R=\frac1N\sum_n\mathcal L^{(n)}+\frac12\lambda\|W\|_F^2$，求导对求和线性（上标 $n$ 为第 $n$ 个样本）：
+$\frac{\partial\mathcal R}{\partial W^{(l)}}=\frac1N\sum_{n=1}^N\bm\delta^{(l,n)}\big(\bm a^{(l-1,n)}\big)^\top+\lambda W^{(l)}$，$\frac{\partial\mathcal R}{\partial\bm b^{(l)}}=\frac1N\sum_{n=1}^N\bm\delta^{(l,n)}$。
+小批量 $B$ 个样本按列排成 $A^{(0)}=X\in\R^{M_0\times B}$（框架里的实际实现）：
+\begin{gather*}
+Z^{(l)}=W^{(l)}A^{(l-1)}+\bm b^{(l)}\bm 1^\top,\qquad \Delta^{(l)}=f_l'(Z^{(l)})\odot\big((W^{(l+1)})^\top\Delta^{(l+1)}\big)\in\R^{M_l\times B},\\
+\frac{\partial\mathcal R}{\partial W^{(l)}}=\frac1B\Delta^{(l)}\big(A^{(l-1)}\big)^\top+\lambda W^{(l)},\qquad\frac{\partial\mathcal R}{\partial\bm b^{(l)}}=\frac1B\Delta^{(l)}\bm 1
+\why{$\sum_n\bm\delta^{(l,n)}(\bm a^{(l-1,n)})^\top=\Delta^{(l)}(A^{(l-1)})^\top$：列乘行之和 = 矩阵乘积}
+\end{gather*}
+
+\subsection{反向传播 + 随机梯度下降：完整算法流程}
+\textbf{输入}：训练集 $\mathcal D=\{(\bm x^{(n)},\bm y^{(n)})\}_{n=1}^N$，验证集 $\mathcal V$，学习率 $\alpha$，正则化系数 $\lambda$，层数 $L$，各层神经元数 $M_l$。
+\begin{enumerate}
+\item 随机初始化 $W,\bm b$；
+\item \textbf{repeat}：对训练集样本随机重排；\textbf{for} $n=1,\dots,N$：
+(a) 取样本 $(\bm x^{(n)},\bm y^{(n)})$；
+(b) \key{前向}：$\bm a^{(0)}=\bm x$，对 $l=1,\dots,L$ 计算并\key{保存} $\bm z^{(l)}=W^{(l)}\bm a^{(l-1)}+\bm b^{(l)}$、$\bm a^{(l)}=f_l(\bm z^{(l)})$；
+(c) \key{输出层误差}：$\bm\delta^{(L)}=f_L'(\bm z^{(L)})\odot\frac{\partial\mathcal L}{\partial\hat{\bm y}}$（配套组合直接 $=\hat{\bm y}-\bm y$）；
+(d) \key{反向}：对 $l=L-1,\dots,1$，$\bm\delta^{(l)}=f_l'(\bm z^{(l)})\odot\big((W^{(l+1)})^\top\bm\delta^{(l+1)}\big)$；
+(e) \key{梯度}：$\frac{\partial\mathcal L}{\partial W^{(l)}}=\bm\delta^{(l)}(\bm a^{(l-1)})^\top$，$\frac{\partial\mathcal L}{\partial\bm b^{(l)}}=\bm\delta^{(l)}$；
+(f) \key{更新}：$W^{(l)}\leftarrow W^{(l)}-\alpha\big(\bm\delta^{(l)}(\bm a^{(l-1)})^\top+\lambda W^{(l)}\big)$，$\bm b^{(l)}\leftarrow\bm b^{(l)}-\alpha\bm\delta^{(l)}$；
+\item \textbf{until} 神经网络在验证集 $\mathcal V$ 上的错误率不再下降（提前停止）。\textbf{输出}：$W,\bm b$。
+\end{enumerate}
+\textbf{易错} ① 前向时必须保存 $\bm z^{(l)}$（求 $f'$）和 $\bm a^{(l-1)}$（求梯度）；② 用\key{旧的} $W^{(l+1)}$ 把误差传到第 $l$ 层，所有层梯度算完后再统一更新。
+\key{推导题答题顺序}：前向公式 → 定义 $\bm\delta^{(l)}$ → (4.49) 分解 → 三个偏导数（标维度）→ $\bm\delta$ 递推 → $\partial\mathcal L/\partial W^{(l)}$、$\partial\mathcal L/\partial\bm b^{(l)}$ → 输出层 $\bm\delta^{(L)}$ → 算法三步（前向、反向、更新）；每步写出维度。
+
+\subsection{反向传播为什么高效：\texorpdfstring{$O(P)$}{O(P)} 对 \texorpdfstring{$O(P^2)$}{O(P\^2)}}
+设共 $P$ 个参数，一次前向约 $O(P)$ 次乘加（每个权重参与一次乘法）。
+\key{直接用链式法则}：对每个参数单独写 $\frac{\partial\mathcal L}{\partial\bm z^{(L)}}\cdots\frac{\partial\bm z^{(l)}}{\partial w}$，第 $l$ 层每个权重都要重算一遍从第 $L$ 层到第 $l$ 层的连乘，总代价约 $O(P^2)$；\key{数值差分} $\frac{\mathcal L(w+\epsilon)-\mathcal L(w)}{\epsilon}$ 需 $P+1$ 次前向，同样 $O(P^2)$。
+\key{反向传播}：第 $l$ 层及以下所有参数的梯度共用同一个 $\bm\delta^{(l+1)}$——\key{只算一次、存起来复用}（动态规划思想）；递推约 $\sum_lM_lM_{l+1}$、外积约 $\sum_lM_lM_{l-1}$ 次乘加，均为 $O(P)$，“前向 + 反向”只是一次前向的常数倍。代价：前向时保存所有 $\bm z^{(l)},\bm a^{(l)}$（\key{用内存换时间}）。这就是“根据前馈网络的特点而设计的高效方法”。
+
+\subsection{用反向传播公式解释死亡 ReLU}
+设第 $l$ 层第 $i$ 个 ReLU 神经元对所有训练样本都有 $z^{(l)}_i<0$：$a^{(l)}_i=0$，$f'(z^{(l)}_i)=\mathbf 1\{z^{(l)}_i>0\}=0$ $\Rightarrow$ $\delta^{(l)}_i=f'(z^{(l)}_i)\big[(W^{(l+1)})^\top\bm\delta^{(l+1)}\big]_i=0$ $\Rightarrow$ 入边梯度 $\frac{\partial\mathcal L}{\partial\bm w^{(l)}_{i:}}=\delta^{(l)}_i(\bm a^{(l-1)})^\top=\bm 0^\top$（$\partial\mathcal L/\partial W^{(l)}$ 第 $i$ 行）、$\frac{\partial\mathcal L}{\partial b^{(l)}_i}=0$：参数永不更新，$z^{(l)}_i$ 一直为负，形成闭环（“永久抑制”）；同时出边 $w^{(l+1)}_{ji}$ 的梯度 $\delta^{(l+1)}_ja^{(l)}_i=0$。（下层参数变化可能改变 $\bm a^{(l-1)}$ 使其“复活”，但实践中很少。）Leaky ReLU、PReLU、ELU 在 $z\le0$ 时导数为 $\gamma$ 或 $\gamma e^z>0$，$\delta^{(l)}_i\ne0$，参数仍能更新。
+
+% ======================================================================
+\section{2--2--1 网络手算流程：前向、反向与一次更新}
+
+\subsection{三步计算模板（隐藏层、输出层均为 Logistic，平方损失）与数值示意}
+设定：$\bm x\in\R^2$，$W^{(1)}\in\R^{2\times2}$，$\bm b^{(1)}\in\R^2$，$W^{(2)}\in\R^{1\times2}$，$b^{(2)}\in\R$（$L=2$）；$w^{(l)}_{ij}$ 为“上层第 $j$ 个 $\to$ 本层第 $i$ 个”；$\mathcal L=\frac12(\hat y-y)^2$，学习率 $\alpha$，不加正则。
+
+\noindent\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{8.6cm}L@{}}
+\toprule
+步骤 & 公式 & 要点 \\
+\midrule
+① 前向 & $\bm z^{(1)}=W^{(1)}\bm x+\bm b^{(1)}$，$\bm a^{(1)}=\sigma(\bm z^{(1)})$；$z^{(2)}=W^{(2)}\bm a^{(1)}+b^{(2)}$，$\hat y=\sigma(z^{(2)})$；$\mathcal L=\frac12(\hat y-y)^2$ & 保存 $\bm a^{(1)}$、$\hat y$ \\
+② 输出层 & $\delta^{(2)}=(\hat y-y)\,\hat y(1-\hat y)$；$\frac{\partial\mathcal L}{\partial W^{(2)}}=\delta^{(2)}(\bm a^{(1)})^\top$（$1\times2$）；$\frac{\partial\mathcal L}{\partial b^{(2)}}=\delta^{(2)}$ & $\hat y<y\Rightarrow\delta^{(2)}<0$ \\
+③ 隐藏层 & $\bm\delta^{(1)}=\bm a^{(1)}\odot(1-\bm a^{(1)})\odot\big((W^{(2)})^\top\delta^{(2)}\big)$；$\frac{\partial\mathcal L}{\partial W^{(1)}}=\bm\delta^{(1)}\bm x^\top$（$2\times2$ 外积）；$\frac{\partial\mathcal L}{\partial\bm b^{(1)}}=\bm\delta^{(1)}$ & $\sigma'$ 用保存的 $\bm a^{(1)}$；$\operatorname{sign}\delta^{(1)}_i=\operatorname{sign}(\delta^{(2)}w^{(2)}_{1i})$ \\
+④ 更新验证 & $\theta\leftarrow\theta-\alpha\nabla_\theta\mathcal L$（梯度全部算完再更新）；用新参数再前向一次，$\mathcal L$ 应下降；中心差分 $\frac{\mathcal L(w+\epsilon)-\mathcal L(w-\epsilon)}{2\epsilon}$（$\epsilon=10^{-6}$）可核对梯度 & 保留 4 位小数，中间量用未舍入值 \\
+\bottomrule
+\end{tabularx}
+
+\noindent 数值示意：$\bm x=(1,2)^\top$，$y=1$，$W^{(1)}=\begin{psmallmatrix}0.2&-0.1\\0.4&0.3\end{psmallmatrix}$，$\bm b^{(1)}=(0,-0.5)^\top$，$W^{(2)}=(0.6,-0.4)$，$b^{(2)}=0.1$，$\alpha=0.5$ $\Rightarrow$ $\bm z^{(1)}=(0,0.5)^\top$，$\bm a^{(1)}=(0.5,0.6225)^\top$，$z^{(2)}=0.151$，$\hat y=0.5377$，$\mathcal L=0.1069$；$\delta^{(2)}=-0.1149$，$\bm\delta^{(1)}=(-0.0172,0.0108)^\top$；更新后 $\mathcal L=0.0952$。隐藏层误差项比输出层小约一个数量级（多乘 $\sigma'\le0.25$ 与 $|w|<1$）——梯度消失的雏形。
+
+\subsection{变式：改用交叉熵损失；隐藏层改用 ReLU（单样本的“死亡”神经元）}
+\begin{itemize}
+\item \key{交叉熵}：前向不变，$\delta^{(2)}=\hat y-y$（示意中 $-0.4623$），各梯度约为平方损失的 4 倍（少乘 $\sigma'(z^{(2)})\approx0.25$）；一次更新后损失 $0.6205\to0.4466$。
+\item \key{ReLU 隐藏层}：$\bm\delta^{(1)}=\mathbf 1\{\bm z^{(1)}>\bm 0\}\odot\big((W^{(2)})^\top\delta^{(2)}\big)$。$z^{(1)}_i<0$ 的神经元 $a^{(1)}_i=0$：其入边（$W^{(1)}$ 第 $i$ 行）与出边（$w^{(2)}_{1i}$）梯度都为 0；对所有样本都如此即“死亡”。
+\end{itemize}
+
+\subsection{NumPy 核对代码模板}
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+import numpy as np
+sig = lambda z: 1 / (1 + np.exp(-z))
+x = np.array([1.0, 2.0]); y = 1.0; alpha = 0.5
+W1 = np.array([[0.2, -0.1], [0.4, 0.3]]); b1 = np.array([0.0, -0.5])
+W2 = np.array([[0.6, -0.4]]);             b2 = np.array([0.1])
+def forward(W1, b1, W2, b2):
+    a1 = sig(W1 @ x + b1); return a1, sig(W2 @ a1 + b2)
+a1, yhat = forward(W1, b1, W2, b2)
+d2 = (yhat - y) * yhat * (1 - yhat)      # 交叉熵时: d2 = yhat - y
+d1 = a1 * (1 - a1) * (W2.T @ d2)         # ReLU 隐藏层: (z1 > 0) * (W2.T @ d2)
+gW2, gb2, gW1, gb1 = np.outer(d2, a1), d2, np.outer(d1, x), d1
+W1, b1, W2, b2 = W1 - alpha*gW1, b1 - alpha*gb1, W2 - alpha*gW2, b2 - alpha*gb2
+print(0.5 * (forward(W1, b1, W2, b2)[1] - y) ** 2)   # [0.0952]
+\end{lstlisting}
+
+% ======================================================================
+\section{计算图与自动微分}
+
+\subsection{自动微分：正向构建计算图，反向遍历计算图}
+\term{自动微分}{automatic differentiation, AD}：利用链式法则来自动计算一个复合函数的梯度。(1) \key{正向构建计算图}：把复杂函数拆成加法、乘法、指数等基本运算，用\term{计算图}{computational graph}记录每个运算步骤（节点）和对应的局部导数；(2) \key{反向遍历计算图}：从输出开始沿图往回走，用链式法则把“后续节点的梯度”和“当前节点的局部导数”相乘，得到每个参数的梯度。
+\textbf{易错} AD 不是\key{数值微分}（差分近似，有截断误差，每个参数多一次前向），也不是\key{符号微分}（推出冗长的表达式）：它在每个基本运算上用精确局部导数，再在数值上按链式法则组合，既精确又高效。
+
+\subsection{\texorpdfstring{$\sigma(wx+b)$}{sigma(wx+b)} 的计算图：局部导数、前向值与反向伴随值（\texorpdfstring{$\partial f/\partial w=0.25$}{df/dw=0.25}）}
+$f(x;w,b)=\frac1{\exp(-(wx+b))+1}$ 拆成 6 个节点，取 $x=1,w=0,b=0$。伴随值 $\bar h_k=\partial f/\partial h_k$，反向每一步 = 后一节点的 $\bar h$ × 本条边的局部导数。
+
+\noindent\begin{tabularx}{\linewidth}{@{}p{2.6cm}p{4.6cm}p{1.2cm}L@{}}
+\toprule
+节点 & 局部导数 & 前向值 & 反向伴随值（从下往上算） \\
+\midrule
+$h_1=x\times w$ & $\partial h_1/\partial w=x$，$\partial h_1/\partial x=w$ & 0 & $\bar h_1=\bar h_2\times1=0.25$ \\
+$h_2=h_1+b$ & $\partial h_2/\partial h_1=1$，$\partial h_2/\partial b=1$ & 0 & $\bar h_2=\bar h_3\times(-1)=0.25$ \\
+$h_3=h_2\times(-1)$ & $\partial h_3/\partial h_2=-1$ & 0 & $\bar h_3=\bar h_4\times e^{h_3}=-0.25$ \\
+$h_4=\exp(h_3)$ & $\partial h_4/\partial h_3=\exp(h_3)$ & 1 & $\bar h_4=\bar h_5\times1=-0.25$ \\
+$h_5=h_4+1$ & $\partial h_5/\partial h_4=1$ & 2 & $\bar h_5=\bar h_6\times(-1/h_5^2)=-0.25$ \\
+$h_6=1/h_5=f$ & $\partial h_6/\partial h_5=-1/h_5^2$ & 0.5 & $\bar h_6=1$ \\
+\bottomrule
+\end{tabularx}
+
+\noindent $\frac{\partial f}{\partial w}=\frac{\partial f}{\partial h_6}\frac{\partial h_6}{\partial h_5}\frac{\partial h_5}{\partial h_4}\frac{\partial h_4}{\partial h_3}\frac{\partial h_3}{\partial h_2}\frac{\partial h_2}{\partial h_1}\frac{\partial h_1}{\partial w}=1\times(-0.25)\times1\times1\times(-1)\times1\times1=0.25$；$\frac{\partial f}{\partial b}=\bar h_2=0.25$；$\frac{\partial f}{\partial x}=\bar h_1w=0$。核对：$\sigma'(0)\cdot x=0.25$。一次反向同时得到三个导数、共享 $\bar h_k$——反向传播高效的最小例子；$\bar h_2=\partial f/\partial(wx+b)$ 即误差项 $\delta$，$\partial f/\partial w=\delta x$、$\partial f/\partial b=\delta$。
+
+\subsection{自动微分的前向模式与反向模式}
+设 $F:\R^n\to\R^m$ 由一张计算图实现。\par
+\noindent\begin{tabularx}{\linewidth}{@{}p{1.7cm}LL@{}}
+\toprule
+ & 前向模式（forward mode） & 反向模式（reverse mode） \\
+\midrule
+方向 & 输入 $\to$ 输出，每个节点同时算值和对某一输入的导数 $\dot h_k=\sum_{j\in\text{前驱}}\frac{\partial h_k}{\partial h_j}\dot h_j$ & 先前向算出并保存所有节点值，再输出 $\to$ 输入：$\bar h_j=\sum_{k\in\text{后继}}\bar h_k\frac{\partial h_k}{\partial h_j}$ \\
+一遍得到 & 所有输出对\key{一个输入}的导数 & \key{一个输出}对所有输入的导数 \\
+完整梯度 & $n$ 遍；内存小 & $m$ 遍；内存大（存中间值） \\
+\bottomrule
+\end{tabularx}
+
+\noindent 神经网络：$n=P$（参数，可达数百万以上），$m=1$（标量损失）$\Rightarrow$ 反向模式 1 遍、前向模式 $P$ 遍；故框架都用反向模式，\key{反向模式和反向传播计算梯度的方式相同}。前向模式示意：置 $\dot w=1,\dot x=\dot b=0$，$\dot h_1=x\dot w+w\dot x=1\to\dot h_2=1\to\dot h_3=-1\to\dot h_4=e^{h_3}\dot h_3=-1\to\dot h_5=-1\to\dot h_6=-\dot h_5/h_5^2=0.25$；再要 $\partial f/\partial b$ 须令 $\dot b=1$ 重算一遍。\textit{Reverse-mode AD obtains the gradient of a scalar output with respect to all inputs in one backward sweep; it is exactly backpropagation.}
+
+\subsection{多路径求和}
+函数和参数之间有多条路径时，把各路径上的导数\key{相加}。$f=x\cdot y+x\cdot z$：路径 $x\to x\cdot y\to f$ 导数为 $y$，路径 $x\to x\cdot z\to f$ 导数为 $z$ $\Rightarrow\frac{\partial f}{\partial x}=y+z$ \whyin{令 $u_1=xy,u_2=xz$，多元链式法则 $\frac{\partial f}{\partial x}=\frac{\partial f}{\partial u_1}\frac{\partial u_1}{\partial x}+\frac{\partial f}{\partial u_2}\frac{\partial u_2}{\partial x}$}。一般：$\frac{\partial f}{\partial x}=\sum_{\text{所有 }x\to f\text{ 路径}}\prod_{\text{路径上的边}}(\text{局部导数})$；实现时节点有多条出边就把各出边传回的梯度\key{累加}。误差项递推中的 $\sum_jw^{(l+1)}_{ji}\delta^{(l+1)}_j$ 就是多路径求和。常用节点反向规则：加法节点把梯度原样分给各输入；乘法节点 $f=qm$ 给 $\bar q=\bar f m$、$\bar m=\bar f q$；$\max$ 节点只传给较大的输入。
+
+\subsection{反向模式即反向传播：前馈网络训练的三个步骤}
+反向传播算法 = 自动微分的反向模式。训练三步：(1) 前向计算每一层的状态和激活值，直到最后一层；(2) 反向计算每一层参数的偏导数；(3) 更新参数。
+
+\subsection{静态计算图与动态计算图}
+\noindent\begin{tabularx}{\linewidth}{@{}p{1.6cm}LL@{}}
+\toprule
+ & 静态计算图（static） & 动态计算图（dynamic） \\
+\midrule
+构建 & 在编译时构建，构建好之后运行时不能改变 & 在程序运行时动态构建 \\
+框架 & Theano、TensorFlow（1.x） & DyNet、Chainer、PyTorch \\
+优点 & 构建时可以进行优化，并行能力强 & 灵活性高（可用普通 if/for 控制结构，便于调试） \\
+缺点 & 灵活性比较差 & 不容易优化；不同输入的网络结构不一致时难以并行计算 \\
+\bottomrule
+\end{tabularx}
+
+\noindent\textbf{易错} TensorFlow 2.x 默认动态图（eager execution），“TensorFlow 是静态图”指 1.x；“PyTorch 使用静态计算图”是错的。
+
+\subsection{如何实现：深度学习框架与“深度学习三步骤”（PyTorch 模板）}
+实际工作中深度学习主要靠调用现成框架实现，梯度由框架的自动微分算出。\key{三步骤}：(1) 定义网络（结构、激活函数）$\to$ (2) 损失函数（交叉熵、平方损失等）$\to$ (3) 优化（反向传播求梯度 + 梯度下降类算法更新）。
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+import torch, torch.nn as nn
+w = torch.tensor(0.0, requires_grad=True); b = torch.tensor(0.0, requires_grad=True)
+f = torch.sigmoid(w * 1.0 + b)           # 前向: 运行时动态构建计算图
+f.backward(); print(w.grad, b.grad)      # 反向模式 AD: tensor(0.2500) tensor(0.2500)
+
+model = nn.Sequential(nn.Linear(784, 100), nn.ReLU(), nn.Linear(100, 10))  # (1) 定义网络
+loss_fn = nn.CrossEntropyLoss()          # (2) 损失: 输入未归一化的 logits, 内含 Softmax
+opt = torch.optim.SGD(model.parameters(), lr=0.1, weight_decay=1e-4)       # (3) 优化
+for X, y in loader:                      # y 为类别下标 (LongTensor)
+    opt.zero_grad()                      # 清零: .grad 默认累加
+    loss = loss_fn(model(X), y); loss.backward(); opt.step()
+\end{lstlisting}
+
+% ======================================================================
+\section{优化问题}
+
+\subsection{神经网络优化的难点与需求}
+\key{难点}：(1) 参数过多，影响训练；(2) 非凸优化问题：存在局部最优而非全局最优解，影响迭代；(3) 梯度消失问题，下层参数比较难调；(4) 参数解释起来比较困难。\key{需求}：(1) 计算资源要大；(2) 数据要多；(3) 算法效率要好，即收敛快。对应：参数多 $\Rightarrow$ 需大量计算与数据、需 $O(P)$ 的反向传播；非凸 $\Rightarrow$ 可能停在局部最优；梯度消失 $\Rightarrow$ 靠近输入的层学不动；难解释 $\Rightarrow$ “黑箱”（经济金融应用尤需注意）。
+
+\subsection{凸函数与非凸函数：“碗状”与“起伏的山地”}
+\key{凸函数}的损失图像是“碗状”：只有一个全局最低点，不管从哪开始梯度下降都会滑到最优点（如线性回归均方误差：$\frac12\|\bm y-X\bm w\|^2$ 的海森矩阵 $X^\top X$，$\bm v^\top X^\top X\bm v=\|X\bm v\|^2\ge0$ 半正定）。\key{非凸函数}是“起伏的山地”：很多局部最低点（小土坑），梯度下降可能卡在局部最优而到不了全局最优。只含两个参数的 $y=\sigma(w_2\sigma(w_1x))$，其平方误差与交叉熵损失曲面都已非凸（大片平台、扭曲的 S 形斜坡、平坦低谷）——根源是激活函数的非线性复合。
+
+\subsection{非凸的根源：隐藏单元的置换对称性（反证骨架）}
+\term{置换对称性}{permutation symmetry}：对调隐藏层第 $i,j$ 个神经元（交换 $W^{(1)}$ 第 $i,j$ 行、$\bm b^{(1)}$ 第 $i,j$ 分量、$W^{(2)}$ 第 $i,j$ 列），网络函数与损失不变。证（$\ge2$ 个隐藏神经元）：(1) 若 $\mathcal L$ 凸，$\theta_1,\theta_2$ 都是全局最小点 $\Rightarrow\mathcal L(\frac{\theta_1+\theta_2}2)\le\frac12\mathcal L(\theta_1)+\frac12\mathcal L(\theta_2)=\min\mathcal L$；(2) $\theta^*$ 最优则对调后的 $\theta'$ 也最优；(3) 中点 $\bar\theta=\frac{\theta^*+\theta'}2$ 处第 $i,j$ 个神经元参数完全相同、算同一特征，网络实际少了一个神经元，一般损失严格大于最小值，矛盾。结论：损失一般有多个等价全局最小、许多局部最小、鞍点和平坦区域。
+
+\subsection{梯度消失：链式乘积小于 1；\texorpdfstring{$(1/4)^5\approx0.00098$}{(1/4)\^5=0.00098}}
+\term{梯度消失问题}{vanishing gradient problem}：深层网络中反向传播的梯度是各层导数的连乘积，若每一层的导数都小于 1，多层相乘后会指数级缩小，靠近输入的层几乎得不到梯度、参数难以更新。
+$y=f^5(f^4(f^3(f^2(f^1(x)))))\Rightarrow\frac{\partial y}{\partial x}=\frac{\partial f^1}{\partial x}\frac{\partial f^2}{\partial f^1}\frac{\partial f^3}{\partial f^2}\frac{\partial f^4}{\partial f^3}\frac{\partial f^5}{\partial f^4}$；Logistic 每层导数 $\le\frac14$ $\Rightarrow|\frac{\partial y}{\partial x}|\le(\frac14)^5=\frac1{1024}\approx0.00098$（$L$ 层上界 $4^{-L}$）。饱和区更糟：每层 $z=2$，$\sigma'(2)\approx0.105$，5 层连乘约 $1.3\times10^{-5}$。\textbf{易错}“用 Tanh 代替 Logistic 就不会梯度消失”——错：Tanh 导数上界 1 比 Logistic 好，但同样两端饱和，深层仍会消失。
+
+\subsection{梯度消失的矩阵形式：\texorpdfstring{$\|\bm\delta^{(l)}\|\le(s/4)^{L-l}\|\bm\delta^{(L)}\|$}{||delta(l)||<=(s/4)\^(L-l)||delta(L)||}}
+\begin{align*}
+\bm\delta^{(l)}&=\diag\big(f_l'(\bm z^{(l)})\big)(W^{(l+1)})^\top\cdots\diag\big(f_{L-1}'(\bm z^{(L-1)})\big)(W^{(L)})^\top\bm\delta^{(L)} \why{递推展开}\\
+\|\bm\delta^{(l)}\|&\le\prod_{k=l}^{L-1}\Big(\max_i\big|f_k'(z^{(k)}_i)\big|\cdot\|W^{(k+1)}\|_2\Big)\|\bm\delta^{(L)}\|\le\Big(\frac s4\Big)^{L-l}\|\bm\delta^{(L)}\| \why{$\|A\bm v\|\le\|A\|_2\|\bm v\|$；$|f'|\le\frac14$，$\|W^{(k)}\|_2\le s$}
+\end{align*}
+$s<4$ 时误差项随离输出层的距离 $L-l$ 指数衰减；又 $\|\partial\mathcal L/\partial W^{(l)}\|_F=\|\bm\delta^{(l)}\|\,\|\bm a^{(l-1)}\|$，越靠近输入层梯度越小、更新越慢。每层因子都大于 1 则指数增长 = \key{梯度爆炸}。示意（每层 1 个神经元、Logistic、$z^{(k)}=0$、权重均为 $w$）：$\delta^{(1)}/\delta^{(L)}=(0.25w)^{L-1}$；$L=11$ 时 $w=2$ 得 $0.5^{10}\approx0.00098$（消失），$w=5$ 得 $1.25^{10}\approx9.31$（爆炸），$w=4$ 不变。
+
+\subsection{ReLU 如何缓解梯度消失，以及其他办法}
+ReLU 在一定程度上缓解梯度消失：激活的神经元 $f'=1$，$\max|f'|$ 不再是 $\frac14$，误差项不因激活函数逐层缩小；但未激活的 $f'=0$ 带来死亡 ReLU（用 Leaky ReLU/PReLU/ELU 缓解）。其他办法（见下节）：合理初始化（每层放大倍数约为 1）、批归一化（净输入不进饱和区）、残差连接（恒等通路）、梯度裁剪（针对爆炸）。
+
+% ======================================================================
+\section{拓展：训练深层网络的常用技术 \tagext}
+
+\subsection{梯度爆炸与梯度裁剪}
+\term{梯度爆炸}{exploding gradient}：各层因子 $|f'|\cdot\|W\|_2>1$，梯度随层数指数增长，更新步子过大、损失剧烈震荡甚至 NaN；RNN（同一权重在时间上反复相乘）中尤其常见。\term{梯度裁剪}{gradient clipping}（按范数）：$\|\bm g\|>c$ 时 $\bm g\leftarrow c\,\bm g/\|\bm g\|$，否则不变；只缩短步长、不改方向（PyTorch：\texttt{nn.utils.clip\_grad\_norm\_(model.parameters(), max\_norm=1.0)}，放在 \texttt{backward()} 后、\texttt{step()} 前）。
+
+\subsection{参数初始化：为什么不能全 0；Xavier 与 He 初始化}
+\textbf{不能全 0}（或同层全相同）：同层神经元输出、误差项、梯度都相同，更新后仍相同，相当于每层一个神经元（置换对称性未打破）；权重须随机初始化，偏置可为 0。\key{方差保持原则}：权重 i.i.d.、均值 0、与输入独立 $\Rightarrow\Var(z^{(l)}_i)=\sum_j\Var(w)\E[(a^{(l-1)}_j)^2]=M_{l-1}\Var(w)\E[a^2]$，要求各层方差前向（及反向梯度）不放大不缩小。
+
+\noindent\begin{tabularx}{\linewidth}{@{}p{2.9cm}p{1.6cm}p{4.2cm}L@{}}
+\toprule
+方法 & 适用 & $\Var(w)$ 与分布 & 来由 \\
+\midrule
+Xavier（Glorot \& Bengio 2010） & Tanh、Logistic & $\frac2{M_{l-1}+M_l}$；$U[-r,r]$，$r=\sqrt{\frac6{M_{l-1}+M_l}}$（$U[-r,r]$ 方差 $\frac{r^2}3$） & Tanh 原点附近近似线性 $\E[a^2]\approx\Var(z)$：前向要 $M_{l-1}\Var(w)=1$，反向要 $M_l\Var(w)=1$，折中 \\
+He（He 等 2015） & ReLU & $\frac2{M_{l-1}}$；$\mathcal N\big(0,\frac2{M_{l-1}}\big)$ & ReLU 把一半置 0：$\E[a^2]=\frac12\Var(z)$，需 $M_{l-1}\Var(w)\cdot\frac12=1$（为前向版 Xavier 的 2 倍） \\
+\bottomrule
+\end{tabularx}
+
+\noindent 示意 $M_{l-1}=100,M_l=50$：Xavier $\Var(w)=2/150\approx0.0133$（标准差 0.115，$r=0.2$）；He $\Var(w)=0.02$（标准差 0.141）。
+
+\subsection{优化器：Momentum、AdaGrad、RMSProp 与 Adam}
+$\bm g_t$ 为第 $t$ 步小批量梯度；乘、除、开方按元素；$\epsilon\approx10^{-8}$ 防除零。\par
+\noindent\begin{tabularx}{\linewidth}{@{}p{1.7cm}p{8.4cm}L@{}}
+\toprule
+方法 & 更新公式 & 思想 \\
+\midrule
+SGD & $\theta_t=\theta_{t-1}-\alpha\bm g_t$ & 基准 \\
+动量法 & $\bm v_t=\rho\bm v_{t-1}-\alpha\bm g_t$，$\theta_t=\theta_{t-1}+\bm v_t$（$\rho\approx0.9$） & “重球”：方向一致处加速，来回震荡处抵消 \\
+AdaGrad & $G_t=G_{t-1}+\bm g_t\odot\bm g_t$，$\theta_t=\theta_{t-1}-\frac{\alpha}{\sqrt{G_t+\epsilon}}\odot\bm g_t$ & 逐参数自适应学习率；$G_t$ 单调增，学习率越来越小、可能过早停止 \\
+RMSProp & $G_t=\beta G_{t-1}+(1-\beta)\bm g_t\odot\bm g_t$（$\beta\approx0.9$），$\theta_t$ 同 AdaGrad & 改为指数加权移动平均，学习率不再单调衰减 \\
+Adam & $\bm m_t=\beta_1\bm m_{t-1}+(1-\beta_1)\bm g_t$，$\bm v_t=\beta_2\bm v_{t-1}+(1-\beta_2)\bm g_t\odot\bm g_t$；$\hat{\bm m}_t=\frac{\bm m_t}{1-\beta_1^t}$，$\hat{\bm v}_t=\frac{\bm v_t}{1-\beta_2^t}$；$\theta_t=\theta_{t-1}-\alpha\frac{\hat{\bm m}_t}{\sqrt{\hat{\bm v}_t}+\epsilon}$ & 动量 + RMSProp + 偏差修正；默认 $\alpha=0.001$，$\beta_1=0.9$，$\beta_2=0.999$（Kingma \& Ba 2015） \\
+\bottomrule
+\end{tabularx}
+
+\noindent\key{偏差修正}：$\bm m_0=\bm v_0=\bm 0$ 使早期矩估计偏向 0（$\bm m_1=0.1\bm g_1$），除以 $1-\beta^t$ 后近似无偏，$t$ 大时修正自动消失；第 1 步 $\hat{\bm m}_1=\bm g_1$，$\hat{\bm v}_1=\bm g_1\odot\bm g_1$，$\Delta\theta\approx-\alpha\,\mathrm{sign}(\bm g_1)$：步长约 $\alpha$，对梯度尺度不敏感。
+
+\subsection{正则化：L2 与权重衰减、Dropout、提前停止、数据增强}
+\begin{itemize}
+\item \key{L2 与权重衰减}：$W^{(l)}\leftarrow W^{(l)}-\alpha\big(\frac{\partial\mathcal L}{\partial W^{(l)}}+\lambda W^{(l)}\big)=(1-\alpha\lambda)W^{(l)}-\alpha\frac{\partial\mathcal L}{\partial W^{(l)}}$，每步先按比例缩小权重。SGD 下两者等价；Adam 等自适应方法下不等价 $\to$ AdamW（衰减项单独施加）。
+\item \term{丢弃法}{dropout}（Srivastava 等 2014）：训练时每个神经元以保留概率 $p$ 保留、$1-p$ 置 0；反向（inverted）写法 $m_i\sim\text{Bernoulli}(p)$，$\tilde a_i=m_ia_i/p\Rightarrow\E[\tilde a_i]=a_i$，测试时不丢弃也不缩放；被丢弃神经元误差项为 0。解释：每次训练一个随机子网络 $\approx$ 指数多个共享参数子网络的集成；减少神经元共适应，减轻过拟合。\textbf{易错} PyTorch \texttt{nn.Dropout(p)} 的 \texttt{p} 是\key{丢弃}概率；推断前调用 \texttt{model.eval()}。
+\item \term{提前停止}{early stopping}：定期算验证误差，不再下降（或上升）即停，取验证误差最小时的参数（即算法中的 until 条件）。\term{数据增强}{data augmentation}：不改变标签的变换扩充数据（图像翻转、裁剪、旋转、加噪声；文本同义词替换、回译），增加有效样本量。
+\end{itemize}
+
+\subsection{批归一化与层归一化}
+\term{批归一化}{batch normalization, BN}（Ioffe \& Szegedy 2015）：对每个神经元的净输入在小批量 $\{z_1,\dots,z_B\}$ 内 $\mu_B=\frac1B\sum_iz_i$，$\sigma_B^2=\frac1B\sum_i(z_i-\mu_B)^2$，$\hat z_i=\frac{z_i-\mu_B}{\sqrt{\sigma_B^2+\epsilon}}$，$y_i=\gamma\hat z_i+\beta$（$\gamma,\beta$ 可学习，恢复表达能力）；通常放在激活函数之前；测试时用训练中累积的 $\mu,\sigma^2$ 移动平均。作用：净输入留在非饱和区（缓解梯度消失）、减轻偏置偏移、允许更大学习率、轻微正则化。示意 $z=(1,2,3,6)$：$\mu_B=3$，$\sigma_B^2=3.5$，$\hat z\approx(-1.069,-0.535,0,1.604)$。\term{层归一化}{layer normalization}：对单个样本的各维度标准化（Transformer 常用）。
+
+\subsection{残差连接}
+\term{残差连接}{residual connection}（He 等 2016，ResNet）：$\bm a^{(l+1)}=\bm a^{(l)}+F(\bm a^{(l)})$，$\frac{\partial\bm a^{(l+1)}}{\partial\bm a^{(l)}}=I+\frac{\partial F}{\partial\bm a^{(l)}}$：梯度总有一条恒等通路直接传回下层，连乘中不再全是小于 1 的因子，可训练上百层；Transformer 每个子层都带残差连接。
+
+\subsection{CNN、RNN 与 Transformer 概览}
+\noindent\begin{tabularx}{\linewidth}{@{}p{1.7cm}p{4.9cm}Lp{2.2cm}@{}}
+\toprule
+结构 & 核心运算 & 关键思想 & 典型应用 \\
+\midrule
+CNN & 卷积 $y_{ij}=\sum_u\sum_vw_{uv}x_{i+u-1,j+v-1}+b$；池化（局部最大/平均） & 局部连接 + 权重共享（同一卷积核滑过整幅图，参数远少于全连接）；逐层提取边缘 $\to$ 部件 $\to$ 物体 & 图像识别、文档版面分析 \\
+RNN & $\bm h_t=f(U\bm h_{t-1}+W\bm x_t+\bm b)$，$\hat{\bm y}_t=g(V\bm h_t)$ & 记忆网络：隐状态带历史信息，参数在时间上共享；按时间展开用 BPTT 训练，长序列易梯度消失/爆炸，LSTM、GRU 用门控缓解 & 时间序列、文本 \\
+Transformer & $\mathrm{Attention}(Q,K,V)=\mathrm{softmax}\big(QK^\top/\sqrt{d_k}\big)V$；多头注意力 + 前馈子层 + 残差 + 层归一化 & 每个位置直接“看”所有位置、按相关性加权求和；便于并行、擅长长距离依赖；前馈子层即两层前馈网络（常用 GELU） & 大语言模型（BERT、GPT）、机器翻译 \\
+\bottomrule
+\end{tabularx}
+
+\noindent 出处：LeNet（LeCun 等 1998）、LSTM（Hochreiter \& Schmidhuber 1997）、Transformer（Vaswani 等 2017）。

@@ -1,0 +1,337 @@
+\chapter{模型评估与经典监督学习算法}
+\noindent\key{本章速览}\quad 划分数据 → 调参 → 分类／回归指标 → 不平衡 → 学习曲线与检验 → 正则化线性模型 → 特征选择；之后为 KNN 至 LDA 等经典算法。记号：样本量 $N$、特征数 $d$、类别数 $K$、折数 $k$；二分类 $y\in\{0,1\}$，1 = 关心的少数类（违约、欺诈）；$m^+,m^-$ 为正、负例数。
+
+% ======================================================================
+\section{模型评估方法：如何划分训练集与测试集}
+
+\subsection{评估原则：训练误差不能评估模型；数据泄露（data leakage）}
+\begin{itemize}
+\item 关心\term{泛化误差}{generalization error}；训练误差（经验误差）一定偏乐观（复杂模型可降到 0，即过拟合）。\key{原则}：测试样本与训练集互斥、未参与训练、同分布独立抽取。\term{验证集}{validation set}用于调参／选模型，不能再报告最终性能；\term{测试集}{test set}报告最终性能，\key{只用一次}。
+\item \term{数据泄露}{data leakage}：测试集（验证折）信息漏进训练，评估虚高。(1) \key{先在全部数据上预处理再划分}（全体均值方差标准化、全体上特征选择或 SMOTE）——正确做法：预处理只在训练折 \texttt{fit}、再 \texttt{transform} 验证折／测试集，sklearn 用 \texttt{Pipeline} 交给交叉验证；(2) \key{时间序列打乱划分}（用未来预测过去）；(3) \key{特征含标签的事后信息}（用“是否已催收”预测“是否违约”）。
+\end{itemize}
+
+\subsection{留出法（hold-out）与分层抽样}
+\term{留出法}{hold-out}：$D=S\cup T$，$S\cap T=\varnothing$，约 $2/3\sim4/5$ 训练。(1) \term{分层抽样}{stratified sampling}保持类别比例（1000 例含正 100，7:3 分层 → 训练 70 正、测试 30 正），\texttt{train\_test\_split(X, y, test\_size=0.3, stratify=y)}；(2) 单次划分不稳定 → 重复随机划分（如 100 次）取均值、报告标准差；(3) \key{两难}：训练集大则测试集小、评估方差大；测试集大则被评估模型与最终模型差别大、评估偏差大。
+
+\subsection{\texorpdfstring{$k$}{k} 折交叉验证：算法、重复与一倍标准误法则}
+\term{$k$ 折交叉验证}{k-fold cross-validation}：$D$ 分成 $k$ 个大小相近的互斥子集（通常分层），第 $j$ 次用 $D\setminus D_j$ 训练、$D_j$ 测试得 $e_j$，$\mathrm{CV}_{(k)}=\frac1k\sum_{j=1}^k e_j$。
+\key{选超参数步骤}：(1) 打乱、分层切 $k$ 折；(2) 对每个候选 $\lambda$、每个 $j$，在其余 $k-1$ 折训练、第 $j$ 折算 $e_j(\lambda)$，平均得 $\mathrm{CV}(\lambda)$；(3) $\hat\lambda=\argmin_\lambda\mathrm{CV}(\lambda)$；(4) 用 $\hat\lambda$ 在全部训练数据上重训。
+\begin{itemize}
+\item $k$ 常取 5 或 10；$k$ 越大，每次训练 $\frac{k-1}{k}N$ 个样本、偏差越小，但计算量越大、训练集高度重叠、方差可能变大。$p$ 次 $k$ 折：“10 次 10 折”共训练 100 次（\texttt{RepeatedStratifiedKFold}）。
+\item $\mathrm{SE}=s_e/\sqrt k$（$s_e$ 为 $e_1,\dots,e_k$ 的样本标准差）；\term{一倍标准误法则}{one-standard-error rule}：在 $\mathrm{CV}\le\min\mathrm{CV}+1\,\mathrm{SE}$ 的模型中选\key{最简单}的（如 $\lambda$ 最大的 Lasso）。
+\end{itemize}
+
+\subsection{留一法（LOOCV）及线性回归的捷径公式}
+\term{留一法}{LOOCV}：$k=N$，$\mathrm{CV}_{(N)}=\frac1N\sum_i L\big(y_i,\hat f^{(-i)}(\bm x_i)\big)$（$N$ 个误差高度相关、方差较大）。\key{OLS 捷径}（精确，只拟合一次）：
+\[
+\mathrm{CV}_{(N)}=\frac1N\sum_{i=1}^N\Big(\frac{y_i-\hat y_i}{1-h_{ii}}\Big)^2,\qquad h_{ii}=\bm x_i\T(X\T X)\inv\bm x_i\ \ (\text{帽子矩阵 }H=X(X\T X)\inv X\T\text{ 的对角元，杠杆值}).
+\]
+岭回归把 $h_{ii}$ 换成 $X(X\T X+\lambda I)\inv X\T$ 的对角元仍精确；高杠杆点残差放大最多（留一残差）。
+
+\subsection{自助法（bootstrap）：36.8\% 包外样本与 .632 估计}
+\term{自助法}{bootstrapping}：\key{有放回}抽 $N$ 次得 $D'$ 作训练集，未抽中的 $D\setminus D'$（\term{包外样本}{out-of-bag, OOB}）作测试集。
+$P(i\notin D')=(1-\frac1N)^N\to e^{-1}\approx0.368$ \whyin{每次抽不中 $1-\frac1N$，$N$ 次独立；$\lim(1+\frac aN)^N=e^a$}；$N=5,10,100$ 时 $0.328,0.349,0.366$，故 $D'$ 约含 \key{63.2\%} 的不同样本。
+\key{.632 估计}（Efron）：$\widehat{\mathrm{Err}}_{.632}=0.368\,\mathrm{err}_{\text{train}}+0.632\,\mathrm{err}_{\text{oob}}$（OOB 偏悲观、训练误差偏乐观；示意 $0.368\times0.05+0.632\times0.20=0.1448$）；严重过拟合时仍偏乐观 → .632+。适合小样本；是 Bagging／随机森林的基础；数据充足时更常用留出法／CV。
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{2.3cm}p{3.6cm}LL@{}}
+\toprule
+方法 & 训练集规模 & 优点 & 缺点 \\
+\midrule
+留出法 & 约 $2/3\sim4/5$ & 简单、快 & 依赖一次划分；浪费数据 \\
+$k$ 折交叉验证 & $\frac{k-1}{k}N$ & 充分利用数据，稳定 & 需训练 $k$ 次 \\
+留一法 & $N-1$ & 偏差最小、结果唯一 & 训练 $N$ 次；方差可能大 \\
+自助法 & $N$（约 63.2\% 不同样本）& 小样本可用；有 OOB 估计 & 改变数据分布，有偏差 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{时间序列与分组数据的交叉验证：TimeSeriesSplit、GroupKFold}
+\begin{itemize}
+\item \key{时间序列}必须用过去预测未来。\term{扩展窗口}{expanding window}：用 $1,\dots,t_j$ 期训练、$t_j+1,\dots,t_j+h$ 期测试，$t_j$ 逐步后移；\term{滚动窗口}{rolling window}：训练窗口长度固定、整体后移。\texttt{TimeSeriesSplit(n\_splits=5, gap=g, max\_train\_size=w)}（设 \texttt{max\_train\_size} 即滚动窗口；含滞后特征时用 \texttt{gap} 留间隔期）。
+\item \key{分组／面板数据}：同一企业／患者的样本整体落在同一折，\texttt{GroupKFold(5)}（\texttt{cross\_val\_score} 中传 \texttt{groups=g}），否则模型记住个体、评估虚高。
+\end{itemize}
+
+\subsection{参数与超参数；最终模型重训；嵌套交叉验证}
+\begin{itemize}
+\item 参数（$\bm w$、分裂点）由数据学到；\term{超参数}{hyperparameter}（$\lambda$、$k$、树深、学习率）训练前设定，靠验证集／CV 选。
+\item \key{最终模型}：选定超参数后合并训练集与验证集重训一次，再在测试集报告（\texttt{GridSearchCV(refit=True)} 默认）。
+\item \term{嵌套交叉验证}{nested cross-validation}：外层 $k_1$ 折估计泛化误差，外层每个训练部分内用内层 $k_2$ 折选超参数；直接报告内层最优 CV 分数偏乐观。\texttt{cross\_val\_score(GridSearchCV(pipe, grid, cv=inner), X, y, cv=outer)}。
+\end{itemize}
+
+% ======================================================================
+\section{超参数调优：网格搜索与随机搜索}
+
+\subsection{网格搜索（grid search）的训练次数；随机搜索（random search）为何常更优}
+\term{网格搜索}{grid search}：各超参数候选值取\key{笛卡儿积}，每个组合做 $k$ 折 CV，选最优。训练次数 $=n_a n_b\cdots\times k$（\texttt{refit=True} 再 $+1$），超参数越多组合数指数增长；连续超参数取\key{对数刻度}（$\lambda\in\{10^{-3},\dots,10^2\}$）。随机搜索训练次数 $=n_{\text{iter}}\times k\,(+1)$。
+\term{随机搜索}{random search}：为各超参数指定分布（$\lambda\sim$ 对数均匀），随机抽 $n_{\text{iter}}$ 个组合做 CV。优势：通常只有少数超参数重要——只有 $a$ 重要时，$3\times3$ 网格 9 次试验中 $a$ 只试 3 个值，随机 9 次 $a$ 试 9 个不同值，更易碰到窄峰（Bergstra \& Bengio, 2012）。\tagext\ 贝叶斯优化：用代理模型根据已试结果选下一个点（Optuna）。
+
+\subsection{sklearn 模板：Pipeline + GridSearchCV／RandomizedSearchCV}
+参数名写“步骤名\texttt{\_\_}参数名”（双下划线，如 \texttt{clf\_\_C}）；标准化放进管道，每折只用训练折的均值方差。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=0)
+pipe = Pipeline([("scaler", StandardScaler()), ("clf", SVC())]); cv = StratifiedKFold(5, shuffle=True, random_state=0)
+gs = GridSearchCV(pipe, {"clf__C": [0.1, 1, 10, 100], "clf__gamma": [0.01, 0.1, 1]},
+                  cv=cv, scoring="roc_auc", n_jobs=-1).fit(X_tr, y_tr)        # 4*3*5 fits + 1 refit
+print(gs.best_params_, gs.best_score_, gs.score(X_te, y_te))   # test score: report once
+rs = RandomizedSearchCV(pipe, {"clf__C": loguniform(1e-2, 1e3)}, n_iter=30, cv=cv,
+                        random_state=0).fit(X_tr, y_tr)    # from scipy.stats import loguniform
+\end{lstlisting}
+\noindent\textbf{易错}：\texttt{best\_score\_} 是众多候选中的最大值，偏乐观，不能当最终泛化性能（看测试集或嵌套 CV）。
+
+% ======================================================================
+\section{分类性能度量：混淆矩阵、精确率、召回率与 F1}
+
+\subsection{混淆矩阵与四个基本量；sklearn 的行列顺序}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabular}{@{}lll@{}}
+\toprule
+ & 预测为正（$\hat y=1$）& 预测为负（$\hat y=0$）\\
+\midrule
+真实为正（$y=1$）& TP（真正例，true positive）& FN（假负例，false negative）\\
+真实为负（$y=0$）& FP（假正例，false positive）& TN（真负例，true negative）\\
+\bottomrule
+\end{tabular}
+\end{center}
+\begin{itemize}
+\item 记忆：第二个字母（P/N）= \key{预测结果}，第一个字母（T/F）= 预测\key{对不对}。$\mathrm{TP}+\mathrm{FN}=m^+$，$\mathrm{FP}+\mathrm{TN}=m^-$，$\mathrm{TP}+\mathrm{FP}$ = 预测为正数。
+\item \textbf{易错}：\texttt{confusion\_matrix(y\_true, y\_pred)} 行 = 真实、列 = 预测，标签\key{升序}，$\{0,1\}$ 时为 $\left[\begin{smallmatrix}\mathrm{TN}&\mathrm{FP}\\ \mathrm{FN}&\mathrm{TP}\end{smallmatrix}\right]$（正类在右下，与上表相反）。
+\item 与假设检验对应（$H_0$：样本为负类）：FP = 第一类错误，FN = 第二类错误；召回率 = 势（power），FPR = 显著性水平（size）。
+\end{itemize}
+
+\subsection{准确率与准确率悖论；精确率、召回率、特异度、假正率（公式总表）}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{2.8cm}p{3.6cm}p{2.9cm}L@{}}
+\toprule
+指标 & 别名 & 公式 & 含义（分母）\\
+\midrule
+准确率 accuracy & 周志华称“精度”；错误率 $=1-\mathrm{Acc}$ & $\frac{\mathrm{TP}+\mathrm{TN}}{\mathrm{TP}+\mathrm{TN}+\mathrm{FP}+\mathrm{FN}}$ & 判对比例；\term{准确率悖论}{accuracy paradox}：千笔含 10 笔欺诈，全判正常 Acc = 99\% \\
+精确率 precision & 查准率 & $P=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}$ & 报警中真为正的比例（分母：\key{预测为正}）；怕误报 \\
+召回率 recall & 查全率、灵敏度、真正率 TPR & $R=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FN}}$ & 真实正例中被找出的比例（分母：\key{真实为正}）；怕漏报 \\
+特异度 specificity & 真负率 TNR & $\frac{\mathrm{TN}}{\mathrm{TN}+\mathrm{FP}}$ & 真实负例中判对的比例 \\
+假正率 FPR & 误报率 & $\frac{\mathrm{FP}}{\mathrm{TN}+\mathrm{FP}}=1-\mathrm{TNR}$ & 真实负例中被误报的比例（分母：\key{真实为负}）\\
+\bottomrule
+\end{tabularx}
+\end{center}
+P、R 此消彼长（降低判正门槛 → R$\uparrow$、P$\downarrow$）。重精确率：推荐、垃圾邮件过滤；重召回率：疾病筛查、欺诈检测、违约预警。TPR、FPR 分母只含一类，\key{不受类别比例影响}；精确率随正类比例下降而下降。
+
+\subsection{\texorpdfstring{F1 与 F$_\beta$}{F1 与 F-beta}：调和平均与 \texorpdfstring{$\beta$}{beta} 的含义}
+\[
+\tfrac1{F_1}=\tfrac12\big(\tfrac1P+\tfrac1R\big)\Rightarrow F_1=\frac{2PR}{P+R}=\frac{2\mathrm{TP}}{2\mathrm{TP}+\mathrm{FP}+\mathrm{FN}};\qquad
+\tfrac1{F_\beta}=\tfrac1{1+\beta^2}\big(\tfrac1P+\tfrac{\beta^2}R\big)\Rightarrow F_\beta=\frac{(1+\beta^2)PR}{\beta^2P+R}
+\]
+（通分 $\frac1P+\frac{\beta^2}R=\frac{R+\beta^2P}{PR}$ 后取倒数）。$\beta>1$ 召回率更重要（$F_2$），$\beta<1$ 精确率更重要（$F_{0.5}$）。调和平均受小值支配：$P=1,R=0.01$ 时算术平均 0.505，$F_1$ 仅 0.0198。示意：$\mathrm{TP}=30,\mathrm{FN}=10,\mathrm{FP}=20,\mathrm{TN}=140$ → Acc 0.85，$P=0.60$，$R=0.75$，TNR 0.875，$F_1=0.667$，$F_2=0.714$，$F_{0.5}=0.625$。
+
+\subsection{多分类：宏平均、微平均与加权平均}
+$K\times K$ 矩阵 $C_{ab}$ = 真实 $a$、预测 $b$ 的个数；类 $c$ 一对其余：$\mathrm{TP}_c=C_{cc}$，$\mathrm{FP}_c$ = 第 $c$ \key{列}其余之和，$\mathrm{FN}_c$ = 第 $c$ \key{行}其余之和。
+\begin{itemize}
+\item \term{宏平均}{macro-average}：每类算 $P_c,R_c,F_{1,c}$ 再简单平均，$\frac1K\sum_cF_{1,c}$；各类同等重要，\key{对小类敏感}。\term{微平均}{micro-average}：先加总 TP、FP、FN 再算，$\text{micro-}P=\frac{\sum_c\mathrm{TP}_c}{\sum_c(\mathrm{TP}_c+\mathrm{FP}_c)}$；各样本同等重要，大类主导。加权平均：按各类真实样本数（support）加权 $F_{1,c}$。
+\item \key{结论}：单标签多分类 $\sum_c\mathrm{FP}_c=\sum_c\mathrm{FN}_c$ = 错分总数，故 micro-$P$ = micro-$R$ = micro-$F_1$ = 准确率。
+\end{itemize}
+
+% ======================================================================
+\section{ROC 曲线、AUC 与 P-R 曲线}
+
+\subsection{分类阈值与 ROC 曲线：定义与有限样本画法（同分走斜线）}
+分类器输出打分 $s(\bm x)$（概率 $\hat p$、SVM 的 $f(\bm x)$），$s(\bm x)\ge t$ 判正；默认 $t=0.5$（概率）或 0（SVM）。$t\downarrow$ → 判正更多，R 与 FPR 同时上升。混淆矩阵、P、R 只对应一个阈值；ROC、P-R 曲线汇总所有阈值，评价打分的\key{排序质量}。
+\term{ROC 曲线}{receiver operating characteristic curve}：横轴 FPR、纵轴 TPR，阈值从 $+\infty$ 降到 $-\infty$，起点 $(0,0)$（全判负）、终点 $(1,1)$（全判正）。\key{画法}：(1) 按打分从高到低排序，从 $(0,0)$ 出发；(2) 阈值依次移到每个样本：正例\key{向上} $1/m^+$，负例\key{向右} $1/m^-$；(3) 同分样本同时判正：沿斜线走（右移 \#负$/m^-$、上移 \#正$/m^+$）；(4) 到 $(1,1)$。对角线 TPR = FPR 为随机猜测，$(0,1)$ 为完美；一条曲线完全包住另一条则更优，交叉时看 AUC 或关心的 FPR 区间。
+
+\subsection{AUC：面积法与配对（Mann–Whitney）解释}
+\term{AUC}{area under the ROC curve} $\in[0,1]$：随机 0.5、完美 1、$<0.5$ 说明打分方向反了。\key{概率解释}：随机抽一正一负，正例打分更高的概率（同分记 1/2）：
+\[
+\mathrm{AUC}=\frac1{m^+m^-}\sum_{\bm x^+\in D^+}\sum_{\bm x^-\in D^-}\Big[\mathbf 1\{s(\bm x^+)>s(\bm x^-)\}+\tfrac12\mathbf 1\{s(\bm x^+)=s(\bm x^-)\}\Big]=1-\ell_{\text{rank}},
+\]
+即 Mann–Whitney $U/(m^+m^-)$；$\ell_{\text{rank}}$ 为“正例排在负例之后”的配对比例。（每遇一负例右移 $1/m^-$，高度 = 打分高于它的正例比例；同分斜线的梯形给出 1/2。）\key{手算步骤}：面积法（逐段宽 × 高）与配对法（每个正例数“比它低的负例数”，同分记 0.5，总和 $/m^+m^-$）互相验证。示意：打分 0.90+, 0.80+, 0.70$-$, 0.60+, 0.55$-$, 0.40$-$ → 点 $(0,0),(0,\frac13),(0,\frac23),(\frac13,\frac23),(\frac13,1),(\frac23,1),(1,1)$，AUC $=(3+3+2)/9=8/9$，KS $=2/3$，AP $=\frac13(1+1+\frac34)=0.917$。
+
+\subsection{P-R 曲线、平衡点（BEP）、平均精确率（AP）；不平衡时看 P-R}
+\term{P-R 曲线}{precision-recall curve}：横轴召回率、纵轴精确率。(1) 不一定单调（上例阈值 0.70→0.60 时 P 从 2/3 升到 3/4），ROC 则单调不减；(2) \term{平衡点}{break-even point, BEP}：$P=R$ 处的取值；(3) \term{平均精确率}{average precision, AP}：$\mathrm{AP}=\sum_n(R_n-R_{n-1})P_n$（每次召回率增加时乘当时精确率）；随机打分的 AP 约等于正例比例。
+\key{ROC 与 P-R 的选择}：TPR、FPR 分母为真实正／负例数，ROC \key{对类别比例不敏感}（负例复制 10 倍 ROC 不变）；$P=\frac{\mathrm{TP}}{\mathrm{TP}+\mathrm{FP}}$ 中 FP 随负例增多而增大。正例极少（欺诈、罕见病、违约）时 FPR 分母巨大，AUC 很漂亮而精确率很低 → 用 \key{P-R 曲线与 AP}；关心整体排序、部署时类别比例可能变化 → 用 ROC／AUC。
+
+\subsection{金融常用：Gini 系数（AR）与 KS 统计量}
+\key{Gini 系数}（准确率比率 AR）$=2\,\mathrm{AUC}-1\in[-1,1]$，随机为 0（\textbf{易错}：与决策树“基尼指数”无关）。\key{KS 统计量} $=\max_t[\mathrm{TPR}(t)-\mathrm{FPR}(t)]$：ROC 与对角线的最大纵向距离，即正、负例打分经验分布函数之差的最大值（K-S 两样本统计量）；使 KS 最大的阈值常作切分点。
+
+\subsection{概率输出的评价：对数损失、Brier 分数与校准}
+AUC 只看排序，不看概率准不准；定价、计提拨备需要准确概率：\key{对数损失} $-\frac1N\sum_i[y_i\ln\hat p_i+(1-y_i)\ln(1-\hat p_i)]$（即交叉熵）；\key{Brier 分数} $\frac1N\sum_i(\hat p_i-y_i)^2$；\key{校准曲线}：预测概率分箱，比较箱内平均预测概率与实际正例比例。决策树、随机森林、朴素贝叶斯、SVM 的“概率”常校准不佳 → Platt 缩放（\texttt{method="sigmoid"}）或保序回归（\texttt{"isotonic"}），\texttt{CalibratedClassifierCV}。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+confusion_matrix(y_te, y_pred); print(classification_report(y_te, y_pred))   # sklearn.metrics
+f1_score(y_te, y_pred, average="macro"); fbeta_score(y_te, y_pred, beta=2)   # micro/weighted/None
+p = model.predict_proba(X_te)[:, 1]; auc = roc_auc_score(y_te, p)   # positive-class scores
+fpr, tpr, thr = roc_curve(y_te, p); ks = (tpr - fpr).max(); prec, rec, _ = precision_recall_curve(y_te, p)
+ap = average_precision_score(y_te, p); ll = log_loss(y_te, p); bs = brier_score_loss(y_te, p)
+\end{lstlisting}
+\noindent\textbf{易错}：\texttt{roc\_auc\_score} 必须传打分／概率；传 0/1 预测只得到一个阈值下的点。\textit{AUC equals the probability that a randomly chosen positive instance is ranked above a randomly chosen negative one.}
+
+% ======================================================================
+\section{\texorpdfstring{回归性能度量：MSE、RMSE、MAE 与 $R^2$}{回归性能度量：MSE、RMSE、MAE 与 R2}}
+
+\subsection{\texorpdfstring{四个常用指标的定义（及 MAPE）}{四个常用指标的定义（及 MAPE）}}
+测试集 $n$ 个样本，$e_i=y_i-\hat y_i$，$\bar y$ 为测试集均值：
+\[
+\mathrm{MSE}=\tfrac1n\textstyle\sum_i e_i^2,\quad \mathrm{RMSE}=\sqrt{\mathrm{MSE}}\ (\text{与 }y\text{ 同单位}),\quad \mathrm{MAE}=\tfrac1n\sum_i|e_i|,\]\[R^2=1-\frac{\sum_i(y_i-\hat y_i)^2}{\sum_i(y_i-\bar y)^2}=1-\frac{\mathrm{SSE}}{\mathrm{SST}},\quad \mathrm{MAPE}=\tfrac1n\sum_i\big|\tfrac{e_i}{y_i}\big|.
+\]
+示意：$y=(3,5,2,7,8)$，$\hat y=(2.5,5.5,3,6,8.5)$ → SSE 2.75，MSE 0.55，RMSE 0.742，MAE 0.70，SST 26，$R^2=0.894$，MAPE 0.194。
+
+\subsection{\texorpdfstring{各指标的性质与选择：离群值、负 $R^2$、调整 $R^2$、样本外 $R^2$}{各指标的性质与选择}}
+\begin{itemize}
+\item MSE／RMSE 平方放大大误差，受离群值影响大；MAE 更稳健。\key{最优常数预测}：使 MSE 最小的是\key{均值}（$\frac{\dd}{\dd c}\sum(y_i-c)^2=0\Rightarrow c=\bar y$），使 MAE 最小的是\key{中位数} → MSE 损失估计条件均值 $\E[y|\bm x]$，MAE 损失估计条件中位数（$y=(1,2,3,4,100)$：均值 22、中位数 3）。MAPE 在 $y_i\approx0$ 时不可用。
+\item $R^2$ = 比“永远预测 $\bar y$”减少的平方误差比例。训练集含截距 OLS 中 $0\le R^2\le1$；\key{测试集上可为负}（$y=(10,12,14)$ 全预测 8：SSE 56、SST 8，$R^2=-6$）。调整 $\bar R^2=1-(1-R^2)\frac{n-1}{n-p-1}$（$p$ 个特征）。
+\item 金融\key{样本外 $R^2$}：$R^2_{OS}=1-\frac{\sum_t(r_t-\hat r_t)^2}{\sum_t(r_t-\bar r_t)^2}$，$\bar r_t$ 只用 $t$ 期以前数据的历史均值（Campbell \& Thompson, 2008）；$R^2_{OS}>0$ 才胜过历史均值，月度收益预测中零点几个百分点即有经济意义。
+\end{itemize}
+\noindent sklearn：\texttt{mean\_squared\_error}、\texttt{root\_mean\_squared\_error}（$\ge$1.4）、\texttt{mean\_absolute\_error}、\texttt{r2\_score(y\_te, y\_hat)}、\texttt{mean\_absolute\_percentage\_error}；\textbf{易错}：\texttt{cross\_val\_score} 约定“越大越好”，\texttt{scoring="neg\_mean\_squared\_error"} 返回 $-$MSE。
+
+% ======================================================================
+\section{类别不平衡问题}
+
+\subsection{问题：少数类被“淹没”；三类应对思路；不平衡时的评估指标（平衡准确率、G-mean）}
+\term{类别不平衡}{class imbalance}（违约率 2\%、欺诈率 0.1\%）：以准确率或对数损失为目标训练时模型倾向全判多数类；准确率失去意义。应对：\key{改数据}（重采样）、\key{改阈值}（阈值移动）、\key{改损失}（代价敏感学习）。评估改用 R、P、$F_1$／$F_\beta$、P-R 曲线与 AP、AUC，以及\key{平衡准确率} $=\frac12(\mathrm{TPR}+\mathrm{TNR})$、\key{G-mean} $=\sqrt{\mathrm{TPR}\times\mathrm{TNR}}$（TPR 0.75、TNR 0.875 → 0.8125、0.810）。
+
+\subsection{重采样：欠采样、过采样与 SMOTE 插值公式}
+\begin{itemize}
+\item \term{欠采样}{undersampling}：随机丢弃多数类，快但丢信息；EasyEnsemble：多数类分若干份，各与全部少数类组成平衡集，训练多个模型再集成，整体不丢信息。\term{过采样}{oversampling}：随机复制少数类，不丢信息但易过拟合。
+\item \term{SMOTE}{synthetic minority over-sampling technique}（Chawla 等, 2002）：对少数类样本 $\bm x_i$，(1) 在\key{少数类}中找 $k$ 个近邻（常 $k=5$）；(2) 随机选一个近邻 $\bm x_{nn}$；(3) 生成
+$\bm x_{\text{new}}=\bm x_i+\lambda(\bm x_{nn}-\bm x_i)$，$\lambda\sim U(0,1)$（线段上随机一点）；重复至所需数量。示意：$(2,3)$、近邻 $(4,4)$、$\lambda=0.25$ → $(2.5,3.25)$。
+\item \textbf{易错}：SMOTE 依赖距离，先标准化（类别特征用 SMOTE-NC）；类别重叠区会生成噪声（Borderline-SMOTE、ADASYN 区别对待边界样本）；\key{只能在训练集（训练折）上重采样}，测试集保持原分布。
+\end{itemize}
+
+\subsection{阈值移动（再缩放，rescaling）}
+0.5 阈值隐含正负先验相等。训练集为总体无偏样本时，应在“预测几率高于平均几率”时判正：$\frac{\hat p}{1-\hat p}>\frac{m^+}{m^-}\iff\hat p>\frac{m^+}{m^++m^-}$；等价地再缩放 $\frac{\hat p'}{1-\hat p'}=\frac{\hat p}{1-\hat p}\times\frac{m^-}{m^+}$ 后仍用 0.5（违约率 5\% → 阈值 0.05）。训练集先验 $\pi_{tr}$ 与总体 $\pi$ 不同时，几率乘 $\frac{\pi/(1-\pi)}{\pi_{tr}/(1-\pi_{tr})}$ 校正。实践中常在验证集上选使 F1、$F_\beta$ 或收益最大的阈值。阈值移动不改变排序，\key{不改变 AUC}。
+
+\subsection{\texorpdfstring{代价敏感学习与最优阈值 $c_{FP}/(c_{FP}+c_{FN})$}{代价敏感学习与最优阈值 cFP/(cFP+cFN)}}
+\term{代价敏感学习}{cost-sensitive learning}：负例误判为正代价 $c_{FP}$，正例误判为负代价 $c_{FN}$，判对为 0；目标为最小化期望总代价。设 $p=P(y=1|\bm x)$：
+判正期望代价 $(1-p)c_{FP}$，判负期望代价 $p\,c_{FN}$ \whyin{只有判错才付代价}，故
+\[
+\text{判正}\iff(1-p)c_{FP}<p\,c_{FN}\iff p>p^*=\frac{c_{FP}}{c_{FP}+c_{FN}}. \why{移项}
+\]
+$c_{FN}=c_{FP}$ 时 $p^*=0.5$；漏报代价越高阈值越低（漏欺诈损失 10、误报核查 1 → $p^*=1/11=0.091$）。\key{实现}：(1) 训练概率模型后移动阈值；(2) 损失中按类别加权（正例乘 $c_{FN}$）；(3) 按代价比例重采样。\texttt{class\_weight="balanced"}：$w_c=\frac{N}{K N_c}$（$N=1000$、正例 50 → 正例权重 10，负例 0.526）。\tagext\ \key{代价曲线}：横轴 $P(+)_{\text{cost}}=\frac{p\,c_{FN}}{p\,c_{FN}+(1-p)c_{FP}}$（$p$ 为正例先验），纵轴归一化期望代价；ROC 每点对应 $(0,\mathrm{FPR})$—$(1,\mathrm{FNR})$ 线段，所有线段下界的面积 = 期望总代价，越小越好。
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+clf = LogisticRegression(class_weight="balanced")          # cost-sensitive via weights
+from imblearn.over_sampling import SMOTE; from imblearn.pipeline import Pipeline as ImbPipeline
+pipe = ImbPipeline([("smote", SMOTE(k_neighbors=5)), ("clf", LogisticRegression())])  # train folds only
+y_hat = (pipe.fit(X_tr, y_tr).predict_proba(X_te)[:, 1] >= 0.091).astype(int)       # threshold moving
+\end{lstlisting}
+
+% ======================================================================
+\section{学习曲线、验证曲线与模型比较检验}
+
+\subsection{学习曲线与验证曲线：诊断高偏差与高方差}
+\term{学习曲线}{learning curve}：横轴\key{训练样本量}，纵轴训练误差与验证（CV）误差。\term{验证曲线}{validation curve}：横轴控制复杂度的\key{超参数}（最大深度、多项式阶数、$1/\lambda$、KNN 的 $1/k$），随复杂度上升训练误差单调降、验证误差\key{先降后升}（U 形：左侧欠拟合、右侧过拟合、底部最优）。\textbf{易错}：KNN 的 $k$ 越小越复杂；正则化 $\lambda$ 越小越复杂。
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{2.2cm}LL@{}}
+\toprule
+ & 高偏差（欠拟合）& 高方差（过拟合）\\
+\midrule
+学习曲线症状 & 训练、验证误差都高，很快靠拢，差距小 & 训练误差很低、验证误差高，差距大；加样本验证误差仍在降 \\
+对策 & 加数据基本无效；增加复杂度：更复杂模型、多项式／交互特征、更小 $\lambda$、树加深、更小 $k$；Boosting & 加数据有效；降低复杂度：特征选择、剪枝／限深、更大 $\lambda$、更大 $k$、提前停止、Dropout；Bagging、随机森林 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+sizes, tr, va = learning_curve(est, X, y, train_sizes=np.linspace(0.1, 1, 8), cv=5)  # sklearn.model_selection
+tr, va = validation_curve(est, X, y, param_name="max_depth", param_range=range(1, 16), cv=5)  # plot .mean(axis=1)
+\end{lstlisting}
+
+\subsection{模型比较的统计检验：CV 配对 t 检验、McNemar 检验}
+\begin{itemize}
+\item \key{交叉验证配对 $t$ 检验}：同一组 $k$ 折上 $d_j=e^A_j-e^B_j$，$H_0:\E[d]=0$，$t=\dfrac{\bar d}{s_d/\sqrt k}\sim t_{k-1}$（近似）。各折训练集重叠、$d_j$ 不独立，偏向过度拒绝 → 5×2 交叉验证 $t$ 检验（Dietterich, 1998）。示意：$d=(0.02,0.01,0.03,-0.01,0.02)$，$t=0.014/(0.01517/\sqrt5)=2.06<t_{4,0.975}=2.776$，不拒绝。
+\item \key{McNemar 检验}：同一测试集，$b$ = A 对 B 错数，$c$ = A 错 B 对数；$H_0$：错误率相同。$\chi^2=\dfrac{(|b-c|-1)^2}{b+c}\sim\chi^2_1$（连续性校正），$>3.841$ 在 5\% 拒绝；只用意见不一致的样本（$b=12,c=4$：$49/16=3.06$，不显著）。
+\item 多模型多数据集：Friedman 检验 + Nemenyi 后续检验；时间序列预测比较：Diebold–Mariano 检验。
+\end{itemize}
+
+% ======================================================================
+\section{正则化线性模型：Ridge、Lasso 与 Elastic Net}
+
+\subsection{三个模型的目标函数与 sklearn 的参数化（alpha、l1\_ratio、C）}
+特征已标准化、$y$ 已中心化（截距单独估计、\key{不受惩罚}），$\bm\beta\in\R^d$：
+\begin{gather*}
+\text{岭回归}:\ \min_{\bm\beta}\tfrac12\|\bm y-X\bm\beta\|_2^2+\tfrac\lambda2\|\bm\beta\|_2^2;\qquad
+\text{Lasso}:\ \min_{\bm\beta}\tfrac12\|\bm y-X\bm\beta\|_2^2+\lambda\|\bm\beta\|_1;\\
+\text{弹性网}:\ \min_{\bm\beta}\tfrac12\|\bm y-X\bm\beta\|_2^2+\lambda\Big[\alpha\|\bm\beta\|_1+\tfrac{1-\alpha}2\|\bm\beta\|_2^2\Big],\quad\alpha\in[0,1].
+\end{gather*}
+\term{岭回归}{ridge regression}、\term{Lasso}{least absolute shrinkage and selection operator}（Tibshirani, 1996）、\term{弹性网}{elastic net}（Zou \& Hastie, 2005）；$\alpha=1$ 即 Lasso，$\alpha=0$ 即岭回归。岭回归闭式解 $(X\T X+\lambda I)\inv X\T\bm y$；L2 对应高斯先验、L1 对应拉普拉斯先验。
+\textbf{易错}（sklearn 参数化）：\texttt{Ridge(alpha)} 最小化 $\|\bm y-X\bm w\|^2+\text{alpha}\|\bm w\|^2$；\texttt{Lasso(alpha)} 最小化 $\frac1{2N}\|\bm y-X\bm w\|^2+\text{alpha}\|\bm w\|_1$；\texttt{ElasticNet(alpha, l1\_ratio)} 最小化 $\frac1{2N}\|\bm y-X\bm w\|^2+\text{alpha}\cdot\text{l1\_ratio}\|\bm w\|_1+\frac12\text{alpha}(1-\text{l1\_ratio})\|\bm w\|^2$。即 Ridge 的 alpha $=\lambda$，Lasso／ElasticNet 的 alpha $=\lambda/N$，l1\_ratio = 本书 $\alpha$；\texttt{LogisticRegression}／\texttt{SVC} 的 \texttt{C} 是正则化强度的\key{倒数}。
+
+\subsection{正交设计下的闭式解：岭的比例收缩、Lasso 的软阈值、硬阈值}
+设 $X\T X=I$，OLS 解 $\bm z=X\T\bm y$：
+\begin{align*}
+\tfrac12\|\bm y-X\bm\beta\|^2&=\tfrac12\bm y\T\bm y-\bm\beta\T X\T\bm y+\tfrac12\bm\beta\T X\T X\bm\beta \why{展开平方}\\
+&=\text{常数}+\textstyle\sum_{j}\big(\tfrac12\beta_j^2-z_j\beta_j\big)=\text{常数}+\sum_j\tfrac12(\beta_j-z_j)^2 \why{$X\T X=I$；配方}
+\end{align*}
+问题按坐标分离：每个 $\beta$ 单独 $\min_\beta\frac12(\beta-z)^2+\text{惩罚}(\beta)$。
+\begin{itemize}
+\item \key{岭}：$\beta-z+\lambda\beta=0\Rightarrow\hat\beta=\dfrac{z}{1+\lambda}$，按比例收缩，\key{永不恰为 0}。
+\item \key{Lasso}（$|\beta|$ 在 0 处不可导，用次梯度 $\partial|0|=[-1,1]$）：$\beta>0$：$\beta=z-\lambda$（需 $z>\lambda$）；$\beta<0$：$\beta=z+\lambda$（需 $z<-\lambda$）；$\beta=0$：$0\in-z+\lambda[-1,1]\iff|z|\le\lambda$。合起来为\term{软阈值}{soft thresholding}：
+\[
+\boxed{\hat\beta^{\text{lasso}}=S_\lambda(z)=\operatorname{sign}(z)\,(|z|-\lambda)_+},\qquad (a)_+=\max(a,0).
+\]
+$|z|\le\lambda$ 的系数被\key{压成恰好 0}（选择），其余向 0 \key{平移 $\lambda$}（收缩）——Lasso 稀疏性的代数原因，与 L1 菱形尖角的几何解释一致。
+\item \key{最优子集}（L0 惩罚 $\frac{\lambda^2}2\mathbf 1\{\beta\ne0\}$）：$\beta\ne0$ 时 $\beta=z$、代价 $\frac{\lambda^2}2$；$\beta=0$ 时代价 $\frac{z^2}2$ → $\hat\beta=z\,\mathbf 1\{|z|>\lambda\}$，\term{硬阈值}{hard thresholding}（保留原值或置 0）。
+\item \key{弹性网}：$\hat\beta^{\text{enet}}=\dfrac{S_{\lambda\alpha}(z)}{1+\lambda(1-\alpha)}$，先软阈值再比例收缩。
+\item 示意：$\bm z=(3,-1.5,0.5)$、$\lambda=1$：岭 $(1.5,-0.75,0.25)$；Lasso $(2,-0.5,0)$；硬阈值 $(3,-1.5,0)$；弹性网（$\alpha=0.5$）$S_{0.5}(\bm z)/1.5=(1.667,-0.667,0)$。正交时 $\lambda\ge\max_j|z_j|$ 则 Lasso 全为 0。
+\end{itemize}
+
+\subsection{\texorpdfstring{一般设计下的求解：坐标下降、$\lambda_{\max}$ 与 Lasso 路径}{一般设计下的求解：坐标下降、lambda-max 与 Lasso 路径}}
+列已标准化（$\frac1N\sum_ix_{ij}^2=1$），目标 $\frac1{2N}\|\bm y-X\bm\beta\|^2+\lambda\|\bm\beta\|_1$。\term{坐标下降}{coordinate descent}：(1) 初始化 $\bm\beta=\bm 0$（或上一个 $\lambda$ 的解，\key{热启动}）；(2) 循环 $j=1,\dots,d$：偏残差 $r_i^{(j)}=y_i-\sum_{k\ne j}x_{ik}\beta_k$，$\rho_j=\frac1N\sum_ix_{ij}r_i^{(j)}$（偏残差对 $x_j$ 的单变量 OLS 系数），更新 $\beta_j\leftarrow S_\lambda(\rho_j)$；(3) 重复至系数变化小于容差。目标凸，收敛到全局最优（sklearn 的 Lasso、ElasticNet 即用此法；LARS 可一次算出整条路径）。
+\key{$\lambda_{\max}$}：由 $\bm\beta=\bm0$ 处次梯度条件，$\lambda\ge\lambda_{\max}=\max_j\frac1N|\bm x_{\cdot j}\T\bm y|$ 时全部系数为 0。在 $[\epsilon\lambda_{\max},\lambda_{\max}]$ 取对数等距 100 个 $\lambda$ 从大到小求解，得 \key{Lasso 路径}（$\lambda$ 变小，变量逐个进入），再用 \texttt{LassoCV} 选 $\lambda$。
+
+\subsection{Lasso 的局限与改进；为何必须先标准化}
+(1) $d>N$ 时\key{最多选出 $N$ 个变量}。(2) 高度相关的一组变量中 Lasso \key{随意选一个}、其余置 0，且不稳定；弹性网的 L2 部分使相关变量系数接近、同进同出——\term{分组效应}{grouping effect}。(3) 大系数也被平移 $\lambda$，有\key{收缩偏差} → post-Lasso／relaxed Lasso（选后对选中变量做 OLS）；自适应 Lasso（Zou, 2006）惩罚 $\lambda\sum_jw_j|\beta_j|$，$w_j=1/|\hat\beta_j^{\text{init}}|^\gamma$，大系数惩罚轻。(4) \key{选择后推断}：用 Lasso 选控制变量后直接做 OLS $t$ 检验无效 → 双重选择（post-double-selection，Belloni, Chernozhukov \& Hansen, 2014）与双重机器学习（DML）。
+\key{标准化}：惩罚 $\sum_j|\beta_j|$ 对所有系数一视同仁，而系数大小依赖单位（收入以元或万元计，系数差 1 万倍），故拟合 Ridge／Lasso／Elastic Net 前必须标准化（管道中只用训练集均值方差）；截距不惩罚。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+ridge = make_pipeline(StandardScaler(), RidgeCV(alphas=np.logspace(-3, 3, 50)))
+lasso = make_pipeline(StandardScaler(), LassoCV(cv=5)).fit(X, y)
+print(lasso[-1].alpha_, (lasso[-1].coef_ != 0).sum())     # chosen lambda, #selected
+enet = make_pipeline(StandardScaler(), ElasticNetCV(l1_ratio=[.1, .5, .9, 1], cv=5))
+l1_logit = LogisticRegression(l1_ratio=1.0, C=0.1, solver="saga", max_iter=5000)  # L1; sklearn<1.8: penalty="l1"
+\end{lstlisting}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{2.4cm}p{3.3cm}p{5.2cm}L@{}}
+\toprule
+ & Ridge（L2）& Lasso（L1）& Elastic Net（L1+L2）\\
+\midrule
+正交设计下的解 & $z/(1+\lambda)$，比例收缩 & $S_\lambda(z)$，软阈值 & $S_{\lambda\alpha}(z)/(1+\lambda(1-\alpha))$ \\
+稀疏（变量选择）& 否 & 是 & 是 \\
+相关变量 & 系数均摊、都保留 & 随意选一个 & 成组进出（分组效应）\\
+闭式解；先验 & 有；高斯 & 一般无（坐标下降、LARS）；拉普拉斯 & 一般无（坐标下降）；两者之积 \\
+适用 & 许多小效应、共线性 & 少数变量真正重要 & $d\gg N$、变量成组相关 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{特征选择：过滤式、包裹式与嵌入式}
+
+\subsection{为什么要做特征选择；与特征提取（PCA）的区别}
+\term{特征选择}{feature selection}：从 $d$ 个原始特征中选子集。目的：缓解维数灾难、降低过拟合；减少计算与采集成本；提高可解释性（金融监管常要求）。\term{特征提取}{feature extraction}（如 PCA）把原特征组合成新特征；特征选择\key{保留原始特征含义}。穷举需评估 $2^d$ 个子集（$d=20$ 约 105 万），故需\key{子集搜索}（前向、后向）与\key{子集评价}（统计量、模型性能）；三类方法的区别在于“选择”与“学习器训练”的关系。
+
+\subsection{过滤式：方差阈值、相关系数、F 检验、卡方检验、互信息与 Relief}
+\term{过滤式}{filter method}：先用与模型无关的统计量给特征打分、排序、选前若干个，再训练。
+\begin{itemize}
+\item \key{方差阈值}：删去方差（几乎）为 0 的特征。\key{相关系数}（回归）：保留 $|\mathrm{corr}(x_j,y)|$ 大的；\key{ANOVA $F$}（连续特征、分类标签）：各类均值差异越显著越好。
+\item \key{卡方检验}（类别特征、分类标签）：检验特征与标签独立，$\chi^2=\sum\frac{(O-E)^2}{E}$，$E=\frac{\text{行和}\times\text{列和}}{n}$，越大越相关，自由度 $(r-1)(c-1)$；$2\times2$ 捷径 $\chi^2=\frac{n(ad-bc)^2}{(a+b)(c+d)(a+c)(b+d)}$，与 $\chi^2_1$ 临界值 3.841 比较。示意：垃圾含 30／不含 20、正常含 10／不含 40 → $\chi^2=\frac{100\times(1200-200)^2}{50\times50\times40\times60}=16.67$，保留。
+\item \key{互信息} $I(x_j;y)=H(y)-H(y\,|\,x_j)$：能捕捉非线性关系，即决策树中的“信息增益”。
+\item \key{Relief}（二分类）：对每个样本找同类最近邻 near-hit 与异类最近邻 near-miss，$\delta_j=\sum_i\big[-\mathrm{diff}(x_{ij},x_{\text{nh},j})^2+\mathrm{diff}(x_{ij},x_{\text{nm},j})^2\big]$，与 near-hit 近、与 near-miss 远则 $\delta_j$ 大、有区分力。
+\end{itemize}
+优点：快、与模型无关、适合高维初筛。缺点：单变量方法\key{忽略冗余与交互}（两个高度相关特征同时入选；单独无用、组合有用的特征被删）。
+
+\subsection{包裹式：前向选择、后向消除、RFE 与 LVW}
+\term{包裹式}{wrapper method}：以目标模型的性能（CV 误差）为准则搜索子集。\key{前向选择}：从空集起每轮加入使 CV 提升最大的特征，至不再提升，最多评估 $d+(d-1)+\cdots+1=\frac{d(d+1)}2$ 个子集（$d=20$ 时 210）；\key{后向消除}：从全集起每轮删去影响最小的特征；\term{递归特征消除}{recursive feature elimination, RFE}：训练 → 按系数绝对值／重要性删最不重要的特征 → 在剩余特征上重训 → 重复（\texttt{RFECV} 用 CV 定保留个数）；\key{LVW}（拉斯维加斯包裹法）：随机产生子集，在时间预算内保留 CV 误差最小者。针对具体模型、效果通常最好，但计算量大，贪心不保证全局最优，易对验证集过拟合。
+
+\subsection{嵌入式：L1 正则与树模型的特征重要性}
+\term{嵌入式}{embedded method}：选择在训练中自动完成。L1 正则（Lasso、L1-Logistic）训练后系数为 0 的特征被剔除；决策树只用增益大的特征分裂，随机森林、GBDT 给出特征重要性，按阈值筛选（\texttt{SelectFromModel}）。
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}LLL@{}}
+\toprule
+ & 过滤式 & 包裹式 & 嵌入式 \\
+\midrule
+与模型关系 & 独立于模型，先选后训 & 用模型性能评价子集 & 训练中同时选择 \\
+代表方法 & 方差、相关、$\chi^2$、互信息、Relief & 前向／后向、RFE、LVW & Lasso、树的重要性 \\
+计算量／特征关系／效果 & 小／否（单变量）／一般 & 大／是／通常最好 & 中／部分／较好 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\noindent\textbf{易错}：特征选择\key{也必须放进交叉验证}。先用全部数据（含验证折）选出与标签最相关的特征再做 CV，CV 误差严重偏乐观（$d\gg N$ 时即使特征全是噪声也能得到很低的 CV 误差）；应把选择步骤放进 \texttt{Pipeline}（如 \texttt{make\_pipeline(filt, LogisticRegression())}），在每个训练折内单独选。
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize]
+filt = SelectKBest(mutual_info_classif, k=10)    # filter; also chi2, f_classif, VarianceThreshold(0.01)
+rfe = RFECV(LogisticRegression(), step=1, cv=5); emb = SelectFromModel(RandomForestClassifier(), threshold="median")
+sfs = SequentialFeatureSelector(LogisticRegression(), n_features_to_select=5, direction="forward", cv=5)
+\end{lstlisting}

@@ -1,0 +1,1085 @@
+\chapter{内生性：来源与后果}
+\label{ch:U07-endog}
+
+第 3--6 章都在\key{外生性}假设 $\E(u_i\mid x_i)=0$ 之下讨论 OLS 的代数、有限样本与大样本性质，以及 $t$、$F$、Wald 检验。本章回答一个更根本的问题：外生性不成立时会发生什么？路线是：先区分结构方程与回归（投影）方程，给出内生性的准确定义；再推导 $\plim\hat\beta_{OLS}=\beta+Q\inv\E(x_iu_i)$，说明 OLS 此时既有偏又不一致、基于 OLS 的推断全部失效；然后逐一剖析内生性的三个来源——遗漏变量（OVB 公式与符号判断）、测量误差（$y$ 有误差无碍，$x$ 有误差导致衰减偏误）、联立性（供求模型，拓展）；最后给出实证论文中判断内生性的清单。本章是第 8 章（工具变量与 GMM）与第 9 章（三大检验）的出发点，对应 Hansen 第 12.1--12.4 节。
+
+%======================================================================
+\section{外生模型与内生模型}\label{sec:U07-model}
+
+\subsection{本章记号}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lL}
+\toprule
+记号 & 含义\\
+\midrule
+$y_i$ & 被解释变量（标量），$i=1,\dots,n$\\
+$x_i$ & $K\times1$ 回归元向量（含常数项）\\
+$u_i$ & 结构误差（structural error）；$\beta$ 为 $K\times1$ 结构参数\\
+$Y=X\beta+u$ & 矩阵形式：$Y$ 为 $n\times1$，$X$ 为 $n\times K$（第 $i$ 行为 $x_i\T$），$u$ 为 $n\times1$\\
+$Q=\E(x_ix_i\T)$ & $K\times K$ 正定矩阵\\
+$w_i,\ \gamma$ & 遗漏变量（$m\times1$）及其系数；$z_i$ 留给第 8 章的工具变量，故遗漏变量不记作 $z_i$\\
+$x_i^*,\ y_i^*$ & 带星号表示真值；不带星号表示观测（采集）值；$e_{xi},e_{yi}$ 为测量误差\\
+$\beta^*$ & 线性投影系数 $\beta^*=[\E(x_ix_i\T)]\inv\E(x_iy_i)$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 7 章记号}
+\end{center}
+
+Hansen 第 12 章把结构误差记作 $e$，并在测量误差例子中用 $Z$ 表示真值、$X=Z+u$ 表示观测值（其中 $u$ 是测量误差）。读 Hansen 时注意 $u$ 的含义与本书不同。
+
+\subsection{条件期望分解：回归误差天然外生}
+
+\subsubsection{CEF 分解 \texorpdfstring{$y_i=\E(y_i\mid x_i)+v_i$}{y = E(y|x) + v}}
+
+从数据 $(y_i,x_i)$ 出发，任何 $y_i$ 都可以做\term{条件期望分解}{CEF decomposition}：
+\begin{align*}
+y_i &= \E(y_i\mid x_i)+\bigl[y_i-\E(y_i\mid x_i)\bigr] \why{加一项减一项}\\
+    &= \E(y_i\mid x_i)+v_i,\qquad v_i\equiv y_i-\E(y_i\mid x_i). \why{定义 CEF 误差}
+\end{align*}
+
+\subsubsection{CEF 误差满足 \texorpdfstring{$\E(v_i\mid x_i)=0$}{E(v|x)=0}}
+
+对 $v_i$ 取条件期望：
+\begin{align*}
+\E(v_i\mid x_i) &= \E(y_i\mid x_i)-\E\bigl[\E(y_i\mid x_i)\mid x_i\bigr] \why{条件期望的线性}\\
+&= \E(y_i\mid x_i)-\E(y_i\mid x_i) \why{$\E(y_i\mid x_i)$ 是 $x_i$ 的函数，可提出}\\
+&= 0.
+\end{align*}
+所以 CEF 误差按构造就与 $x_i$ 均值独立：无论 $x_i$ 取何值，$v_i$ 的条件均值都是 $0$。
+
+\subsubsection{参数由 CEF 或线性投影定义时不会出现内生性}
+
+若 CEF 是线性的，$\E(y_i\mid x_i)=x_i\T\beta_0$，则 $y_i=x_i\T\beta_0+v_i$ 且 $\E(v_i\mid x_i)=0$ 自动成立。即使 CEF 非线性，线性投影（第 2 章）也给出“天然外生”的误差：记 $\beta^*=[\E(x_ix_i\T)]\inv\E(x_iy_i)$，$e_i^*=y_i-x_i\T\beta^*$，则
+\begin{align*}
+\E(x_ie_i^*) &= \E(x_iy_i)-\E(x_ix_i\T)\beta^* \why{代入 $e_i^*$，期望线性}\\
+&= \E(x_iy_i)-\E(x_ix_i\T)[\E(x_ix_i\T)]\inv\E(x_iy_i) \why{代入 $\beta^*$}\\
+&= 0. \why{$AA\inv=I_K$}
+\end{align*}
+结论：\key{如果参数 $\beta$ 就是由 CEF 或线性投影定义的，那么“误差与回归元相关”根本不会发生}。内生性只可能出现在用别的方式定义的参数上。
+
+\subsection{结构方程与结构参数}
+
+内生性不是数据本身的毛病，而是“\key{想要的参数}”与“\key{回归自动给出的参数}”不一致。我们关心的往往是\term{结构参数}{structural parameter}——例如“多读一年书\emph{导致}工资上升多少”。描述这种因果关系的方程称为\term{结构方程}{structural equation}：
+\[
+y_i=x_i\T\beta+u_i,
+\]
+其误差 $u_i$ 装着所有未观测的因素（能力、偏好……），它们没有理由与 $x_i$ 无关。只有当 $\beta$ 是结构参数时，讨论 $\E(u_i\mid x_i)$ 是否为 $0$ 才有意义；若 $\beta$ 是投影系数，误差按定义就与 $x_i$ 正交。
+
+\subsection{内生性的定义}
+
+\subsubsection{条件均值形式：\texorpdfstring{$\E(u_i\mid x_i)=0$}{E(u|x)=0} 为外生，否则为内生}
+
+\begin{defn}[外生与内生]\label{def:U07-endog}
+在结构方程 $y_i=x_i\T\beta+u_i$（$\beta$ 为结构参数）中：
+\begin{itemize}
+  \item 若 $\E(u_i\mid x_i)=0$，称 $x_i$ 为\term{外生的}{exogenous}，模型为\key{外生模型}；
+  \item 若 $\E(u_i\mid x_i)\neq0$，称 $x_i$ 为\term{内生的}{endogenous}，模型为\term{内生模型}{model with endogeneity}。
+\end{itemize}
+\end{defn}
+
+\subsubsection{Hansen 的不相关形式：\texorpdfstring{$\E(x_iu_i)\neq0$}{E(xu) != 0}}
+
+Hansen 用\key{不相关}形式定义：第 12.4 节称 $\E(x_iu_i)=0$ 时 $x_i$ 对 $\beta$ 外生（这是比均值独立更弱的条件）；第 12.2 节则把
+\[
+\E(x_iu_i)\neq0
+\]
+定义为存在\term{内生性}{endogeneity}。由下一小节的结论，$\E(x_iu_i)\neq0$ 蕴含 $\E(u_i\mid x_i)\neq0$。对 OLS 的\key{一致性}而言，真正起作用的是 $\E(x_iu_i)$ 是否为 $0$。
+
+\subsection{两种外生性条件的关系}
+
+\subsubsection{均值独立蕴含不相关：\texorpdfstring{$\E(u\mid x)=0\Rightarrow\E(xu)=0$}{E(u|x)=0 implies E(xu)=0}}
+
+要证：$\E(u_i\mid x_i)=0\Rightarrow\E(x_iu_i)=0$。思路：用迭代期望律先对 $x_i$ 取条件期望。
+\begin{align*}
+\E(x_iu_i) &= \E\bigl[\E(x_iu_i\mid x_i)\bigr] \why{迭代期望律}\\
+&= \E\bigl[x_i\,\E(u_i\mid x_i)\bigr] \why{给定 $x_i$ 时 $x_i$ 是常数，可提出}\\
+&= \E[x_i\cdot 0]=0. \why{外生性假设}
+\end{align*}
+逆否命题：$\E(x_iu_i)\neq0\Rightarrow\E(u_i\mid x_i)\neq0$。反方向不成立，见下例。
+
+\subsubsection{反例：不相关但不均值独立}
+
+\begin{exmp}[$u_i=x_i^2-1$]\label{ex:U07-counter}
+设 $x_i\sim N(0,1)$，$u_i=x_i^2-1$，回归元为 $(1,x_i)$。验证 $\E(u_i)=0$、$\E(x_iu_i)=0$，但 $\E(u_i\mid x_i)\neq0$。
+\solution
+\begin{align*}
+\E(u_i) &= \E(x_i^2)-1=1-1=0, \why{标准正态 $\E x^2=1$}\\
+\E(x_iu_i) &= \E(x_i^3)-\E(x_i)=0-0=0, \why{正态奇数阶矩为 0}\\
+\E(u_i\mid x_i) &= x_i^2-1\neq0. \why{$u_i$ 是 $x_i$ 的函数}
+\end{align*}
+所以 $(1,x_i)$ 与 $u_i$ 不相关，OLS 仍一致（估计的是线性投影系数）；但 $x_i\T\beta$ 不再是条件均值，因为 $\E(y_i\mid x_i)=x_i\T\beta+x_i^2-1$。这是\key{函数形式设定}问题，而不是导致 OLS 不一致的“内生性”。
+\end{exmp}
+
+\subsubsection{无偏性要均值独立，一致性只要不相关}
+
+\begin{note}[条件均值独立与不相关]
+$\E(u\mid x)=0$（均值独立）$\Rightarrow$ $\E(xu)=0$（不相关），反之不成立。有限样本无偏性（第 4 章）需要前者；大样本一致性（第 5 章）只需后者。考试中若题目给出 $\E(u\mid x)\neq0$，一般默认同时意味着 $\E(xu)\neq0$。
+\end{note}
+
+\subsection{部分回归元内生：一个内生就“污染”整个条件均值}\label{sec:U07-partial}
+
+\subsubsection{模型：\texorpdfstring{$x_1$}{x1} 内生，\texorpdfstring{$x_2,x_3$}{x2, x3} 外生}
+
+实际中通常只有一两个回归元可疑。考虑
+\[
+y=\beta_1x_1+\beta_2x_2+\beta_3x_3+u,\qquad \E(u\mid x_1)\neq0,\qquad \E(u\mid x_2,x_3)=0 .
+\]
+$x_1$ 内生；$x_2,x_3$ 外生，它们可以充当自己的工具变量（第 8 章）。
+
+\subsubsection{一个内生回归元就使 \texorpdfstring{$\E(u\mid x)\neq0$}{E(u|x) != 0}（反证）}
+
+要证：$\E(u\mid x_1,x_2,x_3)\neq0$。用反证法：若 $\E(u\mid x_1,x_2,x_3)=0$，则
+\begin{align*}
+\E(u\mid x_1) &= \E\bigl[\E(u\mid x_1,x_2,x_3)\mid x_1\bigr] \why{迭代期望律：小信息集吸收大信息集}\\
+&= \E[0\mid x_1]=0, \why{反设}
+\end{align*}
+与 $\E(u\mid x_1)\neq0$ 矛盾。所以只要有一个回归元内生，$\E(u\mid x)\neq0$，整个模型就是内生模型，OLS 的\key{所有}系数一般都会受影响（见下面的即时练习与本章遗漏变量一节“多个回归元”部分）。
+
+\subsubsection{内生模型的基本结论：OLS 有偏且不一致，只能借助工具变量}
+
+把上述内容写成一般形式：
+\[
+y_i=x_i\T\beta+u_i\ \Rightarrow\
+\begin{cases}
+\E(u_i\mid x_{1i})\neq0 & \to\ x_{1i}\ \text{内生（endogenous）}\\
+\E(u_i\mid x_{2i},\dots,x_{Ki})=0 & \to\ x_{2i},\dots,x_{Ki}\ \text{外生（exogenous）}
+\end{cases}
+\]
+等价地，内生模型可写成 $y=x_1\beta_1+x_2\beta_2+\cdots+x_K\beta_K+u$，$\E(u\mid x_1)\neq0$。由此得到三条结论：
+\begin{enumerate}
+  \item $\E(u_i\mid x_i)\neq0\ \Rightarrow\ \hat\beta_{OLS}$ \key{有偏且不一致}（下一节证明）；
+  \item 内生性的主要来源：遗漏变量（omitted variables）、测量误差（measurement error），以及联立性；
+  \item 推断：在截面数据中，要得到一致估计与有效推断，\key{只能借助工具变量 $Z$}（第 8 章）。
+\end{enumerate}
+
+\begin{prac}[部分内生对其他系数的影响]\label{pr:U07-partial}
+设 $y=\beta_0+\beta_1x_1+\beta_2x_2+u$，已知 $\E(u\mid x_2)=0$ 但 $\Cov(x_1,u)=c\neq0$。(1) 证明 $\E(u)=0$ 且 $\Cov(x_2,u)=0$；(2) 说明 $\hat\beta_2^{OLS}$ 一般也不一致，并指出它在什么条件下仍一致。
+\answer
+(1) 由迭代期望律：
+\begin{align*}
+\E(u) &= \E[\E(u\mid x_2)]=\E[0]=0, \why{迭代期望律}\\
+\E(x_2u) &= \E[x_2\E(u\mid x_2)]=0, \why{迭代期望律，提出 $x_2$}\\
+\Cov(x_2,u) &= \E(x_2u)-\E(x_2)\E(u)=0. \why{协方差定义}
+\end{align*}
+(2) 记 $x_i=(1,x_{1i},x_{2i})\T$。由于 $\E(x_1u)=\Cov(x_1,u)+\E(x_1)\E(u)=c$，有 $\E(x_iu_i)=(0,c,0)\T$。由下一节的式 \eqref{eq:U07-plim}，$\plim\hat\beta-\beta=Q\inv(0,c,0)\T=c\times(Q\inv\text{ 的第 2 列})$。
+斜率部分更直观：含截距时斜率的概率极限是去均值后的协方差之比。记 $\Sigma=\begin{pmatrix}\sigma_1^2&\sigma_{12}\\ \sigma_{12}&\sigma_2^2\end{pmatrix}$ 为 $(x_1,x_2)$ 的协方差矩阵，则
+\begin{align*}
+\plim\begin{pmatrix}\hat\beta_1\\ \hat\beta_2\end{pmatrix}
+&= \Sigma\inv\Cov\Bigl(\begin{pmatrix}x_1\\x_2\end{pmatrix},y\Bigr) \why{含截距时斜率的极限}\\
+&= \Sigma\inv\Bigl[\Sigma\begin{pmatrix}\beta_1\\ \beta_2\end{pmatrix}+\begin{pmatrix}c\\0\end{pmatrix}\Bigr] \why{代入 $y$；由 (1) $\Cov(x_2,u)=0$}\\
+&= \begin{pmatrix}\beta_1\\ \beta_2\end{pmatrix}+\frac{1}{\sigma_1^2\sigma_2^2-\sigma_{12}^2}\begin{pmatrix}\sigma_2^2&-\sigma_{12}\\ -\sigma_{12}&\sigma_1^2\end{pmatrix}\begin{pmatrix}c\\0\end{pmatrix} \why{$2\times2$ 逆矩阵公式}\\
+&= \begin{pmatrix}\beta_1\\ \beta_2\end{pmatrix}+\frac{c}{\sigma_1^2\sigma_2^2-\sigma_{12}^2}\begin{pmatrix}\sigma_2^2\\ -\sigma_{12}\end{pmatrix}. \why{矩阵乘法}
+\end{align*}
+所以 $\plim\hat\beta_2-\beta_2=\dfrac{-\sigma_{12}\,c}{\sigma_1^2\sigma_2^2-\sigma_{12}^2}$。只要 $x_1$ 与 $x_2$ 相关（$\sigma_{12}\neq0$），外生变量的系数也会被“传染”而不一致；仅当 $\sigma_{12}=0$ 时 $\hat\beta_2$ 一致。
+\end{prac}
+
+\subsection{外生模型与内生模型：估计方法的分流}
+
+\subsubsection{估计 \texorpdfstring{$\beta$}{beta} 的五条基本假设}
+
+截面线性模型 $y_i=x_i\T\beta+v_i$ 的标准假设有五条：
+\begin{enumerate}
+  \item \iid\ 抽样（不满足时用聚类标准误，见第 5 章）；
+  \item 参数线性；
+  \item 满秩 / 可识别：$\E(x_ix_i\T)$ 正定；
+  \item 有界矩（“无离群值”）：$\E y_i^4<\infty$，$\E x_{ik}^4<\infty$；
+  \item $\E(v_i\mid x_i)=0$。
+\end{enumerate}
+第 (5) 条正是本章讨论的外生性。按它是否成立，截面模型分成两种情形。
+
+\subsubsection{两种情形对照表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 情形 1：外生模型 & 情形 2：内生模型\\
+\midrule
+假设 & $\E(u_i\mid x_i)=0$ & $\E(u_i\mid x_i)\neq0$\\
+估计方法 & OLS（正态时与 MLE 相同，见第 4 章） & GMM / IV / 2SLS，需工具 $z_i$\\
+OLS 的性质 & 一致、渐近正态，可做检验 & 有偏、不一致；基于 OLS 的 $t$/$F$ 检验全部无效（no testing for OLS）\\
+工具需满足 & — & $\E(u_i\mid z_i)=0$（外生性）；$x_i$ 与 $z_i$ 相关（相关性）；非弱工具\\
+新估计量的性质 & — & GMM 一致、渐近正态、可做检验（第 8 章）\\
+如何判断属于哪一种 & \term{内生性检验}{endogeneity test}（第 9 章），原假设为外生 & 拒绝外生的原假设，则按内生模型估计\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{外生模型与内生模型}
+\end{center}
+
+\subsection{贯穿全章的例子：工资方程中的能力}
+
+\begin{exmp}[对数工资方程中的“能力”]\label{ex:U07-wage}
+\[
+\ln \text{wage}_i=x_i\T\beta+\boxed{\text{personal ability}_i+\text{preference}_i+\text{others}_i}\,.
+\]
+哪些量有数据？教育是外生的吗？这种情况常见吗？
+\solution
+$\ln\text{wage}_i$ 与 $x_i$（教育年限、工作经验等）都是数据；方框里的个人能力、偏好、其他因素没有数据，于是它们全部进入误差项 $u_i$。能力高的人往往受教育更多（能力既影响工资，又影响 $x_i$ 中的教育），所以 $\E(u_i\mid \text{educ}_i)\neq0$：\key{教育是内生的}。
+
+这类未观测因素统称\term{个体效应}{individual effects}：能力（ability）、偏好（preference）、企业效应（firm effects）——通常都没有数据。这种情况非常常见：凡是\term{观测数据}{observational data}（而非实验数据），内生性几乎总是需要正面回应的问题。本章的三个来源都能在这个例子中找到：遗漏能力（遗漏变量）、教育年限自报有误（测量误差）、教育是个人的选择（选择变量）。
+\end{exmp}
+
+\begin{english}
+\textbf{Defining endogeneity.} Consider the structural equation $y_i=x_i'\beta+u_i$, where $\beta$ is the parameter of interest. The regressor $x_i$ is exogenous if $\E(u_i\mid x_i)=0$ and endogenous if $\E(u_i\mid x_i)\neq0$ (in particular if $\E(x_iu_i)\neq0$). Endogeneity cannot arise if $\beta$ is defined by the conditional mean or by linear projection; it requires a structural definition of $\beta$. Endogeneity typically arises because the error contains unobserved individual effects (e.g.\ ability) that are correlated with the regressors. If even one regressor is endogenous, then $\E(u_i\mid x_i)\neq0$ for the whole regressor vector, and OLS-based inference is invalid.
+\end{english}
+
+%======================================================================
+\section{内生性的后果：OLS 有偏且不一致}\label{sec:U07-conseq}
+
+\subsection{OLS 的概率极限：\texorpdfstring{$\plim\hat\beta_{OLS}=\beta+Q^{-1}\E(x_iu_i)$}{plim b = beta + Q\^{}(-1) E(xu)}}
+
+\subsubsection{推导：代入真实模型，分子分母分别用大数定律}
+
+要证：当 $\E(x_iu_i)\neq0$ 时，$\hat\beta_{OLS}$ 收敛到一个不等于 $\beta$ 的值。思路：把 $\hat\beta$ 拆成“真值 + 误差项”，分子分母各用大数定律——与第 5 章证明一致性的路线完全相同，只是最后一步的 $\E(x_iu_i)$ 不再为 $0$。
+\begin{align*}
+\hat\beta_{OLS} &= (X\T X)\inv X\T Y \why{OLS 公式（第 3 章）}\\
+&= (X\T X)\inv X\T(X\beta+u) \why{代入真实模型 $Y=X\beta+u$}\\
+&= (X\T X)\inv X\T X\beta+(X\T X)\inv X\T u \why{矩阵乘法分配律}\\
+&= \beta+(X\T X)\inv X\T u \why{$(X\T X)\inv X\T X=I_K$}\\
+&= \beta+\Bigl(\tfrac1n X\T X\Bigr)\inv\Bigl(\tfrac1n X\T u\Bigr) \why{分子分母同乘 $1/n$}\\
+&= \beta+\Bigl(\tfrac1n\textstyle\sum_{i=1}^n x_ix_i\T\Bigr)\inv\Bigl(\tfrac1n\textstyle\sum_{i=1}^n x_iu_i\Bigr) \why{$X\T X=\sum x_ix_i\T$，$X\T u=\sum x_iu_i$}\\
+&\pto \beta+Q\inv\E(x_iu_i). \why{WLLN 与 CMT}
+\end{align*}
+最后一步：由弱大数定律，$\frac1n\sum x_ix_i\T\pto Q$，$\frac1n\sum x_iu_i\pto\E(x_iu_i)$；$Q$ 可逆，矩阵求逆在 $Q$ 处连续，由连续映射定理（CMT）得极限。
+
+\subsubsection{结论：内生性下 OLS 的概率极限}
+
+\begin{thm}[内生性下 OLS 的概率极限]\label{thm:U07-plim}
+在 \iid\ 抽样、$Q=\E(x_ix_i\T)$ 正定、二阶矩有限的条件下，
+\begin{equation}\label{eq:U07-plim}
+\plim_{n\to\infty}\hat\beta_{OLS}=\beta+Q\inv\E(x_iu_i).
+\end{equation}
+当 $\E(x_iu_i)\neq0$ 时 $\plim\hat\beta_{OLS}\neq\beta$：OLS \key{不一致}。单回归元（含截距）时，斜率的概率极限为
+\begin{equation}\label{eq:U07-plim1}
+\plim\hat\beta_1=\beta_1+\frac{\Cov(x_i,u_i)}{\Var(x_i)},
+\end{equation}
+偏误方向与 $\Cov(x_i,u_i)$ 同号。
+\end{thm}
+
+\subsubsection{“分母”与“分子”：与外生情形对比}
+
+由推导，估计误差为
+\[
+\hat\beta-\beta=\underbrace{\Bigl(\tfrac1n X\T X\Bigr)\inv}_{\text{“分母”}}\ \underbrace{\Bigl(\tfrac1n\textstyle\sum_{i=1}^n x_iu_i\Bigr)}_{\text{“分子”}\ \frac1nX\T u}.
+\]
+外生时 $\frac1n\sum x_iu_i\pto\E(x_iu_i)=0$，于是 $\hat\beta\approx\beta$；内生时分子收敛到 $\E(x_iu_i)\neq0$，估计误差不消失。所以内生性的后果是：$\hat\beta_{OLS}$ 有偏、不一致、不可靠（biased and inconsistent, unreliable）。
+
+\subsection{单回归元情形：\texorpdfstring{$\plim\hat\beta_1=\beta_1+\Cov(x,u)/\Var(x)$}{plim b1 = beta1 + Cov(x,u)/Var(x)}}
+
+要证 \eqref{eq:U07-plim1}。模型 $y_i=\beta_0+\beta_1x_i+u_i$。含截距时 OLS 斜率是 $\hat\beta_1=\widehat{\Cov}(x,y)/\widehat{\Var}(x)$（第 3 章），于是
+\begin{align*}
+\plim\hat\beta_1 &= \frac{\Cov(x_i,y_i)}{\Var(x_i)} \why{样本矩 $\pto$ 总体矩，CMT}\\
+&= \frac{\Cov(x_i,\ \beta_0+\beta_1x_i+u_i)}{\Var(x_i)} \why{代入 $y_i$}\\
+&= \frac{\Cov(x_i,\beta_0)+\beta_1\Cov(x_i,x_i)+\Cov(x_i,u_i)}{\Var(x_i)} \why{协方差的双线性}\\
+&= \frac{\beta_1\Var(x_i)+\Cov(x_i,u_i)}{\Var(x_i)} \why{与常数的协方差为 0}\\
+&= \beta_1+\frac{\Cov(x_i,u_i)}{\Var(x_i)}. \why{分项相除}
+\end{align*}
+偏误 $\Cov(x_i,u_i)/\Var(x_i)$ 就是“把 $u$ 对 $x$ 回归”的总体斜率：OLS 把误差中与 $x$ 同向变动的部分错算到了 $x$ 头上。
+
+\subsection{有偏与不一致：两个不同的概念}
+
+\subsubsection{无偏：有限样本性质}
+
+\[
+\E(\hat\beta\mid X)=\beta+(X\T X)\inv X\T\E(u\mid X).
+\]
+（由 $\hat\beta=\beta+(X\T X)\inv X\T u$，给定 $X$ 时 $(X\T X)\inv X\T$ 可提出。）内生时 $\E(u\mid X)\neq0$，故 $\E(\hat\beta\mid X)\neq\beta$——\key{有偏}。
+
+\subsubsection{一致：大样本性质}
+
+一致指 $\hat\beta\pto\beta$。内生时 $\hat\beta\pto\beta+Q\inv\E(x_iu_i)\neq\beta$——\key{不一致}。
+
+\subsubsection{“内生性偏误”的真正含义是不一致}
+
+文献习惯说\term{内生性偏误}{endogeneity bias}，但 Hansen 第 12.2 节指出这个名称并不准确：真正的问题是\key{不一致}，而不是有偏。有偏的估计量增大样本后还可能变好；不一致的估计量则是“样本越大，越精确地估计了一个错误的数”。
+
+直观上：外生时，样本量增大使 $\hat\beta$ 的抽样分布向真值 $\beta$ 收缩（各次抽样的 $\hat\beta$ 聚集在 $\beta_{\text{true}}$ 附近）；内生时，分布照样收缩，但收缩的中心是 $\beta^*=\beta+Q\inv\E(x_iu_i)$，而不是 $\beta$。
+
+\subsection{OLS 一致估计的是线性投影系数 \texorpdfstring{$\beta^*$}{beta*}}
+
+由第 2 章，线性投影系数 $\beta^*=[\E(x_ix_i\T)]\inv\E(x_iy_i)$ 总是存在，且投影误差 $e_i^*$ 满足 $\E(x_ie_i^*)=0$。把结构方程代入：
+\begin{align*}
+\beta^* &= [\E(x_ix_i\T)]\inv\E\bigl[x_i(x_i\T\beta+u_i)\bigr] \why{代入 $y_i=x_i\T\beta+u_i$}\\
+&= [\E(x_ix_i\T)]\inv\bigl[\E(x_ix_i\T)\beta+\E(x_iu_i)\bigr] \why{期望的线性}\\
+&= \beta+[\E(x_ix_i\T)]\inv\E(x_iu_i). \why{$A\inv A=I_K$}
+\end{align*}
+与 \eqref{eq:U07-plim} 对照：$\plim\hat\beta_{OLS}=\beta^*$。OLS 一致地估计了投影系数 $\beta^*$（无论内生与否都成立），只是内生时 $\beta^*\neq\beta$。内生性的本质：\key{我们要的参数是用结构方式定义的，而不是用投影定义的}。
+
+\subsection{推断同样失效：\texorpdfstring{$t$}{t} 检验的水平趋于 1}\label{sec:U07-ttest}
+
+\subsubsection{\texorpdfstring{$|t|\to\infty$}{|t| -> infinity}：拒绝真原假设的概率趋于 1}
+
+要证：内生时，即使原假设为真，OLS 的 $t$ 检验也几乎必然拒绝。设原假设 $H_0:\beta_1=\beta_1^0$ 为真（$\beta_1^0$ 就是结构参数的真值），记 $\beta_1^*$ 为投影系数 $\beta^*=\beta+Q\inv\E(x_iu_i)$ 的对应分量。由于 $\hat\beta_1\pto\beta_1^*\neq\beta_1^0$，而 $se(\hat\beta_1)=O_p(n^{-1/2})\pto0$，
+\[
+|t|=\frac{|\hat\beta_1-\beta_1^0|}{se(\hat\beta_1)}\approx\frac{|\beta_1^*-\beta_1^0|}{O_p(n^{-1/2})}\pto\infty .
+\]
+因此“拒绝真的原假设”的概率 $\to1$：检验的实际水平（size）趋于 100\%，置信区间 $\hat\beta_1\pm1.96\,se(\hat\beta_1)$ 收缩到 $\beta_1^*$ 周围，覆盖真值 $\beta_1^0$ 的概率趋于 0。这就是“OLS is biased, no testing for OLS”的含义。要恢复一致性与有效推断，只能借助工具变量（only if instruments $Z$）。
+
+\subsubsection{例：偏误不随样本量消失}
+
+\begin{exmp}[偏误不随样本量消失]\label{ex:U07-bias}
+设 $y_i=1+\beta x_i+u_i$，$\beta=1$，$\Var(x_i)=2$，$\Cov(x_i,u_i)=0.5$。求 $\plim\hat\beta$，并说明样本量增大时对 $H_0:\beta=1$ 的 $t$ 检验会怎样。
+\solution
+\begin{align*}
+\plim\hat\beta &= \beta+\frac{\Cov(x_i,u_i)}{\Var(x_i)} \why{式 \eqref{eq:U07-plim1}}\\
+&= 1+\frac{0.5}{2}=1.25. \why{代入数值}
+\end{align*}
+无论 $n=100$ 还是 $n=10^6$，OLS 都在估计 $1.25$；$n$ 越大，$se$ 越小，对 $H_0:\beta=1$（真）的 $t$ 统计量越大，越“显著地”拒绝真理。
+\end{exmp}
+
+\subsubsection{考点：证明 OLS 不一致的四步写法}
+
+\begin{keypt}[证明 OLS 不一致]
+“Show that OLS is inconsistent when $\E(x_iu_i)\neq0$”是标准考题。按四步书写：(1) 代入真实模型；(2) 乘以 $1/n$ 拆成分子分母；(3) 分子分母分别用 LLN；(4) 由 CMT 得 $\beta+Q\inv\E(x_iu_i)$。最后点明“because $\E(x_iu_i)\neq0$, the limit differs from $\beta$”。
+\end{keypt}
+
+\subsubsection{练习：一致性与偏误方向}
+
+\begin{prac}[一致性与偏误方向]\label{pr:U07-plim}
+设 $y_i=\beta_0+\beta_1x_i+u_i$，已知 $\Var(x_i)=4$，$\Cov(x_i,u_i)=-0.8$，$\beta_1=0.5$。(1) 求 $\plim\hat\beta_1^{OLS}$；(2) 若 $n$ 很大，对真的原假设 $H_0:\beta_1=0.5$ 做 $t$ 检验会发生什么？
+\answer
+(1) 由式 \eqref{eq:U07-plim1}：
+\begin{align*}
+\plim\hat\beta_1 &= \beta_1+\frac{\Cov(x,u)}{\Var(x)} \why{式 \eqref{eq:U07-plim1}}\\
+&= 0.5+\frac{-0.8}{4}=0.5-0.2=0.3. \why{代入数值}
+\end{align*}
+向下偏 $0.2$（相对偏误 $-40\%$）。偏误为负是因为 $\Cov(x,u)<0$。
+
+(2) $\hat\beta_1\pto0.3$ 而 $se(\hat\beta_1)\to0$，故 $t=(\hat\beta_1-0.5)/se\to-\infty$，几乎必然拒绝一个真的原假设：检验水平趋于 1，推断无效。
+\end{prac}
+
+\begin{english}
+\textbf{Inconsistency of OLS.} Substituting $Y=X\beta+u$ gives $\hat\beta_{OLS}=\beta+(\frac1nX'X)^{-1}(\frac1nX'u)$. By the WLLN, $\frac1nX'X\pto Q=\E(x_ix_i')$ and $\frac1nX'u\pto\E(x_iu_i)$, so by the continuous mapping theorem $\hat\beta_{OLS}\pto\beta+Q^{-1}\E(x_iu_i)$. Since $\E(x_iu_i)\neq0$ under endogeneity, OLS is inconsistent (and also biased in finite samples). It consistently estimates the linear projection coefficient $\beta^*$, not the structural parameter $\beta$. Consequently, $t$- and Wald tests based on OLS have size tending to one.
+\end{english}
+
+%======================================================================
+\section{来源一：遗漏变量}\label{sec:U07-ovb}
+
+\subsection{理想模型（长回归）与实际使用的模型（短回归）}
+
+设真实结构中还有一组变量 $w_i$（$m\times1$）影响 $y_i$，但 $w_i$ 不可观测（能力、偏好、企业效应……），只能把它并入误差：
+\begin{align*}
+\text{理想模型（长回归）：}\quad & y_i=x_i\T\beta+w_i\T\gamma+u_i,\qquad \E(u_i\mid x_i,w_i)=0;\\
+\text{使用的模型（短回归）：}\quad & y_i=x_i\T\beta+v_i,\qquad v_i=w_i\T\gamma+u_i .
+\end{align*}
+$w_i$ 被遗漏（omitted）后进入新误差 $v_i$，由此产生的偏误称为\term{遗漏变量偏误}{omitted variable bias, OVB}。$w_i$ 常被称为“个体效应”（individual effects）。新误差与回归元的相关性为
+\begin{align*}
+\E(x_iv_i) &= \E(x_iw_i\T)\gamma+\E(x_iu_i) \why{代入 $v_i$，期望线性}\\
+&= \E(x_iw_i\T)\gamma. \why{$\E(u\mid x,w)=0\Rightarrow\E(xu)=0$}
+\end{align*}
+只要 $\gamma\neq0$ 且 $w_i$ 与 $x_i$ 相关，$\E(x_iv_i)\neq0$，$x_i$ 在短回归中就是内生的。
+
+\subsection{OVB 公式（一）：单个遗漏变量的标量推导}
+
+\subsubsection{推导 \texorpdfstring{$\plim\hat\beta_1=\beta_1+\gamma\delta$}{plim b1 = beta1 + gamma delta}}
+
+模型 $y_i=\beta_0+\beta_1x_i+\gamma w_i+u_i$，$\E(u_i\mid x_i,w_i)=0$；只用 $(1,x_i)$ 回归。要证：$\plim\hat\beta_1=\beta_1+\gamma\delta$，其中
+\[
+\delta=\frac{\Cov(x_i,w_i)}{\Var(x_i)}
+\]
+是“把 $w$ 对 $x$ 回归”的斜率（\term{辅助回归}{auxiliary regression}）。
+\begin{align*}
+\plim\hat\beta_1 &= \frac{\Cov(x_i,y_i)}{\Var(x_i)} \why{短回归斜率的极限}\\
+&= \frac{\Cov(x_i,\ \beta_0+\beta_1x_i+\gamma w_i+u_i)}{\Var(x_i)} \why{代入理想模型}\\
+&= \beta_1+\gamma\,\frac{\Cov(x_i,w_i)}{\Var(x_i)}+\frac{\Cov(x_i,u_i)}{\Var(x_i)} \why{协方差双线性}\\
+&= \beta_1+\gamma\,\delta. \why{$\E(u\mid x,w)=0\Rightarrow\Cov(x,u)=0$}
+\end{align*}
+
+\subsubsection{结论：遗漏变量偏误公式}
+
+\begin{thm}[遗漏变量偏误公式（OVB）]\label{thm:U07-ovb}
+在上述模型中，短回归斜率满足
+\begin{equation}\label{eq:U07-ovb}
+\plim\hat\beta_1^{\text{short}}=\beta_1+\underbrace{\gamma}_{w\text{ 对 }y\text{ 的效应}}\times\underbrace{\delta}_{w\text{ 对 }x\text{ 的回归斜率}},\qquad \text{偏误}=\gamma\delta .
+\end{equation}
+\end{thm}
+
+\subsection{OVB 公式（二）：矩阵形式与有限样本偏误}
+
+\subsubsection{短回归估计量的分解}
+
+设 $Y=X\beta+W\gamma+u$，$X$ 为 $n\times K$，$W$ 为 $n\times m$（$m$ 个遗漏变量），$\gamma$ 为 $m\times1$，$\E(u\mid X,W)=0$。短回归 $b=(X\T X)\inv X\T Y$：
+\begin{align*}
+b &= (X\T X)\inv X\T(X\beta+W\gamma+u) \why{代入理想模型}\\
+&= \beta+\underbrace{(X\T X)\inv X\T W}_{\hat\Delta\ (K\times m)}\gamma+(X\T X)\inv X\T u. \why{展开，$(X\T X)\inv X\T X=I_K$}
+\end{align*}
+$\hat\Delta$ 的第 $j$ 列就是“把第 $j$ 个遗漏变量对全部 $X$ 回归”的 OLS 系数。
+
+\subsubsection{有限样本偏误：\texorpdfstring{$\E(b\mid X,W)=\beta+\hat\Delta\gamma$}{E(b|X,W) = beta + Delta gamma}}
+
+给定 $X,W$ 对上式取条件期望，$\hat\Delta$ 是 $X,W$ 的函数，可直接提出：
+\begin{align*}
+\E(b\mid X,W) &= \beta+\hat\Delta\gamma+(X\T X)\inv X\T\E(u\mid X,W) \why{给定 $X,W$ 时提出已知量}\\
+&= \beta+\hat\Delta\gamma. \why{$\E(u\mid X,W)=0$}
+\end{align*}
+
+\subsubsection{概率极限：\texorpdfstring{$\plim b=\beta+\Gamma\gamma$}{plim b = beta + Gamma gamma}}
+
+把各项写成样本均值，再分别取概率极限：
+\begin{align*}
+b &= \beta+\Bigl(\tfrac1nX\T X\Bigr)\inv\Bigl(\tfrac1nX\T W\Bigr)\gamma+\Bigl(\tfrac1nX\T X\Bigr)\inv\Bigl(\tfrac1nX\T u\Bigr) \why{各项乘除 $n$}\\
+&\pto \beta+\Gamma\gamma+Q\inv\cdot0,\qquad \Gamma=[\E(x_ix_i\T)]\inv\E(x_iw_i\T). \why{WLLN 与 CMT}
+\end{align*}
+（$\E(x_iu_i)=0$ 由 $\E(u\mid x,w)=0$ 得到。）$\Gamma$ 是 $w_i$ 对 $x_i$ 的总体投影系数。可见：遗漏变量偏误在有限样本中存在（有偏），在大样本中也不消失（不一致）。
+
+\subsubsection{与 FWL 长短回归代数的关系}
+
+这与第 3 章 FWL 定理中“长回归 vs 短回归”的代数是同一件事。记长回归的 OLS 为 $Y=X\hat\beta+W\hat\gamma+\hat u$，$X\T\hat u=0$，则
+\begin{align*}
+b &= (X\T X)\inv X\T(X\hat\beta+W\hat\gamma+\hat u) \why{代入长回归分解}\\
+&= \hat\beta+\hat\Delta\hat\gamma+(X\T X)\inv X\T\hat u \why{展开}\\
+&= \hat\beta+\hat\Delta\hat\gamma. \why{正规方程 $X\T\hat u=0$}
+\end{align*}
+样本中“短回归系数 = 长回归系数 + 辅助回归系数 $\times$ 被遗漏变量的系数”恒成立；OVB 公式是它的总体版本。
+
+\subsection{偏误方向的符号判断}
+
+\subsubsection{符号判断表：同号偏高，异号偏低}
+
+由 OVB 公式 \eqref{eq:U07-ovb}，$\text{偏误符号}=\operatorname{sign}(\gamma)\times\operatorname{sign}(\Cov(x,w))$：
+\begin{center}
+\small
+\begin{tabular}{lcc}
+\toprule
+ & $\Cov(x,w)>0$ & $\Cov(x,w)<0$\\
+\midrule
+$\gamma>0$（$w$ 提高 $y$） & 正偏（高估，upward bias） & 负偏（低估，downward bias）\\
+$\gamma<0$（$w$ 降低 $y$） & 负偏（低估） & 正偏（高估）\\
+\bottomrule
+\end{tabular}
+\captionof{table}{遗漏变量偏误的方向}
+\end{center}
+口诀：“\key{同号偏高，异号偏低}”。
+
+\subsubsection{“高估 / 低估”指与 \texorpdfstring{$\beta_1$}{beta1} 比大小，而非绝对值}
+
+“高估/低估”指 $\plim\hat\beta_1$ 与 $\beta_1$ 的大小比较。若 $\beta_1<0$ 而偏误为正，$|\hat\beta_1|$ 会被低估，甚至变号。
+
+\subsection{例：能力—教育—工资}
+
+\subsubsection{因果图}
+
+\begin{center}
+\begin{tikzpicture}[box/.style={draw,rounded corners=2pt,align=center,font=\small,inner sep=4pt},>={Stealth[length=2mm]}]
+\node[box,dashed] (A) at (0,1.8) {能力 ability\\（未观测，进入 $u$）};
+\node[box] (E) at (-3.5,0) {教育 educ\\（观测）};
+\node[box] (W) at (3.5,0) {$\ln$ wage\\（观测）};
+\draw[->,thick] (E) -- node[below,font=\small]{$\beta_1$（待估的因果效应）} (W);
+\draw[<->,dashed,thick] (A) -- node[above left,font=\small]{$\Cov(\text{educ},\text{ability})>0$} (E);
+\draw[->,thick] (A) -- node[above right,font=\small]{$\gamma>0$} (W);
+\end{tikzpicture}
+\captionof{figure}{遗漏能力：能力与教育正相关，又提高工资}
+\end{center}
+
+\subsubsection{能力偏误的数值}
+
+\begin{exmp}[能力偏误的数值]\label{ex:U07-ability}
+设真实模型 $\ln\text{wage}_i=\beta_0+0.08\,\text{educ}_i+0.10\,\text{ability}_i+u_i$（能力以标准差为单位），且 $\Var(\text{educ}_i)=4$，$\Cov(\text{educ}_i,\text{ability}_i)=1$。遗漏能力后，OLS 的教育系数收敛到什么？
+\solution
+\begin{align*}
+\delta &= \frac{\Cov(\text{educ},\text{ability})}{\Var(\text{educ})}=\frac14=0.25, \why{辅助回归斜率}\\
+\plim\hat\beta_1 &= 0.08+0.10\times0.25=0.105. \why{OVB 公式 \eqref{eq:U07-ovb}}
+\end{align*}
+偏误 $0.025$，OLS 把教育回报高估约 $0.025/0.08\approx31\%$。符号判断：$\gamma>0$、$\Cov>0$，同号，\key{正偏}。这与 Hansen 第 12.3 节的论证一致：能力高者自选择更多教育，教育与误差正相关，OLS 倾向于高估教育的因果效应。
+\end{exmp}
+
+\subsubsection{真实数据中的“反常”：IV 估计反而大于 OLS}
+
+\begin{note}[Card (1995) 数据：IV 估计反而更大]
+Hansen 第 12.6 节（表 12.1）用 Card (1995) 的数据：OLS 的教育系数为 0.074；用“是否在有四年制大学的县长大”作工具的 IV 估计为 0.132；用“所在县是否有四年制公立大学”“是否有四年制私立大学”两个工具的 2SLS 估计为 0.161。IV 比 OLS 更大，与“能力偏误使 OLS 高估”的预测相反。可能的解释：(i) 教育年限存在测量误差，造成向 0 的衰减偏误（见本章测量误差一节），抵消甚至超过能力偏误；(ii) 教育回报存在异质性，IV 估计的是“受工具影响的那部分人”的效应（\term{局部平均处理效应}{local average treatment effect, LATE}）。启示：多个内生性来源可能同时存在且方向相反，\key{符号判断是论证工具而非定论}。
+\end{note}
+
+\subsection{多个回归元时符号判断的局限}\label{sec:U07-multi}
+
+\subsubsection{\texorpdfstring{$\delta$}{delta} 变为控制其他变量后的偏相关（FWL）}
+
+当短回归中还有其他控制变量 $x_2$ 时，$x_1$ 系数的偏误为 $\gamma\delta_1$，其中 $\delta_1$ 是 $w$ 对 $(1,x_1,x_2)$ 回归中 $x_1$ 的系数。由 FWL：先把 $x_1$、$w$ 都对 $(1,x_2)$ 回归取残差 $\tilde x_1,\tilde w$，再看残差间的关系，
+\[
+\delta_1=\frac{\Cov(\tilde x_1,\tilde w)}{\Var(\tilde x_1)} .
+\]
+即 $\delta_1$ 反映的是\key{控制 $x_2$ 之后} $w$ 与 $x_1$ 的偏相关，其符号可能与 $\Cov(x_1,w)$ 不同。
+
+\subsubsection{偏误“传染”给与 \texorpdfstring{$w$}{w} 相关的所有回归元}
+
+由矩阵公式 $\plim b=\beta+\Gamma\gamma$，$\Gamma$ 的每一行都可能非零：偏误会传给所有与 $w$（偏）相关的回归元的系数。例如工资方程中经验 exper 的系数也受能力影响。因此多回归元时，单个系数的偏误方向往往无法简单判断。Hansen 第 12.6 节也指出：“the sign of the bias is uncertain since there are multiple regressors and there are other potential sources of endogeneity”。
+
+\subsection{遗漏变量何时无害}
+
+\subsubsection{\texorpdfstring{$\gamma=0$}{gamma = 0}：遗漏变量本不在模型中}
+
+$\gamma=0$ 时遗漏变量与 $y$ 无关，本就不该在模型里，偏误 $\gamma\delta=0$。
+
+\subsubsection{\texorpdfstring{$\Cov(x,w)=0$}{Cov(x,w) = 0}：斜率无偏误，但误差方差变大}
+
+$\Cov(x,w)=0$ 时 $\delta=0$，斜率没有偏误。但误差方差变大：
+\begin{align*}
+\Var(v_i) &= \Var(\gamma w_i+u_i) \why{$v_i=\gamma w_i+u_i$}\\
+&= \gamma^2\Var(w_i)+\Var(u_i)+2\gamma\Cov(w_i,u_i) \why{方差展开}\\
+&= \gamma^2\Var(w_i)+\sigma_u^2>\sigma_u^2, \why{$\E(u\mid x,w)=0\Rightarrow\Cov(w,u)=0$}
+\end{align*}
+标准误更大、估计不够精确。$w$ 的均值被截距吸收：$v_i=\gamma[w_i-\E(w_i)]+u_i$，截距变为 $\beta_0+\gamma\E(w_i)$。
+
+\subsection{练习：OVB 符号判断}
+
+\begin{prac}[OVB 符号判断]\label{pr:U07-sign}
+判断下列短回归中 OLS 系数的偏误方向，并说明理由：(a) 工资对教育回归，遗漏能力；(b) 学生成绩对班级规模回归，遗漏家庭收入（家庭收入提高成绩，且富裕学区班级规模更小）；(c) 农作物产量对化肥用量回归，遗漏土壤肥力（肥力高的地块农民施肥更多）。
+\answer
+用 $\text{偏误}=\gamma\delta$，$\text{符号}=\operatorname{sign}(\gamma)\cdot\operatorname{sign}(\Cov(x,w))$。
+
+(a) $\gamma>0$（能力提高工资），$\Cov(\text{educ},\text{ability})>0$ $\Rightarrow$ 正偏，高估教育回报。
+
+(b) $\gamma>0$（收入提高成绩），$\Cov(\text{班级规模},\text{收入})<0$ $\Rightarrow$ 负偏：$\plim\hat\beta<\beta$，班级规模的（负）效应被夸大（显得更有害）。
+
+(c) $\gamma>0$（肥力提高产量），$\Cov(\text{化肥},\text{肥力})>0$ $\Rightarrow$ 正偏，高估化肥的效果。
+\end{prac}
+
+\begin{english}
+\textbf{Omitted variable bias.} Suppose the true model is $y_i=\beta_0+\beta_1x_i+\gamma w_i+u_i$ with $\E(u_i\mid x_i,w_i)=0$, but $w_i$ is unobserved and omitted. Then $w_i$ enters the error, and $\plim\hat\beta_1=\beta_1+\gamma\delta$, where $\delta=\Cov(x_i,w_i)/\Var(x_i)$. In matrix form, $\plim b=\beta+\Gamma\gamma$ with $\Gamma=[\E(x_ix_i')]^{-1}\E(x_iw_i')$. The bias is positive if $\gamma$ and $\Cov(x_i,w_i)$ have the same sign and negative otherwise. For example, omitting ability, which raises wages and is positively correlated with schooling, leads OLS to overstate the return to education. With several regressors the sign of the bias on any single coefficient is generally uncertain.
+\end{english}
+
+%======================================================================
+\section{来源二：测量误差}\label{sec:U07-me}
+
+\subsection{记号：观测值 = 真值 + 误差}
+
+\subsubsection{本书记号与另一种常见记号}
+
+测量误差的文献中记号很不统一。共同点是\key{带星号表示真值、不带星号表示观测（采集）值}；不同点在于误差加在哪一边。下表对照两种写法（为突出各自情形，记号二中 $y$ 有误差与 $x$ 有误差分开写）。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & 记号一（本书采用）：观测 = 真值 + 误差 & 记号二：真值 = 观测 + 误差\\
+\midrule
+带星号 $y^*,x^*$ & 真值（如真实工资） & 真值\\
+关系式 & $y=y^*+e_y$，$x=x^*+e_x$ & $y^*=y+e_y$，$x^*=x+e_x$\\
+观测值 & $y=y^*+e_y$，$x=x^*+e_x$ & $y=y^*-e_y$，$x=x^*-e_x$\\
+真实模型 & $y^*=x^*\beta+u$ & $y$ 有误差：$y^*=x\beta+u$；$x$ 有误差：$y=x^*\beta+u$\\
+使用的模型 & $y=x\beta+u+e_y-e_x\beta$ & $y=x\beta+u-e_y$；$y=x\beta+u+e_x\beta$\\
+结论 & $x$ 与 $u,e_y$ 不相关（外生）；$x$ 与 $e_x$ 相关（内生） & $y$ 有误差：无碍，OLS 可用（配合稳健标准误）；$x$ 有误差：内生\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{测量误差的两种记号}
+\end{center}
+
+\subsubsection{两种记号下复合误差的符号相反，结论相同}
+
+\begin{note}[记号的差异与陷阱]
+两种记号中误差的“方向”恰好相反：记号二把误差加在观测值上得到真值（$x^*=x+e_x$），记号一把误差加在真值上得到观测值（$x=x^*+e_x$）。因此复合误差中 $e$ 的符号相反（记号二：$-e_y$、$+e_x\beta$；记号一：$+e_y$、$-e_x\beta$）。在经典测量误差下结论完全相同，因为偏误只依赖 $\sigma_e^2$（下文两种写法得到同一个协方差）。Hansen 第 12.3 节又是另一种写法：$Z$ 表示不可观测的真值，$X=Z+u$ 表示观测值。\key{考场上先写清自己的定义再推导}。本书统一采用记号一：观测 = 真值 + 误差。
+\end{note}
+
+\subsection{经典测量误差假设}
+
+\begin{defn}[经典测量误差]\label{def:U07-cme}
+观测值 = 真值 + 误差：
+\[
+y_i=y_i^*+e_{yi},\qquad x_i=x_i^*+e_{xi},
+\]
+其中误差均值为 0，且与真值 $x_i^*$、结构误差 $u_i$ 以及彼此之间都不相关：
+\begin{gather*}
+\E(e_x)=\E(e_y)=0,\\
+\Cov(e_x,x^*)=\Cov(e_x,u)=\Cov(e_y,x^*)=\Cov(e_y,u)=\Cov(e_x,e_y)=0 .
+\end{gather*}
+记 $\sigma_{x^*}^2=\Var(x^*)$，$\sigma_e^2=\Var(e_x)$，$\sigma_{e_y}^2=\Var(e_y)$。
+\end{defn}
+
+满足上述条件的误差称为\term{经典测量误差}{classical measurement error}，它意味着观测值是真值的“有噪声但无偏”（noisy but unbiased）的度量。例如：$x$ 为采集到的（如自报的）工资，$x^*$ 为真实工资。
+
+\subsection{被解释变量有测量误差：一致性无碍，方差变大}
+
+\subsubsection{使用的模型：\texorpdfstring{$y_i=x_i\T\beta+(u_i+e_{yi})$}{y = x'beta + (u + e\_y)}}
+
+只有 $y$ 有误差（$x$ 准确）：真实模型 $y_i^*=x_i\T\beta+u_i$，观测 $y_i=y_i^*+e_{yi}$。
+\begin{align*}
+y_i-e_{yi} &= x_i\T\beta+u_i \why{用观测值表示 $y_i^*=y_i-e_{yi}$}\\
+y_i &= x_i\T\beta+\underbrace{(u_i+e_{yi})}_{v_i}. \why{移项：使用的模型}
+\end{align*}
+
+\subsubsection{新误差仍与 \texorpdfstring{$x$}{x} 不相关：OLS 一致}
+
+检查新误差 $v_i$ 与回归元的相关性：
+\begin{align*}
+\E(x_iv_i) &= \E(x_iu_i)+\E(x_ie_{yi}) \why{期望的线性}\\
+&= 0+0=0. \why{$x$ 外生；经典测量误差：$e_y$ 与 $x$ 不相关}
+\end{align*}
+由式 \eqref{eq:U07-plim}，OLS 仍一致。
+
+\subsubsection{误差方差变大；异方差时用稳健标准误}
+
+新误差的方差为：
+\begin{align*}
+\Var(v_i) &= \Var(u_i)+\Var(e_{yi})+2\Cov(u_i,e_{yi}) \why{方差展开}\\
+&= \sigma_u^2+\sigma_{e_y}^2>\sigma_u^2. \why{$u$ 与 $e_y$ 不相关}
+\end{align*}
+结论：OLS 仍一致；但误差方差变大，同方差下 $\Var(\hat\beta)\approx\frac1n(\sigma_u^2+\sigma_{e_y}^2)Q\inv$ 变大，估计\key{不够精确}。若 $e_y$ 的方差随 $x$ 变化（如收入越高、自报误差越大），则误差异方差，用\key{稳健标准误}即可（“OLS, robust s.e.”）。
+
+\subsubsection{非经典测量误差：\texorpdfstring{$y$}{y} 的误差与 \texorpdfstring{$x$}{x} 相关}
+
+\begin{note}[“$y$ 有误差无碍”只在经典假设下成立]
+若 $y$ 的测量误差与 $x$ 相关（非经典测量误差，例如高学历者更倾向于高报收入），则 $\E(x_ie_{yi})\neq0$，$x$ 又变成内生的。
+\end{note}
+
+\subsection{解释变量有测量误差：\texorpdfstring{$x$}{x} 内生}
+
+\subsubsection{使用的模型：\texorpdfstring{$y=x\beta+u+e_y-e_x\beta$}{y = x beta + u + e\_y - e\_x beta}}
+
+真实模型 $y^*=x^*\beta+u$（标量 $x$，暂不写截距），$y=y^*+e_y$，$x=x^*+e_x$。
+\begin{align*}
+\underbrace{y^*+e_y}_{y}-e_y &= (x^*+e_x-e_x)\beta+u \why{两边同时加减误差}\\
+y-e_y &= (x-e_x)\beta+u \why{$y=y^*+e_y$，$x=x^*+e_x$}\\
+y &= x\beta+\underbrace{u+e_y-e_x\beta}_{v}. \why{移项：使用的模型}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$\Cov(x,v)=-\beta\sigma_e^2$}{Cov(x,v) = -beta sigma\_e\^{}2}：观测回归元与复合误差相关}
+
+检查新误差 $v$ 与观测回归元 $x$ 的相关性：
+\begin{align*}
+\Cov(x,v) &= \Cov(x^*+e_x,\ u+e_y-\beta e_x) \why{代入}\\
+&= \underbrace{\Cov(x,u)+\Cov(x,e_y)}_{=0\ \text{（不相关，外生部分）}}-\beta\Cov(x^*+e_x,e_x) \why{协方差双线性}\\
+&= -\beta\bigl[\Cov(x^*,e_x)+\Var(e_x)\bigr] \why{双线性}\\
+&= -\beta\sigma_e^2\neq0\qquad(\beta\neq0). \why{$\Cov(x^*,e_x)=0$，$\Var(e_x)=\sigma_e^2$}
+\end{align*}
+所以 $x$ 是\key{内生的}：$x$ 中含有 $e_x$，而 $e_x$ 又以 $-\beta e_x$ 的形式出现在误差中，二者相关。
+
+\subsubsection{用另一种记号验证：同一个结果}
+
+用记号二（$x=x^*-e_x$，$y$ 准确，使用的模型 $y=x\beta+u+e_x\beta$）：
+\begin{align*}
+\Cov(x^*-e_x,\ u+\beta e_x) &= \Cov(x^*,u)-\Cov(e_x,u)+\beta\Cov(x^*,e_x)-\beta\Var(e_x) \why{协方差双线性}\\
+&= -\beta\sigma_e^2. \why{经典测量误差}
+\end{align*}
+同一个结果，印证了“记号不影响结论”。
+
+\subsection{衰减偏误}\label{sec:U07-atten}
+
+\subsubsection{推导 \texorpdfstring{$\plim\hat\beta=\beta\,\sigma_{x^*}^2/(\sigma_{x^*}^2+\sigma_e^2)$}{plim b = beta sigma\_x*\^{}2 / (sigma\_x*\^{}2 + sigma\_e\^{}2)}}
+
+要证：含截距的单回归元模型 $y^*=\beta_0+\beta x^*+u$（$\Cov(x^*,u)=0$），$x=x^*+e_x$，$y=y^*+e_y$（经典测量误差），则
+\[
+\plim\hat\beta_{OLS}=\beta\,\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}.
+\]
+\begin{align*}
+\plim\hat\beta &= \frac{\Cov(x,y)}{\Var(x)} \why{OLS 斜率的极限}\\
+&= \frac{\Cov(x^*+e_x,\ \beta_0+\beta x^*+u+e_y)}{\Var(x^*+e_x)} \why{代入观测值}\\
+&= \frac{\beta\Var(x^*)}{\Var(x^*)+\Var(e_x)} \why{经典测量误差：交叉协方差全为 0}\\
+&= \beta\cdot\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}\ \equiv\ \lambda\beta. \why{记信度比 $\lambda$}
+\end{align*}
+
+\subsubsection{用一般公式验证}
+
+由式 \eqref{eq:U07-plim1} 与 $\Cov(x,v)=-\beta\sigma_e^2$：
+\begin{align*}
+\plim\hat\beta &= \beta+\frac{\Cov(x,v)}{\Var(x)} \why{式 \eqref{eq:U07-plim1}}\\
+&= \beta-\frac{\beta\sigma_e^2}{\sigma_{x^*}^2+\sigma_e^2} \why{代入 $\Cov(x,v)$ 与 $\Var(x)$}\\
+&= \beta\,\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}. \why{通分}
+\end{align*}
+Hansen 第 12.3 节（变量均值为 0）写成 $\beta^*=\beta\bigl(1-\E(e_x^2)/\E(x^2)\bigr)$，与此相同，因为 $1-\sigma_e^2/(\sigma_{x^*}^2+\sigma_e^2)=\lambda$。
+
+\subsubsection{结论：衰减偏误与信度比}
+
+\begin{thm}[衰减偏误]\label{thm:U07-atten}
+在经典测量误差下，
+\begin{equation}\label{eq:U07-atten}
+\plim\hat\beta=\lambda\beta,\qquad \lambda=\frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}\in(0,1).
+\end{equation}
+$\lambda$ 称为\term{信度比}{reliability ratio}：真实信号方差占观测值总方差的比例（注意它不是\term{信噪比}{signal-to-noise ratio} $\sigma_{x^*}^2/\sigma_e^2$；二者关系为 $\lambda=\text{SNR}/(1+\text{SNR})$）。估计值与真值\key{同号}但\key{绝对值更小}——向 0 衰减，称为\term{衰减偏误}{attenuation bias}（Hansen 也称 measurement error bias）。$\sigma_e^2$ 越大（噪声越多），衰减越严重；$y$ 的误差 $e_y$ 不出现在公式中。
+\end{thm}
+
+\subsubsection{例：衰减偏误的数值}
+
+\begin{exmp}[衰减偏误的数值]\label{ex:U07-atten}
+$\sigma_{x^*}^2=4$，$\sigma_e^2=1$，$\beta=0.5$。求 $\plim\hat\beta$；若噪声增大到 $\sigma_e^2=4$ 呢？
+\solution
+\begin{align*}
+\lambda &= \frac{4}{4+1}=0.8,\qquad \plim\hat\beta=0.8\times0.5=0.4, \why{式 \eqref{eq:U07-atten}}
+\end{align*}
+低估 20\%。若 $\sigma_e^2=4$，则 $\lambda=4/8=0.5$，$\plim\hat\beta=0.25$，低估一半。
+\end{exmp}
+
+\subsection{加入准确测量的控制变量会使衰减更严重}
+
+\subsubsection{推导：用 FWL 化为单变量问题}
+
+要证：回归中再加入准确测量的控制变量，$x$ 的系数衰减得更厉害。思路：用 FWL 把多元回归化为单变量回归，再套用衰减偏误公式。模型 $y=\beta x^*+w\T\gamma+u$，$w$（含常数项）是\key{可观测}、准确测量的控制变量（与遗漏变量一节不可观测的 $w$ 不同），$x=x^*+e_x$，$e_x$ 与 $w$、$x^*$、$u$ 都不相关，$x^*$ 与 $w$ 都与 $u$ 不相关。记 $r$ 为 $x^*$ 对 $w$ 线性投影的残差，
+\[
+\Var(r)=\sigma_r^2=\sigma_{x^*}^2(1-\rho^2),
+\]
+$\rho^2$ 为 $x^*$ 对 $w$ 的总体 $R^2$。由 FWL（第 3 章），$\hat\beta$ 等于 $y$ 对“$x$ 对 $w$ 回归的残差 $\tilde x$”的回归系数；又因 $e_x$ 与 $w$ 不相关，投影时 $e_x$ 不被吸收，故 $\tilde x=r+e_x$。于是
+\begin{align*}
+\plim\hat\beta &= \frac{\Cov(\tilde x,y)}{\Var(\tilde x)} \why{FWL}\\
+&= \frac{\Cov(r+e_x,\ \beta x^*+w\T\gamma+u)}{\Var(r)+\sigma_e^2} \why{$\tilde x=r+e_x$，$\Cov(r,e_x)=0$}\\
+&= \frac{\beta\Cov(r,x^*)}{\sigma_r^2+\sigma_e^2} \why{$r\perp w$，$r\perp u$；经典测量误差}\\
+&= \beta\,\frac{\sigma_r^2}{\sigma_r^2+\sigma_e^2}. \why{$\Cov(r,x^*)=\Var(r)$}
+\end{align*}
+其中 $\Cov(r,x^*)=\Var(r)$ 是因为 $x^*=r+(\text{$w$ 的线性函数})$，而 $r$ 与 $w$ 的线性函数不相关。
+
+\subsubsection{信度比由 \texorpdfstring{$\sigma_{x^*}^2$}{sigma\_x*\^{}2} 降为 \texorpdfstring{$\sigma_{x^*}^2(1-\rho^2)$}{sigma\_x*\^{}2 (1-rho\^{}2)}}
+
+由于 $\sigma_r^2=\sigma_{x^*}^2(1-\rho^2)\le\sigma_{x^*}^2$，
+\[
+\frac{\sigma_{x^*}^2(1-\rho^2)}{\sigma_{x^*}^2(1-\rho^2)+\sigma_e^2}\ \le\ \frac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2},
+\]
+信度比变小：控制变量把 $x^*$ 的“信号”吸走了一部分，噪声 $e_x$ 却原封不动，噪声占比上升，衰减更严重。并且 $\hat\gamma$ 一般也不一致：测量误差的偏误会传给与 $x^*$ 相关的控制变量。
+
+\subsubsection{向量情形：\texorpdfstring{$\plim\hat\beta=\beta-[\E(x_ix_i')]^{-1}\E(e_ie_i')\beta$}{plim b = beta - E(xx')\^{}(-1) E(ee') beta}}
+
+设观测回归元向量 $x_i=x_i^*+e_i$（$e_i$ 为 $K\times1$ 测量误差向量，准确测量的分量对应的 $e$ 为 0），$e_i$ 与 $x_i^*$、$u_i$ 不相关，真实模型 $y_i=x_i^{*\prime}\beta+u_i$。使用的模型为 $y_i=x_i\T\beta+v_i$，$v_i=u_i-e_i\T\beta$。
+\begin{align*}
+\E(x_iv_i) &= \E\bigl[(x_i^*+e_i)(u_i-e_i\T\beta)\bigr] \why{代入}\\
+&= \E(x_i^*u_i)+\E(e_iu_i)-\E(x_i^*e_i\T)\beta-\E(e_ie_i\T)\beta \why{展开，期望线性}\\
+&= -\E(e_ie_i\T)\beta, \why{$x^*$ 外生；经典测量误差}\\
+\plim\hat\beta &= \beta-[\E(x_ix_i\T)]\inv\E(e_ie_i\T)\beta. \why{式 \eqref{eq:U07-plim}}
+\end{align*}
+这是 Hansen 第 12.3 节的写法。若只有第 1 个回归元有误差，$\E(e_ie_i\T)=\diag(\sigma_e^2,0,\dots,0)$，偏误为 $-\sigma_e^2\beta_1\times([\E(x_ix_i\T)]\inv$ 的第 1 列$)$：只要 $x_1$ 与其他回归元相关，其他系数也被“传染”。
+
+\subsection{测量误差的工具变量解法：第二次独立测量}
+
+若有同一真值的\key{第二个独立测量} $x_2=x^*+e_2$（$e_2$ 与 $e_x$、$u$、$e_y$、$x^*$ 都不相关），则 $x_2$ 是 $x$ 的有效工具（第 8 章）：
+\begin{align*}
+\plim\hat\beta_{IV} &= \frac{\Cov(x_2,y)}{\Cov(x_2,x)} \why{IV 斜率 = 两个协方差之比}\\
+&= \frac{\Cov(x^*+e_2,\ \beta x^*+u+e_y)}{\Cov(x^*+e_2,\ x^*+e_x)} \why{代入}\\
+&= \frac{\beta\sigma_{x^*}^2}{\sigma_{x^*}^2}=\beta. \why{误差互不相关}
+\end{align*}
+例如：双胞胎对彼此受教育年限的报告、两次独立的调查测量等。Hansen 第 12.5 节同样指出：工具可取真值的另一个测量，但其测量误差必须与 $x$ 的测量误差独立。
+
+\subsection{练习：同时存在两种测量误差}
+
+\begin{prac}[同时存在两种测量误差]\label{pr:U07-me}
+真实模型 $y^*=1+2x^*+u$，$\Var(x^*)=3$，$\Var(u)=1$。观测 $y=y^*+e_y$，$x=x^*+e_x$，$\Var(e_y)=2$，$\Var(e_x)=1$，经典测量误差。(1) 求 $\plim\hat\beta_{OLS}$；(2) 比较只有 $e_y$、没有 $e_x$ 时 OLS 的一致性与误差方差。
+\answer
+(1) 衰减偏误只与 $x$ 的误差有关：
+\begin{align*}
+\lambda &= \frac{3}{3+1}=0.75, \why{信度比}\\
+\plim\hat\beta &= 0.75\times2=1.5. \why{式 \eqref{eq:U07-atten}}
+\end{align*}
+$e_y$ 不影响概率极限。
+
+(2) 只有 $e_y$ 时，使用的模型 $y=1+2x+(u+e_y)$，$\Cov(x,u+e_y)=0$，OLS 一致，$\plim\hat\beta=2$；误差方差由 $\Var(u)=1$ 增至 $\Var(u+e_y)=1+2=3$，同方差下渐近方差扩大为原来的 3 倍，估计更不精确，但没有偏误。
+\end{prac}
+
+\begin{english}
+\textbf{Measurement error.} Let $x_i=x_i^*+e_{xi}$ and $y_i=y_i^*+e_{yi}$ with classical measurement errors. Measurement error in the dependent variable only adds noise to the regression error: OLS remains consistent but is less precise. Measurement error in the regressor makes the observed regressor correlated with the composite error, since $\Cov(x_i,u_i+e_{yi}-\beta e_{xi})=-\beta\sigma_e^2\neq0$. Hence OLS is inconsistent: $\plim\hat\beta=\beta\,\sigma_{x^*}^2/(\sigma_{x^*}^2+\sigma_e^2)$, which is attenuated towards zero. Adding correctly measured controls worsens the attenuation. A second, independent measurement of $x^*$ is a valid instrument.
+\end{english}
+
+%======================================================================
+\section{来源三：联立性（拓展）}\label{sec:U07-sim}
+
+\tagext\ 遗漏变量与测量误差是本章的核心来源。\term{联立性}{simultaneity}是教科书中最经典的内生性来源：Hansen 第 12.1 节指出，内生性的思想自然地来自联立方程模型，最典型的是供求模型；第 12.3 节用供求模型具体说明。本节作为拓展，但考试中常以“讨论内生性来源”的形式出现。
+
+\subsection{供求模型：价格为什么是内生的}
+
+\subsubsection{模型设定}
+
+\begin{exmp}[供求模型]\label{ex:U07-sd}
+需求：$Q=-\beta_1P+e_1$；供给：$Q=\beta_2P+e_2$（$\beta_1,\beta_2>0$）。$\E(e_1)=\E(e_2)=0$，$\Var(e_1)=\sigma_1^2$，$\Var(e_2)=\sigma_2^2$，$\Cov(e_1,e_2)=0$。$P$ 与 $Q$ 由市场出清同时决定。(1) 解出均衡；(2) 判断 $P$ 是否内生；(3) 求 $Q$ 对 $P$ 回归的 OLS 概率极限。（Hansen 第 12.3 节取 $\sigma_1^2=\sigma_2^2=1$，这里是它的推广。）下面分三步求解。
+\end{exmp}
+
+\subsubsection{第一步：解出均衡（简约式）}
+
+两式相减消去 $Q$：
+\begin{align*}
+0 &= -\beta_1P+e_1-\beta_2P-e_2 \why{需求式 $-$ 供给式}\\
+&= -(\beta_1+\beta_2)P+e_1-e_2 \why{合并 $P$ 的项}\\
+P &= \frac{e_1-e_2}{\beta_1+\beta_2}, \why{解出 $P$}\\
+Q &= \beta_2P+e_2=\frac{\beta_2(e_1-e_2)+(\beta_1+\beta_2)e_2}{\beta_1+\beta_2}=\frac{\beta_2e_1+\beta_1e_2}{\beta_1+\beta_2}. \why{代回供给式并通分}
+\end{align*}
+这种把内生变量写成外生冲击函数的方程称为\term{简约式}{reduced form}。
+
+\subsubsection{第二步：价格与需求冲击、供给冲击都相关}
+
+用简约式计算 $P$ 与两个冲击的协方差：
+\begin{align*}
+\Cov(P,e_1) &= \frac{\Cov(e_1,e_1)-\Cov(e_2,e_1)}{\beta_1+\beta_2}=\frac{\sigma_1^2}{\beta_1+\beta_2}\neq0, \why{代入简约式，$\Cov(e_1,e_2)=0$}\\
+\Cov(P,e_2) &= \frac{\Cov(e_1,e_2)-\Var(e_2)}{\beta_1+\beta_2}=-\frac{\sigma_2^2}{\beta_1+\beta_2}\neq0. \why{同上}
+\end{align*}
+需求方程中价格是内生的；同理，供给方程中价格也内生。
+
+\subsubsection{第三步：OLS 收敛到供求斜率的加权平均}
+
+$Q$ 对 $P$（含截距）回归的斜率收敛到 $\Cov(P,Q)/\Var(P)$。先用简约式分别计算分子与分母：
+\begin{align*}
+\Cov(P,Q) &= \frac{\Cov(e_1-e_2,\ \beta_2e_1+\beta_1e_2)}{(\beta_1+\beta_2)^2} \why{代入简约式}\\
+&= \frac{\beta_2\sigma_1^2+\beta_1\Cov(e_1,e_2)-\beta_2\Cov(e_2,e_1)-\beta_1\sigma_2^2}{(\beta_1+\beta_2)^2} \why{协方差双线性}\\
+&= \frac{\beta_2\sigma_1^2-\beta_1\sigma_2^2}{(\beta_1+\beta_2)^2}, \why{$\Cov(e_1,e_2)=0$}\\
+\Var(P) &= \frac{\sigma_1^2+\sigma_2^2}{(\beta_1+\beta_2)^2}, \why{同上}\\
+\beta^* &= \frac{\Cov(P,Q)}{\Var(P)}=\frac{\beta_2\sigma_1^2-\beta_1\sigma_2^2}{\sigma_1^2+\sigma_2^2} \why{OLS 斜率的极限}\\
+&= \frac{\sigma_1^2}{\sigma_1^2+\sigma_2^2}\,\beta_2+\frac{\sigma_2^2}{\sigma_1^2+\sigma_2^2}\,(-\beta_1). \why{整理为加权平均}
+\end{align*}
+OLS 估计的是\key{供给斜率 $\beta_2$ 与需求斜率 $-\beta_1$ 的加权平均}，既不是需求曲线也不是供给曲线——这就是\term{联立方程偏误}{simultaneous equations bias}。
+
+\subsubsection{特例：\texorpdfstring{$\sigma_1^2=\sigma_2^2=1$}{sigma1\^{}2 = sigma2\^{}2 = 1} 时 \texorpdfstring{$\beta^*=(\beta_2-\beta_1)/2$}{beta* = (beta2 - beta1)/2}}
+
+取 $\sigma_1^2=\sigma_2^2=1$：$\beta^*=(\beta_2-\beta_1)/2$，这正是 Hansen 第 12.3 节的结果（Hansen 说明“简单平均”只是协方差结构 $\E(ee\T)=I_2$ 造成的）。若再取 $\beta_1=\beta_2=1$，则 $\beta^*=0$：OLS 显示“价格与数量毫无关系”。
+
+\subsubsection{直观：均衡点沿哪条曲线排列}
+
+数据点都是供求曲线的交点。如果主要是需求曲线在移动（$\sigma_1^2\gg\sigma_2^2$），交点就沿着供给曲线排列，OLS 估到的接近 $\beta_2$；反之接近需求斜率 $-\beta_1$。要识别需求曲线，需要一个\key{只移动供给、不移动需求}的变量（如原材料成本、天气对产量的冲击）——这正是工具变量的思想（第 8 章）。
+
+\subsection{联立性的一般含义：反向因果与选择变量}
+
+\subsubsection{反向因果}
+
+\term{反向因果}{reverse causality}：$x$ 影响 $y$ 的同时 $y$ 也影响 $x$。例：警察数量与犯罪率（犯罪多的城市雇更多警察）；政策补贴与企业绩效（政府可能更愿意补贴绩效差或绩效好的企业）。Hansen 第 12.3 节的一般表述：被解释变量与回归元同时决定时（如市场均衡），都应视为内生。
+
+\subsubsection{选择变量}
+
+\term{选择变量}{choice variables}（Hansen 第 12.3 节）：当 $y$ 与 $x$ 都是同一经济主体的选择（如受教育年限与工资），即使二者发生在不同时间，也应视 $x$ 为内生。
+
+\subsection{练习：供求模型}
+
+\begin{prac}[供求模型的 OLS 极限]\label{pr:U07-sd}
+在上面的供求模型中取 $\beta_1=1$，$\beta_2=1$，$\sigma_1^2=3$，$\sigma_2^2=1$。(1) 求 $Q$ 对 $P$ 回归的 OLS 概率极限；(2) 若需求冲击方差趋于无穷大，OLS 估计的是什么？
+\answer
+(1)
+\begin{align*}
+\beta^* &= \frac{\sigma_1^2}{\sigma_1^2+\sigma_2^2}\beta_2+\frac{\sigma_2^2}{\sigma_1^2+\sigma_2^2}(-\beta_1) \why{加权平均公式}\\
+&= \frac34\times1+\frac14\times(-1)=0.5. \why{代入数值}
+\end{align*}
+(2) $\sigma_1^2\to\infty$ 时权重 $\sigma_1^2/(\sigma_1^2+\sigma_2^2)\to1$，$\beta^*\to\beta_2=1$：需求曲线剧烈移动、供给稳定，交点描出的是供给曲线，OLS 估计供给斜率。
+\end{prac}
+
+\begin{english}
+\textbf{Simultaneity.} When $y$ and $x$ are jointly determined, as price and quantity in a market equilibrium, the regressor is correlated with the structural error. In the supply--demand model the OLS slope of $Q$ on $P$ converges to a variance-weighted average of the supply and demand slopes, $\beta^*=\frac{\sigma_1^2}{\sigma_1^2+\sigma_2^2}\beta_2-\frac{\sigma_2^2}{\sigma_1^2+\sigma_2^2}\beta_1$, which equals neither. This is called simultaneous equations bias. Identifying the demand curve requires an instrument that shifts supply but not demand. Similarly, when $y$ and $x$ are choices made by the same agent, $x$ should be treated as endogenous.
+\end{english}
+
+%======================================================================
+\section{如何判断内生性：实证语境}\label{sec:U07-judge}
+
+\subsection{判断清单：四个问题}
+
+面对一个回归 $y=\beta x+\text{controls}+u$，依次问：
+\begin{enumerate}
+  \item \key{遗漏变量}：有没有未观测的个体效应（能力、偏好、管理水平、企业文化……）同时影响 $y$ 并与 $x$ 相关？若是，用 OVB 公式判断偏误方向。
+  \item \key{测量误差}：$x$ 是不是自报的、代理变量、构造的指数（如“数字化转型”词频、ESG 评分）？若是，警惕衰减偏误。
+  \item \key{联立性 / 反向因果}：$y$ 会不会反过来影响 $x$？$x$ 与 $y$ 是否在同一均衡中同时决定？
+  \item \key{选择}：$x$ 是不是个体或企业自己选择的（是否上大学、是否参加培训、是否进行并购）？自选择通常与未观测特征相关。
+\end{enumerate}
+
+\subsection{常见情境速查表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.6cm}>{\raggedright\arraybackslash}p{1.9cm}>{\raggedright\arraybackslash}p{3.0cm}L}
+\toprule
+研究问题 & 可疑变量 & 主要来源 & 常见应对 / 工具（需逐一论证）\\
+\midrule
+教育回报 & 受教育年限 & 遗漏能力；教育测量误差 & 离大学的距离、出生季度（第 8 章）\\
+需求弹性 & 价格 & 联立性 & 成本冲击（只移动供给）\\
+警察与犯罪 & 警察数量 & 反向因果 & 与犯罪无关的预算 / 选举周期变动\\
+研发与企业生产率 & 研发投入 & 遗漏企业能力；反向因果 & 滞后项、同行业其他企业均值（排他性常受质疑）\\
+互联网 / 数字金融与经济增长 & 发展指数 & 遗漏地区特征；测量误差 & 历史邮电基础设施、到特定中心城市的距离（需论证只通过 $x$ 影响 $y$）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{常见实证情境中的内生性}
+\end{center}
+
+\subsection{从经济学论证到统计检验}
+
+\subsubsection{不能用 OLS 残差检验外生性}
+
+很多初学者想“看看 $x$ 与 OLS 残差是否相关”。但 OLS 的正规方程保证
+\[
+X\T\hat u=0
+\]
+（第 3 章），样本中二者\key{机械地}不相关，不论真实的 $u$ 是否与 $x$ 相关。$u$ 不可观测，外生性无法仅凭 OLS 检验。
+
+\subsubsection{内生性检验需要工具变量}
+
+内生性检验（endogeneity test）处在外生模型（OLS / MLE）与内生模型（IV / 2SLS / GMM）的岔路口；但检验本身是在“\key{工具有效}”的维持假设下进行的（第 9 章）。没有工具，就无法检验内生性。
+
+\subsubsection{实证论文中的规范做法}
+
+\begin{method}[实证论文处理内生性的步骤]
+\begin{enumerate}[label=(\roman*)]
+  \item 从经济机制论证可能的内生性来源与偏误方向；
+  \item 给出 IV / GMM 估计并与 OLS 对比；
+  \item 报告第一阶段 $F$（相关性）、内生性检验、过度识别检验（第 9 章）；
+  \item 结合偏误方向解释 OLS 与 IV 的差异。
+\end{enumerate}
+\end{method}
+
+\subsubsection{考点：讨论内生性来源与偏误方向的答题结构}
+
+\begin{keypt}[讨论内生性的答题结构]
+考题常问：“Discuss possible sources of endogeneity in this regression and the likely direction of the OLS bias.”答题结构：指出来源（OVB / ME / simultaneity）$\to$ 写出相应偏误公式 $\to$ 判断符号 $\to$ 提出 IV 及其需要满足的两个条件（相关性、外生性 / 排他性）。
+\end{keypt}
+
+\subsection{练习：ESG 与企业价值的内生性讨论}
+
+\begin{prac}[实证情境的内生性讨论]\label{pr:U07-esg}
+研究“企业 ESG 评分 $x$ 对企业价值（Tobin's $Q$）$y$ 的影响”，OLS 估计显著为正。请讨论可能的内生性来源与 OLS 偏误方向，并提出一个候选工具及其需要论证之处。
+\answer
+(1) 遗漏变量：管理层能力 / 公司治理质量同时提高 ESG 表现与企业价值，$\gamma>0$、$\Cov>0$ $\Rightarrow$ 正偏。
+
+(2) 反向因果：价值高、现金充裕的企业更有能力做 ESG 投入 $\Rightarrow$ 也是正偏。
+
+(3) 测量误差：不同评级机构的 ESG 评分分歧很大，评分是真实 ESG 表现的噪声度量 $\Rightarrow$ 衰减偏误（向 0）。
+
+净效果：前两者使 OLS 高估，后者使其低估，方向需结合论证。
+
+(4) 候选工具：同行业（或同地区）其他企业的 ESG 均值（剔除本企业）。相关性：行业规范、同伴效应使本企业 ESG 与同行相关，需报告第一阶段 $F$；排他性：同行业 ESG 均值可能通过行业层面的需求冲击、监管环境直接影响本企业价值，需控制行业 $\times$ 年份固定效应等，并说明其只通过本企业 ESG 影响价值。
+\end{prac}
+
+\begin{english}
+\textbf{Discussing endogeneity in an application.} ``The coefficient on $x$ may be biased for three reasons. First, unobserved factors such as managerial ability affect both $x$ and $y$; since ability is likely positively correlated with $x$ and raises $y$, OLS is biased upwards. Second, $x$ is measured with error, which attenuates the estimate towards zero. Third, $y$ may affect $x$ (reverse causality). Note that exogeneity cannot be tested with OLS residuals, because $X'\hat u=0$ by construction. We therefore use an instrumental variable that is correlated with $x$ but excluded from the outcome equation.''
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U07-summary}
+
+一句话：内生性使 OLS 收敛到错误的值（线性投影系数 $\beta^*$），基于 OLS 的推断全部失效；补救的途径是寻找满足外生性与相关性的工具变量（第 8 章），或利用面板结构消去不随时间变化的遗漏变量（第 10 章）。
+
+\subsection{核心公式与结论表}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}>{\raggedright\arraybackslash}p{6.2cm}L}
+\toprule
+主题 & 公式 & 要点\\
+\midrule
+内生性定义 & $\E(u_i\mid x_i)\neq0$；Hansen：$\E(x_iu_i)\neq0$ & $\E(u\mid x)=0\Rightarrow\E(xu)=0$，反之不成立；一个回归元内生 $\Rightarrow\E(u\mid x)\neq0$\\
+OLS 的极限 & $\plim\hat\beta_{OLS}=\beta+Q\inv\E(x_iu_i)=\beta^*$ & OLS 一致估计线性投影系数，不是结构参数\\
+单回归元 & $\plim\hat\beta_1=\beta_1+\Cov(x,u)/\Var(x)$ & 偏误与 $\Cov(x,u)$ 同号\\
+推断 & $|t|\approx|\beta_1^*-\beta_1^0|/O_p(n^{-1/2})\pto\infty$ & 检验水平 $\to1$，置信区间覆盖率 $\to0$\\
+OVB（标量） & $\plim\hat\beta_1=\beta_1+\gamma\delta$，$\delta=\Cov(x,w)/\Var(x)$ & 同号偏高，异号偏低\\
+OVB（矩阵） & $\E(b\mid X,W)=\beta+\hat\Delta\gamma$；$\plim b=\beta+\Gamma\gamma$，$\Gamma=[\E(xx\T)]\inv\E(xw\T)$ & 有偏且不一致；多回归元时方向不定\\
+$y$ 有测量误差 & $v=u+e_y$，$\Var(v)=\sigma_u^2+\sigma_{e_y}^2$ & 一致但不够精确；用稳健标准误\\
+$x$ 有测量误差 & $\Cov(x,v)=-\beta\sigma_e^2$；$\plim\hat\beta=\lambda\beta$，$\lambda=\dfrac{\sigma_{x^*}^2}{\sigma_{x^*}^2+\sigma_e^2}$ & 衰减偏误；$\lambda$ 是信度比，不是信噪比\\
+加控制变量 & $\sigma_{x^*}^2\to\sigma_{x^*}^2(1-\rho^2)$ & 衰减更严重\\
+向量测量误差 & $\plim\hat\beta=\beta-[\E(x_ix_i\T)]\inv\E(e_ie_i\T)\beta$ & 偏误传给其他系数\\
+测量误差的 IV & $\plim\hat\beta_{IV}=\Cov(x_2,y)/\Cov(x_2,x)=\beta$ & 两次测量的误差须互不相关\\
+联立性 & $\beta^*=\dfrac{\sigma_1^2\beta_2-\sigma_2^2\beta_1}{\sigma_1^2+\sigma_2^2}$ & 供求斜率的加权平均，既非需求也非供给\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{第 7 章核心公式与结论}
+\end{center}
+
+\subsection{三种来源对照与判断要点}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.0cm}LL>{\raggedright\arraybackslash}p{3.3cm}}
+\toprule
+来源 & 机制 & 偏误方向 & 补救\\
+\midrule
+遗漏变量 & $w$ 进入误差且与 $x$ 相关：$\E(xv)=\E(xw\T)\gamma$ & $\operatorname{sign}(\gamma)\cdot\operatorname{sign}(\Cov(x,w))$；多回归元时不定 & IV；$w$ 不随时间变时用面板固定效应\\
+$x$ 的测量误差 & 观测 $x$ 含 $e_x$，误差含 $-\beta e_x$ & 向 0 衰减（同号、绝对值变小） & 第二次独立测量作工具\\
+$y$ 的测量误差 & 误差变为 $u+e_y$ & 无偏误（经典假设下） & 稳健标准误\\
+联立性 / 选择 & $x$ 与 $y$ 同时决定或同为主体选择 & 视参数而定；供求模型中为两斜率的加权平均 & 只移动一条曲线的外生变量作工具\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{内生性三种来源对照}
+\end{center}
+
+判断要点：
+\begin{enumerate}
+  \item 先问 $\beta$ 是不是结构参数；若是投影系数，就不存在内生性问题。
+  \item 按“遗漏变量—测量误差—联立性—选择”四问逐一排查，写出相应偏误公式再判断符号。
+  \item 多个来源可能方向相反（如能力偏误与衰减偏误），净方向需结合论证；OLS 与 IV 的比较可提供线索。
+  \item 外生性不能用 OLS 残差检验；内生性检验与补救都需要工具变量（第 8--9 章）。
+\end{enumerate}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item 把 $\E(x_iu_i)=0$ 与 $\E(u_i\mid x_i)=0$ 混为一谈：前者更弱（反例 $u=x^2-1$）。
+  \item 以为只有内生变量的系数有偏：与内生变量相关的外生变量系数也会被“传染”（见本章第一节的即时练习“部分内生对其他系数的影响”）。
+  \item 以为增大样本能消除内生性偏误：问题是不一致，样本越大越“精确地”估计一个错误的数。
+  \item 用 OLS 残差与 $x$ 的相关性检验外生性：$X\T\hat u=0$ 恒成立，毫无信息。
+  \item 以为 $y$ 的测量误差会造成偏误；或忘记“$y$ 有误差无碍”只在经典假设下成立。
+  \item 把信度比 $\sigma_{x^*}^2/(\sigma_{x^*}^2+\sigma_e^2)$ 写成信噪比 $\sigma_{x^*}^2/\sigma_e^2$。
+  \item 以为在测量误差下多加控制变量总有好处：准确测量的控制变量会加剧衰减。
+  \item 多回归元时机械套用“同号偏高，异号偏低”。
+  \item 把“高估/低估”与绝对值大小混淆（$\beta<0$ 时正偏意味着 $|\hat\beta|$ 变小）。
+  \item 测量误差的工具：两次测量的误差相关（如同一人的两次自报）时 IV 不一致。
+  \item 测量误差的记号方向（观测 = 真值 + 误差，或反之）没有写清，导致复合误差中 $e$ 的符号写错。
+  \item 联立性中以为 OLS 估计的是需求曲线（或供给曲线）。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[Comprehensive: OLS under endogeneity]\label{pr:U07-comp1}
+Consider $y_i=x_i'\beta+u_i$, $i=1,\dots,n$, i.i.d., with $\E(x_ix_i')=Q>0$ and $\E(x_iu_i)=\eta\neq0$. (a) Derive the probability limit of $\hat\beta_{OLS}$. (b) Show that the OLS residuals satisfy $X'\hat u=0$ and explain why this does not imply $\eta=0$. (c) Let $\hat\beta_{OLS,j}$ be the $j$-th coefficient. Show that the $t$-test of the true null $H_0:\beta_j=\beta_j^0$ rejects with probability approaching one whenever the $j$-th element of $Q^{-1}\eta$ is nonzero.
+\answer
+(a)
+\begin{align*}
+\hat\beta &= \beta+\Bigl(\tfrac1nX\T X\Bigr)\inv\tfrac1nX\T u \why{代入真实模型}\\
+&\pto \beta+Q\inv\eta. \why{LLN 与 CMT}
+\end{align*}
+(b)
+\begin{align*}
+X\T\hat u &= X\T(Y-X\hat\beta) \why{残差定义}\\
+&= X\T Y-X\T X(X\T X)\inv X\T Y \why{代入 $\hat\beta$}\\
+&= X\T Y-X\T Y=0. \why{$X\T X(X\T X)\inv=I_K$}
+\end{align*}
+这是正规方程的代数恒等式，对任何数据都成立；它说明样本残差与 $X$ 正交，但真实误差 $u$ 不可观测，$\frac1nX\T u\pto\eta$ 可以不为 0。残差是“OLS 强行使之与 $X$ 正交”之后剩下的部分，已经把 $u$ 中与 $X$ 相关的成分吸收进了 $\hat\beta$（这正是偏误的来源）。
+
+(c) 记 $c_j=(Q\inv\eta)_j\neq0$，$\hat V$ 为渐近方差估计，$\hat V\pto V$（有限正定），$se(\hat\beta_j)=\sqrt{\hat V_{jj}/n}\pto0$。
+\begin{align*}
+|t_j| &= \frac{|\hat\beta_j-\beta_j^0|}{\sqrt{\hat V_{jj}/n}} \why{$t$ 统计量定义}\\
+&= \sqrt n\,\frac{|\hat\beta_j-\beta_j^0|}{\sqrt{\hat V_{jj}}} \why{分子分母同乘 $\sqrt n$}\\
+&\approx \sqrt n\,\frac{|c_j|}{\sqrt{V_{jj}}}\to\infty. \why{$\hat\beta_j-\beta_j^0\pto c_j$，CMT}
+\end{align*}
+严格地说，$|t_j|/\sqrt n\pto|c_j|/\sqrt{V_{jj}}>0$，而任何固定临界值 $c$ 满足 $c/\sqrt n\to0$，所以 $P(|t_j|>c)=P(|t_j|/\sqrt n>c/\sqrt n)\to1$。
+\end{prac}
+
+\begin{prac}[Comprehensive: two omitted-variable stories]\label{pr:U07-comp2}
+A researcher regresses firm productivity $y_i$ on R\&D intensity $x_i$: $y_i=\beta_0+\beta_1x_i+v_i$. The true model is $y_i=\beta_0+\beta_1x_i+\gamma m_i+u_i$, where $m_i$ is unobserved managerial quality, $\E(u_i\mid x_i,m_i)=0$. (a) Derive $\plim\hat\beta_1$. (b) Suppose $\gamma=0.3$, $\Var(x_i)=2$, $\Cov(x_i,m_i)=0.4$, $\beta_1=0.2$. Compute the asymptotic bias and its sign. (c) If $x_i$ is in addition measured with classical error with $\Var(e)=0.5$ (and $\Var(x_i^*)=2$), discuss qualitatively whether the two biases reinforce or offset each other.
+\answer
+(a) 由 OVB 公式 \eqref{eq:U07-ovb}：$\plim\hat\beta_1=\beta_1+\gamma\,\Cov(x,m)/\Var(x)$。
+
+(b)
+\begin{align*}
+\delta &= 0.4/2=0.2, \why{辅助回归斜率}\\
+\text{偏误} &= \gamma\delta=0.3\times0.2=0.06>0, \why{OVB 公式}
+\end{align*}
+$\plim\hat\beta_1=0.26$，正偏（高估 30\%）。
+
+(c) 测量误差导致向 0 衰减（若无遗漏变量，$\lambda=2/(2+0.5)=0.8$，$0.2\to0.16$）；遗漏管理质量导致正偏。二者方向相反、相互抵消，净偏误方向取决于相对大小。同时存在时（设 $e$ 与 $m$、$x^*$、$u$ 都不相关，$\Cov(x^*,m)=0.4$），观测到的 $x=x^*+e$ 方差为 2.5：
+\begin{align*}
+\plim\hat\beta_1 &= \frac{\Cov(x^*+e,\ \beta_1x^*+\gamma m+u)}{\Var(x^*)+\Var(e)} \why{代入观测值}\\
+&= \frac{\beta_1\Var(x^*)+\gamma\Cov(x^*,m)}{\Var(x^*)+\Var(e)} \why{$e$ 与各项不相关}\\
+&= \frac{0.4+0.12}{2.5}=0.208. \why{代入数值}
+\end{align*}
+净偏误仅 $+0.008$。这说明不能单凭某一个来源判断最终方向。
+\end{prac}
+
+\begin{prac}[Comprehensive: measurement error and an instrument]\label{pr:U07-comp3}
+Let $y_i=\beta x_i^*+u_i$ (all variables mean zero), with two error-ridden measures $x_{1i}=x_i^*+e_{1i}$ and $x_{2i}=x_i^*+e_{2i}$, where $x^*,u,e_1,e_2$ are mutually uncorrelated, $\Var(x^*)=\sigma^2$, $\Var(e_1)=\Var(e_2)=\tau^2$. (a) Find the plim of the OLS slope of $y$ on $x_1$. (b) Show that using $x_2$ as an instrument for $x_1$ gives a consistent estimator of $\beta$. (c) Is the estimator in (b) consistent if $\Cov(e_1,e_2)=\kappa>0$? Explain.
+\answer
+(a) $\plim\hat\beta_{OLS}=\Cov(x_1,y)/\Var(x_1)=\beta\sigma^2/(\sigma^2+\tau^2)$（衰减）。
+
+(b)
+\begin{align*}
+\Cov(x_2,y) &= \Cov(x^*+e_2,\ \beta x^*+u)=\beta\sigma^2, \why{互不相关}\\
+\Cov(x_2,x_1) &= \Cov(x^*+e_2,\ x^*+e_1)=\sigma^2, \why{互不相关}\\
+\plim\hat\beta_{IV} &= \frac{\Cov(x_2,y)}{\Cov(x_2,x_1)}=\frac{\beta\sigma^2}{\sigma^2}=\beta. \why{IV 斜率的极限}
+\end{align*}
+(c) 不一致：$\Cov(x_2,x_1)=\sigma^2+\kappa$，故 $\plim\hat\beta_{IV}=\beta\sigma^2/(\sigma^2+\kappa)\neq\beta$。原因是工具 $x_2$ 与使用模型的误差 $v=u-\beta e_1$ 相关：
+\begin{align*}
+\Cov(x_2,v) &= \Cov(x^*+e_2,\ u-\beta e_1) \why{代入}\\
+&= -\beta\Cov(e_2,e_1)=-\beta\kappa\neq0, \why{其余协方差为 0}
+\end{align*}
+违反工具外生性。两次测量的误差必须相互独立（例如不能来自同一个人的两次自报）。
+\end{prac}
+
+\begin{prac}[Comprehensive: identifying a demand curve]\label{pr:U07-comp4}
+Demand: $Q_i=\alpha_0-\alpha_1P_i+u_{1i}$; supply: $Q_i=\gamma_0+\gamma_1P_i+\gamma_2C_i+u_{2i}$, where $C_i$ is an input cost shifter with $\Cov(C_i,u_{1i})=\Cov(C_i,u_{2i})=0$ and $\gamma_2\neq0$. (a) Solve for the reduced form of $P_i$ and show that $P_i$ is correlated with $u_{1i}$. (b) Explain why $C_i$ is a valid instrument for $P_i$ in the demand equation but not in the supply equation.
+\answer
+(a) 令需求 = 供给：
+\begin{align*}
+\alpha_0-\alpha_1P+u_1 &= \gamma_0+\gamma_1P+\gamma_2C+u_2 \why{市场出清}\\
+(\alpha_1+\gamma_1)P &= \alpha_0-\gamma_0-\gamma_2C+u_1-u_2 \why{移项}\\
+P &= \frac{\alpha_0-\gamma_0-\gamma_2C+u_1-u_2}{\alpha_1+\gamma_1}. \why{解出 $P$}
+\end{align*}
+设 $\Cov(u_1,u_2)=0$，则 $\Cov(P,u_1)=\Var(u_1)/(\alpha_1+\gamma_1)\neq0$（用到 $\Cov(C,u_1)=0$），$P$ 在需求方程中内生。
+
+(b) 需求方程：$C$ 不出现在需求方程中（排他性），且 $\Cov(C,u_1)=0$（外生性）；由简约式 $\Cov(P,C)=-\gamma_2\Var(C)/(\alpha_1+\gamma_1)\neq0$（相关性）——是有效工具，可识别 $\alpha_1$。供给方程：$C$ 本身就是供给方程的回归元，不能再当作被排除的工具；供给方程缺少一个只移动需求的变量，无法识别。这正是第 8 章“工具必须被排除在结构方程之外”的含义。
+\end{prac}
+
+\begin{english}
+\textbf{Chapter summary.} A regressor is endogenous if it is correlated with the error of the structural equation. Under endogeneity OLS converges to $\beta+Q^{-1}\E(x_iu_i)$, the linear projection coefficient, rather than the structural parameter, and OLS-based tests have size tending to one. The three classic sources are omitted variables (bias $\gamma\delta$), measurement error in the regressor (attenuation by the reliability ratio $\sigma_{x^*}^2/(\sigma_{x^*}^2+\sigma_e^2)$), and simultaneity (OLS estimates a weighted average of supply and demand slopes). Exogeneity cannot be tested with OLS residuals; consistent estimation requires instruments that are relevant and excluded from the structural equation.
+\end{english}

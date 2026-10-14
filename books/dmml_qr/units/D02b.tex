@@ -1,0 +1,373 @@
+% ======================================================================
+% 单元 D02b：感知器、支持向量机、四种线性模型比较、本章考点清单
+% ======================================================================
+\section{感知器}\label{sec:D02b-perc}
+本节 $\bm x,\bm w$ 为增广向量（偏置并入），标签 $y\in\{-1,+1\}$。
+
+\subsection{历史：Rosenblatt (1958) 与 IBM 704；XOR 与神经网络低谷}
+F.~Rosenblatt, ``The Perceptron: A Probabilistic Model for Information Storage and Organization in the Brain'', \textit{Psychological Review} 65(6), 1958（康奈尔航空实验室）；最初在通用计算机 \key{IBM 704} 上以程序模拟，\textit{The New Yorker}（1958-12-06）称其“能够进行相当于原创思维的活动”。意义：\key{第一个能从数据中自动学习权重的人工神经元模型}。Minsky \& Papert（1969）指出单层感知器解不了异或（XOR）等线性不可分问题 $\Rightarrow$ 研究降温；多层网络 + 反向传播（第 3 章）克服。
+
+\subsection{核心结构：与生物神经元的对应；输出 \texorpdfstring{$\pm1$}{±1}}
+\term{感知器}{perceptron}：模拟生物神经元行为的机器，输出 $\hat y=+1$（$\bm w^\top\bm x>0$）或 $-1$（$\bm w^\top\bm x\le0$）。部件对应：\key{权重 $w_d$ $\leftrightarrow$ 突触}（连接强度，正兴奋、负抑制）；\key{偏置 $b$ $\leftrightarrow$ 阈值}（$\sum_dw_dx_d>-b$ 时激活，$-b$ 即阈值）；\key{阶跃激活函数 $\leftrightarrow$ 细胞体}（汇总信号，超过阈值就“放电”输出 $+1$）。
+\textbf{易错} 输出与标签都用 $\{-1,+1\}$（不是 0/1）：“分对”统一写成 $y\bm w^\top\bm x>0$，“分错”写成 $y\bm w^\top\bm x\le0$，更新规则只需一个式子 $\bm w\leftarrow\bm w+y\bm x$。
+
+\subsection{错误驱动的在线学习规则 \texorpdfstring{$\bm w\leftarrow\bm w+y\bm x$}{w <- w + yx}；判错条件取 \texorpdfstring{$\le0$}{<=0}}
+\begin{itemize}
+\item \key{算法思想}（\term{错误驱动}{error-driven}的\term{在线学习}{online learning}）：(1) 初始化 $\bm w\leftarrow\bm 0$；(2) 每分错一个样本 $(\bm x,y)$（$y\bm w^\top\bm x\le0$）就更新 $\bm w\leftarrow\bm w+y\bm x$；(3) 分对的样本不引起更新。“在线”= 逐个样本、来一个学一个；“错误驱动”= 只在犯错时学。
+\item \key{判错条件用 $\le0$ 而非 $<0$}：初始 $\bm w=\bm 0$ 时所有样本 $y\bm w^\top\bm x=0$，若用严格 $<0$，算法\key{永远不会启动}；且与“$\bm w^\top\bm x\le0$ 判 $-1$”一致——压在边界上的点也算未分对，需继续更新。
+\item \key{一次更新的效果}：用分错样本更新后，它的有符号得分增加 $\|\bm x\|^2$：
+\[
+y\bm w_{\text{new}}^\top\bm x=y(\bm w+y\bm x)^\top\bm x=y\bm w^\top\bm x+y^2\bm x^\top\bm x=y\bm w^\top\bm x+\|\bm x\|^2>y\bm w^\top\bm x
+\why{$y^2=1$；增广 $\bm x$ 含分量 1}
+\]
+几何：$y=+1$ 时 $\bm w$ 加 $\bm x$，向 $\bm x$ 转动；$y=-1$ 时减 $\bm x$，背离 $\bm x$ 转动。\textbf{易错} 一次更新\key{不保证}该样本立刻分对，还可能把其他已分对的样本弄错。
+\end{itemize}
+
+\subsection{由更新规则反推感知器损失 \texorpdfstring{$\max(0,-y\bm w^\top\bm x)$}{max(0,-y w'x)}（学习率为 1 的 SGD）}
+\[
+\mathcal L(\bm w;\bm x,y)=\max\big(0,\,-y\bm w^\top\bm x\big)
+\]
+分对（$y\bm w^\top\bm x>0$）损失为 0；分错时为 $-y\bm w^\top\bm x\ge0$，离边界越远越大。
+\begin{align*}
+\frac{\partial\mathcal L}{\partial\bm w}&=\begin{cases}\bm 0,&y\bm w^\top\bm x>0\ (\text{分对}),\\-y\bm x,&y\bm w^\top\bm x<0\ (\text{分错}),\end{cases}\quad y\bm w^\top\bm x=0\text{ 处取次梯度 }-y\bm x \why{分段线性逐段求导；次梯度集 $\{-\theta y\bm x:\theta\in[0,1]\}$}\\
+\bm w&\leftarrow\bm w-1\cdot\frac{\partial\mathcal L}{\partial\bm w}=\begin{cases}\bm w,&\text{分对},\\\bm w+y\bm x,&\text{分错（含 }=0\text{）}.\end{cases} \why{SGD，学习率 $\alpha=1$}
+\end{align*}
+\key{学习率无关紧要}：$\bm w_0=\bm 0$ 时，学习率 $\alpha$ 下的每个 $\bm w_k^{(\alpha)}=\alpha\bm w_k^{(1)}$（归纳：符号判断相同，更新量差 $\alpha$ 倍），分类只看符号，故取 $\alpha=1$。与合页损失 $\max(0,1-yf)$ 的区别：感知器损失在 $yf>0$ 就为 0，\key{不要求间隔}；合页损失要求 $yf\ge1$。
+
+\subsection{算法 3.1：两类感知器的参数学习算法}
+\noindent\begin{minipage}[t]{0.5\linewidth}\vspace{0pt}
+\tcbset{bxbase/.append style={unbreakable}}
+\begin{method}[算法 3.1：两类感知器的参数学习]
+\small 输入：训练集 $\mathcal D=\{(\bm x^{(n)},y^{(n)})\}_{n=1}^N$，最大迭代次数 $T$\\
+1\quad 初始化：$\bm w_0\leftarrow\bm 0$，$k\leftarrow0$，$t\leftarrow0$；\\
+2\quad \textbf{repeat}\\
+3\quad\quad 对训练集 $\mathcal D$ 中的样本随机排序；\\
+4\quad\quad \textbf{for} $n=1\cdots N$ \textbf{do}\\
+5\quad\quad\quad 选取一个样本 $(\bm x^{(n)},y^{(n)})$；\\
+6\quad\quad\quad \textbf{if} $\bm w_k^\top\big(y^{(n)}\bm x^{(n)}\big)\le0$ \textbf{then}\quad（分错）\\
+7\quad\quad\quad\quad $\bm w_{k+1}\leftarrow\bm w_k+y^{(n)}\bm x^{(n)}$；\\
+8\quad\quad\quad\quad $k\leftarrow k+1$；\\
+9\quad\quad\quad \textbf{end}\\
+10\quad\quad $t\leftarrow t+1$；\\
+11\quad\quad \textbf{if} $t=T$ \textbf{then break}；\\
+12\quad\quad \textbf{end}\\
+13\quad \textbf{until} $t=T$；\\
+输出：$\bm w_k$
+\end{method}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\linewidth}\vspace{2pt}\small
+\begin{itemize}
+\item 两个计数器：$k$ = 权重\key{更新次数}（分错次数），$t$ = 已检查的\key{样本总数}（迭代次数）。收敛定理约束的是 $k$。
+\item 第 3 行：每轮（epoch）重新打乱，避免样本顺序带来的系统偏差。
+\item 第 6 行用 $\le0$ 判错；第 7 行更新量就是 $y^{(n)}\bm x^{(n)}$。
+\item 第 11、13 行：检查满 $T$ 个样本就停。\key{线性不可分时算法不会自行停止}，必须靠 $T$ 截断；实践中也可在“一整轮无任何更新”时提前停止（此时训练集已全部分对）。
+\end{itemize}
+\end{minipage}
+
+\subsection{与 Logistic 回归更新方式的对比；统一式 \texorpdfstring{$\bm w\leftarrow\bm w+(y-\hat y)\bm x$}{w <- w + (y - yhat) x}}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.2cm}p{5.6cm}L@{}}
+\toprule
+ & 感知器 & Logistic 回归 \\
+\midrule
+更新式 & $\bm w\leftarrow\bm w+y\bm x$（仅分错时） & $\bm w_{t+1}\leftarrow\bm w_t+\alpha\frac1N\sum_n\bm x^{(n)}\big(y^{(n)}-\hat y^{(n)}_{\bm w_t}\big)$ \\
+标签 / 输出 & $\{-1,+1\}$ / 类别 $\pm1$ & $\{0,1\}$ / 概率 \\
+误差信号 & 硬判决：分错为 $y$，分对为 0 & 软概率：$y-\sigma(\bm w^\top\bm x)\in(-1,1)$ \\
+每次用的数据 & 单个样本（在线） & 全部样本（批量；也可 SGD） \\
+学习率 & 1（取值不影响结果） & $\alpha$，需要调 \\
+分对的样本 & 不贡献更新 & 仍有贡献（只要 $\hat y\neq y$） \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\key{统一写法}：感知器若用 0/1 标签与硬预测 $\hat y=\mathbf 1\{\bm w^\top\bm x>0\}$，则 $\bm w\leftarrow\bm w+(y-\hat y)\bm x$（分对 $y-\hat y=0$；正样本判 0 时 $+\bm x$；负样本判 1 时 $-\bm x$），与 Logistic 回归 SGD $\bm w\leftarrow\bm w+\alpha(y-\hat y)\bm x$ 形式相同——都是“输入 $\times$ 误差”，区别只是 $\hat y$ 由概率换成 0/1 判决。
+
+\subsection{参数学习过程的几何图示（四步更新）}
+无偏置二维示意（边界过原点且 $\perp\bm w_k$，每步取一个误分类点，$\bm w_{k+1}=\bm w_k+y\bm x$）：$\bm w_1=(-0.25,-0.53)$，红点 $(0.2,0.8)$（$y=+1$）得分 $-0.474$ $\to\bm w_2=(-0.05,0.27)$；蓝点 $(-0.45,0.75)$（$y=-1$）得分 $-0.225$ $\to\bm w_3=(0.40,-0.48)$；红点 $(0.2,0.8)$ 再次分错（$-0.304$）$\to\bm w_4=(0.60,0.32)$，全部分对，停止。读图：(1) 正样本把 $\bm w$“拉”过去、负样本把 $\bm w$“推”开，边界随之转动；(2) 同一点被用两次——纠正蓝点时又把它弄错（顾此失彼）；(3) 最终边界不在两类正中间（蓝点得分仅 $-0.03$，距边界约 $0.044$）$\Rightarrow$ 引出 SVM 的最大间隔思想。
+
+\subsection{收敛性：定理 3.1（Novikoff）\texorpdfstring{$k\le R^2/\gamma^2$}{k <= R^2/gamma^2} 及证明}\label{sec:D02b-conv}
+\begin{itemize}
+\item \key{两类线性可分}（$\bm x^{(n)}$ 为增广向量）：存在常数 $\gamma>0$ 与 $\|\bm w^*\|=1$ 的 $\bm w^*$，使 $(\bm w^*)^\top\big(y^{(n)}\bm x^{(n)}\big)\ge\gamma$，$\forall n$。因 $\|\bm w^*\|=1$，左边就是样本到超平面 $(\bm w^*)^\top\bm x=0$ 的几何间隔，$\gamma$ 即“所有样本离分隔面至少多远”。
+\item \key{定理 3.1}：令 $R=\max_n\|\bm x^{(n)}\|$。若 $\mathcal D$ 线性可分，则算法 3.1 的\key{权重更新次数 $k\le R^2/\gamma^2$}。
+\end{itemize}
+证明（第 $k$ 次更新用误分类样本 $(\bm x,y)$：$\bm w_k=\bm w_{k-1}+y\bm x$，$\bm w_{k-1}^\top(y\bm x)\le0$，$\bm w_0=\bm 0$）：
+\begin{align*}
+(\bm w^*)^\top\bm w_k&=(\bm w^*)^\top\bm w_{k-1}+(\bm w^*)^\top(y\bm x)\ge(\bm w^*)^\top\bm w_{k-1}+\gamma\ge\cdots\ge k\gamma \why{(1) 下界：与 $\bm w^*$ 内积；线性可分；递推}\\
+\|\bm w_k\|^2&=\|\bm w_{k-1}\|^2+2y\bm w_{k-1}^\top\bm x+y^2\|\bm x\|^2\le\|\bm w_{k-1}\|^2+R^2\le\cdots\le kR^2 \why{(2) 上界：分错 $y\bm w_{k-1}^\top\bm x\le0$，$\|\bm x\|\le R$}\\
+k\gamma&\le(\bm w^*)^\top\bm w_k\le\|\bm w^*\|\|\bm w_k\|=\|\bm w_k\|\le\sqrt k\,R\ \Rightarrow\ k^2\gamma^2\le kR^2\ \Rightarrow\ k\le\frac{R^2}{\gamma^2} \why{(3) Cauchy–Schwarz，$\|\bm w^*\|=1$}
+\end{align*}
+思路：投影线性增长（$\ge k\gamma$），长度只按 $\sqrt k$ 增长，投影不能超过长度。\key{含义}：
+\begin{itemize}
+\item $R/\gamma$ 越小（间隔相对数据尺度越大）收敛越快；上界\key{与样本数 $N$、维数 $D$ 无关}，只依赖几何量 $R,\gamma$（但 $t$ 可远大于 $k$）。
+\item \key{线性不可分时不收敛}：不存在 $\gamma>0$，权重一直振荡，故须设 $T$。
+\item 只保证找到\key{某个}分对训练集的 $\bm w$，不保证“最好”；不同样本顺序可收敛到不同解。
+\end{itemize}
+
+\subsection{感知器的局限与改进；XOR 不可分的证明}
+局限：(1) 解不唯一、依赖初值与样本顺序；(2) 不追求间隔，边界可能紧贴样本，泛化差；(3) 线性不可分时不收敛；(4) 不输出概率，只给 $\pm1$。改进：投票感知器、平均感知器（对历次 $\bm w_k$ 加权平均，更稳定）；多层感知器（第 3 章）解决非线性；最大间隔思想 $\to$ SVM。
+
+\key{XOR 不可分}：$(0,0),(1,1)$ 标 $-1$，$(0,1),(1,0)$ 标 $+1$。若 $w_1x_1+w_2x_2+b$ 能分开，则 $b\le0$、$w_1+w_2+b\le0$、$w_2+b>0$、$w_1+b>0$；后两式相加得 $w_1+w_2+b>-b\ge0$，与第二式矛盾。
+
+\subsection{手算感知器迭代：步骤要点}
+(1) 写增广向量 $\tilde{\bm x}=(x^{(1)},x^{(2)},1)^\top$、$\tilde{\bm w}=(w_1,w_2,b)^\top$，$\tilde{\bm w}_0=\bm 0$；(2) 按给定顺序逐个算 $y\tilde{\bm w}^\top\tilde{\bm x}$：$\le0$ 则 $\tilde{\bm w}\leftarrow\tilde{\bm w}+y\tilde{\bm x}$、$k{+}{+}$，$>0$ 跳过；(3) 一整轮无更新即收敛，写出超平面并逐点验证，可用 $R^2/\gamma^2$ 检验 $k$。示意：正 $(3,3),(4,3)$、负 $(1,1)$ 顺序循环：第 1 轮 $(3,3,1)\to(2,2,0)$，……，共更新 $k=7$ 次，第 6 轮无更新，得 $x^{(1)}+x^{(2)}-3=0$；$R^2=\|(4,3,1)\|^2=26$，以 SVM 解为 $\bm w^*$ 得 $\gamma=1/\sqrt{4.5}$，上界 $117\ge7$（很松但有限）。
+
+% ======================================================================
+\section{支持向量机}\label{sec:D02b-svm}
+本节下标 $i$ 为样本编号（$\bm x_i\equiv\bm x^{(i)}$），$y_i\in\{-1,+1\}$，\key{偏置 $b$ 单独写出}（$b$ 不进入 $\frac12\|\bm w\|^2$）；$f(\bm x)=\bm w^\top\bm x+b$。
+
+\subsection{动机：哪一条分隔线最好？——最大间隔分类器}
+线性可分时能分开两类的超平面有无穷多个，感知器找到哪个取决于初值与顺序。离两类样本都尽量远的那条最稳健（测试样本有小扰动也不易分错）。\term{支持向量机}{support vector machine, SVM}：在所有分隔超平面中选\key{间隔（margin）最大}的那一个。（Boser、Guyon、Vapnik 1992 引入核技巧；Cortes \& Vapnik 1995 提出软间隔。）
+
+\subsection{支持向量、间隔边界与间隔宽度 \texorpdfstring{$2/\|\bm w\|$}{2/||w||}}
+设分割超平面 $\bm w^\top\bm x+b=0$，缩放参数使离它最近的样本满足 $|\bm w^\top\bm x+b|=1$：
+\begin{itemize}
+\item \term{间隔边界}{margin boundary}：$\bm w^\top\bm x+b=+1$ 与 $\bm w^\top\bm x+b=-1$ 两个平行超平面，其间没有样本；
+\item \term{支持向量}{support vector}：恰好落在间隔边界上的样本；
+\item \key{间隔宽度 $=2/\|\bm w\|$}，分割超平面到每条间隔边界的距离 $1/\|\bm w\|$；$\bm w$ 指向正类一侧；原点到分割超平面距离 $|b|/\|\bm w\|$。
+\end{itemize}
+推导：取上边界一点 $\bm x_+$（$\bm w^\top\bm x_++b=1$），到下边界 $\bm w^\top\bm x+(b+1)=0$ 的距离 $=\frac{|\bm w^\top\bm x_++b+1|}{\|\bm w\|}=\frac{2}{\|\bm w\|}$ \whyin{点到超平面距离公式}。故\key{最大化间隔 $\iff$ 最小化 $\|\bm w\|$}。
+
+\subsection{函数间隔与几何间隔；缩放自由度}
+\begin{itemize}
+\item \term{函数间隔}{functional margin} $\hat\gamma_i=y_i(\bm w^\top\bm x_i+b)$；\term{几何间隔}{geometric margin} $\gamma_i=\frac{y_i(\bm w^\top\bm x_i+b)}{\|\bm w\|}=\frac{\hat\gamma_i}{\|\bm w\|}$；数据集取最小者：$\gamma=\min_i\gamma_i$，$\hat\gamma=\min_i\hat\gamma_i$。
+\item 样本到超平面距离 $\gamma^{(n)}=\frac{|\bm w^\top\bm x^{(n)}+b|}{\|\bm w\|}=\frac{y^{(n)}(\bm w^\top\bm x^{(n)}+b)}{\|\bm w\|}$。\textbf{易错} 分子是\key{绝对值}（标量）；第二个等号要求样本被正确分类。
+\item \key{缩放自由度}：$\forall c>0$，$(c\bm w,cb)$ 与 $(\bm w,b)$ 是同一超平面；函数间隔变为 $c\hat\gamma_i$，几何间隔 $\frac{c\hat\gamma_i}{c\|\bm w\|}=\gamma_i$ 不变 $\Rightarrow$ 几何间隔才是真正的距离，函数间隔可任意定标。
+\end{itemize}
+
+\subsection{最大间隔问题：从 \texorpdfstring{$\max\gamma$}{max gamma} 到 \texorpdfstring{$\min\frac12\|\bm w\|^2$}{min ||w||^2/2}（推导）}
+\begin{align*}
+&\max_{\bm w,b}\ \gamma\quad\text{s.t. }\frac{y_i(\bm w^\top\bm x_i+b)}{\|\bm w\|}\ge\gamma,\ \forall i \why{所有样本几何间隔 $\ge\gamma$}\\
+\iff&\max_{\bm w,b}\ \frac{\hat\gamma}{\|\bm w\|}\quad\text{s.t. }y_i(\bm w^\top\bm x_i+b)\ge\hat\gamma,\ \forall i \why{令 $\gamma=\hat\gamma/\|\bm w\|$，约束两边乘 $\|\bm w\|$}\\
+\iff&\max_{\bm w,b}\ \frac{1}{\|\bm w\|}\ \Big(\text{或 }\frac1{\|\bm w\|^2}\Big)\quad\text{s.t. }y_i(\bm w^\top\bm x_i+b)\ge1,\ \forall i \why{缩放自由度：取 $c=1/\hat\gamma$，令 $\hat\gamma=1$}\\
+\iff&\min_{\bm w,b}\ \tfrac12\|\bm w\|^2\quad\text{s.t. }y_i(\bm w^\top\bm x_i+b)\ge1,\ i=1,\dots,N \why{最大化倒数 $\iff$ 最小化；$\frac12$ 便于求导}
+\end{align*}
+\begin{itemize}
+\item \key{硬间隔原始问题是凸二次规划}（convex QP）：目标对 $\bm w$ 严格凸二次，约束线性（可行域凸）。线性可分时可行，最优 $\bm w^*,b^*$ \key{唯一}；最优几何间隔 $\gamma^*=1/\|\bm w^*\|$。对比感知器：只要求 $y_i\bm w^\top\bm x_i>0$（解不唯一）；SVM 要求 $y_if(\bm x_i)\ge1$ 且 $\|\bm w\|$ 最小。
+\item \key{最优解处必有支持向量}：若所有 $y_i(\bm w^{*\top}\bm x_i+b^*)>1$，把 $(\bm w^*,b^*)$ 乘一个略小于 1 的数，约束仍满足而 $\|\bm w\|$ 更小，矛盾；进一步两类各至少一个样本取等号（否则平移 $b$ 可增大间隔）。
+\end{itemize}
+
+\subsection{拉格朗日对偶问题 \tagext}
+\begin{itemize}
+\item \key{为什么转对偶}：(1) 约束更简单，便于专门算法（SMO）；(2) 对偶解直接显示哪些是支持向量；(3) 数据只以内积 $\bm x_i^\top\bm x_j$ 出现 $\Rightarrow$ 可用核函数。
+\item \key{拉格朗日函数}（约束写成 $1-y_i(\bm w^\top\bm x_i+b)\le0$，乘子 $\alpha_i\ge0$）：
+$\Lambda(\bm w,b,\bm\alpha)=\tfrac12\|\bm w\|^2-\sum_{i=1}^N\alpha_i\big[y_i(\bm w^\top\bm x_i+b)-1\big]$。
+\item \key{先 max 后 min}：固定 $(\bm w,b)$ 对 $\bm\alpha\ge0$ 取最大——有约束被违反则令该 $\alpha_i\to\infty$，$\Lambda\to+\infty$；全部满足则最大值为 $\frac12\|\bm w\|^2$。故原始 $=\min_{\bm w,b}\max_{\bm\alpha\ge0}\Lambda$，对偶 $=\max_{\bm\alpha\ge0}\min_{\bm w,b}\Lambda$。弱对偶：对偶最优值 $\le$ 原始最优值；凸 QP、线性约束且可行（Slater 条件）$\Rightarrow$ \key{强对偶}（相等），最优解满足 KKT。
+\end{itemize}
+\begin{align*}
+\frac{\partial\Lambda}{\partial\bm w}&=\bm w-\sum_i\alpha_iy_i\bm x_i=\bm 0\ \Rightarrow\ \bm w=\sum_{i=1}^N\alpha_iy_i\bm x_i;\qquad
+\frac{\partial\Lambda}{\partial b}=-\sum_i\alpha_iy_i=0\ \Rightarrow\ \sum_{i=1}^N\alpha_iy_i=0 \why{内层 $\min_{\bm w,b}$：凸，令梯度为零}\\
+\tfrac12\bm w^\top\bm w&=\tfrac12Q,\ \ \sum_i\alpha_iy_i\bm w^\top\bm x_i=\bm w^\top\bm w=Q,\ \ b\sum_i\alpha_iy_i=0\ \Rightarrow\ \min_{\bm w,b}\Lambda=\sum_i\alpha_i-\tfrac12Q \why{代入；$Q\equiv\sum_i\sum_j\alpha_i\alpha_jy_iy_j\bm x_i^\top\bm x_j$}
+\end{align*}
+\begin{keypt}[硬间隔 SVM 的对偶问题]
+\vspace{-4pt}
+\[
+\max_{\bm\alpha}\ \sum_{i=1}^N\alpha_i-\frac12\sum_{i=1}^N\sum_{j=1}^N\alpha_i\alpha_jy_iy_j\,\bm x_i^\top\bm x_j\qquad\text{s.t. }\alpha_i\ge0,\ \ \sum_{i=1}^N\alpha_iy_i=0.
+\]
+等价极小化形式 $\min_{\bm\alpha}\frac12\sum_i\sum_j\alpha_i\alpha_jy_iy_j\bm x_i^\top\bm x_j-\sum_i\alpha_i$（约束同）。仍是凸 QP；变量个数为样本数 $N$（原始问题为 $D+1$）。$\bm w=\sum_i\alpha_iy_i\bm x_i$：最优法向量是训练样本的线性组合。
+\end{keypt}
+
+\subsection{KKT 条件与支持向量的稀疏性；求 \texorpdfstring{$b^*$}{b*} 与决策函数 \tagext}
+$(\bm w^*,b^*)$ 与 $\bm\alpha^*$ 分别是原始、对偶最优解的充要条件（\key{四组 KKT 条件}）：(1) \key{平稳性} $\bm w^*=\sum_i\alpha_i^*y_i\bm x_i$，$\sum_i\alpha_i^*y_i=0$；(2) \key{原始可行} $y_i(\bm w^{*\top}\bm x_i+b^*)-1\ge0$；(3) \key{对偶可行} $\alpha_i^*\ge0$；(4) \key{互补松弛} $\alpha_i^*\big[y_i(\bm w^{*\top}\bm x_i+b^*)-1\big]=0$，$\forall i$（两个非负数之积为零，必居其一）。
+\begin{itemize}
+\item \key{互补松弛 $\Rightarrow$ 稀疏性}：$y_if(\bm x_i)>1$（在间隔边界之外）$\Rightarrow\alpha_i^*=0$；$\alpha_i^*>0\Rightarrow y_if(\bm x_i)=1$（恰在间隔边界上 = 支持向量）。于是 $\bm w^*=\sum_{i\in SV}\alpha_i^*y_i\bm x_i$：\key{最优超平面只由支持向量决定}；删掉或移动（不越过间隔边界）非支持向量，解不变——“支持向量机”名称由来。支持向量通常只占少数。
+\item \textbf{易错} 只有“$\alpha_i>0\Rightarrow$ 在边界上”，\key{反之不成立}：退化情形下某点恰在间隔边界上却 $\alpha_i=0$（删去它解不变）。
+\item \key{求 $b^*$}：任取支持向量 $\bm x_s$（$\alpha_s^*>0$），$y_s(\bm w^{*\top}\bm x_s+b^*)=1$ 两边乘 $y_s$：$b^*=y_s-\bm w^{*\top}\bm x_s=y_s-\sum_{i\in SV}\alpha_i^*y_i\bm x_i^\top\bm x_s$；实践中对所有支持向量求平均更稳定。
+\item \key{决策函数}：$f(\bm x)=\operatorname{sgn}\big(\bm w^{*\top}\bm x+b^*\big)=\operatorname{sgn}\big(\sum_{i\in SV}\alpha_i^*y_i\bm x_i^\top\bm x+b^*\big)$——预测只需新样本与各支持向量的内积。
+\end{itemize}
+
+\subsection{软间隔 SVM：松弛变量 \texorpdfstring{$\xi_i$}{xi} 与惩罚参数 \texorpdfstring{$C$}{C} \tagext}
+\key{动机}：硬间隔要求所有样本在间隔之外——线性不可分时无解；即使可分，一个离群点也会把超平面拽歪、间隔变窄。\term{软间隔}{soft margin}允许少数样本违反约束但要付代价。\key{原始问题}：
+\[
+\min_{\bm w,b,\bm\xi}\ \frac12\|\bm w\|^2+C\sum_{i=1}^N\xi_i\qquad\text{s.t. }y_i(\bm w^\top\bm x_i+b)\ge1-\xi_i,\ \ \xi_i\ge0,\ i=1,\dots,N.
+\]
+\begin{itemize}
+\item \term{松弛变量}{slack variable} $\xi_i$（最优时 $\xi_i=\max(0,1-y_if(\bm x_i))$）：$\xi_i=0$ 在间隔边界上或之外；$0<\xi_i<1$ 进入间隔但仍分对；$\xi_i=1$ 恰在分割超平面上；$\xi_i>1$ 被分错 $\Rightarrow\sum_i\xi_i$ 是训练错分个数的上界。
+\item \term{惩罚参数}{penalty parameter} $C>0$ 权衡“间隔大”与“违约少”：\key{$C$ 大}——违约代价高，尽量分对训练样本，间隔窄，易过拟合（方差大），$C\to\infty$ 退化为硬间隔；\key{$C$ 小}——容忍违约，间隔宽、边界平滑，可能欠拟合（偏差大）。$C$ 相当于正则化强度的倒数（$\lambda=\frac1{2C}$），用交叉验证选择。
+\item \key{对偶}：为 $\xi_i\ge0$ 再加乘子 $\mu_i\ge0$；对 $\bm w,b$ 求导同硬间隔；$\frac{\partial\Lambda}{\partial\xi_i}=C-\alpha_i-\mu_i=0\Rightarrow\alpha_i=C-\mu_i\le C$。$\xi_i$ 的系数全为 0 而消失，\key{对偶目标与硬间隔完全相同，约束变为盒约束 $0\le\alpha_i\le C$}，$\sum_i\alpha_iy_i=0$。由互补松弛 $\alpha_i[y_if(\bm x_i)-1+\xi_i]=0$、$\mu_i\xi_i=0$：
+\end{itemize}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.3cm}p{4.2cm}L@{}}
+\toprule
+$\alpha_i$ & 位置 & 说明 \\
+\midrule
+$\alpha_i=0$ & $y_if(\bm x_i)\ge1$ & 在间隔边界上或之外，不是支持向量 \\
+$0<\alpha_i<C$ & $y_if(\bm x_i)=1$，$\xi_i=0$ & 恰在间隔边界上（\key{用于计算 $b^*$}） \\
+$\alpha_i=C$ & $y_if(\bm x_i)\le1$，$\xi_i\ge0$ & 在间隔内（$\xi_i\le1$）或被分错（$\xi_i>1$） \\
+\bottomrule
+\end{tabularx}
+\end{center}
+后两类（$\alpha_i>0$）都是软间隔的支持向量。
+
+\subsection{合页损失：软间隔 SVM 的等价无约束形式 \tagext}
+\begin{align*}
+&\xi_i\ge1-y_if(\bm x_i),\ \ \xi_i\ge0\ \Rightarrow\ \xi_i^*=\max\big(0,1-y_if(\bm x_i)\big) \why{目标要 $\xi_i$ 尽量小，取两下界中较大者}\\
+&\min_{\bm w,b}\ \tfrac12\|\bm w\|^2+C\sum_i\max\big(0,1-y_if(\bm x_i)\big)\iff\min_{\bm w,b}\ \sum_{i=1}^N\max\big(0,1-y_i(\bm w^\top\bm x_i+b)\big)+\frac1{2C}\|\bm w\|^2 \why{代回；目标除以 $C>0$}
+\end{align*}
+\begin{itemize}
+\item \term{合页损失}{hinge loss} $\mathcal L_{\text{hinge}}(y,f)=\max(0,1-yf)$：$yf\ge1$（间隔外且分对）为 0，否则随 $yf$ 减小线性增大。\key{软间隔 SVM = 合页损失（经验风险）+ L2 正则（$\lambda=\frac1{2C}$）}，即结构风险最小化。
+\item \key{SGD 训练线性 SVM}：目标除以 $NC$ 写成 $\frac1N\sum_i\max(0,1-y_if(\bm x_i))+\frac{\lambda'}2\|\bm w\|^2$（$\lambda'=\frac1{NC}$）；次梯度 $yf<1$ 时 $-y\bm x$，否则 0；单样本更新 $\bm w\leftarrow\bm w-\alpha\big(\lambda'\bm w-y\bm x\,\mathbf 1\{yf<1\}\big)$，$b\leftarrow b+\alpha y\,\mathbf 1\{yf<1\}$。与感知器损失 $\max(0,-yf)$ 相比，“及格线”从 0 提到 1：分对但离边界太近的样本也受罚。
+\end{itemize}
+
+\subsection{核技巧与常见核函数；Mercer 定理 \tagext}
+\begin{itemize}
+\item \key{动机}：原空间线性不可分，映射到高维后可分。例：一维正类在两端、负类在中间，任何阈值都分不开；$\phi(x)=(x,x^2)$ 后水平线 $x^2=1.5$ 可分，对应原空间非线性边界 $|x|=\sqrt{1.5}\approx1.22$。难点：$\phi$ 维数可能极高甚至无穷。
+\item \term{核函数}{kernel function} $K(\bm x,\bm z)=\phi(\bm x)^\top\phi(\bm z)$。\term{核技巧}{kernel trick}：对偶问题与决策函数中数据只以内积出现，把 $\bm x_i^\top\bm x_j$ 换成 $K(\bm x_i,\bm x_j)$，直接算 $K$ 而不必算 $\phi$，即在高维特征空间训练线性 SVM：
+\[
+\max_{\bm\alpha}\sum_i\alpha_i-\frac12\sum_i\sum_j\alpha_i\alpha_jy_iy_jK(\bm x_i,\bm x_j)\ \ \text{s.t. }0\le\alpha_i\le C,\ \sum_i\alpha_iy_i=0;\qquad f(\bm x)=\operatorname{sgn}\Big(\sum_{i\in SV}\alpha_i^*y_iK(\bm x_i,\bm x)+b^*\Big).
+\]
+特征空间中是线性分类器，原空间中是非线性分类器。
+\item \key{二次多项式核的显式映射}（二维）：$(\bm x^\top\bm z)^2=(x_1z_1+x_2z_2)^2=x_1^2z_1^2+2x_1x_2z_1z_2+x_2^2z_2^2=\phi(\bm x)^\top\phi(\bm z)$，$\phi(\bm x)=(x_1^2,\sqrt2x_1x_2,x_2^2)^\top$。示意：$\bm x=(1,2)$，$\bm z=(3,1)$：$(3+2)^2=25$；$\phi(\bm x)=(1,2\sqrt2,4)$，$\phi(\bm z)=(9,3\sqrt2,1)$，内积 $9+12+4=25$。$D$ 维 $d$ 次多项式核的特征维数按 $D^d$ 量级增长。
+\end{itemize}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}p{4.2cm}L@{}}
+\toprule
+核函数 & 表达式 & 说明 \\
+\midrule
+线性核（linear） & $K=\bm x^\top\bm z$ & 不做映射 = 线性 SVM；适合高维稀疏数据（BoW/TF-IDF 文本） \\
+多项式核（polynomial） & $K=(\gamma\,\bm x^\top\bm z+r)^d$ & $d$ 为次数；$r>0$ 含所有 $\le d$ 次单项式，$r=0$（齐次）只含恰 $d$ 次项 \\
+高斯核 / RBF 核 & $K=\exp(-\gamma\|\bm x-\bm z\|^2)$ & 也写 $\exp\!\big(-\frac{\|\bm x-\bm z\|^2}{2\sigma^2}\big)$，$\gamma=\frac1{2\sigma^2}$；无穷维特征空间；最常用默认 \\
+Sigmoid 核 & $K=\tanh(\kappa\,\bm x^\top\bm z+\theta)$ & 形似神经网络；并非对所有参数满足 Mercer 条件 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{itemize}
+\item \key{RBF 的 $\gamma$}：$K$ 是相似度，$\bm x=\bm z$ 时为 1，越远越接近 0。$\gamma$ 大 $\Rightarrow$ 每个支持向量只影响很近区域，边界弯曲复杂，易过拟合；$\gamma$ 小 $\Rightarrow$ 边界平滑、接近线性。示意：$\|\bm x-\bm z\|^2=5$，$\gamma=0.5$ 时 $K=e^{-2.5}=0.0821$，$\gamma=0.1$ 时 $e^{-0.5}=0.6065$。$C$ 与 $\gamma$ 一起用网格搜索 + 交叉验证选。
+\item \key{Mercer 定理}（正定核充要条件）：对称函数 $K(\bm x,\bm z)$ 是某特征映射的内积 $\iff$ 对任意有限样本，\term{核矩阵}{kernel (Gram) matrix} $[K(\bm x_i,\bm x_j)]_{m\times m}$ 半正定。保证核 SVM 对偶仍是凸 QP。正定核的和、正系数倍、乘积仍是正定核。
+\end{itemize}
+
+\subsection{SMO 算法：每次优化两个变量 \tagext}
+对偶是 $N$ 个变量的 QP，$N$ 大时通用求解器慢且核矩阵 $N\times N$ 占内存。\term{序列最小优化}{Sequential Minimal Optimization, SMO}（Platt 1998）：
+\begin{enumerate}
+\item \key{为什么两个}：等式约束 $\sum_i\alpha_iy_i=0$ 使只改一个 $\alpha_i$ 会破坏约束；同时改 $\alpha_1,\alpha_2$（其余固定）时 $\alpha_1y_1+\alpha_2y_2=$ 常数，子问题化为单变量二次函数，有\key{闭式解}。
+\item \key{选变量}：第一个选违反 KKT 最严重的样本；第二个选使 $|E_1-E_2|$ 最大者，$E_i=f(\bm x_i)-y_i$（预测误差）。
+\item \key{解析更新}：$\eta=K_{11}+K_{22}-2K_{12}$，$\alpha_2^{\text{new,unc}}=\alpha_2^{\text{old}}+\frac{y_2(E_1-E_2)}{\eta}$；剪辑到 $[L,H]$：$y_1\neq y_2$ 时 $L=\max(0,\alpha_2-\alpha_1)$，$H=\min(C,C+\alpha_2-\alpha_1)$；$y_1=y_2$ 时 $L=\max(0,\alpha_2+\alpha_1-C)$，$H=\min(C,\alpha_2+\alpha_1)$（均为旧值）；再 $\alpha_1^{\text{new}}=\alpha_1^{\text{old}}+y_1y_2(\alpha_2^{\text{old}}-\alpha_2^{\text{new}})$。
+\item 更新 $b$ 与 $E_i$，重复直到所有样本在容差内满足 KKT。LIBSVM 等主流软件的基础算法。答题要点：\key{每次选两个变量、解析求解、满足 KKT 时停止}。
+\end{enumerate}
+
+\subsection{SVM 的多分类（一对一）与概率输出（Platt 缩放）\tagext}
+SVM 本质是二分类器：多分类用一对其余或一对一组合（LIBSVM 与 scikit-learn 的 \texttt{SVC} 内部用一对一）。SVM 输出得分 $f(\bm x)$ 而非概率；需要概率时在得分上再拟合 Sigmoid：$p(y=1\mid\bm x)=\sigma(Af(\bm x)+B)$（\term{Platt 缩放}{Platt scaling}）。
+
+\subsection{手算二维硬间隔 SVM：超平面、支持向量与 \texorpdfstring{$\bm\alpha^*$}{alpha*}（步骤要点）}
+\begin{itemize}
+\item \key{几何法}：(1) 找离对方最近的异类点对（或点到对方凸包的最近点）；(2) 最大间隔超平面 = 其垂直平分面：$\bm w\propto\bm x_+-\bm x_-$，过中点；(3) 设 $\bm w=c\cdot$方向、$b$ 由中点定，令支持向量函数间隔 $=1$ 解出 $c$；(4) 逐点验证 $y_if(\bm x_i)\ge1$，取等号者为支持向量候选。
+\item \key{对偶法}：(1) 算 Gram 矩阵 $[\bm x_i^\top\bm x_j]$；(2) 写极小化形式 $s(\bm\alpha)=\frac12\sum\sum\alpha_i\alpha_jy_iy_j\bm x_i^\top\bm x_j-\sum\alpha_i$；(3) 用 $\sum\alpha_iy_i=0$ 消元；(4) 令偏导为 0，若解违反 $\alpha\ge0$，则在各边界（某 $\alpha_j=0$）上分别求最小，取最小者；(5) $\bm w^*=\sum\alpha_i^*y_i\bm x_i$，$b^*=y_s-\bm w^{*\top}\bm x_s$；(6) 验证强对偶 $\frac12\|\bm w^*\|^2=\sum\alpha_i^*-\frac12\|\bm w^*\|^2$ 与互补松弛。
+\item 示意：正 $(3,3),(4,3)$、负 $(1,1)$ $\Rightarrow\bm w^*=(\frac12,\frac12)^\top$，$b^*=-2$，$\bm\alpha^*=(\frac14,0,\frac14)$，支持向量 $(3,3),(1,1)$，$\gamma^*=\sqrt2$，宽度 $2\sqrt2$，原始 = 对偶目标 $=\frac14$；同数据感知器解的最小几何间隔仅 $1/\sqrt2$。
+\end{itemize}
+
+% ======================================================================
+\section{四种线性模型的统一比较}\label{sec:D02b-cmp}
+
+\subsection{以间隔 \texorpdfstring{$m=yf(\bm x)$}{m=yf(x)} 改写各模型损失；Logistic 损失 \texorpdfstring{$\log(1+e^{-m})$}{log(1+exp(-m))}}
+统一 $y\in\{-1,+1\}$，$f(\bm x)=\bm w^\top\bm x+b$，\key{间隔变量 $m=yf(\bm x)$}：$m>0$ 分对，$m$ 越大越有把握。
+\begin{align*}
+p(y=+1\mid\bm x)=\sigma(f),\ \ p(y=-1\mid\bm x)=1-\sigma(f)=\sigma(-f)\ \Rightarrow\ p(y\mid\bm x)=\sigma(yf) \why{Sigmoid 对称性，两式合写}\\
+-\log p(y\mid\bm x)=-\log\frac{1}{1+e^{-yf}}=\log\big(1+e^{-yf}\big)=\log(1+e^{-m}) \why{负对数似然}
+\end{align*}
+与 0/1 标签下的交叉熵是同一损失，只是换了标签编码。平方损失：$(y-f)^2=y^2(1-yf)^2=(1-m)^2$。
+
+\subsection{损失函数对比表与损失曲线读法}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}p{2.6cm}p{3.2cm}L@{}}
+\toprule
+模型 / 损失 & 关于 $m=yf$ & $m=-1,\,0.5,\,2$ 时 & 特点 \\
+\midrule
+0-1 损失（理想） & $\mathbf 1\{m<0\}$ & $1,\ 0,\ 0$ & 不连续，不可优化 \\
+Logistic（交叉熵） & $\log(1+e^{-m})$ & $1.313,\ 0.474,\ 0.127$ & 光滑凸；永不为 0；输出概率 \\
+感知器损失 & $\max(0,-m)$ & $1,\ 0,\ 0$ & 分对即 0，不要求间隔 \\
+SVM 合页损失 & $\max(0,1-m)$ & $2,\ 0.5,\ 0$ & 要求 $m\ge1$，解稀疏 \\
+平方损失 & $(1-m)^2$ & $4,\ 0.25,\ 1$ & $m>1$ 反而受罚 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\noindent\begin{minipage}[t]{0.42\linewidth}\vspace{0pt}
+\begin{tikzpicture}[x=0.82cm,y=0.68cm,font=\scriptsize]
+\draw[->,gray] (-2,0)--(3.2,0) node[right]{$m$};
+\draw[->,gray] (0,0)--(0,4.2) node[above]{损失};
+\foreach \t in {-2,-1,1,2,3} \draw[gray] (\t,0)--(\t,-0.08) node[below]{$\t$};
+\foreach \t in {1,2,3,4} \draw[gray] (0,\t)--(-0.08,\t) node[left]{$\t$};
+\draw[black,thick] (-2,1)--(0,1); \draw[black,thick] (0,0)--(3,0);
+\draw[blue,thick,domain=-2:3,samples=60,smooth] plot (\x,{ln(1+exp(-\x))/ln(2)});
+\draw[orange,thick,dashed] (-2,2)--(0,0);
+\draw[red,thick] (-2,3)--(1,0)--(3,0);
+\draw[green!50!black,thick,domain=-1:3,samples=40,smooth] plot (\x,{(1-\x)^2});
+\node[blue,anchor=west] at (3.5,3.9) {Logistic$/\ln2$};
+\node[red,anchor=west] at (3.5,3.3) {合页};
+\node[orange,anchor=west] at (3.5,2.7) {感知器（虚线）};
+\node[green!50!black,anchor=west] at (3.5,2.1) {平方};
+\node[anchor=west] at (3.5,1.5) {0-1};
+\end{tikzpicture}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.56\linewidth}\vspace{0pt}\small
+\begin{enumerate}
+\item 合页、Logistic（除以 $\ln2$ 后过 $(0,1)$，不改变最优解）、平方损失都是 0-1 损失的\key{凸上界}——最小化它们 = 最小化错误率的凸替代；感知器损失在 $m$ 略小于 0 时接近 0，\key{不是}上界。
+\item 合页损失在 $m\ge1$ 恰为 0：离边界足够远的样本对模型无影响 $\Rightarrow$ SVM 解\key{稀疏}（只依赖支持向量）；Logistic 损失恒 $>0$：所有样本都有贡献，并能输出概率。
+\item $m\to-\infty$ 时二者都近似线性增长（$\log(1+e^{-m})\approx-m$），对离群点比平方损失温和。
+\item 平方损失在 $m>1$ 随 $m$ 增大——“分得太对”也受罚，分类不用它的又一原因。
+\item 感知器损失与合页损失只差平移：“及格线”从 0 提到 1。
+\end{enumerate}
+\end{minipage}
+
+\subsection{四种模型综合对比}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.75cm}LLLL@{}}
+\toprule
+ & Logistic 回归 & Softmax 回归 & 感知器 & SVM \\
+\midrule
+任务 & 二分类 & 多分类 & 二分类 & 二分类（可组合成多类） \\
+标签 & $\{0,1\}$ & one-hot & $\{\pm1\}$ & $\{\pm1\}$ \\
+输出 & 概率 $\sigma(\bm w^\top\bm x)$ & 概率向量 $\operatorname{softmax}(W^\top\bm x)$ & 硬判决 $\pm1$ & 硬判决 $\pm1$（得分可作置信度） \\
+损失 & 二元交叉熵 & 多类交叉熵 & $\max(0,-y\bm w^\top\bm x)$ & 硬间隔：约束 $yf\ge1$；软间隔：合页 + L2 \\
+优化 & 梯度下降（凸） & 梯度下降（凸） & 错误驱动在线更新 & 凸 QP / 对偶 / SMO \\
+解的唯一性 & 加正则后唯一；可分且不正则时发散 & 参数冗余（平移不变） & 不唯一，依赖初值与顺序 & 唯一的最大间隔超平面 \\
+关键结论 & 梯度 $\bm x(\hat y-y)$ & 梯度 $\bm x(\hat{\bm y}-\bm y)^\top$ & 更新次数 $\le R^2/\gamma^2$ & 间隔 $2/\|\bm w\|$；$\bm w=\sum\alpha_iy_i\bm x_i$ \\
+非线性扩展 & 特征变换 / 神经网络 & 神经网络输出层 & 多层感知器 & 核技巧 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+一句话：四种模型共用线性打分 $\bm w^\top\bm x+b$，区别在损失——交叉熵给出概率（Logistic/Softmax），感知器只要分对，SVM 要分对且间隔最大。
+
+\subsection{如何选择（经验）}
+\begin{itemize}
+\item 需要概率（风险评分、违约概率、阈值调整）或系数可解释（几率比，与计量 Logit 对接）：Logistic / Softmax 回归。
+\item 高维稀疏特征（BoW/TF-IDF 文本分类）：线性 SVM 或带正则的 Logistic 回归通常都好。SVM 优点：高维、小样本表现好，精度高；缺点：大规模数据计算复杂度高。
+\item 低维、非线性边界、样本量中等：核 SVM（RBF），交叉验证调 $C$ 与 $\gamma$；样本量很大时核矩阵代价高。
+\item 感知器主要有历史与教学意义，是理解神经网络与 SVM 的起点。
+\end{itemize}
+
+\subsection{代码速查：scikit-learn 线性分类器与 SVC \tagext}
+\begin{lstlisting}[language=Python,basicstyle=\ttfamily\footnotesize]
+from sklearn.linear_model import LogisticRegression, Perceptron, SGDClassifier
+from sklearn.svm import LinearSVC, SVC; from sklearn.calibration import CalibratedClassifierCV
+from sklearn.pipeline import make_pipeline; from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import GridSearchCV
+LogisticRegression(C=1.0)            # L2 正则, C = 正则强度的倒数; 多类时按 Softmax(multinomial) 拟合
+Perceptron(max_iter=1000, tol=1e-3)  # max_iter = 最大轮数(epoch); 算法 3.1 的 T 相当于 N*max_iter
+LinearSVC(C=1.0, loss="hinge")       # 线性软间隔 SVM; 默认 loss="squared_hinge"
+SGDClassifier(loss="hinge")          # SGD 训练: "hinge"=线性SVM, "log_loss"=Logistic, "perceptron"
+svc = make_pipeline(StandardScaler(), SVC(kernel="rbf", C=1.0, gamma="scale"))  # kernel: linear/poly/rbf/sigmoid
+grid = GridSearchCV(svc, {"svc__C": [0.1, 1, 10], "svc__gamma": [0.01, 0.1, 1]}, cv=5)
+grid.fit(X_train, y_train); grid.best_params_; grid.predict(X_test)
+m = SVC(kernel="linear", C=1e6).fit(X, y)       # C 很大 = 近似硬间隔
+m.support_vectors_, m.support_, m.n_support_    # 支持向量 / 其下标 / 每类个数
+m.dual_coef_, m.coef_, m.intercept_             # alpha_i*y_i(仅支持向量) / w(仅线性核) / b
+m.decision_function(X)                          # f(x)=w'x+b, predict 取其符号
+CalibratedClassifierCV(SVC(), method="sigmoid", ensemble=False).fit(X, y).predict_proba(X)  # Platt 概率
+\end{lstlisting}
+
+% ======================================================================
+\section{本章综合考点清单（Logistic、信息论、Softmax、感知器、SVM）}
+\begin{itemize}
+\item \key{Logistic 单样本：预测、损失、梯度、一步 SGD、几率解释}：$z=\bm w^\top\bm x+b$，$\hat y=\sigma(z)$，$\mathcal L=-[y\ln\hat y+(1-y)\ln(1-\hat y)]$；$\partial\mathcal L/\partial\bm w=(\hat y-y)\bm x$，$\partial\mathcal L/\partial b=\hat y-y$；$\bm w\leftarrow\bm w-\alpha(\hat y-y)\bm x$ 后重算损失应下降；$x_j$ 增 1 单位 $\Rightarrow$ 对数几率 $+w_j$、几率 $\times e^{w_j}$。示意：$\bm w=(1,-2)$，$b=0.5$，$\bm x=(2,1)$，$y=0$ $\Rightarrow z=0.5$，$\hat y=0.6225$，$\mathcal L=0.9741$。
+\item \key{熵、交叉熵、KL}：$-\mathrm{KL}(p\|q)=\sum p\log\frac qp\le\log\sum p\frac qp=0$（Jensen，$\log$ 凹），等号 $\iff p=q$；one-hot 下平均交叉熵 $=-\frac1N\log\prod_np_\theta(y^{*(n)}\mid\bm x^{(n)})$ $\Rightarrow$ 最小化交叉熵 $\iff$ MLE；KL 不对称（$p=(0.7,0.2,0.1)$，$q=(0.5,0.3,0.2)$：$\mathrm{KL}(p\|q)=0.0851$，$\mathrm{KL}(q\|p)=0.0920$）。
+\item \key{Softmax}：平移不变（分子分母同乘 $e^c$；计算时先减 $\max_iz_i$ 防溢出）；$\partial\mathcal L/\partial\bm z=\hat{\bm y}-\bm y$；$C=2$ 时 $=\sigma((\bm w_1-\bm w_2)^\top\bm x)$。示意 $\bm z=(1,2,3)\Rightarrow\hat{\bm y}=(0.0900,0.2447,0.6652)$。
+\item \key{感知器收敛}：线性可分定义（$\|\bm w^*\|=1$、$\gamma$）$\to$ 定理 $k\le R^2/\gamma^2$ $\to$ 三步证明 $\to$ $R,\gamma$ 含义、与 $N$ 无关、不可分时振荡须设 $T$、判错用 $\le0$ 的理由。
+\item \key{硬间隔 SVM 与对偶}：原始问题 $\to$ 拉格朗日函数 $\to$ $\bm w=\sum\alpha_iy_i\bm x_i$、$\sum\alpha_iy_i=0$ $\to$ 对偶 $\to$ 解 $\bm\alpha^*$ $\to$ KKT 判支持向量 $\to$ 验证强对偶；边界上的点不一定 $\alpha_i>0$。
+\item \key{模型比较}：以 $m=yf$ 写三种损失并推导 $\log(1+e^{-m})$，求 $m=-1,0.5,2$ 的值；合页 $\Rightarrow$ 稀疏，Logistic/Softmax $\Rightarrow$ 概率；平方损失：$m>1$ 受罚，且与 Sigmoid 复合时梯度含 $\sigma'$，自信地犯错时梯度消失、目标非凸。
+\end{itemize}
+
+\begin{english}[Perceptron and SVM]
+\begin{itemize}
+\item The perceptron is an error-driven online algorithm: whenever $y\bm w^\top\bm x\le0$, update $\bm w\leftarrow\bm w+y\bm x$. If the data are linearly separable with margin $\gamma$ and $R=\max_n\|\bm x^{(n)}\|$, the number of updates is at most $R^2/\gamma^2$.
+\item A support vector machine maximizes the margin $2/\|\bm w\|$, i.e.\ solves $\min\frac12\|\bm w\|^2$ s.t.\ $y_i(\bm w^\top\bm x_i+b)\ge1$. By complementary slackness only support vectors have $\alpha_i>0$, so $\bm w^*=\sum_{i\in SV}\alpha_iy_i\bm x_i$.
+\item The soft-margin SVM (slack variables $\xi_i$, penalty $C$) is equivalent to minimizing the hinge loss $\max(0,1-yf(\bm x))$ plus an L2 penalty; the kernel trick replaces $\bm x_i^\top\bm x_j$ with $K(\bm x_i,\bm x_j)=\phi(\bm x_i)^\top\phi(\bm x_j)$, giving a nonlinear boundary in the input space.
+\end{itemize}
+\end{english}

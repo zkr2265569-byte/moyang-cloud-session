@@ -1,0 +1,1448 @@
+\chapter{动态面板数据模型}
+\label{ch:U12a-dynpanel}
+
+第 10、11 章的静态面板中，$y_{it}$ 只依赖当期解释变量 $x_{it}$ 与个体效应 $\alpha_i$。本章把被解释变量的一阶滞后 $y_{i,t-1}$ 放进模型，得到\term{动态面板数据模型}{dynamic panel data model}。一旦出现 $y_{i,t-1}$，前面学过的三种估计——混合 OLS、组内（WG/FE）估计、一阶差分 OLS——在 $T$ 固定时\key{全部不一致}，必须用模型内部的滞后变量构造工具，再做 IV/GMM 估计。学习路线：为什么要动态模型 $\to$ 怎样设定 $\to$ 混合 OLS 与 WG 为何失效（Nickell 偏误）$\to$ 一阶差分与“滞后水平值”工具 $\to$ Anderson–Hsiao IV $\to$ Arellano–Bond 差分 GMM $\to$ Blundell–Bond 系统 GMM $\to$ FOD GMM $\to$ 序列相关与过度识别检验 $\to$ Stata 实现与估计量比较。GMM 的一般理论见第 8 章，过度识别检验见第 9 章，WG 与 FD 变换见第 10 章；对应 Hansen 第 17.36–17.44 节。
+
+\begin{keypt}[本章高频考点]
+\begin{enumerate}
+  \item 用信息集解释 WG 为何有偏（Nickell 偏误，阶为 $O(1/T)$）；
+  \item 证明 $\E(\Delta y_{i,t-1}\Delta u_{it})\neq0$；
+  \item 给出差分方程的有效工具，并证明其外生性与相关性；
+  \item 写出 Arellano–Bond 工具矩阵 $W_i$、数清矩条件个数、推导权重矩阵中的 $H$ 矩阵；
+  \item 证明系统 GMM 的水平方程矩条件；
+  \item 解释 FOD 变换为何可以用 $y_{i,t-1}$ 作工具；
+  \item \texttt{xtabond2} 的选项与 AR(2) 检验的含义。
+\end{enumerate}
+前三项是本章前五节的内容，后四项在本章后半部分展开。
+\end{keypt}
+
+%======================================================================
+\section{动机：为什么需要动态面板}\label{sec:U12a-motive}
+
+\subsection{静态面板没有“动态结构”}
+
+\subsubsection{静态面板：只有当期 \texorpdfstring{$x_{it}$}{x\_it} 影响当期 \texorpdfstring{$y_{it}$}{y\_it}}
+
+静态面板模型（第 10 章）
+\[
+y_{it}=\alpha_i+x_{it}\T\beta+u_{it}
+\]
+只允许当期 $x_{it}$ 影响当期 $y_{it}$，\term{没有动态结构}{no dynamic structure}：昨天的 $y$ 不影响今天的 $y$，今天的 $y$ 也不影响明天的 $y$。
+
+\subsubsection{动态面板：加入 \texorpdfstring{$\rho\,y_{i,t-1}$}{rho y\_(i,t-1)} 形成动态链}
+
+在右边加入 $\rho\,y_{i,t-1}$：
+\[
+y_{it}=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it},
+\]
+于是 $y_{i,t-1}\to y_{it}\to y_{i,t+1}$ 形成一条链（图~\ref{fig:U12a-chain}）：$y$ 的过去影响现在，现在影响未来；$x_{it}$ 除了直接影响 $y_{it}$，还通过 $y_{it}$ 间接影响 $y_{i,t+1}$。这条链称为\term{动态结构}{dynamic structure}。
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},font=\small]
+\node (a) at (0,0) {$y_{i,t-1}$};
+\node (b) at (3.5,0) {$y_{it}$};
+\node (c) at (7,0) {$y_{i,t+1}$};
+\node (x) at (3.5,1.5) {$x_{it}$};
+\draw[->,thick] (a) -- (b);
+\draw[->,thick] (b) -- (c);
+\draw[->] (x) -- (b);
+\draw[->,dashed] (x) -- (c);
+\node[draw=cdef,dashed,rounded corners,fit=(a)(c),inner sep=5pt] (box) {};
+\node[font=\footnotesize,text=cdef,anchor=south west] at (box.north west) {动态结构};
+\draw[->] (-0.8,-1.1) -- (8.2,-1.1) node[right] {time};
+\foreach \p/\l in {0/{$t-1$},3.5/{$t$（today）},7/{$t+1$}}
+  \draw (\p,-1.02) -- (\p,-1.18) node[below] {\l};
+\end{tikzpicture}
+\captionof{figure}{动态结构示意：$y$ 的过去影响现在，现在影响未来；$x_{it}$ 通过 $y_{it}$ 间接影响 $y_{i,t+1}$}\label{fig:U12a-chain}
+\end{minipage}
+\end{center}
+
+\subsection{时间序列视角：“We live in a dynamic world”}
+
+\subsubsection{面板沿时间维度看就是时间序列}
+
+固定个体 $i$、沿 $t$ 看，面板的每个个体都是一条时间序列；时间序列分析的核心是“过去 $\to$ 现在 $\to$ 未来”的动态关系与预测：
+\[
+\text{Panel}\ \xrightarrow{\ \text{看 } t\text{ 维度}\ }\ \text{time series}\ \longrightarrow\ \text{forecasting}:\qquad \text{past}\to\text{today}\to\text{tomorrow}\quad(\text{dynamics}).
+\]
+把动态引入面板，就得到动态面板：Panel $+$ dynamic $\Rightarrow$ Dynamic Panel。
+
+\subsubsection{Nerlove 的名言与早期的动态面板研究}
+
+Nerlove 的名言“\emph{We live in a dynamic world}”概括了这一动机：经济行为本来就是动态的，静态模型只是一种近似。最早的经典动态面板实证研究之一是 Balestra \& Nerlove (1966) 对天然气需求的研究。
+
+\subsubsection{例：经济学中常见的动态面板}
+
+\begin{exmp}[经济学中的动态面板]\label{ex:U12a-apps}
+\begin{itemize}
+  \item \key{企业投资}：今年的投资依赖往年的投资决策（多年期项目），这是 Hansen 第 17.36 节的例子。
+  \item \key{劳动需求}：调整成本使企业雇佣量缓慢调整，$n_{it}$ 依赖 $n_{i,t-1}$。Arellano \& Bond (1991) 用 140 家英国企业 1976–1984 年的数据估计的就是这种方程。
+  \item \key{消费习惯与收入收敛}：本期消费依赖上期消费；增长回归把期初收入 $y_{i,t-1}$ 作为解释变量。
+\end{itemize}
+\end{exmp}
+
+\subsection{研究动态面板要回答的四个核心问题}
+
+研究动态面板要处理四件事，它们都与“$T$ 有限还是很大”有关：
+\begin{enumerate}
+  \item \key{解释}（interpretation）：$\rho$、$\beta$ 的含义，短期效应与长期效应（第~\ref{sec:U12a-spec} 节）。
+  \item \key{估计与编程}（estimation $\to$ coding）：估计量通常没有现成的 OLS 公式，要写成 IV/GMM；编程时还要处理因取滞后、取差分而损失的期数（第~\ref{sec:U12a-sample} 小节）。
+  \item \key{性质依赖 $T$}：同一个估计量在“$T$ 固定、$N\to\infty$”与“$N,T$ 都大”时结论不同，例如 WG 的 Nickell 偏误为 $O(1/T)$（第~\ref{sec:U12a-fail} 节）。
+  \item \key{$T$ 大时的非平稳问题}：时间维度一长，就必须关心 $y_{it}$ 是否有单位根（第~\ref{sec:U12a-unitroot} 小节）。
+\end{enumerate}
+
+\begin{note}[与静态、非线性面板的分工]
+非平衡面板（个体 $i$ 只在 $t=1,\dots,T_i$ 被观测）与面板二元选择模型 $y_{it}=\mathbf{1}\{\alpha_i+x_{it}\T\beta+u_{it}>0\}$ 属于静态或非线性面板，见第 11 章。要点：缺失为随机缺失（MAR）时 FE/WG 仍一致，缺失与结果有关（样本选择）时会产生截断问题；含固定效应的二元选择模型没有普遍适用的好办法（Chamberlain 的条件 logit 只适用于 logit 情形）。
+\end{note}
+
+\begin{english}
+A static panel $y_{it}=\alpha_i+x_{it}'\beta+u_{it}$ has no dynamic structure. In many economic settings (investment, labour demand, consumption habits) current outcomes depend on past outcomes, so we include the lagged dependent variable and obtain the dynamic panel model $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}'\beta+u_{it}$. The presence of $y_{i,t-1}$ together with the individual effect $\alpha_i$ makes pooled OLS, the within (fixed effects) estimator and first-difference OLS inconsistent when $T$ is fixed, so instrumental variable or GMM methods are required.
+\end{english}
+
+%======================================================================
+\section{如何设定动态面板模型}\label{sec:U12a-spec}
+
+\subsection{从时间序列 ARX 到面板 ARX}
+
+\subsubsection{面板 ARX 模型}
+
+数据为 $(y_{it},x_{it})$。右边只放 $x_{it}$，是静态面板；再加 $\rho\,y_{i,t-1}$，就成了动态面板。它是时间序列 ARX 模型在面板上的推广，称为\term{面板 ARX 模型}{panel ARX model}：
+\begin{align*}
+\text{time series ARX:}\quad & y_t=\rho\,y_{t-1}+x_t\T\beta+u_t,\\
+\text{panel ARX:}\quad & y_{it}=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it}.
+\end{align*}
+面板 ARX 比时间序列 ARX 复杂得多：时间序列中的平稳性、协整等问题，面板中全都有；此外还多了个体效应 $\alpha_i$ 带来的新问题——它与 $y_{i,t-1}$ 相关（第~\ref{sec:U12a-fail} 节）。
+
+\subsubsection{面板 AR(1)：本章的标准模型}
+
+不含 $x_{it}$ 的特例
+\[
+y_{it}=\alpha_i+\rho\,y_{i,t-1}+u_{it}
+\]
+称为\term{面板 AR(1) 模型}{panel AR(1) model}。本章大多数推导都在这个模型上进行，它也是考试中最常用的“标准模型”；含 $x_{it}$ 时结论类似，只是多了一组外生回归元。
+
+\subsection{本章记号与基本假设}
+
+\subsubsection{模型与假设 (A1)–(A3)}
+
+\begin{defn}[本章记号与基本假设]\label{def:U12a-setup}
+个体 $i=1,\dots,N$；时间 $t=0,1,\dots,T$。除特别说明外，每个个体观测到 $y_{i0},y_{i1},\dots,y_{iT}$，共 $T+1$ 期；$y_{i0}$ 是样本中的第一个观测，称为\term{初始值}{initial condition}。动态面板 AR(1)/ARX 模型为
+\begin{equation}\label{eq:U12a-model}
+y_{it}=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it},\qquad t=1,\dots,T,
+\end{equation}
+其中 $\rho$ 为标量自回归系数，$x_{it}$ 与 $\beta$ 为 $K\times1$ 向量，$\alpha_i$ 为个体效应，$u_{it}$ 为特异误差。基本假设：
+\begin{itemize}[leftmargin=3em,labelsep=0.5em]
+  \item[(A1)] \term{序贯外生}{sequential exogeneity}：$\E(u_{it}\mid y_{i,t-1},y_{i,t-2},\dots,y_{i0},\alpha_i,x_i)=0$，其中 $x_i=(x_{i1},\dots,x_{iT})$ 暂设严格外生；
+  \item[(A2)] 无序列相关、同方差：$\E(u_{it}u_{is})=0$（$t\neq s$），$\E(u_{it}^2)=\sigma_u^2$；
+  \item[(A3)] $\E(\alpha_iu_{it})=0$，$\E(y_{i0}u_{it})=0$（$t\ge1$）。
+\end{itemize}
+记号：$\Delta$ 为一阶差分算子，$\Delta y_{it}=y_{it}-y_{i,t-1}$；$I_t$ 表示 $t$ 期的\term{信息集}{information set}。
+\end{defn}
+
+\subsubsection{时间下标约定与 Hansen 记号对照}
+
+有的文献把第一个观测记为 $y_{i1}$，于是差分方程的工具写成 $y_{i,t-2},\dots,y_{i1}$；本书统一以 $y_{i0}$ 为第一个观测，工具写成 $y_{i,t-2},\dots,y_{i0}$。两种写法只差下标平移，结论完全相同。阅读 Hansen 第 17.36–17.44 节时注意以下记号差别：
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{本章与 Hansen 的记号对照}
+\begin{tabularx}{0.86\linewidth}{Lcc}
+\toprule
+含义 & 本章 & Hansen\\
+\midrule
+自回归系数 & $\rho$ & $\alpha$\\
+个体效应 / 特异误差 & $\alpha_i$ / $u_{it}$ & $u_i$ / $\varepsilon_{it}$\\
+个体效应方差 / 特异误差方差 & $\sigma_\alpha^2$ / $\sigma_u^2$ & $\sigma_u^2$ / $\sigma_\varepsilon^2$\\
+观测期 & $y_{i0},\dots,y_{iT}$（$T+1$ 期） & $Y_{i1},\dots,Y_{iT}$（$T$ 期）\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+\subsection{递归代入：\texorpdfstring{$y_{it}$}{y\_it} 是初始值、个体效应与全部过去冲击的函数}\label{sec:U12a-recur}
+
+\subsubsection{逐期代入的推导}
+
+要证明：在面板 AR(1) 中，$y_{it}$ 可以写成初始值 $y_{i0}$、个体效应 $\alpha_i$ 与冲击 $u_{i1},\dots,u_{it}$ 的显式函数。思路：把 $t-1$ 期方程代入 $t$ 期方程，反复进行，直到 $t=1$ 期方程。各期方程为
+\begin{align*}
+y_{it}&=\alpha_i+\rho\,y_{i,t-1}+u_{it}, && (t)\\
+y_{i,t-1}&=\alpha_i+\rho\,y_{i,t-2}+u_{i,t-1}, && (t-1)\\
+&\ \,\vdots\\
+y_{i1}&=\alpha_i+\rho\,y_{i0}+u_{i1}. && (1)
+\end{align*}
+逐步代入：
+\begin{align*}
+y_{it}&=\alpha_i+\rho\bigl(\alpha_i+\rho\,y_{i,t-2}+u_{i,t-1}\bigr)+u_{it} \why{代入 $t-1$ 期方程}\\
+&=(1+\rho)\alpha_i+\rho^2y_{i,t-2}+u_{it}+\rho\,u_{i,t-1} \why{整理}\\
+&=(1+\rho+\rho^2)\alpha_i+\rho^3y_{i,t-3}+u_{it}+\rho\,u_{i,t-1}+\rho^2u_{i,t-2} \why{再代入 $t-2$ 期方程}\\
+&\ \,\vdots\\
+&=(1+\rho+\dots+\rho^{t-1})\alpha_i+\rho^t y_{i0}+\sum_{s=0}^{t-1}\rho^s u_{i,t-s} \why{共代入 $t-1$ 次}\\
+&=\rho^t y_{i0}+\frac{1-\rho^t}{1-\rho}\,\alpha_i+\sum_{s=0}^{t-1}\rho^s u_{i,t-s}. \why{等比数列求和，$\rho\neq1$}
+\end{align*}
+结论（本章后面每一节的出发点）：
+\begin{equation}\label{eq:U12a-recur}
+\boxed{\ y_{it}=\rho^t y_{i0}+\frac{1-\rho^t}{1-\rho}\,\alpha_i+u_{it}+\rho\,u_{i,t-1}+\rho^2u_{i,t-2}+\dots+\rho^{t-1}u_{i1}\ }
+\end{equation}
+即 $y_{it}$ 是初始值、个体效应和全部过去冲击的函数（$y_{it}$ is a complex function of all past values）。下面三条推论在后文反复使用。
+
+\subsubsection{推论一：\texorpdfstring{$y_{i,t-1}$}{y\_(i,t-1)} 含有个体效应 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+由 \eqref{eq:U12a-recur}，$y_{i,t-1}$ 中含有 $\frac{1-\rho^{t-1}}{1-\rho}\alpha_i$，所以 $y_{i,t-1}$ 与个体效应相关。这是混合 OLS 失效的根源（第~\ref{sec:U12a-pols} 小节）。
+
+\subsubsection{推论二：\texorpdfstring{$y_{is}$}{y\_is} 只与不晚于 \texorpdfstring{$s$}{s} 期的冲击相关}
+
+要证明：在 (A2)(A3) 下，
+\begin{equation}\label{eq:U12a-Eyu}
+\E(y_{is}u_{it})=\begin{cases}\rho^{\,s-t}\sigma_u^2, & s\ge t,\\[2pt] 0, & s<t.\end{cases}
+\end{equation}
+思路：把 \eqref{eq:U12a-recur} 用于 $y_{is}$，乘以 $u_{it}$ 后逐项取期望。
+\begin{align*}
+\E(y_{is}u_{it})&=\E\Bigl[\Bigl(\rho^s y_{i0}+\tfrac{1-\rho^s}{1-\rho}\alpha_i+\sum_{j=0}^{s-1}\rho^j u_{i,s-j}\Bigr)u_{it}\Bigr] \why{对 $y_{is}$ 用 \eqref{eq:U12a-recur}}\\
+&=\rho^s\E(y_{i0}u_{it})+\tfrac{1-\rho^s}{1-\rho}\E(\alpha_iu_{it})+\sum_{j=0}^{s-1}\rho^j\E(u_{i,s-j}u_{it}) \why{期望的线性}\\
+&=\sum_{j=0}^{s-1}\rho^j\E(u_{i,s-j}u_{it}) \why{(A3)}\\
+&=\rho^{\,s-t}\sigma_u^2\cdot\mathbf{1}\{0\le s-t\le s-1\} \why{(A2)：仅 $j=s-t$ 项非零}\\
+&=\rho^{\,s-t}\sigma_u^2\cdot\mathbf{1}\{s\ge t\}. \why{$t\ge1$}
+\end{align*}
+含义：$y_{i,t-1}$ 含有 $u_{i,t-1},u_{i,t-2},\dots$，但不含 $u_{it}$ 及以后的冲击，所以 $y_{i,t-1}$ 是\key{前定的，而不是严格外生的}（第~\ref{sec:U12a-exog} 小节）。
+
+\subsubsection{推论三：\texorpdfstring{$|\rho|<1$}{|rho|<1} 时围绕个体均值平稳波动，\texorpdfstring{$\rho=1$}{rho=1} 时为随机游走}
+
+若 $|\rho|<1$ 且过程在样本开始前已运行很久，则 $\rho^t y_{i0}\to0$，$\frac{1-\rho^t}{1-\rho}\to\frac{1}{1-\rho}$，
+\[
+y_{it}\approx\frac{\alpha_i}{1-\rho}+\sum_{s\ge0}\rho^s u_{i,t-s}:
+\]
+$y_{it}$ 围绕个体均值 $\alpha_i/(1-\rho)$ 平稳波动。系统 GMM 关于初始条件的假设即由此而来（本章系统 GMM 一节）。若 $\rho=1$，\eqref{eq:U12a-recur} 中的 $1+\rho+\dots+\rho^{t-1}=t$，得
+\[
+y_{it}=y_{i0}+t\,\alpha_i+\sum_{s=1}^t u_{is},
+\]
+即带漂移项 $\alpha_i$ 的随机游走；条件于 $(y_{i0},\alpha_i)$，其方差 $t\sigma_u^2$ 随 $t$ 线性增长——非平稳。
+
+\subsubsection{默写递归式的常见遗漏}
+
+\begin{note}[不要漏掉含 $\alpha_i$ 的项]
+常见的错误写法是 $y_{it}=\rho^ty_{i0}+u_{it}+\rho u_{i,t-1}+\dots+\rho^{t-1}u_{i1}$，漏掉了含个体效应的项 $\frac{1-\rho^t}{1-\rho}\alpha_i$。冲击项的最后一个指数是 $\rho^{t-1}$（对应 $u_{i1}$），初始值的指数是 $\rho^t$。考试默写时要写完整的 \eqref{eq:U12a-recur}。
+\end{note}
+
+\subsubsection{例：\texorpdfstring{$\rho=0.5$}{rho=0.5}，\texorpdfstring{$t=3$}{t=3} 的显式展开}
+
+\begin{exmp}[$\rho=0.5$，$t=3$ 的显式展开]\label{ex:U12a-expand}
+写出 $\rho=0.5$ 时 $y_{i3}$ 的显式表达式，并说明各项权重。
+\solution 在 \eqref{eq:U12a-recur} 中令 $\rho=0.5$，$t=3$：
+\begin{align*}
+y_{i3}&=0.5^3y_{i0}+\frac{1-0.5^3}{1-0.5}\alpha_i+u_{i3}+0.5\,u_{i2}+0.5^2u_{i1} \why{代入 $\rho=0.5,\ t=3$}\\
+&=0.125\,y_{i0}+1.75\,\alpha_i+u_{i3}+0.5\,u_{i2}+0.25\,u_{i1}. \why{计算}
+\end{align*}
+初始值的影响只剩 12.5\%，两期前的冲击 $u_{i1}$ 权重为 0.25：冲击的影响按 $\rho^s$ 几何衰减。
+\end{exmp}
+
+\subsection{含 \texorpdfstring{$x_{it}$}{x\_it} 时：分布滞后表示、短期效应与长期效应}
+
+\subsubsection{递归代入得到分布滞后表示}
+
+对模型 \eqref{eq:U12a-model} 同样递归代入（每代入一次，多出一项 $\rho^s x_{i,t-s}\T\beta$），得到
+\[
+y_{it}=\rho^t y_{i0}+\frac{1-\rho^t}{1-\rho}\alpha_i+\sum_{s=0}^{t-1}\rho^s x_{i,t-s}\T\beta+\sum_{s=0}^{t-1}\rho^s u_{i,t-s}.
+\]
+在 $|\rho|<1$ 且过程已运行很久时，可以紧凑地写成
+\[
+\boxed{\ y_{it}=f\bigl(x_{it},x_{i,t-1},\dots;\ \rho,\beta\bigr)\ }\qquad(\text{需要平稳，}|\rho|<1),
+\]
+即一个滞后的 $y$ 等价于无穷多期 $x$ 的几何\term{分布滞后}{distributed lag}：$x_{i,t-s}$ 的系数为 $\rho^s\beta$。由此得到动态模型的两种效应。
+
+\subsubsection{短期效应、\texorpdfstring{$s$}{s} 期后效应与长期效应}
+
+\begin{defn}[短期效应与长期效应]\label{def:U12a-srlr}
+在 $|\rho|<1$ 下（对 $x$ 的某一分量与 $\beta$ 的对应分量而言）：
+\begin{itemize}
+  \item \term{短期效应}{short-run effect}（冲击乘数）：$\partial y_{it}/\partial x_{it}=\beta$；
+  \item $s$ 期后的效应：$\partial y_{i,t+s}/\partial x_{it}=\rho^s\beta$；
+  \item \term{长期效应}{long-run effect}（$x$ 永久提高 1 单位后的累积效应）：$\beta(1+\rho+\rho^2+\cdots)=\dfrac{\beta}{1-\rho}$。
+\end{itemize}
+\end{defn}
+
+长期效应的推导：$x$ 从某期起永久提高 1 单位，相当于 $x_{it},x_{i,t-1},x_{i,t-2},\dots$ 都提高 1 单位，于是
+\begin{align*}
+\text{长期效应}&=\sum_{s=0}^{\infty}\frac{\partial y_{it}}{\partial x_{i,t-s}} \why{各期 $x$ 都提高 1 单位}\\
+&=\sum_{s=0}^\infty\rho^s\beta \why{分布滞后的系数}\\
+&=\frac{\beta}{1-\rho}. \why{等比级数，$|\rho|<1$}
+\end{align*}
+等价地，用稳态 $y^*=\alpha_i+\rho\,y^*+x^{*\prime}\beta$ 解出 $y^*=(\alpha_i+x^{*\prime}\beta)/(1-\rho)$，对 $x^*$ 求导同样得到 $\beta/(1-\rho)$。
+
+\subsubsection{例：长期效应的计算与 \texorpdfstring{$\rho$}{rho} 偏误的后果}
+
+\begin{exmp}[长期效应]\label{ex:U12a-lr}
+估得 $\hat\rho=0.6$、$\hat\beta=0.2$。求短期效应、一期后效应与长期效应；若 $\rho$ 被低估为 $0.3$，长期效应会被估成多少？
+\solution 短期效应 $\hat\beta=0.2$；一期后效应 $\hat\rho\hat\beta=0.6\times0.2=0.12$；长期效应 $\hat\beta/(1-\hat\rho)=0.2/0.4=0.5$。若 $\rho$ 被低估成 $0.3$（例如 WG 的向下偏误，见第~\ref{sec:U12a-fail} 节），长期效应被错估为 $0.2/0.7\approx0.29$，只有真值的约 57\%。所以 $\rho$ 的一致估计至关重要。
+\end{exmp}
+
+\subsection{信息集与信息到达的时间}\label{sec:U12a-info}
+
+\subsubsection{信息集 \texorpdfstring{$I_t$}{I\_t} 的定义}
+
+\begin{defn}[信息集]\label{def:U12a-info}
+$I_t$ 表示截至 $t$ 期可获得的全部信息。信息不断累积：$I_{t-1}\subset I_t\subset I_{t+1}\subset\cdots$。
+\end{defn}
+
+\subsubsection{冲击的“发生”与“被知道”：11 月 5 日与 11 月 6 日}
+
+冲击的“发生”与“被知道”之间有时间差。以选举为例（图~\ref{fig:U12a-nov}）：选举在 11 月 5 日（$t-1$ 期）举行，冲击 $u_{t-1}$ 当天已经发生，但结果未知；到 11 月 6 日（$t$ 期）结果揭晓，$u_{t-1}$ 才被知道。
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},font=\small]
+\draw[->] (-0.5,0) -- (8,0) node[right] {time};
+\draw (1.2,0.08) -- (1.2,-0.08) node[below] {Nov 5（$t-1$）};
+\draw (5.5,0.08) -- (5.5,-0.08) node[below] {Nov 6（$t$）};
+\node (u) at (1.2,1.5) {$u_{t-1}$};
+\draw[->] (u) -- node[left,font=\footnotesize] {unknown} (1.2,0.12);
+\draw[->] (u.east) to[bend left=25] node[above,font=\footnotesize] {known} (5.4,0.15);
+\end{tikzpicture}
+\captionof{figure}{冲击 $u_{t-1}$ 在 $t-1$ 期（选举日 11 月 5 日）发生但未知，到 $t$ 期（11 月 6 日结果揭晓）才被知道}\label{fig:U12a-nov}
+\end{minipage}
+\end{center}
+
+\subsubsection{本章约定：\texorpdfstring{$x_t,\ y_{t-1}\in I_t$}{x\_t, y\_(t-1) in I\_t}，\texorpdfstring{$u_t\in I_{t+1}$}{u\_t in I\_(t+1)}}
+
+据此本章约定：$x_t\in I_t$，$y_{t-1}\in I_t$；$t$ 期冲击 $u_t$ 在 $t$ 期生成 $y_t$，但要到 $t+1$ 期才进入信息集，$u_t\in I_{t+1}$（同样 $y_t\in I_{t+1}$）。序贯外生假设 (A1) 的直观含义就是
+\[
+\E(\underbrace{u_{i,t+1}}_{\text{11/06}}\mid \underbrace{y_{it}}_{\text{11/05}})=0:\qquad\text{明天的冲击不能用今天的信息预测。}
+\]
+
+\subsection{一阶滞后与多阶滞后：AR(1) 形式与 AR(\texorpdfstring{$k$}{k}) 形式}
+
+\subsubsection{两种写法}
+
+动态部分可以只放一阶滞后，也可以放多阶滞后：
+\begin{align*}
+\text{(a)}\quad & y_{it}=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it};\\
+\text{(b)}\quad & y_{it}=\alpha_i+\rho_1y_{i,t-1}+\rho_2y_{i,t-2}+\rho_3y_{i,t-3}+x_{it}\T\beta+u_{it}.
+\end{align*}
+
+\subsubsection{三点比较：含义相同、AR(1) 易检验、FE 都失效}
+
+把 (a) 中 $y_{i,t-1}$ 的方程反复代入，$y_{it}$ 同样依赖 $y_{i,t-2},y_{i,t-3},\dots$。因此：
+\begin{enumerate}
+  \item \key{含义相同}：(a) 与 (b) 都表示 $y_{it}$ 依赖它的整个过去（$y_{it}\to y_{i,t-1},y_{i,t-2},\dots$）。区别在于 (a) 把过去的影响限定为几何衰减 $\rho^s$，(b) 允许更灵活的滞后模式，但参数更多。
+  \item \key{(a) 更常用}：(a) 的平稳性容易检验（只需 $|\rho|<1$）；(b) 的平稳性条件复杂。一阶滞后很容易检验，两阶滞后就难了，三阶更难（第~\ref{sec:U12a-stat} 小节）。
+  \item \key{估计问题相同}：无论哪种写法，WG/FE 估计在 $T$ 固定时都有偏且不一致（第~\ref{sec:U12a-fail} 节）。
+\end{enumerate}
+
+\subsection{平稳性条件}\label{sec:U12a-stat}
+
+\subsubsection{三条平稳性结论}
+
+\begin{thm}[平稳性条件]\label{thm:U12a-stat}
+\begin{itemize}
+  \item AR(1)：$y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$ 平稳 $\iff|\rho|<1$。此时条件于 $\alpha_i$：均值为 $\alpha_i/(1-\rho)$，方差为 $\sigma_v^2\equiv\sigma_u^2/(1-\rho^2)$，$k$ 阶自相关为 $\rho^k$。
+  \item AR($k$)：$y_{it}=\alpha_i+\rho_1y_{i,t-1}+\dots+\rho_ky_{i,t-k}+u_{it}$ 平稳 $\iff$ 特征方程 $1-\rho_1z-\rho_2z^2-\dots-\rho_kz^k=0$ 的根全部在单位圆外。
+  \item AR(2) 的等价条件（“平稳三角形”）：$\rho_1+\rho_2<1$，$\rho_2-\rho_1<1$，$|\rho_2|<1$。
+\end{itemize}
+\end{thm}
+
+\subsubsection{AR(1) 条件矩的推导与平稳分解}
+
+记 $a_i=\alpha_i/(1-\rho)$，$v_{it}=y_{it}-a_i$。先证 $v_{it}$ 是不含个体效应的 AR(1)：
+\begin{align*}
+v_{it}&=\alpha_i+\rho\,y_{i,t-1}+u_{it}-a_i \why{代入模型}\\
+&=\alpha_i-a_i+\rho\,(v_{i,t-1}+a_i)+u_{it} \why{$y_{i,t-1}=a_i+v_{i,t-1}$}\\
+&=\alpha_i-(1-\rho)a_i+\rho\,v_{i,t-1}+u_{it} \why{整理}\\
+&=\rho\,v_{i,t-1}+u_{it}. \why{$(1-\rho)a_i=\alpha_i$}
+\end{align*}
+平稳时 $\Var(v_{it})=\Var(v_{i,t-1})=\sigma_v^2$，且 $v_{i,t-1}$ 只含 $t-1$ 期及以前的冲击，与 $u_{it}$ 不相关：
+\begin{align*}
+\sigma_v^2&=\rho^2\sigma_v^2+\sigma_u^2 \why{对上式两边取方差}\\
+\Rightarrow\quad\sigma_v^2&=\frac{\sigma_u^2}{1-\rho^2}, \why{移项，需 $|\rho|<1$}\\
+\Cov(v_{it},v_{i,t-k})&=\rho\,\Cov(v_{i,t-1},v_{i,t-k})=\dots=\rho^k\sigma_v^2. \why{反复代入 $k$ 次}
+\end{align*}
+于是得到本章反复使用的\key{平稳分解}（$a_i$ 与 $\{v_{it}\}$ 不相关，因为 $v_{it}$ 只由冲击构成）：
+\begin{equation}\label{eq:U12a-stat}
+\begin{gathered}
+y_{it}=a_i+v_{it},\qquad a_i=\frac{\alpha_i}{1-\rho},\qquad v_{it}=\rho\,v_{i,t-1}+u_{it},\\
+\Var(v_{it})=\sigma_v^2=\frac{\sigma_u^2}{1-\rho^2},\qquad \Cov(v_{it},v_{i,t-k})=\rho^k\sigma_v^2 .
+\end{gathered}
+\end{equation}
+
+\subsubsection{为什么偏爱 AR(1) 形式；\texorpdfstring{$\alpha_i$}{alpha\_i} 只平移均值}
+
+AR(1) 只有一个参数，平稳性就是“$|\rho|<1$”一句话；AR(2) 已经需要三个不等式，AR(3) 更复杂——这就是 (a) 形式更受欢迎的原因。个体效应 $\alpha_i$ 只平移均值，不影响方差与自相关：画出各个体的时间序列图，会看到“均值不同、波动形态相似”（Hansen 第 17.36 节）。Hansen 同节还提醒：较大的 $\rho$ 可能是在代替时间趋势等遗漏因素，应用中常加入时间效应以消除虚假的序列相关。
+
+\subsection{面板单位根检验：LLC (2002) 与 IPS (2003)}\label{sec:U12a-unitroot}
+
+\subsubsection{为什么 \texorpdfstring{$T$}{T} 大时要先检验平稳性}
+
+$T$ 较大时要先检验 $y_{it}$ 是否平稳。时间序列中用 DF（Dickey–Fuller）、ADF（augmented Dickey–Fuller）、PP（Phillips–Perron）检验；面板中对应的是\term{面板单位根检验}{panel unit root test}。
+
+\subsubsection{ADF 回归：令 \texorpdfstring{$\delta=\rho-1$}{delta = rho - 1}}
+
+把面板 AR(1) 两边减去 $y_{i,t-1}$：
+\begin{align*}
+y_{it}-y_{i,t-1}&=\alpha_i+(\rho-1)\,y_{i,t-1}+u_{it} \why{两边减 $y_{i,t-1}$}\\
+\Delta y_{it}&=\alpha_i+\delta\,y_{i,t-1}+u_{it},\qquad\delta=\rho-1. \why{记 $\delta=\rho-1$}
+\end{align*}
+单位根 $\rho=1$ 等价于 $\delta=0$。允许斜率因个体而异，并加入差分滞后项吸收序列相关，得到两种检验共同的 ADF 回归
+\[
+\Delta y_{it}=\alpha_i+\delta_i\,y_{i,t-1}+\sum_{j=1}^{p_i}\theta_{ij}\,\Delta y_{i,t-j}+e_{it}.
+\]
+
+\subsubsection{LLC 检验与 IPS 检验的对比}
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{两种面板单位根检验}
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & \term{LLC 检验}{Levin–Lin–Chu test} & \term{IPS 检验}{Im–Pesaran–Shin test}\\
+\midrule
+斜率假设 & 同质：$\delta_i=\delta$ 对所有 $i$ & 异质：$\delta_i$ 可以不同\\
+$H_0$ & $\delta=0$（所有个体都有单位根） & $\delta_i=0$ 对所有 $i$（所有个体都有单位根）\\
+$H_1$ & $\delta<0$（\key{所有}个体都平稳） & 至少一部分个体 $\delta_i<0$（\key{部分}个体平稳）\\
+统计量 & 合并回归中 $\delta$ 的（修正后）$t$ 统计量 & 各个体 ADF $t$ 统计量的平均 $\bar t=\frac1N\sum_i t_i$，标准化后近似 $N(0,1)$\\
+Stata & \texttt{xtunitroot llc y} & \texttt{xtunitroot ips y}\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+\subsubsection{发表信息与截面独立假设}
+
+LLC 检验出自 Levin, Lin \& Chu (2002)，IPS 检验出自 Im, Pesaran \& Shin (2003)，均发表于 \emph{Journal of Econometrics}。两者都假设截面独立，称为“第一代”面板单位根检验。
+
+\subsection{面板协整（简述）}
+
+\subsubsection{定义：I(1) 变量的线性组合为 I(0)}
+
+若各变量都是 I(1)（含单位根），但它们的某个线性组合是 I(0)（平稳），就称存在\term{面板协整}{panel cointegration}；此时水平回归不是伪回归。
+
+\subsubsection{常用检验与 Stata 命令}
+
+\tagext\ 常用检验：Pedroni (1999, 2004)、Kao (1999)、Westerlund (2007)；Stata 命令分别为 \texttt{xtcointtest pedroni y x}、\texttt{xtcointtest kao y x}、\texttt{xtcointtest westerlund y x}。
+
+\subsubsection{本章其余部分的设定：平稳、\texorpdfstring{$T$}{T} 固定或适中、\texorpdfstring{$N$}{N} 大}
+
+本章其余部分都假设 $|\rho|<1$（平稳），关注 $T$ 固定或适中、$N$ 大时如何一致地估计 $\rho$。答案是 Arellano–Bond GMM 及其改进（本章后半部分）。
+
+
+\subsection{即时练习：递归、长期效应与平稳性}
+
+\begin{prac}[递归、长期效应与平稳性]\label{pr:U12a-1}
+(1) 对 $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$ 写出 $y_{i2}$ 关于 $y_{i0},\alpha_i,u_{i1},u_{i2}$ 的表达式，并验证它与 \eqref{eq:U12a-recur} 一致。\\
+(2) 某劳动需求方程估得 $\hat\rho=0.75$、工资系数 $\hat\beta=-0.4$。求工资永久上升 1 单位的长期效应。\\
+(3) 判断 AR(2) 过程 $(\rho_1,\rho_2)=(0.5,0.3)$ 与 $(0.6,0.5)$ 是否平稳。
+\answer
+(1)
+\begin{align*}
+y_{i2}&=\alpha_i+\rho\,y_{i1}+u_{i2} \why{$t=2$ 期方程}\\
+&=\alpha_i+\rho(\alpha_i+\rho\,y_{i0}+u_{i1})+u_{i2} \why{代入 $t=1$ 期方程}\\
+&=\rho^2y_{i0}+(1+\rho)\alpha_i+u_{i2}+\rho\,u_{i1}. \why{整理}
+\end{align*}
+在 \eqref{eq:U12a-recur} 中令 $t=2$：$\frac{1-\rho^2}{1-\rho}=1+\rho$，求和项为 $u_{i2}+\rho u_{i1}$，二者一致。\\
+(2) 长期效应 $=\hat\beta/(1-\hat\rho)=-0.4/0.25=-1.6$，是短期效应 $-0.4$ 的 4 倍。\\
+(3) $(0.5,0.3)$：$\rho_1+\rho_2=0.8<1$，$\rho_2-\rho_1=-0.2<1$，$|\rho_2|=0.3<1$，三条都满足，平稳。$(0.6,0.5)$：$\rho_1+\rho_2=1.1\ge1$，第一条不满足，非平稳；验证：特征方程 $1-0.6z-0.5z^2=0$ 的根为 $z\approx0.936$ 与 $z\approx-2.136$，有一个根在单位圆内。
+\end{prac}
+
+\begin{english}
+Recursive substitution gives $y_{it}=\rho^t y_{i0}+\frac{1-\rho^t}{1-\rho}\alpha_i+\sum_{s=0}^{t-1}\rho^s u_{i,t-s}$, so $y_{it}$ depends on the initial condition, the individual effect and all past shocks. The model is stationary if $|\rho|<1$; then the short-run effect of $x_{it}$ is $\beta$ and the long-run effect is $\beta/(1-\rho)$. The AR(1) form is preferred to the AR($k$) form because stationarity is easy to check. With large $T$, stationarity should be tested by panel unit root tests such as Levin--Lin--Chu (2002), which assumes a common autoregressive root, or Im--Pesaran--Shin (2003), which allows heterogeneous roots.
+\end{english}
+
+%======================================================================
+\section{为什么常用估计量失效：混合 OLS 与 WG 的 Nickell 偏误}\label{sec:U12a-fail}
+
+本节回答：对 $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}\T\beta+u_{it}$ 直接套用静态面板的方法会怎样？结论是：混合 OLS \key{向上偏}；WG \key{向下偏}，且 $T$ 固定时不一致；WG 变换之后连工具变量都找不到。为突出要点，本节的推导都在面板 AR(1)（无 $x$）中进行。
+
+\subsection{混合 OLS：\texorpdfstring{$y_{i,t-1}$}{y\_(i,t-1)} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 相关}\label{sec:U12a-pols}
+
+\subsubsection{复合误差 \texorpdfstring{$\alpha_i+u_{it}$}{alpha\_i+u\_it} 使回归元内生}
+
+\term{混合 OLS}{pooled OLS} 把 $\alpha_i$ 并入误差，估计的是
+\[
+y_{it}=\rho\,y_{i,t-1}+x_{it}\T\beta+(\alpha_i+u_{it}).
+\]
+由递归式 \eqref{eq:U12a-recur}，$y_{i,t-1}$ 中含有 $\frac{1-\rho^{t-1}}{1-\rho}\alpha_i$，所以回归元与复合误差相关：
+\begin{align*}
+\E\bigl[y_{i,t-1}(\alpha_i+u_{it})\bigr]&=\E(y_{i,t-1}\alpha_i)+\E(y_{i,t-1}u_{it}) \why{期望的线性}\\
+&=\E(y_{i,t-1}\alpha_i) \why{序贯外生，\eqref{eq:U12a-Eyu}}\\
+&=\rho^{t-1}\E(y_{i0}\alpha_i)+\frac{1-\rho^{t-1}}{1-\rho}\E(\alpha_i^2)\neq0. \why{代入 \eqref{eq:U12a-recur}；(A3)}
+\end{align*}
+例如初始值来自平稳分布时 $\E(y_{i0}\alpha_i)=\E(\alpha_i^2)/(1-\rho)$，上式化为 $\E(\alpha_i^2)/(1-\rho)>0$。回归元与复合误差相关，即\key{内生}，混合 OLS 不一致。
+
+\subsubsection{混合 OLS 的概率极限：向上偏误}
+
+\begin{thm}[混合 OLS 的概率极限（平稳 AR(1)，无 $x$）]\label{thm:U12a-pols}
+设 $|\rho|<1$，$y_{it}=a_i+v_{it}$ 如 \eqref{eq:U12a-stat}，$\Var(\alpha_i)=\sigma_\alpha^2$，$\alpha_i$ 与 $\{v_{it}\}$ 不相关。记 $m=\Var(a_i)=\sigma_\alpha^2/(1-\rho)^2$，则含常数项的混合 OLS 满足
+\[
+\plim_{N\to\infty}\hat\rho_{\text{POLS}}=\frac{m+\rho\,\sigma_v^2}{m+\sigma_v^2}=\rho+\frac{(1-\rho)\,m}{m+\sigma_v^2}\ >\ \rho .
+\]
+\end{thm}
+
+思路：含常数项的混合 OLS 斜率的概率极限是 $\Cov(y_{it},y_{i,t-1})/\Var(y_{i,t-1})$（平稳时各期的矩相同）。
+\begin{align*}
+\Cov(y_{it},y_{i,t-1})&=\Cov(a_i+v_{it},\,a_i+v_{i,t-1}) \why{平稳分解 \eqref{eq:U12a-stat}}\\
+&=\Var(a_i)+\Cov(v_{it},v_{i,t-1}) \why{$a_i$ 与 $v$ 不相关}\\
+&=m+\rho\,\sigma_v^2, \why{一阶自协方差 $\rho\sigma_v^2$}\\
+\Var(y_{i,t-1})&=\Var(a_i)+\Var(v_{i,t-1})=m+\sigma_v^2, \why{同理}\\
+\frac{m+\rho\sigma_v^2}{m+\sigma_v^2}-\rho&=\frac{m+\rho\sigma_v^2-\rho m-\rho\sigma_v^2}{m+\sigma_v^2} \why{通分}\\
+&=\frac{(1-\rho)\,m}{m+\sigma_v^2}. \why{化简}
+\end{align*}
+只要 $\sigma_\alpha^2>0$，偏误就为正：\key{混合 OLS 高估 $\rho$}。个体效应越重要（$m$ 越大）偏得越多；$m\to\infty$ 时极限趋向 1。
+
+\subsubsection{例：混合 OLS 偏误的数值}
+
+\begin{exmp}[混合 OLS 几乎把平稳序列估成单位根]\label{ex:U12a-pols}
+设 $\sigma_\alpha^2=\sigma_u^2=1$。分别求 $\rho=0.5$ 与 $\rho=0.9$ 时 $\hat\rho_{\text{POLS}}$ 的概率极限。
+\solution $\rho=0.5$：$m=1/0.5^2=4$，$\sigma_v^2=1/(1-0.25)=1.333$，
+\[
+\plim\hat\rho_{\text{POLS}}=\frac{4+0.5\times1.333}{4+1.333}=\frac{4.667}{5.333}=0.875 .
+\]
+$\rho=0.9$：$m=1/0.1^2=100$，$\sigma_v^2=1/0.19=5.263$，
+\[
+\plim\hat\rho_{\text{POLS}}=\frac{100+0.9\times5.263}{100+5.263}=\frac{104.737}{105.263}=0.995 ,
+\]
+几乎把平稳序列估成了单位根。本章后面的模拟比较中，混合 OLS 估计值的均值恰为 0.875 与 0.995。
+\end{exmp}
+
+\subsection{严格外生与序贯外生}\label{sec:U12a-exog}
+
+\subsubsection{两种外生性的定义}
+
+\begin{defn}[严格外生与序贯外生]\label{def:U12a-exog}
+设回归元为 $z_{it}$。
+\begin{itemize}
+  \item \term{严格外生}{strict exogeneity}：$\E(u_{it}\mid z_{i1},\dots,z_{iT},\alpha_i)=0$。误差与回归元在所有时期（过去、现在、未来）都不相关：$\E(z_{is}u_{it})=0$，$\forall s,t$。静态面板中 WG/FD 的一致性依赖这一假设（第 10 章）。
+  \item \key{序贯外生}（此时回归元称为\term{前定变量}{predetermined variable}）：$\E(u_{it}\mid z_{it},z_{i,t-1},\dots,z_{i1},\alpha_i)=0$。误差只与当期及过去的回归元不相关。
+\end{itemize}
+\end{defn}
+
+\subsubsection{滞后被解释变量只能序贯外生}
+
+对动态面板，回归元 $z_{it}=y_{i,t-1}$，于是
+\[
+\boxed{\E(u_t\mid y_{t-1},y_{t-2},\dots)=0}\qquad\text{但}\qquad\boxed{\E(u_t\mid y_t,y_{t-1},\dots)\neq0}.
+\]
+$u_t$ 与过去无关（它是 $t$ 期的新冲击），但它生成了 $y_t$，并通过 $y_t$ 影响 $y_{t+1},y_{t+2},\dots$（图~\ref{fig:U12a-seq}）。所以 $y_{i,t-1}$ 作为回归元只能满足序贯外生，\key{不可能严格外生}：严格外生要求 $\E(y_{is}u_{it})=0$ 对所有 $s$ 成立，而由 \eqref{eq:U12a-Eyu}，$s\ge t$ 时 $\E(y_{is}u_{it})=\rho^{s-t}\sigma_u^2\neq0$。
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[>={Stealth[length=2mm]},font=\small]
+\node (y0) at (0,0.4) {$y_{t-1}$};
+\node (u) at (3.2,1.4) {$u_t$};
+\node (y1) at (3.2,0.3) {$y_t$};
+\node (y2) at (6.4,0.4) {$y_{t+1}$};
+\draw[<->,cthm] (y0.north) to[bend left=35] node[above left,font=\footnotesize] {uncorrelated} (u.west);
+\draw[->] (u) -- (y1);
+\draw[->] (y1) -- (y2);
+\draw[->,dashed] (u.east) to[bend left=20] (y2.north);
+\draw[->] (-0.6,-0.4) -- (7.4,-0.4) node[right] {time};
+\foreach \p/\l in {0/{$t-1$},3.2/{$t$},6.4/{$t+1$}}
+  \draw (\p,-0.32) -- (\p,-0.48) node[below] {\l};
+\end{tikzpicture}
+\captionof{figure}{序贯外生：$u_t$ 与过去的 $y_{t-1}$ 不相关，但驱动 $y_t$ 与未来的 $y_{t+1}$}\label{fig:U12a-seq}
+\end{minipage}
+\end{center}
+
+\subsection{组内变换后的动态方程}\label{sec:U12a-wg}
+
+\subsubsection{三个时间均值}
+
+对 $t=1,\dots,T$ 共 $T$ 个方程取个体时间均值：
+\[
+\bar y_i=\frac1T\sum_{t=1}^Ty_{it},\qquad
+\bar y_{i,-1}=\frac1T\sum_{t=1}^Ty_{i,t-1}=\frac1T\bigl(y_{i0}+y_{i1}+\dots+y_{i,T-1}\bigr),\qquad
+\bar u_i=\frac1T\sum_{t=1}^Tu_{it},
+\]
+$\bar x_i$ 类似。注意 $\bar y_{i,-1}$ 是滞后值的均值，比 $\bar y_i$ 早一期：它含 $y_{i0}$ 而不含 $y_{iT}$。
+
+\subsubsection{组内变换消去 \texorpdfstring{$\alpha_i$}{alpha\_i}}
+
+\begin{align*}
+\bar y_i&=\frac1T\sum_{t=1}^T\bigl(\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it}\bigr) \why{对模型取时间平均}\\
+&=\alpha_i+\rho\,\bar y_{i,-1}+\bar x_i\T\beta+\bar u_i. \why{$\alpha_i$ 不随 $t$ 变}
+\end{align*}
+用原模型减去上式，$\alpha_i$ 被消去，得到\term{组内变换}{within-group transformation}后的方程
+\begin{equation}\label{eq:U12a-wg}
+y_{it}-\bar y_i=\rho\,\bigl(y_{i,t-1}-\bar y_{i,-1}\bigr)+\bigl(x_{it}-\bar x_i\bigr)\T\beta+\bigl(u_{it}-\bar u_i\bigr).
+\end{equation}
+对 \eqref{eq:U12a-wg} 做 OLS 就是 WG（FE）估计量。
+
+\subsubsection{\texorpdfstring{$x$}{x} 的离差外生，滞后 \texorpdfstring{$y$}{y} 的离差内生}
+
+OLS 对外生模型一致、对内生模型不一致。在 \eqref{eq:U12a-wg} 中：
+\begin{itemize}
+  \item (a) $(x_{it}-\bar x_i)\perp(u_{it}-\bar u_i)$：若 $x$ 严格外生，成立；
+  \item (b) $(y_{i,t-1}-\bar y_{i,-1})\not\perp(u_{it}-\bar u_i)$：\key{相关}！所以 \eqref{eq:U12a-wg} 是内生模型。
+\end{itemize}
+
+\subsubsection{易错：回归元、系数 \texorpdfstring{$\rho$}{rho} 与均值的分母}
+
+\begin{note}[组内方程的三个易错点]
+\begin{itemize}
+  \item 回归元是 $(y_{i,t-1}-\bar y_{i,-1})$，不要写成 $(y_{it}-\bar y_{i,-1})$ 或 $(y_{it}-\bar y_i)$。
+  \item 时间平均式保留系数 $\rho$：$\bar y_i=\alpha_i+\rho\,\bar y_{i,-1}+\bar x_i\T\beta+\bar u_i$。
+  \item 若以 $y_{i1}$ 为第一个观测，可用方程为 $t=2,\dots,T$ 共 $T-1$ 个，所有均值都对 $T-1$ 项取平均：$\bar y_{i,-1}=\frac1{T-1}\sum_{s=1}^{T-1}y_{is}$，$\bar u_i=\frac1{T-1}\sum_{t=2}^Tu_{it}$。本书以 $y_{i0}$ 为第一个观测，分母统一为 $T$。
+\end{itemize}
+\end{note}
+
+\subsection{信息集论证：为什么两个离差项相关}
+
+\subsubsection{两个离差项涉及的信息集重叠}
+
+按第~\ref{sec:U12a-info} 小节的约定（$y_s\in I_{s+1}$，$u_s\in I_{s+1}$）：
+\[
+\underbrace{y_{i,t-1}-\tfrac1T\bigl(y_{i0}+\dots+y_{i,T-1}\bigr)}_{\text{回归元：涉及 }I_1,I_2,\dots,I_T}
+\qquad\text{与}\qquad
+\underbrace{u_{it}-\tfrac1T\bigl(u_{i1}+\dots+u_{iT}\bigr)}_{\text{误差：涉及 }I_2,I_3,\dots,I_{T+1}} .
+\]
+两者涉及的信息集重叠（$I_2,\dots,I_T$），共享同样的冲击（图~\ref{fig:U12a-info}），所以
+\[
+\E\bigl[(y_{i,t-1}-\bar y_{i,-1})(u_{it}-\bar u_i)\bigr]\neq0\qquad(\text{endogenous}).
+\]
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[font=\small,>={Stealth[length=2mm]}]
+\fill[gray!20] (1.6,-0.3) rectangle (7.6,0.7);
+\draw[->] (-0.5,0) -- (10.2,0) node[right] {time};
+\foreach \x/\t/\I in {0/{$t=0$}/{$I_1$},1.6/{$t=1$}/{$I_2$},3.2/{$t=2$}/{$I_3$},6.0/{$t=T-2$}/{$I_{T-1}$},7.6/{$t=T-1$}/{$I_T$},9.2/{$t=T$}/{$I_{T+1}$}}{
+  \draw (\x,0.08) -- (\x,-0.08);
+  \node[below] at (\x,-0.08) {\t};
+  \node[above] at (\x,0.08) {\I};
+}
+\node at (4.6,0.35) {$\cdots$};
+\draw[decorate,decoration={brace,amplitude=5pt},cdef] (-0.25,0.95) -- (7.85,0.95)
+  node[midway,above=6pt,text=cdef] {回归元 $y_{i,t-1}-\bar y_{i,-1}$：$y_{i0},\dots,y_{i,T-1}\in I_1,\dots,I_T$};
+\draw[decorate,decoration={brace,amplitude=5pt,mirror},cthm] (1.35,-0.75) -- (9.45,-0.75)
+  node[midway,below=6pt,text=cthm] {误差 $u_{it}-\bar u_i$：$u_{i1},\dots,u_{iT}\in I_2,\dots,I_{T+1}$};
+\end{tikzpicture}
+\captionof{figure}{WG 偏误的信息集论证：两个离差项共享 $I_2,\dots,I_T$（灰色重叠区）中的冲击}\label{fig:U12a-info}
+\end{minipage}
+\end{center}
+
+若以 $y_{i1}$ 为首期，所有下标后移一期，重叠区相应写作 $I_3,\dots,I_T$，结论不变。
+
+\subsubsection{逐项看：究竟哪些项相关}
+
+把 $(y_{i,t-1}-\bar y_{i,-1})(u_{it}-\bar u_i)$ 展开成四项，用 \eqref{eq:U12a-Eyu}（$y_{is}$ 含 $u_{ir}$ 当且仅当 $r\le s$）逐项看：
+\begin{itemize}
+  \item $y_{i,t-1}$ 与 $u_{it}$：不相关（序贯外生）；
+  \item $y_{i,t-1}$ 与 $\bar u_i$：$\bar u_i$ 含 $u_{i1},\dots,u_{i,t-1}$，它们都在 $y_{i,t-1}$ 里；
+  \item $\bar y_{i,-1}$ 与 $u_{it}$：$\bar y_{i,-1}$ 含 $y_{it},\dots,y_{i,T-1}$（$t\le T-1$ 时），它们都含 $u_{it}$；
+  \item $\bar y_{i,-1}$ 与 $\bar u_i$：两个“全时段平均”共享大量冲击，存在共同成分（common component）。
+\end{itemize}
+
+\subsubsection{关键：时间平均把“未来”的信息带进每一期}
+
+时间平均把未来的信息带进了每一期的变换后变量。静态面板中 $x$ 严格外生，未来信息无害；动态面板中 $y$ 只是序贯外生，未来信息就造成了相关。
+
+\subsection{WG 偏误的阶为 \texorpdfstring{$O(1/T)$}{O(1/T)}：分解推导}\label{sec:U12a-order}
+
+\subsubsection{WG 估计误差的表达式}
+
+要证明：WG 偏误的分子（回归元离差与误差离差的协方差）的期望为 $-\sigma_u^2/[T(1-\rho)]+O(1/T^2)$，从而偏误为 $O(1/T)$。在面板 AR(1) 中，WG 是 \eqref{eq:U12a-wg}（无 $x$）的 OLS：
+\begin{align*}
+\hat\rho_{WG}&=\frac{\sum_{i=1}^N\sum_{t=1}^T(y_{i,t-1}-\bar y_{i,-1})(y_{it}-\bar y_i)}{\sum_{i=1}^N\sum_{t=1}^T(y_{i,t-1}-\bar y_{i,-1})^2} \why{离差方程的 OLS}\\
+\hat\rho_{WG}-\rho&=\frac{\frac1{NT}\sum_{i}\sum_{t}(y_{i,t-1}-\bar y_{i,-1})(u_{it}-\bar u_i)}{\frac1{NT}\sum_{i}\sum_{t}(y_{i,t-1}-\bar y_{i,-1})^2}. \why{代入 \eqref{eq:U12a-wg}，上下同除 $NT$}
+\end{align*}
+
+\subsubsection{分子分解：离差之和为零}
+
+对每个个体 $i$，
+\begin{align*}
+&\frac1T\sum_{t=1}^T\bigl(y_{i,t-1}-\bar y_{i,-1}\bigr)\bigl(u_{it}-\bar u_i\bigr)\\
+&\quad=\frac1T\sum_{t=1}^T\bigl(y_{i,t-1}-\bar y_{i,-1}\bigr)u_{it}-\bar u_i\cdot\underbrace{\frac1T\sum_{t=1}^T\bigl(y_{i,t-1}-\bar y_{i,-1}\bigr)}_{=0} \why{展开；$\bar u_i$ 与 $t$ 无关}\\
+&\quad=\frac1T\sum_{t=1}^T\bigl(y_{i,t-1}-\bar y_{i,-1}\bigr)u_{it} \why{离差之和为零}\\
+&\quad=\underbrace{\frac1T\sum_{t=1}^Tu_{it}\,y_{i,t-1}}_{\text{期望为 }0}-\underbrace{\bar y_{i,-1}\,\bar u_i}_{\text{期望}\neq0}. \why{$\frac1T\sum_t\bar y_{i,-1}u_{it}=\bar y_{i,-1}\bar u_i$}
+\end{align*}
+第一项期望为零，因为由 \eqref{eq:U12a-Eyu}，$\E(y_{i,t-1}u_{it})=0$（序贯外生）。偏误全部来自第二项 $-\bar y_{i,-1}\bar u_i$。
+
+\subsubsection{计算 \texorpdfstring{$\E(\bar y_{i,-1}\bar u_i)$}{E(ybar\_(i,-1) ubar\_i)}}
+
+由 \eqref{eq:U12a-Eyu}，只有 $s\ge t$ 的 $\E(y_{is}u_{it})=\rho^{s-t}\sigma_u^2$ 非零：
+\begin{align*}
+\E\bigl(\bar y_{i,-1}\bar u_i\bigr)&=\frac1{T^2}\sum_{s=0}^{T-1}\sum_{t=1}^T\E(y_{is}u_{it}) \why{两个平均相乘}\\
+&=\frac{\sigma_u^2}{T^2}\sum_{t=1}^{T-1}\sum_{s=t}^{T-1}\rho^{\,s-t} \why{只保留 $t\le s\le T-1$ 的项}\\
+&=\frac{\sigma_u^2}{T^2}\sum_{t=1}^{T-1}\frac{1-\rho^{T-t}}{1-\rho} \why{内层等比求和}\\
+&=\frac{\sigma_u^2}{T^2(1-\rho)}\Bigl[(T-1)-\frac{\rho(1-\rho^{T-1})}{1-\rho}\Bigr] \why{$\sum_{j=1}^{T-1}\rho^j=\frac{\rho(1-\rho^{T-1})}{1-\rho}$}\\
+&=\frac{\sigma_u^2}{T(1-\rho)}+O\Bigl(\frac1{T^2}\Bigr). \why{$\frac{T-1}{T^2}=\frac1T-\frac1{T^2}$}
+\end{align*}
+
+\subsubsection{分母与概率极限：偏误约为 \texorpdfstring{$-(1+\rho)/T$}{-(1+rho)/T}}
+
+分母的期望：组内离差消去了 $a_i$，只剩 $v_{i,t-1}-\bar v_{i,-1}$，故 $\E\bigl[\frac1T\sum_t(y_{i,t-1}-\bar y_{i,-1})^2\bigr]=\sigma_v^2-\Var(\bar v_{i,-1})=\sigma_v^2+O(1/T)$。$N\to\infty$ 时 WG 估计量的概率极限是“分子期望 / 分母期望”：
+\begin{align*}
+\plim_{N\to\infty}(\hat\rho_{WG}-\rho)&=\frac{\E\bigl[\frac1T\sum_t(y_{i,t-1}-\bar y_{i,-1})(u_{it}-\bar u_i)\bigr]}{\E\bigl[\frac1T\sum_t(y_{i,t-1}-\bar y_{i,-1})^2\bigr]} \why{WLLN（对 $i$）与 CMT}\\
+&=\frac{0-\E(\bar y_{i,-1}\bar u_i)}{\sigma_v^2+O(1/T)} \why{分子分解}\\
+&\approx\frac{-\sigma_u^2/[T(1-\rho)]}{\sigma_u^2/(1-\rho^2)} \why{保留主项}\\
+&=-\frac{1+\rho}{T}=O\Bigl(\frac1T\Bigr). \why{$1-\rho^2=(1-\rho)(1+\rho)$}
+\end{align*}
+这说明：偏误来自 $-\bar y_{i,-1}\bar u_i$ 这一项；它\key{不随 $N$ 增大而消失}，只随 $T$ 增大以 $1/T$ 的速度变小。$-(1+\rho)/T$ 与下面 Nickell 近似式 $-(1+\rho)/(T-1)$ 只差 $O(1/T^2)$，一阶相同。
+
+\subsection{Nickell (1981) 偏误公式与数值}
+
+\subsubsection{精确公式与大 \texorpdfstring{$T$}{T} 近似}
+
+\begin{thm}[Nickell 偏误]\label{thm:U12a-nickell}
+面板 AR(1)，$|\rho|<1$，初始值来自平稳分布，每个个体有 $T$ 个 $(y_{it},y_{i,t-1})$ 观测对。$T$ 固定、$N\to\infty$ 时，WG 估计量的\term{Nickell 偏误}{Nickell bias}为
+\begin{gather*}
+\plim_{N\to\infty}(\hat\rho_{WG}-\rho)=\frac{A_T}{B_T},\\
+A_T=-\frac{1+\rho}{T-1}\Bigl(1-\frac1T\,\frac{1-\rho^T}{1-\rho}\Bigr),\qquad
+B_T=1-\frac{2\rho}{(1-\rho)(T-1)}\Bigl(1-\frac1T\,\frac{1-\rho^T}{1-\rho}\Bigr).
+\end{gather*}
+$T$ 较大时的标准近似为
+\begin{equation}\label{eq:U12a-nickell}
+\boxed{\ \plim_{N\to\infty}(\hat\rho_{WG}-\rho)\approx-\frac{1+\rho}{T-1}\ }
+\end{equation}
+偏误为负（\key{WG 低估 $\rho$}）；偏误的绝对值随 $\rho$ 增大而增大、随 $T$ 增大而减小，阶为 $O(1/T)$。
+\end{thm}
+
+\subsubsection{偏误数值表}
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{WG 估计量的 Nickell 偏误。精确值已用 $N=200\,000$ 的模拟核对（如 $T=10$，$\rho=0.9$：模拟 $-0.242$，公式 $-0.243$）}\label{tab:U12a-nickell}
+\begin{tabular}{c@{\qquad}ccc@{\qquad}ccc}
+\toprule
+ & \multicolumn{3}{c}{精确 Nickell 偏误 $A_T/B_T$} & \multicolumn{3}{c}{近似 $-(1+\rho)/(T-1)$}\\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}
+$T$ & $\rho=0$ & $\rho=0.5$ & $\rho=0.9$ & $\rho=0$ & $\rho=0.5$ & $\rho=0.9$\\
+\midrule
+2  & $-0.500$ & $-0.750$ & $-0.950$ & $-1.000$ & $-1.500$ & $-1.900$\\
+3  & $-0.333$ & $-0.536$ & $-0.706$ & $-0.500$ & $-0.750$ & $-0.950$\\
+5  & $-0.200$ & $-0.331$ & $-0.463$ & $-0.250$ & $-0.375$ & $-0.475$\\
+10 & $-0.100$ & $-0.162$ & $-0.243$ & $-0.111$ & $-0.167$ & $-0.211$\\
+20 & $-0.050$ & $-0.078$ & $-0.120$ & $-0.053$ & $-0.079$ & $-0.100$\\
+30 & $-0.033$ & $-0.052$ & $-0.077$ & $-0.034$ & $-0.052$ & $-0.066$\\
+50 & $-0.020$ & $-0.031$ & $-0.044$ & $-0.020$ & $-0.031$ & $-0.039$\\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}
+
+\subsubsection{例：\texorpdfstring{$T=2$}{T=2} 时 WG 等于一阶差分 OLS，偏误为 \texorpdfstring{$-(1+\rho)/2$}{-(1+rho)/2}}
+
+\begin{exmp}[$T=2$：可以手算的极端情形]\label{ex:U12a-T2}
+只观测 $y_{i0},y_{i1},y_{i2}$（$T=2$ 个方程；Hansen 第 17.37 节用 $T=3$ 表示同一情形）。证明 $\hat\rho_{WG}$ 等于差分方程的 OLS，并求其概率极限。
+\solution 第一步，写出组内离差。$\bar y_{i,-1}=\frac12(y_{i0}+y_{i1})$，$\bar y_i=\frac12(y_{i1}+y_{i2})$，故
+\begin{align*}
+&y_{i1}-\bar y_{i,-1}=\tfrac12\Delta y_{i1},\qquad y_{i0}-\bar y_{i,-1}=-\tfrac12\Delta y_{i1},\\
+&y_{i2}-\bar y_{i}=\tfrac12\Delta y_{i2},\qquad\ \ y_{i1}-\bar y_{i}=-\tfrac12\Delta y_{i2}.
+\end{align*}
+第二步，代入 WG 公式（$t=1,2$ 两项）：
+\begin{align*}
+\hat\rho_{WG}&=\frac{\sum_i\bigl[(-\frac12\Delta y_{i1})(-\frac12\Delta y_{i2})+\frac12\Delta y_{i1}\cdot\frac12\Delta y_{i2}\bigr]}{\sum_i\bigl[\frac14\Delta y_{i1}^2+\frac14\Delta y_{i1}^2\bigr]} \why{代入离差}\\
+&=\frac{\sum_i 2\cdot\frac14\,\Delta y_{i1}\Delta y_{i2}}{\sum_i2\cdot\frac14\,\Delta y_{i1}^2}
+=\frac{\sum_i\Delta y_{i1}\Delta y_{i2}}{\sum_i\Delta y_{i1}^2}, \why{约去公因子}
+\end{align*}
+即 $T=2$ 时 \key{WG $=$ 一阶差分 OLS}。第三步，求概率极限。由 $\Delta y_{i2}=\rho\,\Delta y_{i1}+\Delta u_{i2}$ 及 $\Delta y_{i1}=v_{i1}-v_{i0}=(\rho-1)v_{i0}+u_{i1}$：
+\begin{align*}
+\plim(\hat\rho_{WG}-\rho)&=\frac{\E(\Delta y_{i1}\Delta u_{i2})}{\E(\Delta y_{i1}^2)} \why{WLLN 与 CMT}\\
+&=\frac{\E(y_{i1}u_{i2})-\E(y_{i1}u_{i1})-\E(y_{i0}u_{i2})+\E(y_{i0}u_{i1})}{\Var\bigl((\rho-1)v_{i0}+u_{i1}\bigr)} \why{分子展开}\\
+&=\frac{0-\sigma_u^2-0+0}{(1-\rho)^2\sigma_v^2+\sigma_u^2} \why{\eqref{eq:U12a-Eyu}；$v_{i0}$ 与 $u_{i1}$ 不相关}\\
+&=\frac{-\sigma_u^2}{2\sigma_u^2/(1+\rho)} \why{$(1-\rho)^2\sigma_v^2=\frac{1-\rho}{1+\rho}\sigma_u^2$}\\
+&=-\frac{1+\rho}{2}. \why{化简}
+\end{align*}
+与表~\ref{tab:U12a-nickell} 中 $T=2$ 一行一致：$\rho=0$ 时偏误 $-0.5$；$\rho=0.5$ 时偏误 $-0.75$，$\plim\hat\rho_{WG}=-0.25$，连符号都错了。
+\end{exmp}
+
+\subsubsection{近似式何时不准}
+
+\begin{note}[大 $T$ 近似会低估偏误]
+$-(1+\rho)/(T-1)$ 是 $T$ 大时的一阶近似。$\rho$ 接近 1 而 $T$ 不大时，它会低估偏误（$T=30$，$\rho=0.9$：精确 $-0.077$，近似 $-0.066$）。常有人说“$T\ge30$ 就可以放心用 FE”，但 $T=30$、$\rho=0.9$ 时偏误仍约为真值的 9\%；$T=10$、$\rho=0.5$ 时偏误为真值的 32\%。\key{微观面板（$T$ 小）和宏观面板（$T$ 中等）都受 Nickell 偏误影响。}
+\end{note}
+
+\subsection{\texorpdfstring{$T$}{T} 大时：一致但渐近有偏}
+
+\subsubsection{偏误趋于零，但乘以 \texorpdfstring{$\sqrt{NT}$}{sqrt(NT)} 后不消失}
+
+关于 FE/WG 估计的两条结论：
+\begin{itemize}
+  \item $T$ 有限时：有偏、不一致；
+  \item $T$ 大时：\key{一致}（偏误 $\approx-(1+\rho)/T\to0$），但\key{渐近有偏}：极限分布是 $N(\text{constant},\text{var})$，中心不在 0。
+\end{itemize}
+原因：渐近正态要把估计误差乘以 $\sqrt{NT}$ 放大。偏误虽然趋于 0，但放大后
+\[
+\sqrt{NT}\cdot\Bigl(-\frac{1+\rho}{T}\Bigr)=-\sqrt{\frac NT}\,(1+\rho)
+\]
+不趋于 0（只要 $N$ 与 $T$ 同阶）。
+
+\subsubsection{Hahn–Kuersteiner (2002) 的极限分布}
+
+\begin{extend}[$N$、$T$ 同阶时的渐近分布]
+Hahn \& Kuersteiner (2002, \emph{Econometrica}) 证明：若 $N/T\to\kappa\in(0,\infty)$，则
+\[
+\sqrt{NT}\,(\hat\rho_{WG}-\rho)\dto N\bigl(-\sqrt{\kappa}\,(1+\rho),\ 1-\rho^2\bigr).
+\]
+例如 $N=T$（$\kappa=1$）、$\rho=0$ 时，标准化统计量的极限分布中心恰为 $-1$，方差为 1：$N(-1,1)$。
+\end{extend}
+
+\subsubsection{\texorpdfstring{$\pm1.96$}{+-1.96} 推断失真}
+
+若仍用 $\pm1.96$ 作临界值，而统计量实际服从中心为 $-1$ 的正态，左尾拒绝概率远超 2.5\%（图~\ref{fig:U12a-shift}）。
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[xscale=1.15,yscale=4.2,font=\small]
+\fill[cthm!25] (-4.2,0) -- plot[domain=-4.2:-1.96,samples=40] (\x,{exp(-(\x+1)*(\x+1)/2)/2.5066}) -- (-1.96,0) -- cycle;
+\draw[->] (-4.4,0) -- (4.5,0);
+\draw[cdef,thick,domain=-4.2:4.2,samples=100] plot (\x,{exp(-(\x)*(\x)/2)/2.5066});
+\draw[cthm,thick,dashed,domain=-4.2:4.2,samples=100] plot (\x,{exp(-(\x+1)*(\x+1)/2)/2.5066});
+\draw[gray] (-1.96,0) -- (-1.96,0.42);
+\draw[gray] (1.96,0) -- (1.96,0.42);
+\draw[gray,dashed] (-1,0) -- (-1,0.399);
+\draw (0,0) -- (0,-0.02);
+\node[below] at (-2.1,0) {$-1.96$};
+\node[below] at (-0.85,0) {$-1$};
+\node[below] at (0,0) {$0$};
+\node[below] at (1.96,0) {$1.96$};
+\draw[cdef,thick] (2.3,0.40) -- (2.8,0.40) node[right,black] {理想：$N(0,1)$};
+\draw[cthm,thick,dashed] (2.3,0.33) -- (2.8,0.33) node[right,black] {WG 实际：$N(-1,1)$};
+\end{tikzpicture}
+\captionof{figure}{渐近偏误对推断的影响：用 $\pm1.96$ 作临界值，但统计量实际服从中心为 $-1$ 的正态，左尾拒绝概率（阴影）远超 2.5\%}\label{fig:U12a-shift}
+\end{minipage}
+\end{center}
+
+\begin{exmp}[$\pm1.96$ 推断失真有多严重]\label{ex:U12a-size}
+若 $t$ 统计量实际近似服从 $N(-1,1)$，名义 5\% 双侧检验的真实拒绝概率是多少？中心为 $-0.5$、$-2$ 时又如何？
+\solution 记 $t=Z-1$，$Z\sim N(0,1)$。
+\begin{align*}
+P(|t|>1.96)&=P(Z-1>1.96)+P(Z-1<-1.96) \why{双侧拒绝域}\\
+&=P(Z>2.96)+P(Z<-0.96) \why{移项}\\
+&=0.0015+0.1685\approx0.17. \why{标准正态表}
+\end{align*}
+即“5\% 检验”实际犯第一类错误的概率约 17\%，“95\% 置信区间”的实际覆盖率只有约 83\%。同理，中心为 $-0.5$ 时拒绝概率为 $P(Z>2.46)+P(Z<-1.46)\approx0.079$；中心为 $-2$ 时为 $P(Z>3.96)+P(Z<0.04)\approx0.52$。
+\end{exmp}
+
+\subsubsection{拓展：偏误修正}
+
+\begin{extend}[偏误修正估计量]
+既然偏误的主项已知为 $-(1+\rho)/T$，可以做\term{偏误修正}{bias correction}：
+\[
+\tilde\rho=\hat\rho_{WG}+\frac{1+\hat\rho_{WG}}{T}\qquad(\text{Hahn \& Kuersteiner, 2002}).
+\]
+这是 $T$ 较大的宏观面板常用的思路；本章其余部分讨论 $T$ 小、$N$ 大时的 IV/GMM 思路。
+\end{extend}
+
+\subsection{结论：动态面板不能用 WG，且 WG 之后找不到工具}\label{sec:U12a-noiv}
+
+\subsubsection{核心结论：动态面板不要用 FE/WG 估计}
+
+\begin{keypt}[考场标准表述]
+\begin{itemize}
+  \item Never use FE/WG estimation for dynamic panels: it is biased and inconsistent when $T$ is fixed.
+  \item WG/FE estimation is not recommended for dynamic panels, even when $T$ is moderately large (Nickell bias of order $1/T$; asymptotic bias when $N/T\to\kappa>0$).
+\end{itemize}
+\end{keypt}
+
+\subsubsection{模型内部的天然候选工具：滞后变量}
+
+能否像截面模型那样给 \eqref{eq:U12a-wg} 找工具？截面模型只能用模型外的工具；动态面板的好处是模型内就有天然候选——滞后变量 $y_{i0},\dots,y_{i,t-1}$：
+\begin{itemize}
+  \item \key{外生性}（exogeneity）：过去不受今天冲击的影响，$\E(y_{is}u_{it})=0$（$s<t$）；
+  \item \key{相关性}（relevance）：滞后变量与内生回归元相关。
+\end{itemize}
+
+\subsubsection{WG 变换下所有滞后都与误差离差相关}
+
+但在 WG 变换下这些滞后都失效：变换后的误差是 $u_{it}-\bar u_i$，而 $\bar u_i$ 含有所有时期的冲击 $(u_{i1},\dots,u_{iT})$。对 $1\le s\le T-1$、$t>s$：
+\begin{align*}
+\E\bigl[y_{is}(u_{it}-\bar u_i)\bigr]&=\E(y_{is}u_{it})-\frac1T\sum_{r=1}^T\E(y_{is}u_{ir}) \why{展开 $\bar u_i$}\\
+&=0-\frac1T\sum_{r=1}^{s}\rho^{\,s-r}\sigma_u^2 \why{\eqref{eq:U12a-Eyu}：仅 $r\le s$ 非零}\\
+&=-\frac{\sigma_u^2}{T}\cdot\frac{1-\rho^s}{1-\rho}\neq0. \why{等比求和}
+\end{align*}
+所以 WG 方程“内生，且从数据中找不到工具”（endogenous, and no instruments from the data）。
+
+\subsubsection{唯一例外 \texorpdfstring{$y_{i0}$}{y\_i0} 也毫无相关性}
+
+唯一与 $\bar u_i$ 不相关的滞后是初始值 $y_{i0}$（由 (A3)）；但它不随 $t$ 变化，与组内离差的样本协方差恒为零：
+\[
+\sum_{t=1}^T y_{i0}\,(y_{i,t-1}-\bar y_{i,-1})=y_{i0}\sum_{t=1}^T(y_{i,t-1}-\bar y_{i,-1})\equiv0,
+\]
+用作工具毫无相关性。因此结论不变：\key{要找工具，必须换一种消去 $\alpha_i$ 的变换}——一阶差分（第~\ref{sec:U12a-fd} 节）或前向正交离差（本章 FOD 一节）。
+
+\subsection{即时练习：失效估计量的数值与推导}
+
+\begin{prac}[失效估计量的数值与推导]\label{pr:U12a-2}
+(1) $\rho=0.8$，$\sigma_\alpha^2=\sigma_u^2=1$，求混合 OLS 的概率极限。\\
+(2) $T=10$、$\rho=0.5$，用近似式 \eqref{eq:U12a-nickell} 求 WG 的概率极限，并与精确值比较；偏误占真值的百分比是多少？\\
+(3) 利用递归式证明 \eqref{eq:U12a-Eyu}：$s\ge t$ 时 $\E(y_{is}u_{it})=\rho^{s-t}\sigma_u^2$。\\
+(4) 若 $t$ 统计量实际服从 $N(-0.5,1)$，名义 5\% 双侧检验的真实拒绝率是多少？
+\answer
+(1) $m=\sigma_\alpha^2/(1-\rho)^2=1/0.04=25$，$\sigma_v^2=1/(1-0.64)=2.778$，
+\[
+\plim\hat\rho_{\text{POLS}}=\frac{25+0.8\times2.778}{25+2.778}=\frac{27.222}{27.778}=0.980,
+\]
+严重向上偏。\\
+(2) 近似偏误 $-1.5/9=-0.167$，$\plim\hat\rho_{WG}\approx0.333$；精确偏误 $-0.162$（表~\ref{tab:U12a-nickell}），$\plim\hat\rho_{WG}\approx0.338$。偏误约占真值的 $0.162/0.5\approx32\%$。\\
+(3) 把 \eqref{eq:U12a-recur} 用于 $y_{is}$：$y_{is}=\rho^sy_{i0}+\frac{1-\rho^s}{1-\rho}\alpha_i+\sum_{j=0}^{s-1}\rho^ju_{i,s-j}$。由 (A2)(A3)，$u_{it}$ 与 $y_{i0}$、$\alpha_i$ 及 $u_{ir}$（$r\neq t$）都不相关，故 $\E(y_{is}u_{it})$ 只来自求和中 $u_{i,s-j}=u_{it}$ 即 $j=s-t$ 的那一项；该项存在当且仅当 $0\le s-t\le s-1$，即 $s\ge t$（因 $t\ge1$）。此时 $\E(y_{is}u_{it})=\rho^{s-t}\E(u_{it}^2)=\rho^{s-t}\sigma_u^2$；$s<t$ 时为 0。\\
+(4) $P(|Z-0.5|>1.96)=P(Z>2.46)+P(Z<-1.46)=0.0069+0.0721\approx0.079$。
+\end{prac}
+
+\begin{english}
+The within transformation removes $\alpha_i$ but creates $y_{i,t-1}-\bar y_{i,-1}$ and $u_{it}-\bar u_i$, both of which contain the whole time series of shocks, so they are correlated. Because $y_{i,t-1}$ is only sequentially (not strictly) exogenous, the WG estimator is inconsistent for fixed $T$ (Nickell bias); the bias is negative and of order $O(1/T)$, approximately $-(1+\rho)/(T-1)$. Even when $T\to\infty$ the estimator is consistent but asymptotically biased when $N/T\to\kappa>0$, so conventional $\pm1.96$ inference is invalid. Moreover, all lagged values are correlated with $\bar u_i$, so no valid internal instruments exist after the within transformation. Pooled OLS is also inconsistent and biased upward because $y_{i,t-1}$ is correlated with $\alpha_i$.
+\end{english}
+
+%======================================================================
+\section{一阶差分变换与“滞后水平值”工具}\label{sec:U12a-fd}
+
+\subsection{一阶差分消去 \texorpdfstring{$\alpha_i$}{alpha\_i}：差分动态方程}
+
+\subsubsection{相邻两期方程相减}
+
+\term{一阶差分}{first difference, FD}：$\Delta y_t=y_t-y_{t-1}$。把 $t$ 期与 $t-1$ 期方程相减：
+\begin{align*}
+y_{it}&=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it}\\
+y_{i,t-1}&=\alpha_i+\rho\,y_{i,t-2}+x_{i,t-1}\T\beta+u_{i,t-1}\\
+y_{it}-y_{i,t-1}&=\rho\,(y_{i,t-1}-y_{i,t-2})+(x_{it}-x_{i,t-1})\T\beta+(u_{it}-u_{i,t-1}), \why{两式相减，$\alpha_i$ 抵消}
+\end{align*}
+即
+\begin{equation}\label{eq:U12a-fd}
+\boxed{\ \Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta x_{it}\T\beta+\Delta u_{it},\qquad t=2,\dots,T.\ }
+\end{equation}
+$\alpha_i$ 被差分掉（differenced out），得到差分形式的动态面板（FD dynamic panel）。
+
+\subsubsection{差分方程从 \texorpdfstring{$t=2$}{t=2} 开始}
+
+$t=1$ 的差分方程 $\Delta y_{i1}=\rho\,\Delta y_{i0}+\cdots$ 要用到 $\Delta y_{i0}=y_{i0}-y_{i,-1}$，而 $y_{i,-1}$ 不可观测，所以差分方程从 $t=2$ 开始。
+
+\subsection{差分回归元 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y\_(i,t-1)} 的内生性}\label{sec:U12a-fdendo}
+
+\subsubsection{证明 \texorpdfstring{$\E(\Delta y_{i,t-1}\Delta u_{it})=-\sigma_u^2$}{E(Delta y\_(i,t-1) Delta u\_it) = -sigma\_u\^2}}
+
+即使 $\Delta x_{it}$ 与 $\Delta u_{it}$ 不相关，回归元 $\Delta y_{i,t-1}$ 也与 $\Delta u_{it}$ 相关——\key{内生}。思路：展开成四项，逐项用 \eqref{eq:U12a-Eyu}。
+\begin{align*}
+\E(\Delta y_{i,t-1}\Delta u_{it})&=\E\bigl[(y_{i,t-1}-y_{i,t-2})(u_{it}-u_{i,t-1})\bigr] \why{差分的定义}\\
+&=\E(y_{i,t-1}u_{it})-\E(y_{i,t-1}u_{i,t-1})-\E(y_{i,t-2}u_{it})+\E(y_{i,t-2}u_{i,t-1}) \why{展开}\\
+&=0-\sigma_u^2-0+0 \why{由 \eqref{eq:U12a-Eyu}}\\
+&=-\sigma_u^2\neq0.
+\end{align*}
+第三步：由 \eqref{eq:U12a-Eyu}，$\E(y_{is}u_{it})$ 只在 $s\ge t$ 时非零，四项中只有 $\E(y_{i,t-1}u_{i,t-1})=\sigma_u^2$ 满足。
+
+\subsubsection{信息集解读：\texorpdfstring{$y_{i,t-1}$}{y\_(i,t-1)} 与 \texorpdfstring{$u_{i,t-1}$}{u\_(i,t-1)} 同在 \texorpdfstring{$I_t$}{I\_t}}
+
+标出每一项所在的信息集：
+\[
+\E\Bigl[\bigl(\underbrace{y_{i,t-1}}_{I_t}-\underbrace{y_{i,t-2}}_{I_{t-1}}\bigr)\bigl(\underbrace{u_{it}}_{I_{t+1}}-\underbrace{u_{i,t-1}}_{I_t}\bigr)\Bigr]=-\E(y_{i,t-1}u_{i,t-1})\neq0 .
+\]
+两个 $I_t$ 项——$y_{i,t-1}$ 与 $u_{i,t-1}$——处在同一信息集，而且 $y_{i,t-1}$ 本身就含有 $u_{i,t-1}$，二者相关（correlated）。
+
+\subsubsection{一阶差分 OLS 的概率极限：\texorpdfstring{$(\rho-1)/2$}{(rho-1)/2}}
+
+\begin{thm}[一阶差分 OLS 的概率极限（平稳 AR(1)，无 $x$）]\label{thm:U12a-fdols}
+\[
+\plim_{N\to\infty}\hat\rho_{\text{FD-OLS}}=\rho+\frac{\E(\Delta y_{i,t-1}\Delta u_{it})}{\E(\Delta y_{i,t-1}^2)}=\rho-\frac{1+\rho}{2}=\frac{\rho-1}{2}.
+\]
+\end{thm}
+
+分子已证为 $-\sigma_u^2$。分母用平稳分解 \eqref{eq:U12a-stat}：
+\begin{align*}
+\E(\Delta y_{i,t-1}^2)&=\Var(v_{i,t-1}-v_{i,t-2}) \why{$a_i$ 被差分掉}\\
+&=2\sigma_v^2-2\rho\,\sigma_v^2=2\sigma_v^2(1-\rho) \why{一阶自协方差 $\rho\sigma_v^2$}\\
+&=\frac{2\sigma_u^2(1-\rho)}{1-\rho^2}=\frac{2\sigma_u^2}{1+\rho}. \why{$\sigma_v^2=\sigma_u^2/(1-\rho^2)$}
+\end{align*}
+故偏误为 $-\sigma_u^2\big/\frac{2\sigma_u^2}{1+\rho}=-\frac{1+\rho}2$，结论得证。
+
+\subsubsection{例：FD-OLS 的偏误不随 \texorpdfstring{$T$}{T} 减小}
+
+\begin{exmp}[FD-OLS 偏得有多厉害]\label{ex:U12a-fdols}
+求 $\rho=0.5$ 与 $\rho=0.9$ 时 $\hat\rho_{\text{FD-OLS}}$ 的概率极限，并说明它与 WG 偏误的区别。
+\solution $\rho=0.5$：$\plim\hat\rho_{\text{FD-OLS}}=(0.5-1)/2=-0.25$（真值 0.5，符号都错）；$\rho=0.9$：$(0.9-1)/2=-0.05$。与 WG 不同，\key{FD-OLS 的偏误不随 $T$ 增大而减小}：每个差分方程只涉及相邻两期，平稳时各期的矩相同，多加几期只是重复同样的偏误。FD-OLS 是有偏（biased）且不一致的。
+\end{exmp}
+
+\subsection{为什么静态面板用 WG、动态面板用 FD（或 FOD）}
+
+\subsubsection{两种变换的“污染范围”不同}
+
+问题：为什么静态面板用 WG，而动态面板用 FD（或 FOD）？答案在于两种变换把冲击“混进来”的范围不同：
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{WG 与 FD 两种变换的比较}\label{tab:U12a-wgfd}
+\begin{tabularx}{\linewidth}{lLL}
+\toprule
+ & WG（组内离差） & FD（一阶差分）\\
+\midrule
+变换后误差 & $u_{it}-\bar u_i$：含\key{全部} $T$ 期冲击（“全局污染”） & $u_{it}-u_{i,t-1}$：只含\key{相邻两期}冲击（“局部污染”）\\
+静态面板（$x$ 严格外生） & 一致；$u$ 为 \iid\ 时有效（第 10 章） & 一致；但 $\Delta u$ 为 MA(1)，效率较低\\
+动态面板（$y_{t-1}$ 前定） & 不一致，且任何滞后 $y$ 都与 $\bar u_i$ 相关 $\Rightarrow$ 无工具 & OLS 不一致，但 $y_{i,t-2},y_{i,t-3},\dots$ 与 $\Delta u_{it}$ 不相关 $\Rightarrow$ \key{有工具}\\
+\bottomrule
+\end{tabularx}
+\end{minipage}
+\end{center}
+
+\subsubsection{结论}
+
+静态面板首选 WG（有效）；动态面板必须用“局部”变换——FD，或保持前向结构的前向正交离差 FOD（本章 FOD 一节）。
+
+\subsection{样本期、损失的期数与初始条件 \texorpdfstring{$y_{i0}$}{y\_i0}}\label{sec:U12a-sample}
+
+\subsubsection{例：2000–2024 年的数据}
+
+以 2000–2024 年的年度数据为例（图~\ref{fig:U12a-sample}）：数据从 2000 年开始，此前的 1999、1998 年……不可观测；每用一个滞后就损失一期。
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[font=\small,>={Stealth[length=2mm]}]
+\draw[->] (-0.3,0) -- (12.4,0) node[right] {time};
+\foreach \x/\t/\y in {0/{$t=-2$}/1998,1.3/{$t=-1$}/1999,3/{$t=0$}/2000,4.3/{$t=1$}/2001,5.6/{$t=2$}/2002,11.2/{$t=24$}/2024}{
+  \draw (\x,0.08) -- (\x,-0.08);
+  \node[above] at (\x,0.08) {\t};
+  \node[below] at (\x,-0.1) {\footnotesize\y};
+}
+\node at (8.4,0.3) {$\cdots$};
+\draw[dashed,gray] (2.15,-0.5) -- (2.15,0.95);
+\node[gray,font=\footnotesize] at (0.65,0.85) {样本前（不可观测）};
+\draw[decorate,decoration={brace,mirror,amplitude=5pt}] (3,-0.6) -- (11.2,-0.6)
+  node[midway,below=6pt] {观测 2000--2024：共 25 年};
+\end{tikzpicture}
+\captionof{figure}{样本期与初始值：数据从 2000 年开始，此前各年不可观测；每用一个滞后就损失一期}\label{fig:U12a-sample}
+\end{minipage}
+\end{center}
+
+\subsubsection{两种下标约定下的方程个数}
+
+\begin{itemize}
+  \item \key{本书约定}（2000 年记为 $t=0$，即 $y_{i0}$）：观测 $y_{i0},\dots,y_{i,24}$；水平方程 $t=1,\dots,24$，共 24 个（模型中 $T=24$）；差分方程 $t=2,\dots,24$，共 23 个（估计时实际可用 23 期）。
+  \item \key{另一种约定}（2000 年记为 $t=1$）：$y_{i0}$ 对应 1999 年，不可观测，$y_{i1}=\alpha_i+\rho\,y_{i0}+\cdots$ 这个方程无法使用；可用水平方程 $t=2,\dots,25$，差分方程 $t=3,\dots,25$——同样是 24 与 23 个。
+\end{itemize}
+
+\subsubsection{一般规律：每取一次滞后或差分，损失一期}
+
+设每个个体有 $T_{\text{obs}}$ 期观测，则
+\[
+T_{\text{obs}}\ \text{期观测}\ \longrightarrow\ T_{\text{obs}}-1\ \text{个水平方程}\ \longrightarrow\ T_{\text{obs}}-2\ \text{个差分方程}.
+\]
+差分方程 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$ 只能用 $T_{\text{obs}}-2$ 期数据：FD 动态面板损失 2 期，而静态面板的 WG 估计不损失数据。编程（coding）时必须处理好这一点。
+
+\subsubsection{初始条件 \texorpdfstring{$y_{i0}$}{y\_i0} 的三种处理}
+
+关于初始条件 $y_{i0}$ 的讨论非常多。过程在样本开始前早已运行，$y_{i0}$ 只是我们“碰巧”看到的第一个值。它与 $\alpha_i$ 的关系决定了哪些矩条件成立：
+\begin{enumerate}
+  \item 视为固定常数；
+  \item 视为与 $\alpha_i$ 任意相关的随机变量——Arellano–Bond GMM 只需要 $\E(y_{i0}u_{it})=0$；
+  \item 来自平稳分布 $y_{i0}=\frac{\alpha_i}{1-\rho}+v_{i0}$——系统 GMM 需要的假设（本章系统 GMM 一节）。
+\end{enumerate}
+
+\subsubsection{例：数观测与方程}
+
+\begin{exmp}[数观测]\label{ex:U12a-count}
+$N=100$ 家企业，2000–2024 年平衡面板。水平观测、可用的水平方程、差分方程各有多少个？
+\solution 每家企业 25 期观测，水平观测共 $100\times25=2500$ 个；可用的水平方程 $100\times24=2400$ 个；差分方程 $100\times23=2300$ 个。
+\end{exmp}
+
+\subsection{工具的外生性：\texorpdfstring{$y_{i,t-2},\dots,y_{i0}$}{y\_(i,t-2),...,y\_i0} 与 \texorpdfstring{$\Delta u_{it}$}{Delta u\_it} 不相关}\label{sec:U12a-exogiv}
+
+\subsubsection{哪些滞后水平值可以作工具}
+
+差分误差 $\Delta u_{it}=u_{it}-u_{i,t-1}$ 涉及 $t$ 与 $t-1$ 两期冲击：
+\begin{itemize}
+  \item $y_{i,t-1}$ 含 $u_{i,t-1}$（与 $\Delta u_{it}$ 相关），\key{不能}作工具；
+  \item $\{y_{i,t-2},y_{i,t-3},\dots,y_{i0}\}$ 只含 $t-2$ 期及以前的冲击，与 $\Delta u_{it}$ \key{不相关}（图~\ref{fig:U12a-iv}）。
+\end{itemize}
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[font=\small,>={Stealth[length=2mm]}]
+\draw[->] (-0.6,0) -- (10.8,0) node[right] {time};
+\foreach \x/\l in {0/{t-4},2/{t-3},4/{t-2},6/{t-1},8/{t},10/{t+1}}{
+  \draw (\x,0.08) -- (\x,-0.08) node[below] {$\l$};
+}
+\node[draw=cex,fill=cex!8,rounded corners] (a) at (0,0.65) {$y_{i,t-4}$};
+\node[draw=cex,fill=cex!8,rounded corners] (b) at (2,0.65) {$y_{i,t-3}$};
+\node[draw=cex,fill=cex!8,rounded corners] (c) at (4,0.65) {$y_{i,t-2}$};
+\node (d) at (6,0.65) {$y_{i,t-1}$};
+\node (e) at (8,0.65) {$y_{it}$};
+\node[draw=cthm,thick,rounded corners=6pt,text=cthm] (du) at (7.2,1.9) {$\Delta u_{it}=u_{it}-u_{i,t-1}$};
+\draw[->,cex] (b.north) to[bend left=25] node[midway,above left,font=\footnotesize] {外生：不相关} (du.west);
+\draw[<->,cpr,thick] (d.north) -- (d.north |- du.south);
+\node[cpr,font=\footnotesize,anchor=east] at (5.9,1.25) {相关：$y_{i,t-1}$ 含 $u_{i,t-1}$};
+\end{tikzpicture}
+\captionof{figure}{找工具：方框中的滞后水平值只含 $t-2$ 期及以前的冲击，与 $\Delta u_{it}$ 不相关；$y_{i,t-1}$ 含 $u_{i,t-1}$，与 $\Delta u_{it}$ 相关，不可用}\label{fig:U12a-iv}
+\end{minipage}
+\end{center}
+
+\subsubsection{外生性的证明}
+
+对 $s\le t-2$：
+\begin{align*}
+\E(y_{is}\Delta u_{it})&=\E(y_{is}u_{it})-\E(y_{is}u_{i,t-1}) \why{期望的线性}\\
+&=0-0=0. \why{$s<t-1<t$，由 \eqref{eq:U12a-Eyu}}
+\end{align*}
+
+\subsubsection{差分方程的矩条件}
+
+\begin{thm}[差分方程的矩条件（Anderson–Hsiao / Arellano–Bond）]\label{thm:U12a-mc}
+在 (A1)–(A3) 下，对 $t=2,\dots,T$：
+\begin{equation}\label{eq:U12a-mc}
+\E\bigl[y_{i,t-s}\,(u_{it}-u_{i,t-1})\bigr]=0,\qquad s=2,3,\dots,t,
+\end{equation}
+即 $\E[y_{i,t-2}\Delta u_{it}]=0$，$\E[y_{i,t-3}\Delta u_{it}]=0$，\dots，$\E[y_{i0}\Delta u_{it}]=0$。第 $t$ 个差分方程有 $t-1$ 个这样的矩条件。
+\end{thm}
+
+\subsubsection{条件期望形式：外生性与相关性}
+
+(A1) 用于 $t+1$ 期即 $\E(u_{i,t+1}\mid y_{it},\dots)=0$：明天（11/06）的冲击不能用今天（11/05）的信息预测；把时间整体前移两期就是 $\E(u_{i,t-1}\mid y_{i,t-2},\dots)=0$。由此得到差分方程的条件矩形式：
+\[
+\E\bigl(\Delta u_{it}\mid y_{i,t-2},y_{i,t-3},\dots\bigr)=0\ \ (\text{exogenous}),\qquad
+\E\bigl(\Delta y_{i,t-1}\mid y_{i,t-2},y_{i,t-3},\dots\bigr)\neq0\ \ (\text{relevance}).
+\]
+前者的证明：
+\begin{align*}
+\E(\Delta u_{it}\mid y_{i,t-2},\dots)&=\E(u_{it}\mid y_{i,t-2},\dots)-\E(u_{i,t-1}\mid y_{i,t-2},\dots) \why{条件期望的线性}\\
+&=\E\bigl[\E(u_{it}\mid y_{i,t-1},y_{i,t-2},\dots)\mid y_{i,t-2},\dots\bigr]-0 \why{迭代期望律；(A1) 用于 $t-1$ 期}\\
+&=0. \why{(A1) 用于 $t$ 期}
+\end{align*}
+后者成立的原因是 $y_{i,t-1}$ 是全部过去值的复杂函数（$y_{i,t-1}$ is a complex function of all past values），所以滞后值对 $\Delta y_{i,t-1}$ 有预测力——这正是滞后值具有相关性的来源（第~\ref{sec:U12a-relev} 小节给出定量结果）。
+
+\subsubsection{例：用日期理解“更早的 \texorpdfstring{$y$}{y} 对当期冲击外生”}
+
+\begin{exmp}[时间先后的直观例子]\label{ex:U12a-dates}
+用日常事件说明：为什么 $y_{i,t-2},y_{i,t-3},\dots$ 对 $\Delta u_{it}$ 外生？
+\solution
+\begin{itemize}
+  \item \key{9/11}：2001 年 9 月 11 日的袭击是 $t$ 期冲击 $u_{it}$，它影响 9 月 11 日当天及以后的 $y$，却不可能影响 9 月 10 日的 $y$——更早的 $y$ 对当期冲击是外生的。
+  \item \key{突发事件}：12 月 13 日发生的一起突发枪击事件进入当天的 $u_{it}$，不会改变过去的 $y_{i,t-1},y_{i,t-2},\dots$。
+  \item \key{11 月 5 日 / 11 月 6 日}：明天（11/06）的冲击不能用今天（11/05）的信息预测。
+  \item \key{星期五 / 星期六}：同样的道理适用于任何时间先后，星期六的冲击不影响星期五已经实现的 $y$。
+\end{itemize}
+\end{exmp}
+
+\subsubsection{易错：相关性要求工具与回归元“不正交”}
+
+\begin{note}[外生性是“$\perp$”，相关性是“$\not\perp$”]
+工具 $y_{i0},\dots,y_{i,t-2}$ 要满足两条：与误差 $\Delta u_{it}$ 不相关（$\perp$，外生性）；与内生回归元 $\Delta y_{i,t-1}$ 相关（$\not\perp$，相关性）。把相关性写成“$y_{i1},\dots,y_{i,t-1}\perp y_{it}$”是错误的，正确写法是工具与内生回归元 $\not\perp$。
+\end{note}
+
+\subsection{工具的相关性：滞后水平值与 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y\_(i,t-1)} 相关}\label{sec:U12a-relev}
+
+\subsubsection{一般展开：\texorpdfstring{$\E(\Delta y_{i,t-1}y_{i,t-3})=\rho\,\E[(y_{i,t-2}-y_{i,t-3})y_{i,t-3}]$}{E(Delta y\_(i,t-1) y\_(i,t-3)) = rho E[(y\_(i,t-2)-y\_(i,t-3)) y\_(i,t-3)]}}
+
+要证：远一点的滞后 $y_{i,t-3}$ 也与回归元 $\Delta y_{i,t-1}$ 相关。思路：把 $\Delta y_{i,t-1}$ 用 $t-1$ 期的差分方程展开，冲击部分与 $y_{i,t-3}$ 不相关，剩下 $\rho\,\Delta y_{i,t-2}$ 部分。
+\begin{align*}
+\E(\Delta y_{i,t-1}\,y_{i,t-3})&=\E\bigl[(\rho\,\Delta y_{i,t-2}+\Delta u_{i,t-1})\,y_{i,t-3}\bigr] \why{$t-1$ 期差分方程}\\
+&=\rho\,\E(\Delta y_{i,t-2}\,y_{i,t-3})+\E(\Delta u_{i,t-1}\,y_{i,t-3}) \why{期望的线性}\\
+&=\rho\,\E\bigl[(y_{i,t-2}-y_{i,t-3})\,y_{i,t-3}\bigr]+0 \why{$\Delta u_{i,t-1}$ 只含更晚的冲击}\\
+&=\rho\bigl[\E(y_{i,t-2}\,y_{i,t-3})-\E(y_{i,t-3}^2)\bigr]. \why{展开}
+\end{align*}
+第三步用了 \eqref{eq:U12a-mc}：$\Delta u_{i,t-1}$ 只含 $t-1$、$t-2$ 期冲击，晚于 $t-3$。
+
+\subsubsection{平稳性下的显式值：\texorpdfstring{$-\rho(1-\rho)\sigma_v^2$}{-rho(1-rho)sigma\_v\^2}}
+
+用平稳分解 \eqref{eq:U12a-stat}（$y_{it}=a_i+v_{it}$）进一步算出：
+\begin{align*}
+\E(y_{i,t-2}y_{i,t-3})-\E(y_{i,t-3}^2)&=\bigl[\E(a_i^2)+\rho\,\sigma_v^2\bigr]-\bigl[\E(a_i^2)+\sigma_v^2\bigr] \why{$a_i$ 与 $v$ 不相关}\\
+&=-(1-\rho)\,\sigma_v^2, \why{$\E(a_i^2)$ 相消}\\
+\Rightarrow\quad\E(\Delta y_{i,t-1}\,y_{i,t-3})&=-\rho\,(1-\rho)\,\sigma_v^2\neq0\qquad(\rho\neq0,1). \why{代回上式}
+\end{align*}
+
+\subsubsection{一般公式：\texorpdfstring{$\E(\Delta y_{i,t-1}y_{i,t-1-k})=-(1-\rho)\rho^{k-1}\sigma_v^2$}{E(Delta y\_(i,t-1) y\_(i,t-1-k)) = -(1-rho) rho\^(k-1) sigma\_v\^2}}
+
+\begin{thm}[滞后水平工具与差分回归元的协方差（平稳 AR(1)）]\label{thm:U12a-relev}
+\[
+\E\bigl(\Delta y_{i,t-1}\,y_{i,t-1-k}\bigr)=-(1-\rho)\,\rho^{\,k-1}\,\sigma_v^2,\qquad k=1,2,\dots
+\]
+$k=1$（工具 $y_{i,t-2}$）：$\E(\Delta y_{i,t-1}y_{i,t-2})=\E(y_{i,t-1}y_{i,t-2})-\E(y_{i,t-2}^2)=-(1-\rho)\sigma_v^2$；$k=2$ 即上面的结果；每往前推一期，乘一个 $\rho$。
+\end{thm}
+
+证明：
+\begin{align*}
+\E\bigl(\Delta y_{i,t-1}\,y_{i,t-1-k}\bigr)&=\E\bigl[(v_{i,t-1}-v_{i,t-2})(a_i+v_{i,t-1-k})\bigr] \why{\eqref{eq:U12a-stat}，$a_i$ 被差分掉}\\
+&=\E\bigl[(v_{i,t-1}-v_{i,t-2})\,v_{i,t-1-k}\bigr] \why{$\E(a_iv)=0$}\\
+&=\rho^k\sigma_v^2-\rho^{k-1}\sigma_v^2 \why{自协方差 $\rho^j\sigma_v^2$}\\
+&=-(1-\rho)\,\rho^{\,k-1}\sigma_v^2. \why{提出 $\rho^{k-1}\sigma_v^2$}
+\end{align*}
+只要 $\rho\neq1$，最近的工具 $y_{i,t-2}$ 就与回归元相关（$\rho=0$ 时也相关，因为 $y_{i,t-2}$ 直接出现在 $\Delta y_{i,t-1}$ 中）。
+
+\subsubsection{直观：工具与回归元共享更早的历史}
+
+由分布滞后表示，$y_{i,t-1}=f(x_{i,t-1},x_{i,t-2},\dots)$，$y_{i,t-2}=f(x_{i,t-2},x_{i,t-3},\dots)$。回归元 $\Delta y_{i,t-1}=y_{i,t-1}-y_{i,t-2}$ 与工具 $y_{i,t-2}$ 共享 $x$（以及冲击）的全部更早历史，所以二者相关。在图~\ref{fig:U12a-iv} 中，工具框与 $\Delta y_{i,t-1}$ 的联系代表相关性（relevance），工具框与 $\Delta u_{it}$ 无关代表外生性（exogeneity）。
+
+\subsection{远期滞后是弱工具：相关性按 \texorpdfstring{$\rho^{k}$}{rho\^k} 衰减}
+
+工具集中越远的滞后，与 $\Delta y_{i,t-1}$ 的相关性越弱——\term{弱工具}{weak instruments}问题（第 8 章）。
+
+\subsubsection{用 \texorpdfstring{$y_{i1}$}{y\_i1} 作工具：\texorpdfstring{$t$}{t} 稍大时几乎不相关}
+
+回归元 $\Delta y_{i,t-1}$，工具 $y_{i1}$。把差分方程反复代入：
+\begin{align*}
+\Delta y_{it}&=\rho\,\Delta y_{i,t-1}+\Delta u_{it} \why{差分方程}\\
+&=\rho^2\Delta y_{i,t-2}+\Delta u_{it}+\rho\,\Delta u_{i,t-1} \why{代入 $t-1$ 期}\\
+&\ \,\vdots\\
+&=\rho^{t-1}\Delta y_{i1}+\sum_{s=0}^{t-2}\rho^s\,\Delta u_{i,t-s}. \why{共代入 $t-2$ 次}
+\end{align*}
+早期信息对 $\Delta y_{it}$ 的影响以 $\rho^{t-1}$ 衰减。定量地，由结论~\ref{thm:U12a-relev}（$t-1-k=1$，即 $k=t-2$）：
+\[
+\E(\Delta y_{i,t-1}\,y_{i1})=-(1-\rho)\,\rho^{\,t-3}\sigma_v^2\approx0\qquad(t\ \text{不太小时}).
+\]
+例如 $\rho=0.5$ 时 $\rho^4=0.0625$：隔 5 期的工具，强度只剩最近工具的 6\%。
+
+\subsubsection{最后一期方程：最近的 \texorpdfstring{$y_{i,T-2}$}{y\_(i,T-2)} 强，最远的 \texorpdfstring{$y_{i0}$}{y\_i0} 弱}
+
+最后一期差分方程 $\Delta y_{iT}=\rho\,\Delta y_{i,T-1}+\Delta u_{iT}$ 的工具为 $y_{i0},y_{i1},\dots,y_{i,T-2}$。由结论~\ref{thm:U12a-relev}：
+\begin{align*}
+\E(\Delta y_{i,T-1}\,y_{i,T-2})&=\E(y_{i,T-1}y_{i,T-2})-\E(y_{i,T-2}^2)=-(1-\rho)\,\sigma_v^2\neq0 &&(\text{strong}),\\
+\E(\Delta y_{i,T-1}\,y_{i0})&=-(1-\rho)\,\rho^{\,T-2}\sigma_v^2\ \downarrow\ 0 &&(\text{weak}).
+\end{align*}
+第二式取 $k=T-1$。粗略的说法“$\E(\Delta y_{i,T-1}y_{i0})\approx\rho^{T-1}\E(y_{i0}^2)$”只是启发式写法，要点一致：\key{相关性随滞后距离几何衰减}。$\rho=0.5$ 时 $\rho^2=0.25$，$\rho^3=0.125$，$\rho^4=0.0625$。
+
+\subsubsection{各滞后工具的相对强度}
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{各滞后工具的相对强度 $\E(\Delta y_{i,t-1}y_{i,t-1-k})/\E(\Delta y_{i,t-1}y_{i,t-2})=\rho^{k-1}$}\label{tab:U12a-strength}
+\begin{tabular}{lcccccc}
+\toprule
+工具 & $y_{i,t-2}$ & $y_{i,t-3}$ & $y_{i,t-4}$ & $y_{i,t-5}$ & $y_{i,t-6}$ & $y_{i,t-7}$\\
+\midrule
+相对强度（$\rho=0.5$） & 1 & 0.5 & 0.25 & 0.125 & 0.0625 & 0.031\\
+相对强度（$\rho=0.9$） & 1 & 0.9 & 0.81 & 0.729 & 0.656 & 0.590\\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}
+
+$\rho=0.9$ 时衰减虽慢，但下一小节会看到：此时连最近的 $y_{i,t-2}$ 都是弱工具。
+
+\subsection{拓展：\texorpdfstring{$\rho\to1$}{rho->1} 或个体效应方差大时，连 \texorpdfstring{$y_{i,t-2}$}{y\_(i,t-2)} 也是弱工具}\label{sec:U12a-bbweak}
+
+\subsubsection{Anderson–Hsiao 第一阶段系数 \texorpdfstring{$\gamma$}{gamma}}
+
+\tagext\ Blundell \& Bond (1998) 指出（Hansen 第 17.40 节）：考察 Anderson–Hsiao 的第一阶段（约简式）
+\[
+\Delta y_{i,t-1}=\gamma\,y_{i,t-2}+\text{error},
+\]
+$\gamma$ 由线性投影定义。设 $\E\alpha_i=0$，在平稳性下：
+\begin{align*}
+\gamma&=\frac{\E(y_{i,t-2}\,\Delta y_{i,t-1})}{\E(y_{i,t-2}^2)} \why{投影系数}\\
+&=\frac{-(1-\rho)\sigma_v^2}{\E(a_i^2)+\sigma_v^2} \why{分子：结论 $k=1$；分母：$a_i\perp v$}\\
+&=\frac{-\sigma_u^2/(1+\rho)}{\sigma_\alpha^2/(1-\rho)^2+\sigma_u^2/(1-\rho^2)} \why{代入 $\sigma_v^2$、$\E(a_i^2)$}\\
+&=\frac{-(1-\rho)^2/(1+\rho)}{\sigma_\alpha^2/\sigma_u^2+(1-\rho)/(1+\rho)} \why{上下同乘 $(1-\rho)^2/\sigma_u^2$}\\
+&=(\rho-1)\,\frac{k}{k+\sigma_\alpha^2/\sigma_u^2},\qquad k=\frac{1-\rho}{1+\rho}. \why{$-\frac{(1-\rho)^2}{1+\rho}=(\rho-1)k$}
+\end{align*}
+（这里的 $k$ 是记号，与上一小节的滞后阶数无关。）
+
+\subsubsection{\texorpdfstring{$\gamma$}{gamma} 的数值}
+
+\begin{center}
+\begin{minipage}{\linewidth}\centering\small
+\captionof{table}{Anderson–Hsiao 第一阶段系数 $\gamma$}\label{tab:U12a-gamma}
+\begin{tabular}{lccc}
+\toprule
+$\gamma$ & $\sigma_\alpha^2/\sigma_u^2=0.25$ & $=1$ & $=4$\\
+\midrule
+$\rho=0.5$  & $-0.286$ & $-0.125$ & $-0.038$\\
+$\rho=0.8$  & $-0.062$ & $-0.020$ & $-0.005$\\
+$\rho=0.9$  & $-0.017$ & $-0.005$ & $-0.001$\\
+$\rho=0.95$ & $-0.005$ & $-0.001$ & $-0.0003$\\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\end{center}
+
+结论：$\rho\to1$（接近单位根）或 $\sigma_\alpha^2/\sigma_u^2$ 很大时 $\gamma\to0$，$\rho$ \key{弱识别}，估计量表现差，常规推断失效。
+
+\subsubsection{直观：随机游走的增量不可预测}
+
+$\rho$ 接近 1 时，$y$ 近似随机游走：过去的水平值几乎不能预测未来的变化（随机游走的增量不可预测）。$y_{i,t-2}$ 的方差主要来自持久的个体均值 $\alpha_i/(1-\rho)$，而这部分与 $\Delta y_{i,t-1}$ 毫无关系，成了“噪声”。这正是系统 GMM 要解决的问题（本章系统 GMM 一节）。
+
+\subsection{即时练习：差分方程的工具}
+
+\begin{prac}[差分方程的工具]\label{pr:U12a-3}
+(1) 证明 $\E(y_{i,t-2}\Delta u_{it})=0$，而 $\E(y_{i,t-1}\Delta u_{it})=-\sigma_u^2$。\\
+(2) 平稳 AR(1)，$\rho=0.5$，$\sigma_u^2=1$。计算 $\E(\Delta y_{i,t-1}y_{i,t-2})$ 与 $\E(\Delta y_{i,t-1}y_{i,t-4})$，并求两者之比。\\
+(3) $N=200$ 家企业，2001–2020 年平衡面板，共有多少个可用于估计的差分方程？第 $t$ 个差分方程有多少个滞后水平工具？
+\answer
+(1) $\E(y_{i,t-2}\Delta u_{it})=\E(y_{i,t-2}u_{it})-\E(y_{i,t-2}u_{i,t-1})$，两项中 $y$ 的时期都早于 $u$，由 \eqref{eq:U12a-Eyu} 均为 0。$\E(y_{i,t-1}\Delta u_{it})=\E(y_{i,t-1}u_{it})-\E(y_{i,t-1}u_{i,t-1})=0-\sigma_u^2$。\\
+(2) $\sigma_v^2=1/(1-0.25)=4/3$。由结论~\ref{thm:U12a-relev}：$k=1$ 时 $-(1-0.5)\times\frac43=-0.667$；$k=3$ 时 $-(1-0.5)\times0.5^2\times\frac43=-0.167$；比值 $0.25=\rho^2$。\\
+(3) 20 年观测，记 2001 年为 $t=0$，则 $T=19$；差分方程 $t=2,\dots,19$，每家企业 18 个，共 $200\times18=3600$ 个。第 $t$ 个差分方程的工具为 $y_{i0},\dots,y_{i,t-2}$，共 $t-1$ 个（$t=2$ 时 1 个，$t=19$ 时 18 个）。
+\end{prac}
+
+\begin{english}
+First differencing eliminates $\alpha_i$: $\Delta y_{it}=\rho\Delta y_{i,t-1}+\Delta x_{it}'\beta+\Delta u_{it}$. However, $\Delta y_{i,t-1}$ contains $y_{i,t-1}$, which contains $u_{i,t-1}$, so $E(\Delta y_{i,t-1}\Delta u_{it})=-\sigma_u^2\neq0$ and OLS on the differenced equation is inconsistent. Under sequential exogeneity and serially uncorrelated errors, the lagged levels $y_{i,t-2},y_{i,t-3},\dots,y_{i0}$ are uncorrelated with $\Delta u_{it}$ (exogeneity) and correlated with $\Delta y_{i,t-1}$ (relevance), so they are valid instruments: $E[y_{i,t-s}\Delta u_{it}]=0$ for $s\ge2$. Distant lags are weak instruments because their correlation with $\Delta y_{i,t-1}$ decays geometrically at rate $\rho$; all lagged levels become weak when $\rho$ is close to one or the variance of $\alpha_i$ is large.
+\end{english}
+
+%======================================================================
+\section{Anderson–Hsiao 工具变量估计}\label{sec:U12a-ah}
+
+\subsection{思路：用 \texorpdfstring{$y_{i,t-2}$}{y\_(i,t-2)} 作 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y\_(i,t-1)} 的工具，恰好识别}
+
+\subsubsection{工具的分配：内生回归元配 \texorpdfstring{$y_{i,t-2}$}{y\_(i,t-2)}，外生回归元用自身}
+
+在差分方程 \eqref{eq:U12a-fd} 中：
+\[
+\Delta y_{it}=\rho\,\underbrace{\Delta y_{i,t-1}}_{\text{工具：}y_{i,t-2}}+\underbrace{\Delta x_{it}\T}_{\text{工具：自身}}\beta+\Delta u_{it}.
+\]
+内生的 $\Delta y_{i,t-1}$ 用 $y_{i,t-2}$ 作工具（instrumented by $y_{i,t-2}$），外生的 $\Delta x_{it}$ 用自身作工具。工具个数 $=$ 参数个数 $=1+K$，\term{恰好识别}{exactly identified}，所以就是普通的 IV 估计（第 8 章）。这就是\term{Anderson–Hsiao 估计量}{Anderson–Hsiao estimator}，也是动态面板的第一种一致估计方法。
+
+\subsubsection{文献}
+
+Anderson \& Hsiao (1981, \emph{Journal of the American Statistical Association}；1982, \emph{Journal of Econometrics})。L.~P.~Hansen 提出 GMM 的论文也发表于 1982 年。对应 Hansen 第 17.38 节。
+
+\subsection{Anderson–Hsiao 估计量的公式}
+
+\subsubsection{一般形式}
+
+记回归元 $w_{it}=(\Delta y_{i,t-1},\Delta x_{it}\T)\T$、工具 $z_{it}=(y_{i,t-2},\Delta x_{it}\T)\T$（均为 $(1+K)\times1$），参数 $\theta=(\rho,\beta\T)\T$。差分方程写成 $\Delta y_{it}=w_{it}\T\theta+\Delta u_{it}$，IV 估计量为
+\begin{equation}\label{eq:U12a-ahvec}
+\begin{pmatrix}\hat\rho_{IV}\\ \hat\beta_{IV}\end{pmatrix}
+=\Biggl(\sum_{i=1}^N\sum_{t=2}^T\begin{pmatrix}y_{i,t-2}\\ \Delta x_{it}\end{pmatrix}\bigl(\Delta y_{i,t-1},\ \Delta x_{it}\T\bigr)\Biggr)^{-1}
+\Biggl(\sum_{i=1}^N\sum_{t=2}^T\begin{pmatrix}y_{i,t-2}\\ \Delta x_{it}\end{pmatrix}\Delta y_{it}\Biggr),
+\end{equation}
+即 $\hat\theta_{IV}=\bigl(\sum_i\sum_t z_{it}w_{it}\T\bigr)^{-1}\sum_i\sum_t z_{it}\,\Delta y_{it}$。
+
+\subsubsection{无 \texorpdfstring{$x$}{x} 时的标量形式}
+
+\begin{equation}\label{eq:U12a-ah}
+\hat\rho_{AH}=\frac{\sum_{i=1}^N\sum_{t=2}^T y_{i,t-2}\,\Delta y_{it}}{\sum_{i=1}^N\sum_{t=2}^T y_{i,t-2}\,\Delta y_{i,t-1}}.
+\end{equation}
+分子、分母都对 $i=1,\dots,N$ 与 $t$ 同时求和。若以 $y_{i1}$ 为首期，$t$ 的范围相应为 $t=3,\dots,T$。
+
+\subsubsection{一致性的证明（无 \texorpdfstring{$x$}{x}）}
+
+要证明：$T$ 固定、$N\to\infty$ 时 $\hat\rho_{AH}\pto\rho$。思路：代入差分方程，把估计误差写成“工具 $\times$ 误差”除以“工具 $\times$ 回归元”。
+\begin{align*}
+\hat\rho_{AH}&=\frac{\sum_i\sum_t y_{i,t-2}\,(\rho\,\Delta y_{i,t-1}+\Delta u_{it})}{\sum_i\sum_t y_{i,t-2}\,\Delta y_{i,t-1}} \why{代入差分方程}\\
+&=\rho+\frac{\sum_i\sum_t y_{i,t-2}\,\Delta u_{it}}{\sum_i\sum_t y_{i,t-2}\,\Delta y_{i,t-1}}, \why{拆成两项}\\
+\hat\rho_{AH}-\rho&=\frac{\frac1N\sum_i\sum_t y_{i,t-2}\,\Delta u_{it}}{\frac1N\sum_i\sum_t y_{i,t-2}\,\Delta y_{i,t-1}} \why{上下同除以 $N$}\\
+&\pto\frac{\sum_t\E(y_{i,t-2}\,\Delta u_{it})}{\sum_t\E(y_{i,t-2}\,\Delta y_{i,t-1})} \why{WLLN（$T$ 固定）与 CMT}\\
+&=0. \why{分子 $=0$，分母 $\neq0$}
+\end{align*}
+分子为 0 靠外生性 \eqref{eq:U12a-mc}，分母非零靠相关性（结论~\ref{thm:U12a-relev}，$k=1$）。
+
+\subsection{与（有偏的）一阶差分 OLS 对比}
+
+\subsubsection{两个公式只差一处}
+
+把两个估计量并排写：
+\begin{align*}
+\text{IV：}\quad&\Biggl(\sum_{i,t}\begin{pmatrix}y_{i,t-2}\\ \Delta x_{it}\end{pmatrix}\bigl(\Delta y_{i,t-1},\Delta x_{it}\T\bigr)\Biggr)^{-1}\sum_{i,t}\begin{pmatrix}y_{i,t-2}\\ \Delta x_{it}\end{pmatrix}\Delta y_{it},\\
+\text{OLS：}\quad&\Biggl(\sum_{i,t}\begin{pmatrix}\Delta y_{i,t-1}\\ \Delta x_{it}\end{pmatrix}\bigl(\Delta y_{i,t-1},\Delta x_{it}\T\bigr)\Biggr)^{-1}\sum_{i,t}\begin{pmatrix}\Delta y_{i,t-1}\\ \Delta x_{it}\end{pmatrix}\Delta y_{it}\qquad(\text{biased}).
+\end{align*}
+唯一不同之处是左边向量的第一个元素：$y_{i,t-2}$ 还是 $\Delta y_{i,t-1}$。
+
+\subsubsection{为什么 OLS 有偏而 IV 一致}
+
+OLS 相当于用回归元自己“当工具”，而 $\Delta y_{i,t-1}$ 与 $\Delta u_{it}$ 相关，故有偏且不一致（$\plim=(\rho-1)/2$，结论~\ref{thm:U12a-fdols}）；IV 换成与 $\Delta u_{it}$ 无关、又与 $\Delta y_{i,t-1}$ 相关的 $y_{i,t-2}$，就一致了。
+
+\subsection{性质：\texorpdfstring{$N\to\infty$}{N->infinity} 时一致、渐近正态，但非有效}
+
+\subsubsection{渐近分布}
+
+\begin{thm}[Anderson–Hsiao 估计量的性质]\label{thm:U12a-ahprop}
+在 (A1)–(A3) 与相关性条件（$Q$ 满秩）下，$T$ 固定、$N\to\infty$：
+\begin{enumerate}
+  \item $\hat\theta_{IV}$ \key{一致}且\key{渐近正态}：
+  \begin{gather*}
+  \sqrt N(\hat\theta_{IV}-\theta)\dto N\bigl(0,\ Q^{-1}SQ^{-1\prime}\bigr),\\
+  Q=\E\Bigl(\sum_t z_{it}w_{it}\T\Bigr),\qquad
+  S=\E\Bigl[\Bigl(\sum_t z_{it}\Delta u_{it}\Bigr)\Bigl(\sum_t z_{it}\Delta u_{it}\Bigr)\T\Bigr];
+  \end{gather*}
+  \item 但\key{不是有效的}（not efficient）：它在每个方程中只用了众多有效工具中的一个，也没有利用 $\Delta u_{it}$ 的 MA(1) 结构。
+\end{enumerate}
+\end{thm}
+
+渐近正态的推导：
+\begin{align*}
+\sqrt N(\hat\theta_{IV}-\theta)&=\Bigl(\frac1N\sum_i\sum_t z_{it}w_{it}\T\Bigr)^{-1}\frac1{\sqrt N}\sum_i\Bigl(\sum_t z_{it}\Delta u_{it}\Bigr) \why{代入 $\Delta y_{it}=w_{it}\T\theta+\Delta u_{it}$}\\
+&\dto Q^{-1}\cdot N(0,S) \why{WLLN；对 $i$ 用 CLT}\\
+&=N\bigl(0,\ Q^{-1}SQ^{-1\prime}\bigr). \why{正态的线性变换}
+\end{align*}
+CLT 用到 $\E\bigl(\sum_t z_{it}\Delta u_{it}\bigr)=0$，即矩条件 \eqref{eq:U12a-mc}；个体之间独立，所以对 $i$ 求和适用 CLT。
+
+\subsubsection{标准误必须按个体聚类}
+
+$S$ 中对 $t$ 先求和再平方，原因是同一个体相邻两期的差分误差相关：
+\[
+\E(\Delta u_{it}\Delta u_{i,t-1})=\E\bigl[(u_{it}-u_{i,t-1})(u_{i,t-1}-u_{i,t-2})\bigr]=-\E(u_{i,t-1}^2)=-\sigma_u^2\neq0 .
+\]
+所以标准误必须按个体聚类（第 5 章聚类稳健标准误）。
+
+\subsubsection{为什么说“非有效”}
+
+(1) 第 $t$ 个差分方程有 $t-1$ 个有效工具 $y_{i0},\dots,y_{i,t-2}$（结论~\ref{thm:U12a-mc}），Anderson–Hsiao 只用了 $y_{i,t-2}$，丢掉了其余矩条件；(2) $\Delta u_{it}$ 是 MA(1)，最优权重应考虑其协方差结构，而恰好识别的 IV 不涉及权重。两点都由 Arellano–Bond GMM 解决（本章下一节）。
+
+\subsubsection{关于“无偏”的说法}
+
+\begin{note}[写 consistent，不要写 unbiased]
+有一种说法是“unbiased, consistent, asymptotically normal as long as $N\to\infty$, but not efficient”。IV 估计量在有限样本中一般\key{不是}无偏的（它是两个随机量之比，甚至可能没有有限矩）；这里的“unbiased”只能理解为“渐近无偏/一致”。考试作答写 \emph{consistent and asymptotically normal} 最稳妥。
+\end{note}
+
+\subsubsection{两个关键假设：动态设定正确与工具相关性}
+
+Hansen 第 17.38 节强调 Anderson–Hsiao 依赖两个关键假设：
+\begin{enumerate}
+  \item \key{动态设定正确、$u_{it}$ 无序列相关}：若真实模型是 AR(2) 而你估计 AR(1)，$y_{i,t-2}$ 就不再是有效工具（见即时练习~\ref{pr:U12a-4} (2)）。
+  \item \key{相关性} $\E(y_{i,t-2}\Delta y_{i,t-1})\neq0$：$\rho$ 接近 1 时近乎失效（第~\ref{sec:U12a-bbweak} 小节）。本章后面的模拟比较中，$\rho=0.9$ 时 Anderson–Hsiao 估计值极其分散，标准差达 1.2，且随模拟种子剧烈变化。
+\end{enumerate}
+
+\subsection{为什么只用 \texorpdfstring{$y_{i,t-2}$}{y\_(i,t-2)}，而不用 \texorpdfstring{$y_{i,t-3}$}{y\_(i,t-3)} 或 \texorpdfstring{$y_{i1}$}{y\_i1}}
+
+\subsubsection{\texorpdfstring{$y_{i,t-2}$}{y\_(i,t-2)} 是最强的工具}
+
+\begin{itemize}
+  \item $y_{i,t-3}$、$y_{i1}$ 等更远的滞后不如 $y_{i,t-2}$ 强（not as strong as $y_{i,t-2}$）：相对强度为 $\rho^{k-1}$（表~\ref{tab:U12a-strength}）；
+  \item $y_{i,t-2}$ \key{直接出现在回归元里}：$\Delta y_{i,t-1}=y_{i,t-1}-y_{i,t-2}$，所以相关性最强。
+\end{itemize}
+
+\subsubsection{实际原因：每个方程恰好一个工具}
+
+恰好识别的 IV 只需每个方程一个工具，所有 $t\ge2$ 的方程都能用上。若想同时用 $y_{i,t-2},y_{i,t-3},\dots$，早期方程可用的工具少、晚期方程多，个数不齐——这正是 Arellano–Bond 用“块对角工具矩阵”解决的问题（本章下一节）。
+
+\subsubsection{拓展：用 \texorpdfstring{$\Delta y_{i,t-2}$}{Delta y\_(i,t-2)} 作工具的版本}
+
+\tagext\ Anderson–Hsiao 还提出过用差分 $\Delta y_{i,t-2}$ 作工具：由 \eqref{eq:U12a-mc}，$\E(\Delta y_{i,t-2}\Delta u_{it})=\E(y_{i,t-2}\Delta u_{it})-\E(y_{i,t-3}\Delta u_{it})=0$，同样有效；但它要用到 $y_{i,t-3}$，差分方程只能从 $t=3$ 开始，多损失一期。Arellano (1989) 发现用水平值 $y_{i,t-2}$ 的版本方差小得多，所以通常说的 Anderson–Hsiao 估计量指水平值工具的版本。
+
+\subsection{手算例子：\texorpdfstring{$N=4$}{N=4}，\texorpdfstring{$T=2$}{T=2}}
+
+\begin{exmp}[Anderson–Hsiao 与 FD-OLS 的手算对比]\label{ex:U12a-ahcalc}
+观测 $y_{i0},y_{i1},y_{i2}$（只有 $t=2$ 一个差分方程 $\Delta y_{i2}=\rho\,\Delta y_{i1}+\Delta u_{i2}$，工具为 $y_{i0}$），数据如下。分别计算 $\hat\rho_{AH}$ 与 $\hat\rho_{\text{FD-OLS}}$。
+\begin{center}
+\small
+\begin{tabular}{cccccc}
+\toprule
+$i$ & $y_{i0}$ & $y_{i1}$ & $y_{i2}$ & $\Delta y_{i1}$ & $\Delta y_{i2}$\\
+\midrule
+1 & 2 & 4 & 5 & $2$ & $1$\\
+2 & 6 & 5 & 5 & $-1$ & $0$\\
+3 & 1 & 3 & 3 & $2$ & $0$\\
+4 & 5 & 4 & 3 & $-1$ & $-1$\\
+\bottomrule
+\end{tabular}
+\end{center}
+\solution
+\begin{align*}
+\hat\rho_{AH}&=\frac{\sum_i y_{i0}\,\Delta y_{i2}}{\sum_i y_{i0}\,\Delta y_{i1}} \why{\eqref{eq:U12a-ah}，工具 $y_{i0}$}\\
+&=\frac{2\cdot1+6\cdot0+1\cdot0+5\cdot(-1)}{2\cdot2+6\cdot(-1)+1\cdot2+5\cdot(-1)} \why{代入数据}\\
+&=\frac{-3}{-5}=0.6; \why{计算}\\
+\hat\rho_{\text{FD-OLS}}&=\frac{\sum_i \Delta y_{i1}\,\Delta y_{i2}}{\sum_i \Delta y_{i1}^2} \why{回归元自身作“工具”}\\
+&=\frac{2+0+0+1}{4+1+4+1}=\frac{3}{10}=0.3. \why{代入数据}
+\end{align*}
+FD-OLS 明显更小，与其向下偏误（$\plim=(\rho-1)/2$）的方向一致。
+\end{exmp}
+
+\subsection{即时练习：Anderson–Hsiao 的显式形式与设定错误}
+
+\begin{prac}[Anderson–Hsiao 的显式形式与设定错误]\label{pr:U12a-4}
+(1) 观测 $y_{i0},\dots,y_{i3}$（$T=3$），无 $x$。写出 $\hat\rho_{AH}$ 的显式求和形式；每个个体贡献几个方程？\\
+(2) 若真实模型为 $y_{it}=\alpha_i+\rho_1y_{i,t-1}+\rho_2y_{i,t-2}+u_{it}$（$\rho_2\neq0$），而你按 AR(1) 做 Anderson–Hsiao 估计，说明 $y_{i,t-2}$ 为何不再是有效工具。
+\answer
+(1) 差分方程 $t=2,3$：$\Delta y_{i2}=\rho\,\Delta y_{i1}+\Delta u_{i2}$（工具 $y_{i0}$），$\Delta y_{i3}=\rho\,\Delta y_{i2}+\Delta u_{i3}$（工具 $y_{i1}$）。代入 \eqref{eq:U12a-ah}：
+\[
+\hat\rho_{AH}=\frac{\sum_i\bigl(y_{i0}\,\Delta y_{i2}+y_{i1}\,\Delta y_{i3}\bigr)}{\sum_i\bigl(y_{i0}\,\Delta y_{i1}+y_{i1}\,\Delta y_{i2}\bigr)},
+\]
+每个个体贡献 2 个方程。\\
+(2) 按 AR(1) 估计时，被遗漏的 $\rho_2y_{i,t-2}$ 进入误差。差分后的误差为
+\[
+e_{it}=\rho_2\,\Delta y_{i,t-2}+\Delta u_{it}=\rho_2\,(y_{i,t-2}-y_{i,t-3})+\Delta u_{it},
+\]
+其中显含 $y_{i,t-2}$，故
+\begin{align*}
+\E(y_{i,t-2}\,e_{it})&=\rho_2\,\E\bigl[y_{i,t-2}(y_{i,t-2}-y_{i,t-3})\bigr]+\E(y_{i,t-2}\Delta u_{it}) \why{代入 $e_{it}$}\\
+&=\rho_2\,\E\bigl[y_{i,t-2}(y_{i,t-2}-y_{i,t-3})\bigr]\neq0, \why{\eqref{eq:U12a-mc}}
+\end{align*}
+外生性被破坏。这就是 Hansen 所说的“动态必须设定正确”。
+\end{prac}
+
+Anderson–Hsiao 每个方程只用一个工具，丢掉了 \eqref{eq:U12a-mc} 中其余的矩条件。把所有有效滞后（$y_{i,t-2}$、$y_{i,t-3}$、……、$y_{i0}$）都用上，并用最优权重处理 $\Delta u_{it}$ 的 MA(1) 结构，就得到下一节的 Arellano–Bond 差分 GMM（IV estimation is not efficient, GMM is efficient）。
+
+\begin{english}
+Anderson and Hsiao (1981, 1982) estimate the first-differenced equation by IV, using $y_{i,t-2}$ as an instrument for $\Delta y_{i,t-1}$ and $\Delta x_{it}$ as its own instrument; the model is exactly identified. Since $E(y_{i,t-2}\Delta u_{it})=0$ and $E(y_{i,t-2}\Delta y_{i,t-1})\neq0$, the estimator is consistent and asymptotically normal as $N\to\infty$ with $T$ fixed, but it is not efficient because it ignores the additional valid instruments $y_{i,t-3},\dots,y_{i0}$ and the MA(1) structure of $\Delta u_{it}$. Standard errors should be clustered at the individual level. $y_{i,t-2}$ is preferred to more distant lags because it enters $\Delta y_{i,t-1}$ directly and is therefore the strongest instrument.
+\end{english}

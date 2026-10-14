@@ -1,0 +1,345 @@
+% ======================================================================
+% 单元 D01b：第 1 章 机器学习概述（多项式回归 — 学习类型 — 偏差方差 — PAC — 常用定理 — 与计量对照 — 本章综合）
+% ======================================================================
+\section{多项式回归：模型选择与过拟合的经典例子}
+
+\subsection{多项式曲线拟合：模型 \texorpdfstring{$y(x,\bm w)$}{y(x,w)} 与平方误差 \texorpdfstring{$E(\bm w)$}{E(w)}}
+设定（Bishop PRML §1.1）：$x\in[0,1]$ 上 $N=10$ 个带噪声训练点，真实函数为一个周期的正弦 $\sin(2\pi x)$；标签记 $t_n$（target），$y(\cdot)$ 为模型输出。
+\[
+y(x,\bm w)=w_0+w_1x+w_2x^2+\dots+w_Mx^M=\sum_{j=0}^{M}w_jx^j,\qquad
+E(\bm w)=\frac12\sum_{n=1}^{N}\bigl\{y(x_n,\bm w)-t_n\bigr\}^2 .
+\]
+
+\subsection{对参数线性：基函数 \texorpdfstring{$\bm\phi(x)$}{phi(x)} 与最小二乘闭式解}
+\begin{itemize}
+\item 对 $x$ 非线性、\key{对参数 $\bm w=(w_0,\dots,w_M)^\top$ 线性} → 仍是广义线性模型，基函数 $\bm\phi(x)=(1,x,x^2,\dots,x^M)^\top$（$\phi_0=1$ 起增广作用）。
+\item 记 $\Phi=[\bm\phi(x_1),\dots,\bm\phi(x_N)]\in\R^{(M+1)\times N}$（每列一个样本），$E(\bm w)=\frac12\|\bm t-\Phi^\top\bm w\|^2$，
+解 $\bm w^*=(\Phi\Phi^\top)^{-1}\Phi\bm t$；加 L2 后 $\bm w^*=(\Phi\Phi^\top+\lambda I)^{-1}\Phi\bm t$。即最小二乘/岭回归中把 $X$ 换成 $\Phi$。
+\end{itemize}
+
+\subsection{阶数选择 \texorpdfstring{$M=0,1,3,9$}{M=0,1,3,9}：欠拟合、拟合良好、过拟合}
+\begin{itemize}
+\item $M=0$ 水平直线（常数 0.19）、$M=1$ 斜直线（表达不了正弦形状）：\key{欠拟合}；$M=3$ 与 $\sin2\pi x$ 很接近：\key{拟合良好}；$M=9$ 穿过全部 10 个点，但点间剧烈震荡、严重偏离真实曲线：\key{过拟合}，$E(\bm w)=0$。
+\item 这是一个\key{模型选择}问题。\key{$M=9\Rightarrow E(\bm w)=0$ 的原因}：10 个参数 = 10 个数据点，$x_n$ 互异时 10 个方程 $y(x_n,\bm w)=t_n$ 的系数矩阵（范德蒙德矩阵 $[x_n^{\,j}]$）可逆，有唯一解，曲线精确穿过每个点——把噪声也“背”了下来。
+\item \textbf{易错} 参数多于样本（如 $N=5$，$M=9$）：$\Phi\Phi^\top$ 为 $10\times10$ 但秩 $\le5$，不可逆，使 $E=0$ 的解有无穷多个；岭回归 $(\Phi\Phi^\top+\lambda I)^{-1}\Phi\bm t$ 在 $\lambda>0$ 时总有唯一解。
+\end{itemize}
+
+\subsection{系数表：\texorpdfstring{$w_j^\star$}{w*} 随 \texorpdfstring{$M$}{M} 爆炸，L2 正则（\texorpdfstring{$\ln\lambda=-\infty,-18,0$}{ln lambda = -inf, -18, 0}）将其压回}
+正则化误差（加 L2 惩罚，即对多项式特征做岭回归）：
+$\displaystyle \tilde E(\bm w)=\frac12\sum_{n=1}^{N}\bigl\{y(x_n,\bm w)-t_n\bigr\}^2+\frac{\lambda}{2}\|\bm w\|^2 .$
+
+\noindent
+\begin{minipage}[t]{0.6\linewidth}\vspace{0pt}\footnotesize\setlength{\tabcolsep}{3pt}\renewcommand{\arraystretch}{1.08}
+\begin{tabular}{@{}lrrrr|rr@{}}
+\toprule
+ & $M=0$ & $M=1$ & $M=3$ & $M=9$ & \multicolumn{2}{c}{$M=9$ 加正则} \\
+ & & & & ($\ln\lambda=-\infty$) & $\ln\lambda=-18$ & $\ln\lambda=0$ \\
+\midrule
+$w_0^\star$ & 0.19 & 0.82 & 0.31 & 0.35 & 0.35 & 0.13 \\
+$w_1^\star$ & & $-1.27$ & 7.99 & 232.37 & 4.74 & $-0.05$ \\
+$w_2^\star$ & & & $-25.43$ & $-5321.83$ & $-0.77$ & $-0.06$ \\
+$w_3^\star$ & & & 17.37 & 48568.31 & $-31.97$ & $-0.05$ \\
+$w_4^\star$ & & & & $-231639.30$ & $-3.89$ & $-0.03$ \\
+$w_5^\star$ & & & & 640042.26 & 55.28 & $-0.02$ \\
+$w_6^\star$ & & & & $-1061800.52$ & 41.32 & $-0.01$ \\
+$w_7^\star$ & & & & 1042400.18 & $-45.95$ & $-0.00$ \\
+$w_8^\star$ & & & & $-557682.99$ & $-91.53$ & 0.00 \\
+$w_9^\star$ & & & & 125201.43 & 72.68 & 0.01 \\
+\bottomrule
+\end{tabular}
+\end{minipage}\hfill
+\begin{minipage}[t]{0.385\linewidth}\vspace{0pt}\small
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item $M\uparrow$ → \key{参数数值迅速变大}；$M=9$ 达 $10^6$ 量级、正负交替，靠巨大正负项相互抵消才落在 $[-1,1]$；$x$ 稍变抵消失败 → 剧烈震荡。“系数异常大”是过拟合信号 → \key{对大的系数进行惩罚}。
+\item $\ln\lambda=-\infty$（$\lambda=0$）：无正则，同 $M=9$ 列，过拟合。
+\item $\ln\lambda=-18$（$\lambda\approx1.5\times10^{-8}$）：系数压到 $10^1$–$10^2$，曲线平滑，拟合良好。
+\item $\ln\lambda=0$（$\lambda=1$）：系数几乎全为 0，近乎平线，欠拟合。
+\end{itemize}
+\end{minipage}
+
+\smallskip
+\noindent 结论：$\lambda$ 越大系数越被压向 0；太小过拟合、太大欠拟合；$\lambda$ 是超参数，用验证集/交叉验证选择。
+
+\subsection{数据规模控制过拟合：\texorpdfstring{$M=9$}{M=9} 时 \texorpdfstring{$N=15$}{N=15} 与 \texorpdfstring{$N=100$}{N=100}}
+$N=15$：拟合曲线大体跟随真实曲线但仍有明显波动；$N=100$：几乎与真实曲线重合（Bishop 图 1.6）。\key{模型复杂度不变时，增加训练数据可缓解过拟合}：噪声在大量样本中相互抵消，模型“背不下”噪声；$N=100$ 时每个参数平均有 10 个样本约束。
+
+\subsection{小结：\texorpdfstring{$M$、$\lambda$、$N$}{M, lambda, N} 三个旋钮}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{3.2cm}LLp{3.2cm}@{}}
+\toprule
+旋钮 & 太小 & 太大 & 如何确定 \\
+\midrule
+阶数 $M$（模型复杂度） & 欠拟合（$M=0,1$） & 过拟合（$M=9$） & 验证集选择 \\
+正则系数 $\lambda$ & 过拟合（$\ln\lambda=-\infty$） & 欠拟合（$\ln\lambda=0$） & 验证集/交叉验证 \\
+样本量 $N$ & 易过拟合（$N=10,15$） & 越大越好（$N=100$） & 受数据可得性限制 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{机器学习的类型}
+
+\subsection{监督学习、无监督学习与强化学习：样本、目标、准则对比}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}LLL@{}}
+\toprule
+ & \term{监督学习}{supervised learning} & \term{无监督学习}{unsupervised learning} & \term{强化学习}{reinforcement learning} \\
+\midrule
+训练样本 & 训练集 $\{(\bm x^{(n)},y^{(n)})\}_{n=1}^N$（有标签） & 训练集 $\{\bm x^{(n)}\}_{n=1}^N$（无标签） & 智能体和环境交互的轨迹 $\tau$ 和累积奖励 $G_\tau$ \\
+优化目标 & $y=f(\bm x)$ 或 $p(y|\bm x)$ & $p(\bm x)$ 或带隐变量 $\bm z$ 的 $p(\bm x|\bm z)$ & 期望总回报 $\E_\tau[G_\tau]$ \\
+学习准则 & 期望风险最小化；最大似然估计 & 最大似然估计；最小重构错误 & 策略评估；策略改进 \\
+典型任务 & 回归、分类 & 聚类、降维、密度估计 & 围棋、游戏、机器人控制、交易策略 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{itemize}
+\item 监督：每个样本有正确答案 $y$，学输入→输出映射。无监督：只有 $\bm x$，发现数据结构；“最小重构错误”指自编码器、PCA 那样压缩再还原、使还原误差最小。
+\item 强化：无现成答案，交互中试错、最大化长期累积奖励；\key{策略}（policy）= 什么状态做什么动作的规则；策略评估 = 算该策略多好，策略改进 = 据此更新策略。
+\end{itemize}
+
+\subsection{半监督学习与自监督学习}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}p{3.4cm}L@{}}
+\toprule
+类型 & 数据 & 思路与例子 \\
+\midrule
+\tagext\ \term{半监督学习}{semi-supervised learning} & 少量有标签 + 大量无标签 & 用无标签数据刻画 $p(\bm x)$ 的结构；如先用有标签数据训练，再给无标签数据打\key{伪标签}迭代训练；适合标注昂贵的场景（人工标注财报文本情感） \\
+\tagext\ \term{自监督学习}{self-supervised learning} & 只有无标签数据 & 从数据自身构造监督信号：遮词预测（BERT 类）、预测下一个词（GPT 类）；形式上是监督学习、标签来自数据本身；大语言模型预训练的基础（产物如词向量） \\
+\bottomrule
+\end{tabularx}
+\end{center}
+判断：有标签→监督（欺诈检测=分类）；无标签找结构→无监督（客户分群=聚类）；交互 + 累积奖励→强化；少量标注 + 大量未标注→半监督。
+
+% ======================================================================
+\section{模型选择与偏差–方差分解}
+
+\subsection{模型选择的两难：拟合能力 vs 复杂度}
+拟合能力强的模型一般复杂度较高，\key{容易过拟合}；限制模型复杂度、降低拟合能力，又\key{可能欠拟合}。偏差–方差分解给出定量的取舍依据。
+
+\subsection{偏差–方差分解：公式与三项定义（平方损失）}
+\begin{thm}[偏差–方差分解]
+\vspace{-3pt}
+\begin{gather*}
+\mathcal R(f)=(\text{bias})^2+\text{variance}+\varepsilon,\qquad
+(\text{bias})^2=\E_{\bm x}\Bigl[\bigl(\E_{\mathcal D}[f_{\mathcal D}(\bm x)]-f^*(\bm x)\bigr)^2\Bigr],\\
+\text{variance}=\E_{\bm x}\Bigl[\E_{\mathcal D}\Bigl[\bigl(f_{\mathcal D}(\bm x)-\E_{\mathcal D}[f_{\mathcal D}(\bm x)]\bigr)^2\Bigr]\Bigr],\qquad
+\varepsilon=\E_{(\bm x,y)\sim p_r(\bm x,y)}\Bigl[\bigl(y-f^*(\bm x)\bigr)^2\Bigr].
+\end{gather*}
+\end{thm}
+\begin{itemize}
+\item 记号：$f_{\mathcal D}$ = 在训练集 $\mathcal D$ 上学到的模型（$\mathcal D$ 随机，换 $\mathcal D$ 得不同 $f_{\mathcal D}$）；$\E_{\mathcal D}[f_{\mathcal D}(\bm x)]$ = 不同训练集上模型的\key{平均预测}；$f^*(\bm x)=\E[y|\bm x]$ = \key{最优模型}；$p_r$ = 真实分布。
+\item \key{偏差}：平均预测离最优模型多远，反映拟合能力不足（假设空间太小）。\key{方差}：换训练集预测波动多大，反映对训练数据的敏感程度（过拟合）。\key{噪声} $\varepsilon$：数据本身的噪声，知道 $f^*$ 也无法消除，是期望错误的下界。
+\item \textbf{易错} (1) 左边确切是对训练集也取期望的 $\E_{\mathcal D}[\mathcal R(f_{\mathcal D})]$；(2) 分解\key{只对平方损失成立}；(3) 此处 $f^*$ 是理论最优（未知）函数，与学习框图中“学到的函数 $f^*$”同名不同义，作答写明所指。
+\end{itemize}
+
+\subsection{偏差–方差分解的推导骨架}
+思路：固定 $\bm x$，在 $y-f_{\mathcal D}$ 中先后插入 $f^*(\bm x)$ 与 $\bar f(\bm x)\triangleq\E_{\mathcal D}[f_{\mathcal D}(\bm x)]$，展开平方、交叉项为 0，最后对 $\bm x$ 取期望；测试样本 $(\bm x,y)$ 与 $\mathcal D$ 独立（下略写 $(\bm x)$）。
+\begin{align*}
+\E_{\mathcal D}\E_{y|\bm x}\bigl[(y-f_{\mathcal D})^2\bigr]
+&=\E\bigl[(y-f^*+f^*-f_{\mathcal D})^2\bigr] \why{插入 $\pm f^*$}\\
+&=\E_{y|\bm x}\bigl[(y-f^*)^2\bigr]+\E_{\mathcal D}\bigl[(f_{\mathcal D}-f^*)^2\bigr] \why{交叉项 $=\E_{y|\bm x}[y-f^*]\cdot\E_{\mathcal D}[f^*-f_{\mathcal D}]=0$，因 $f^*=\E[y|\bm x]$}\\
+\E_{\mathcal D}\bigl[(f_{\mathcal D}-f^*)^2\bigr]
+&=\E_{\mathcal D}\bigl[(f_{\mathcal D}-\bar f+\bar f-f^*)^2\bigr] \why{插入 $\pm\bar f$}\\
+&=\underbrace{\E_{\mathcal D}\bigl[(f_{\mathcal D}-\bar f)^2\bigr]}_{\text{该点方差}}+\underbrace{(\bar f-f^*)^2}_{\text{该点偏差}^2} \why{$\bar f-f^*$ 与 $\mathcal D$ 无关，$\E_{\mathcal D}[f_{\mathcal D}-\bar f]=0$}
+\end{align*}
+再对 $\bm x\sim p_r(\bm x)$ 取期望即得 $\E_{\mathcal D}[\mathcal R(f_{\mathcal D})]=(\text{bias})^2+\text{variance}+\varepsilon$。与计量中 $\text{MSE}=\text{偏差}^2+\text{方差}$ 是同一恒等式。
+
+\textit{For squared loss, $\E_{\mathcal D}[\mathcal R(f_{\mathcal D})]=\text{bias}^2+\text{variance}+\varepsilon$; the cross terms vanish because the test point is independent of $\mathcal D$ and $\E[y-f^*(\bm x)\mid\bm x]=0$.}
+
+\subsection{靶心图：低/高偏差 \texorpdfstring{$\times$}{x} 低/高方差四种组合}
+靶心 = 最优模型 $f^*$，每个点 = 一个训练集上学到的模型的预测。
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{0.6cm}p{2.6cm}Lp{5.4cm}@{}}
+\toprule
+图 & 组合 & 点的分布 & 对应模型 \\
+\midrule
+(a) & 低偏差、低方差 & 紧密集中在靶心（理想情况） & 复杂度合适、数据充足 \\
+(b) & 高偏差、低方差 & 很集中，但偏到外圈 & 太简单（欠拟合），如 $M=0,1$ \\
+(c) & 低偏差、高方差 & 围绕靶心但很分散 & 太复杂（过拟合），如 $M=9$ 且 $N$ 小 \\
+(d) & 高偏差、高方差 & 既分散又偏离靶心 & 最差情况 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{U 形曲线：偏差、方差随模型复杂度的变化与偏差–方差权衡}
+\begin{itemize}
+\item 横轴模型复杂度：$(\text{bias})^2$ \key{单调下降}；variance \key{单调上升}（高复杂度时急升）；$\mathcal R(f)$ = 两者 + 噪声，呈 \key{U 形}，最低点 = 最优模型，大致在两曲线交点附近（严格说最优点处两曲线斜率之和为 0，不一定恰在交点）。
+\item \term{偏差–方差权衡}{bias-variance tradeoff}：正则化、提前停止等 = 用一点偏差换更多方差的下降。
+\item 对应关系：\key{欠拟合 $\leftrightarrow$ 高偏差，过拟合 $\leftrightarrow$ 高方差}。$M=1$：高偏差低方差；$M=9$：低偏差高方差。增大 $\lambda$：方差↓、偏差↑（过大则欠拟合）；增大 $N$：方差↓，偏差主要由模型形式决定、基本不变。
+\end{itemize}
+
+\subsection{收缩估计量 \texorpdfstring{$\hat\mu_c=c\bar y$}{c*ybar} 的偏差–方差权衡}
+$y_1,\dots,y_n\overset{\iid}{\sim}(\mu,\sigma^2)$，$\hat\mu_c=c\bar y$（$0<c\le1$，$c<1$ 即向 0 收缩）：
+\[
+\text{bias}=(c-1)\mu,\quad \text{variance}=c^2\sigma^2/n,\quad
+\text{MSE}(c)=(1-c)^2\mu^2+c^2\sigma^2/n,\quad
+c^*=\frac{\mu^2}{\mu^2+\sigma^2/n}.
+\]
+示意：$\mu=\sigma^2=1$，$n=4$：$\text{MSE}(1)=0.25$，$\text{MSE}(0.8)=0.04+0.16=0.20$（$c^*=0.8$），$\text{MSE}(0.5)=0.3125$。适度收缩引入少量偏差、方差降更多；岭回归、MAP（收缩因子 $N/(N+\lambda)$）同理。
+
+\subsection{集成模型降低方差：\texorpdfstring{$\Var(\bar f)=\rho\sigma^2+\frac{1-\rho}{M}\sigma^2$}{Var = rho sigma2 + (1-rho) sigma2 / M}}
+$M$ 个模型（此处 $M$ 为模型个数）预测 $f_1,\dots,f_M$ 方差均为 $\sigma^2$、两两相关系数 $\rho$，$\bar f=\frac1M\sum_m f_m$：
+\[
+\Var(\bar f)=\frac1{M^2}\Bigl[\sum_m\Var(f_m)+\sum_{m\ne l}\Cov(f_m,f_l)\Bigr]
+=\frac1{M^2}\bigl[M\sigma^2+M(M-1)\rho\sigma^2\bigr]=\rho\sigma^2+\frac{1-\rho}{M}\sigma^2 .
+\]
+$\E[\bar f]$ = 单个模型期望 → \key{偏差不变}；$M\uparrow$、$\rho\downarrow$ → 方差↓；$\rho=0$ 时为 $\sigma^2/M$，$M\to\infty$ 时下限 $\rho\sigma^2$。Bagging（自助采样）、随机森林（再随机选特征以降低 $\rho$）降方差；Boosting 主要降偏差。
+
+% ======================================================================
+\section{PAC 学习理论}
+
+\subsection{PAC：以较高概率近似正确}
+\term{PAC 学习}{Probably Approximately Correct learning}（Valiant，1984）回答：期望风险算不出、只能最小化经验风险，经验风险小能否保证期望风险小？需要多少样本？
+
+\subsection{大数定律：经验风险趋近于期望风险}
+当训练集大小 $|\mathcal D|\to\infty$，泛化错误趋于 0：$\lim_{|\mathcal D|\to\infty}\bigl[\mathcal R(f)-\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)\bigr]=0$。理由：固定 $f$，$\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)=\frac1N\sum_n L(f(\bm x^{(n)}),y^{(n)})$ 是 \iid\ 随机变量的样本均值，总体均值为 $\mathcal R(f)$。但大数定律只给极限、不给有限 $N$ 时的差距 → 需要 PAC。
+
+\subsection{PAC 的数学表述：\texorpdfstring{$\epsilon$}{epsilon}（近似正确）与 \texorpdfstring{$\delta$}{delta}（可能）}
+\begin{defn}[PAC 学习]
+$P\Bigl(\bigl(\mathcal R(f)-\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)\bigr)\le\epsilon\Bigr)\ \ge\ 1-\delta$；
+$0<\epsilon\ll1$ 刻画\key{近似正确}（泛化误差不超过 $\epsilon$），$0<\delta\ll1$ 刻画\key{可能}（以至少 $1-\delta$ 的概率成立）。
+\end{defn}
+不能要求“一定完全正确”：训练集随机，总有小概率抽到极不具代表性的样本（要 $\delta$）；有限样本下经验风险不会恰等于期望风险（要 $\epsilon$）。
+
+\subsection{样本复杂度：\texorpdfstring{$n(\epsilon,\delta)\ge\frac{1}{2\epsilon^2}(\ln|\mathcal F|+\ln\frac2\delta)$}{n >= (ln|F| + ln(2/delta)) / (2 epsilon^2)}}
+\begin{thm}[有限假设空间的样本复杂度]
+固定 $\epsilon,\delta$，所需样本数（\term{样本复杂度}{sample complexity}）为
+$\displaystyle n(\epsilon,\delta)\ \ge\ \frac{1}{2\epsilon^2}\Bigl(\ln|\mathcal F|+\ln\frac2\delta\Bigr)$，$|\mathcal F|$ 为假设空间的大小。
+\end{thm}
+\begin{itemize}
+\item 无限假设空间（如所有线性函数）用 \key{Rademacher 复杂性}（Rademacher complexity）或 \key{VC 维}（VC dimension）衡量其“有效大小”。
+\item PAC 理论分析：在什么条件下，学习算法能以较高概率学到一个近似正确的假设函数。
+\item \key{假设空间越大、要求泛化错误越小，所需样本越多}：$|\mathcal F|\uparrow$、$\epsilon\downarrow$、$\delta\downarrow$ 都使 $n\uparrow$；$n$ 对 $\epsilon$ 平方反比（$\epsilon$ 减半样本 4 倍），对 $|\mathcal F|$、$1/\delta$ 只是对数增长。
+\end{itemize}
+
+\subsection{样本复杂度的推导：Hoeffding 不等式 + 联合界}
+设损失取值于 $[0,1]$（如 0-1 损失），$\mathcal F$ 有限：
+\begin{align*}
+&P\bigl(|\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)-\mathcal R(f)|>\epsilon\bigr)\le 2e^{-2N\epsilon^2}\quad(\text{固定 }f) \why{Hoeffding 不等式}\\
+&P\bigl(\exists f\in\mathcal F:\ |\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)-\mathcal R(f)|>\epsilon\bigr)\le 2|\mathcal F|e^{-2N\epsilon^2} \why{联合界 $P(\cup A_i)\le\sum P(A_i)$}\\
+&2|\mathcal F|e^{-2N\epsilon^2}\le\delta\iff N\ge\frac{1}{2\epsilon^2}\Bigl(\ln|\mathcal F|+\ln\frac2\delta\Bigr) \why{取对数解出 $N$}
+\end{align*}
+为何要对\key{所有} $f$ 同时成立：学到的函数依赖训练集本身（恰是这批数据上经验风险最小者），只对固定 $f$ 的保证会被挑选过程破坏；$|\mathcal F|$ 越大，“碰巧在训练集上表现好”的函数越多 → 需更多样本（过拟合的理论表述）。
+
+\subsection{样本复杂度计算步骤}
+(1) 算 $\ln|\mathcal F|$ 与 $\ln(2/\delta)$（自然对数）；(2) 相加乘 $1/(2\epsilon^2)$；(3) \key{向上取整}。示意：$|\mathcal F|=1000,\epsilon=0.1,\delta=0.05$：$50\times(6.908+3.689)\approx529.8\to530$；$|\mathcal F|=10^6$ 时 $\approx875.2$（只多约 65\%）；$\epsilon=0.05$ 时 $\approx2119.3$（约 4 倍）；$|\mathcal F|=500,\epsilon=0.05,\delta=0.01$：$200\times(6.215+5.298)\approx2302.6\to2303$。
+\textbf{易错} 是 $\ln(2/\delta)$ 不是 $\ln(1/\delta)$；系数是 $1/(2\epsilon^2)$。
+
+% ======================================================================
+\section{常用定理与原则：NFL、丑小鸭、奥卡姆剃刀、归纳偏置}
+
+\subsection{没有免费午餐定理（NFL）}
+\begin{thm}[没有免费午餐定理（No Free Lunch Theorem, NFL）]
+对于基于迭代的最优化算法，不存在某种算法对所有问题（有限的搜索空间内）都有效。如果一个算法对某些问题有效，那么它一定在另外一些问题上比纯随机搜索算法更差。
+\end{thm}
+\begin{itemize}
+\item 出处：Wolpert 与 Macready（1997，最优化）；Wolpert（1996）监督学习版：对所有可能的目标函数平均，任何两个学习算法在训练集之外的期望表现相同。
+\item 直觉：$\bm x\in\{0,1\}^2$ 共 4 点、二值标签，目标函数共 $2^4=16$ 个；已知 3 点标签后剩 2 个相符函数，在第 4 点一个取 0 一个取 1 → 任何算法平均正确率 50\%。只有假设某些目标函数更可能，算法才能胜出（启示见 \S\ref{sec:D01b-four}）。
+\end{itemize}
+
+\subsection{丑小鸭定理}
+\term{丑小鸭定理}{Ugly Duckling Theorem}（Watanabe，1969）：\key{丑小鸭与白天鹅之间的区别和两只白天鹅之间的区别一样大}。
+含义：没有任何先验（不规定哪些特征更重要）时，任意两个样本的“相似度”都一样，分类必须依赖某种偏好或先验。谓词计数：$n$ 个对象的所有谓词（对象集合的子集）共 $2^n$ 个，任意两个对象共享 $2^{n-2}$ 个（$n=3$：$\{a,b\},\{a,b,c\}$ 共 2 个）→ 两两同样相似。
+
+\subsection{奥卡姆剃刀原理}
+\term{奥卡姆剃刀原理}{Occam's Razor}：\key{如无必要，勿增实体}（Entia non sunt multiplicanda praeter necessitatem）。在机器学习中：拟合效果相近时，优先选更简单的模型。是正则化的思想来源之一：结构风险 = 拟合程度 + 复杂度惩罚；计量中 AIC、BIC 在对数似然上惩罚参数个数，也是同一原则。
+\textbf{易错} 前提是“拟合效果相近”；不是总选最简单的模型（过简单 → 欠拟合、高偏差）。
+
+\subsection{归纳偏置：定义与常见算法的偏置}
+\begin{defn}[归纳偏置（Inductive Bias）]
+很多学习算法经常会对学习的问题做一些假设，这些假设就称为归纳偏置。归纳偏置在贝叶斯学习中也经常称为\key{先验}（Prior）。
+\end{defn}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}L@{}}
+\toprule
+算法 & 归纳偏置（对问题所做的假设） \\
+\midrule
+最近邻分类器 & 在特征空间中，一个小的局部区域中的大部分样本都同属一类 \\
+朴素贝叶斯分类器 & 给定类别时，每个特征的条件概率是互相独立的 \\
+线性回归 & $y$ 与 $\bm x$ 的关系是线性的（或对基函数线性） \\
+岭回归 & 权重较小、接近 0（等价于高斯先验） \\
+Lasso & 大多数权重恰为 0，只有少数特征起作用（稀疏性） \\
+卷积神经网络 & 局部性与平移不变性（相邻像素相关，物体平移不改变类别） \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{四者的关系与对模型选择的启示}\label{sec:D01b-four}
+\begin{itemize}
+\item \key{NFL}：没有对所有问题都最好的算法，脱离具体问题谈优劣无意义 $\Rightarrow$ 好坏取决于算法假设与问题是否匹配 $\Rightarrow$ 针对问题比较多种模型、用验证集选择。
+\item \key{丑小鸭}：没有先验就没有“相似” $\Rightarrow$ 特征工程与距离度量的选择本身就是假设（KNN、聚类中尤为明显）。
+\item \key{归纳偏置}：学习算法必然带有假设（先验），没有它就无法从有限样本推广到未见样本；与问题匹配时学得好，不匹配时带来“偏差”（举例：最近邻—局部同类；朴素贝叶斯—条件独立）。
+\item \key{奥卡姆剃刀}：多种都能解释数据的假设中偏好简单者，是一种被广泛采用的归纳偏置；正则化是其数学实现。
+\end{itemize}
+
+% ======================================================================
+\section{机器学习与计量经济学的对照（拓展）}
+
+\subsection{预测（\texorpdfstring{$\hat y$}{y-hat}）问题与因果/参数（\texorpdfstring{$\hat\beta$}{beta-hat}）问题}
+\tagext\ Mullainathan 与 Spiess（2017）的“$\hat y$ 问题”与“$\hat\beta$ 问题”：
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{2.1cm}LL@{}}
+\toprule
+ & 机器学习（预测，$\hat y$） & 计量经济学（参数/因果，$\hat\beta$） \\
+\midrule
+核心目标 & 新样本上预测准：最小化期望风险 $\mathcal R(f)$ & 估计参数并推断：$\beta$ 的大小、显著性、因果含义 \\
+评价标准 & 样本外误差（验证集、交叉验证） & 无偏性、一致性、渐近正态、标准误 \\
+关键假设 & 训练与新样本 \iid（同分布） & 外生性 $\E[e|\bm x]=0$、识别条件（工具变量、平行趋势等） \\
+对偏差态度 & 可接受有偏（岭回归、提前停止）以换方差 & 重视无偏/一致（Gauss–Markov：OLS 为线性无偏中最优） \\
+复杂度控制 & 正则化、交叉验证 & 经济理论、显著性检验、信息准则 \\
+共线性 & 对预测影响不大 & 系数无法识别或很不精确 \\
+遗漏变量 & 只要预测准无所谓 & 遗漏变量偏误，因果结论失效 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+共线例：$x_1=x_2$ 时预测为 $(w_1+w_2)x_1$，$w_1+w_2=1$ 上任一组系数预测相同——预测无问题，单个系数无意义；反之，预测准的模型其系数不能当因果效应解读。\key{判别}：预测问题（ST 预警、新闻情绪预测次日收益）可放大量特征 + 正则化 + 交叉验证（时间序列按时间顺序划分）；因果问题（最低工资对就业）需识别策略（如 DID）或双重机器学习，直接正则化会使系数有偏、标准误难解释。
+
+\subsection{OLS 即监督学习：同一估计量的三要素视角}
+\begin{itemize}
+\item 模型：线性 $f(\bm x)=\bm x^\top\beta$（含截距，即增广）；学习准则：平方损失 + 经验风险最小化 $\Rightarrow$ 最小二乘，正态误差下等价于 MLE；优化：闭式解 $\hat\beta=(\tilde X^\top\tilde X)^{-1}\tilde X^\top\bm y$（正规方程，行为样本），无需迭代。
+\item 计量进一步关心 $\hat\beta$ 的抽样分布（方差、标准误、检验），机器学习进一步关心 $\mathcal R(f)$ 与泛化。Hansen 第 29 章从计量角度介绍岭回归、Lasso、回归树、Bagging、随机森林；定理 29.1：一定条件下岭回归均方误差小于 OLS。
+\end{itemize}
+
+\subsection{术语对照表：机器学习 \texorpdfstring{$\leftrightarrow$}{<->} 计量经济学}
+\begin{center}\small\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}Lp{2.6cm}L@{}}
+\toprule
+机器学习 & 计量经济学 & 机器学习 & 计量经济学 \\
+\midrule
+特征（feature） & 解释变量、回归元 & 训练（training） & 估计（estimation） \\
+标签（label/target） & 被解释变量 & 训练集 & 估计样本（样本内） \\
+权重（weight） & 系数 & 测试集 & 样本外（out-of-sample） \\
+偏置（bias） & 截距 & 超参数 & 调节参数（tuning parameter） \\
+损失函数 & 目标函数（如残差平方和） & 正则化 & 惩罚 / 收缩估计 \\
+经验风险最小化 & M 估计、极值估计 & 泛化 & 样本外预测能力 \\
+分类（Logistic 回归） & 离散选择模型（Logit） & 增广特征 & 设计矩阵加常数列 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错} “bias”两用：模型中的偏置 = 截距；估计量的偏差 = $\E\hat\theta-\theta$。
+
+\subsection{机器学习在经济金融研究中的三种用法}
+(1) \key{直接预测}：用大量公司特征预测股票收益（Gu、Kelly 与 Xiu，2020）、预测违约；(2) \key{构造变量}：文本分析把年报、新闻转为情绪或风险指标，再放进计量回归；(3) \key{辅助因果推断}：双重/去偏机器学习（Chernozhukov 等，2018）用机器学习估计高维干扰函数，再对目标参数做有效推断。综述：Athey 与 Imbens（2019）；“数据建模”与“算法建模”两种文化：Breiman（2001）。
+
+% ======================================================================
+\section{本章综合：一句话结论、模型选择论述要点与英文表述}
+
+\subsection{机器学习 \texorpdfstring{$\ne$}{!=} 优化：本章一句话结论}
+机器学习 = 模型 + 学习准则 + 优化，但目标是\key{泛化}：$\mathcal R(f)=\mathcal R^{\mathrm{emp}}_{\mathcal D}(f)+\mathcal G_{\mathcal D}(f)$，一味降低经验风险会拟合训练噪声（9 阶多项式在 10 点上训练误差为 0、新数据上误差很大），须用正则化在拟合（偏差）与复杂度（方差）间权衡。防过拟合：增加优化约束（L1、L2、数据增强）/ 干扰优化过程（权重衰减、SGD、提前停止）；另有增加数据、降低复杂度、集成。高斯假设下 ERM $\equiv$ MLE、SRM $\equiv$ MAP（$\lambda=\sigma^2/\nu^2$）；没有对所有问题都最好的算法，学习离不开归纳偏置。
+
+\subsection{模型选择综合论述要点（\texorpdfstring{$M$、$\lambda$、$N$}{M, lambda, N} → 偏差–方差 → 集成 → NFL/奥卡姆/归纳偏置）}
+(1) $M$：$0,1$ 欠拟合（高偏差），3 合适，9 穿过 10 点、系数 $10^6$ 量级（高方差）；(2) $\lambda$：$\tilde E=E+\frac\lambda2\|\bm w\|^2$ 惩罚大系数，$\ln\lambda=-\infty$ 过拟合、$-18$ 合适、$0$ 欠拟合，$\lambda\uparrow$ 方差↓偏差↑；$N\uparrow$ 降方差；(3) $\mathcal R=\text{bias}^2+\text{variance}+\varepsilon$，复杂度↑ 偏差↓方差↑、总误差 U 形，调 $M$、$\lambda$ 是在 U 形上移动，$N\uparrow$ 整体压低方差曲线；(4) 集成方差 $\rho\sigma^2+\frac{1-\rho}{M}\sigma^2$、偏差不变；(5) NFL → 结合问题、用验证集比较；奥卡姆 → 效果相近选简单、正则化实现；归纳偏置（即先验）与问题匹配才能泛化好。
+
+\subsection{英文关键表述（全章）}
+\begin{english}
+\begin{itemize}\setlength{\itemsep}{0pt}
+\item A learning algorithm $A$ selects $f^*$ from the hypothesis space $\mathcal F$ using a training set drawn i.i.d.\ from $p(\bm x,y)$. The three elements of a machine learning method are the model, the learning criterion and the optimization algorithm.
+\item The expected risk is the expected loss under the true data distribution; since the distribution is unknown, it is approximated by the empirical risk, the average loss on the training set. ERM minimizes the empirical risk; SRM adds a regularization term that penalizes model complexity.
+\item Overfitting occurs when a model has a low error on the training set but a high error on unseen data; it is typically caused by limited training data and noise. The generalization error is the gap between the expected risk and the empirical risk.
+\item ``Any method that impairs optimization is a form of regularization'': it either adds constraints to the optimization (L1/L2 penalties, data augmentation) or interferes with the optimization process (weight decay, SGD, early stopping). Early stopping halts training when the validation error no longer decreases.
+\item The learning rate is a hyperparameter set before training: too large makes training diverge, too small makes convergence slow. SGD updates the parameters with the gradient of a single randomly chosen sample, an unbiased estimate of the full gradient.
+\item The expected squared error decomposes into squared bias, variance and irreducible noise; increasing model complexity lowers bias but raises variance. Ensembles reduce variance by averaging models.
+\item PAC learning: with probability at least $1-\delta$, the generalization error is at most $\epsilon$; for a finite hypothesis space, $n\ge\frac{1}{2\epsilon^2}(\ln|\mathcal F|+\ln\frac2\delta)$ samples suffice.
+\item No Free Lunch: no algorithm is best for all problems. Ugly Duckling: without prior assumptions, any two objects are equally similar. Occam's razor: entities should not be multiplied beyond necessity, i.e.\ prefer the simpler model. An inductive bias is the set of assumptions a learning algorithm makes; in Bayesian learning it is called the prior.
+\end{itemize}
+\end{english}

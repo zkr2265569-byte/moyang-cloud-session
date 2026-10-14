@@ -1,0 +1,1305 @@
+%======================================================================
+% U10b：多层个体效应、双向固定效应（TWFE）、数值等价、数值例、TWFE 与 DiD、本章小结
+%======================================================================
+\section{多层（嵌套）个体效应}\label{sec:U10b-multi}
+
+前面各节的个体效应只有一层：每个个体 $i$ 一个 $\alpha_i$。实际数据常有地理或组织层级（省—市—县、行业—企业）。本节回答：几层效应同时存在时，哪些能识别、组内变换该做在哪一层。下一节再加入时间效应 $\lambda_t$。
+
+\subsection{从单层到多层：下标的写法}
+
+\subsubsection{单层效应回顾：Stata 用因子变量生成个体虚拟变量}
+
+单层模型为 $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$。在 Stata 中，个体虚拟变量由因子变量生成：若个体编号变量为 \texttt{nr}（如 Wooldridge 的 \texttt{wagepan} 数据），则 \texttt{i.nr} 为每个个体生成一个虚拟变量，即本章 LSDV 一节的 $d_1,\dots,d_N$。
+
+\subsubsection{多层下标：\texorpdfstring{$y_{ijt}$}{y\_ijt} 与 \texorpdfstring{$y_{ijkt}$}{y\_ijkt}}
+
+当数据有嵌套的层级时，下标多于两个：
+\begin{align*}
+\text{两层：}\quad & y_{ijt}=\cdots+x_{ijt}\T\beta+u_{ijt}, && i\ \text{为州（省）},\ j\ \text{为城市};\\
+\text{三层：}\quad & y_{ijkt}=\cdots+x_{ijkt}\T\beta+u_{ijkt}, && i\ \text{为州},\ j\ \text{为县},\ k\ \text{为城市}.
+\end{align*}
+省略号处放各层的效应。$y_{ijt}$ 读作“省 $i$ 中城市 $j$ 在第 $t$ 年的观测”。
+
+\subsubsection{嵌套时下标可以简化：\texorpdfstring{$x_{ijt}\to x_{jt}$}{x\_ijt -> x\_jt}}
+
+称下层单位 $j$ \term{嵌套}{nested}在上层单位 $i$ 中，若每个 $j$ 只属于一个 $i$（每个城市只属于一个省）。此时城市 $j$ 已经决定了省 $i$，下标 $i$ 是多余的，可以简写为 $x_{ijt}\to x_{jt}$、$y_{ijt}\to y_{jt}$。
+
+\subsubsection{定义：多层效应模型}
+
+\begin{defn}[多层效应模型]\label{def:U10b-multi}
+设城市 $j$ 嵌套在省 $i$ 中。\term{多层效应模型}{multilevel effects model}为
+\begin{equation}\label{eq:U10b-multi}
+y_{ijt}=\alpha_i+\alpha_j+x_{ijt}\T\beta+u_{ijt},
+\end{equation}
+其中 $\alpha_i$ 为省级（上层）效应，$\alpha_j$ 为城市级（下层）效应，二者都不可观测，都允许与 $x_{ijt}$ 相关。常见的扩展：
+\begin{itemize}
+  \item 再加年份效应：$y_{ijt}=\alpha_i+\alpha_j+\lambda_t+x_{ijt}\T\beta+u_{ijt}$（$\lambda_t$ 见下一节）；
+  \item 三层：$y_{ijl,t}=\alpha_i+\alpha_j+\alpha_l+x_{ijl,t}\T\beta+u_{ijl,t}$，$i$ 为省、$j$ 为县、$l$ 为城市，三组效应分别对应 Stata 的 \texttt{i.province}、\texttt{i.county}、\texttt{i.city}。
+\end{itemize}
+\end{defn}
+
+\subsection{例：湖南/湖北的城市效应与省份效应}
+
+\begin{exmp}[两省四市]\label{ex:U10b-hunan}
+湖南（hn）有长沙（cs）、邵阳（sy）两市，湖北（hb）有武汉（wh）、黄冈（hg）两市，每市观测 $t=1,2,3$ 三年，共 12 个观测。数据按“城市在外、年份在内”排列：
+\begin{center}
+\begin{tabular}{lccc}
+\toprule
+城市 $j$ & 城市效应 & 省份 $i$ & $t$\\
+\midrule
+cs（长沙） & $\alpha_{cs}$ & hn（湖南） & $1,2,3$\\
+sy（邵阳） & $\alpha_{sy}$ & hn（湖南） & $1,2,3$\\
+wh（武汉） & $\alpha_{wh}$ & hb（湖北） & $1,2,3$\\
+hg（黄冈） & $\alpha_{hg}$ & hb（湖北） & $1,2,3$\\
+\bottomrule
+\end{tabular}
+\end{center}
+写出只含城市效应的模型和同时含两层效应的模型，并说明两层效应能否用组内变换消去。
+
+\solution 只含城市效应（city level effects）：$y_{jt}=\alpha_j+x_{jt}\T\beta+u_{jt}$，这就是以城市为个体的单向模型。同时含两层效应：$y_{ijt}=\alpha_j+\alpha_i+x_{ijt}\T\beta+u_{ijt}$。表中城市效应一列在每个城市的 3 行内不变，省份效应一列在“湖南块”（6 行）和“湖北块”（6 行）内不变。所以在\key{城市内}对时间求平均再相减，$\alpha_j$ 与 $\alpha_i$ 一起被消去：
+\begin{align*}
+\bar y_{j\cdot} &= \alpha_i+\alpha_j+\bar x_{j\cdot}\T\beta+\bar u_{j\cdot} \why{城市 $j$ 内对 $t$ 平均}\\
+y_{jt}-\bar y_{j\cdot} &= (x_{jt}-\bar x_{j\cdot})\T\beta+(u_{jt}-\bar u_{j\cdot}) \why{$\alpha_i,\alpha_j$ 在 $j$ 内不随 $t$ 变}
+\end{align*}
+Stata 中对应的命令是 \texttt{xtreg y x i.city i.province, fe}（下文说明其输出）。
+\end{exmp}
+
+\subsection{嵌套效应的共线性：省份效应被城市效应吸收}
+
+\subsubsection{省份虚拟变量等于所属城市虚拟变量之和}
+
+要证：省份虚拟变量是城市虚拟变量的线性组合，因而 $\alpha_i$ 与 $\alpha_j$ 不能分别识别。记 $D^{city}_{c}$ 为城市 $c$ 的虚拟变量列，$D^{prov}_{p}$ 为省份 $p$ 的虚拟变量列（均为 $12\times1$）。对任一观测，“属于湖南”当且仅当“属于长沙或邵阳”，且一个观测不可能同时属于两个城市，所以
+\[
+D^{prov}_{hn}=D^{city}_{cs}+D^{city}_{sy},\qquad D^{prov}_{hb}=D^{city}_{wh}+D^{city}_{hg}.
+\]
+设计矩阵 $[D^{city},D^{prov}]$ 有 $4+2=6$ 列，但省份两列都在城市四列的列空间中，故秩只有 4。
+
+\subsubsection{只有 \texorpdfstring{$\alpha_i+\alpha_j$}{alpha\_i + alpha\_j} 可识别}
+
+对长沙的任一观测，模型中出现的是 $\alpha_{hn}+\alpha_{cs}$。对任意常数 $c$，作变换 $\alpha_{hn}\to\alpha_{hn}+c$，$\alpha_{cs}\to\alpha_{cs}-c$，$\alpha_{sy}\to\alpha_{sy}-c$：
+\begin{align*}
+(\alpha_{hn}+c)+(\alpha_{cs}-c) &= \alpha_{hn}+\alpha_{cs} \why{长沙的观测}\\
+(\alpha_{hn}+c)+(\alpha_{sy}-c) &= \alpha_{hn}+\alpha_{sy} \why{邵阳的观测}
+\end{align*}
+拟合值完全不变，数据无法区分这两组参数。能识别的只有每个城市一个数 $\alpha_i+\alpha_j$。
+
+\subsubsection{结论：组内变换做在最低层即可}
+
+\begin{thm}[嵌套多层效应与组内变换]\label{thm:U10b-nested}
+若下层单位 $j$ 嵌套在上层单位 $i$ 中，则在\key{最低层} $j$ 上做组内变换 $y_{jt}-\bar y_{j\cdot}$ 同时消去 $\alpha_j$ 与 $\alpha_i$（二者在 $j$ 内都不随 $t$ 变）。所得 $\hat\beta$ 与“只放城市虚拟变量”的 LSDV 相同；再加省份虚拟变量不改变 $\hat\beta$、拟合值与残差。
+\end{thm}
+
+证明思路：两种回归偏出的列空间相同，FWL 给出同一个 $\hat\beta$。由上一小节，$D^{prov}=D^{city}C$（$C$ 为把城市归到省的 $0$-$1$ 矩阵），于是
+\begin{align*}
+\operatorname{col}[D^{city},D^{prov}] &= \operatorname{col}[D^{city},D^{city}C]=\operatorname{col}(D^{city}) \why{$D^{prov}$ 的列在 $\operatorname{col}(D^{city})$ 中}\\
+M_{[D^{city},D^{prov}]} &= M_{D^{city}} \why{投影只依赖列空间}\\
+\hat\beta &= (X\T M_{D^{city}}X)\inv X\T M_{D^{city}}Y \why{FWL}
+\end{align*}
+而 $M_{D^{city}}$ 正是城市内去均值（本章 FWL 一节：个体虚拟变量的残差生成矩阵是 $I\otimes M_T$）。\qed
+
+这就是“固定效应放在最低的那一层即可”的含义：上层效应自动被吸收。
+
+\subsubsection{上层效应同样受伴随参数问题困扰}
+
+$\alpha_i$ 本身不可识别；可识别的 $\alpha_i+\alpha_j$ 的估计量 $\widehat{\alpha_i+\alpha_j}=\bar y_{j\cdot}-\bar x_{j\cdot}\T\hat\beta$ 与单层的 $\hat\alpha_i$ 一样：
+\begin{align*}
+\widehat{\alpha_i+\alpha_j}-(\alpha_i+\alpha_j) &= \bar u_{j\cdot}-\bar x_{j\cdot}\T(\hat\beta-\beta) \why{代入 $\bar y_{j\cdot}$}\\
+&\pto \bar u_{j\cdot}\quad(N\to\infty,\ T\ \text{固定}) \why{$\hat\beta\pto\beta$}
+\end{align*}
+$\bar u_{j\cdot}$ 不退化，所以 $T$ 固定时不一致（伴随参数问题，见本章 LSDV 一节）。
+
+\subsection{Stata：\texttt{xtreg y x i.city i.province, fe} 会发生什么}
+
+\subsubsection{嵌套的虚拟变量被报告为共线而删去}
+
+若 \texttt{xtset city year} 后运行 \texttt{xtreg y x i.city i.province, fe}，\texttt{i.city} 与 \texttt{i.province} 都会被报告为“omitted because of collinearity”：它们在每个城市内都不随时间变，已被城市层面的组内变换吸收。$\hat\beta$ 与 \texttt{xtreg y x, fe} 完全相同。
+
+\subsubsection{不嵌套的多维固定效应与 \texttt{reghdfe}}
+
+多层效应只有在\key{不嵌套}时才各自含有信息，例如：企业层面数据同时控制城市效应与行业效应（同一城市有多个行业、同一行业分布在多个城市）；劳动经济学中“工人 + 企业”双重效应（需要有工人跨企业流动，否则二者又嵌套）。
+\begin{extend}[多维固定效应命令 \texttt{reghdfe}]
+社区命令 \texttt{reghdfe}（\texttt{ssc install reghdfe}）可同时吸收多组固定效应，适合效应个数很多的情形。
+\begin{lstlisting}
+xtset city year
+xtreg y x i.city i.province, fe            // both dummy sets omitted (nested)
+xtreg y x i.year, fe vce(cluster city)     // city FE + year FE
+* user-written command (ssc install reghdfe), multi-way FE:
+reghdfe y x, absorb(firm city#year) vce(cluster city)
+\end{lstlisting}
+\texttt{absorb(firm city\#year)} 表示同时吸收企业效应与“城市 $\times$ 年份”效应。
+\end{extend}
+
+\subsection{例：州、城市与年份效应（Louisiana）}
+
+\begin{exmp}[路易斯安那州的三个城市]\label{ex:U10b-la}
+多层模型加年份效应：
+\[
+y_{ijt}=\underbrace{\alpha_i+\alpha_j}_{\text{只识别其和}}+\lambda_t+x_{ijt}\T\beta+u_{ijt},
+\]
+$i$ 为州，$j$ 为城市。数据排布示意如下（LA = Louisiana，BR = Baton Rouge，NO = New Orleans，LC = Lake Charles）：
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+$i$（州） & $j$（城市） & $t$ & $(y,\ x)$\\
+\midrule
+LA & BR & 2020 & $\cdots$\\
+LA & BR & 2021 & $\cdots$\\
+LA & NO & 2021 & $\cdots$\\
+LA & NO & 2022 & $\cdots$\\
+LA & LC & 2022 & $\cdots$\\
+LA & LC & $\cdots$ & $\cdots$\\
+\bottomrule
+\end{tabular}
+\end{center}
+应在哪一层做组内变换？怎样在 Stata 中实现？
+
+\solution 城市嵌套在州内，与湖南/湖北例结构相同，再加年份效应 $\lambda_t$（下一节的双向效应）。效应放在\key{最低层} $j$：以城市为个体，用“城市固定效应 + 年份虚拟变量”即可同时消去 $\alpha_i$、$\alpha_j$、$\lambda_t$。本例各城市被观测的年份不同（非平衡面板），所以\key{不能}用简单的双向去均值公式，而应使用年份虚拟变量（原因见下一节非平衡面板部分）。Stata：
+\begin{lstlisting}
+xtset city year
+xtreg y x i.year, fe vce(robust)   // state and city effects absorbed by city FE
+\end{lstlisting}
+若再写入 \texttt{i.state i.city}，它们都会因共线被删去。
+\end{exmp}
+
+\begin{prac}[嵌套虚拟变量矩阵的秩]\label{pr:U10b-nested}
+设有 2 个省、每省 2 个城市、$T=3$。(a) 写出城市虚拟变量矩阵与省份虚拟变量矩阵，证明 $[D^{city},D^{prov}]$ 的秩为 4。(b) 若研究者只放省份虚拟变量（不放城市虚拟变量），所得 $\hat\beta$ 利用的是什么变异？与城市固定效应估计有何区别？
+
+\answer (a) 按“省—城市—年份”的顺序排列 12 个观测。城市虚拟变量矩阵与省份虚拟变量矩阵为
+\[
+D^{city}=I_4\otimes\one_3\quad(12\times4),\qquad D^{prov}=I_2\otimes\one_6\quad(12\times2).
+\]
+令 $C=I_2\otimes\one_2$（$4\times2$），即 $C=\begin{psmallmatrix}1&0\\1&0\\0&1\\0&1\end{psmallmatrix}$：第 1 列标出湖南的两个城市，第 2 列标出湖北的两个城市。把 $C$ 写成 $C\otimes1$ 以便用混合积：
+\begin{align*}
+D^{city}C &= (I_4\otimes\one_3)(C\otimes 1) \why{$C=C\otimes1$}\\
+&= (I_4C)\otimes(\one_3\cdot1) \why{混合积性质}\\
+&= (I_2\otimes\one_2)\otimes\one_3 \why{代入 $C$}\\
+&= I_2\otimes(\one_2\otimes\one_3)=I_2\otimes\one_6=D^{prov} \why{结合律；$\one_2\otimes\one_3=\one_6$}
+\end{align*}
+即每个省份列是其两个城市列之和，$D^{prov}$ 的列都在 $D^{city}$ 的列空间中。于是
+\begin{align*}
+\rank[D^{city},D^{prov}] &= \rank[D^{city},D^{city}C]=\rank D^{city} \why{新增列在原列空间中}\\
+&= 4 \why{4 列两两正交且非零}
+\end{align*}
+(b) 只放省份虚拟变量等价于在\key{省内}去均值：$\hat\beta$ 同时利用同省内不同城市之间的差异和城市内的时间变异。它只控制省级不可观测因素；若城市层面的 $\alpha_j$ 与 $x$ 相关（例如省会城市的经济条件），估计仍有偏。城市固定效应只用城市内的时间变异，控制更强，但丢掉的变异更多。
+\end{prac}
+
+\begin{english}
+With nested multilevel effects, $y_{ijt}=\alpha_i+\alpha_j+x_{ijt}'\beta+u_{ijt}$ where city $j$ lies in province $i$, the province dummies are linear combinations of the city dummies, so $\alpha_i$ and $\alpha_j$ are not separately identified; only $\alpha_i+\alpha_j$ is. The within transformation at the lowest level (city) removes both effects, and $\hat\beta$ coincides with the LSDV estimator using city dummies; adding province dummies changes nothing. The combined effects themselves cannot be estimated consistently unless $T$ is large. Multi-way fixed effects carry separate information only when the levels are not nested.
+\end{english}
+
+%======================================================================
+\section{双向固定效应（TWFE）：模型与双向组内变换}\label{sec:U10b-twfe}
+
+本节在个体效应之外再加入时间效应 $\lambda_t$。思路与单向组内变换一样：用均值相减消去不可观测的效应，只是这次要“减两次”。平衡面板中这一做法精确有效；非平衡面板中则会失败。
+
+\subsection{单向效应与双向效应}
+
+\subsubsection{定义：双向固定效应模型}
+
+只含个体效应的模型 $y_{it}=x_{it}\T\beta+\alpha_i+u_{it}$ 称为\term{单向效应模型}{one-way effects model}。再加时间效应，就得到双向模型：
+
+\begin{defn}[双向固定效应模型]\label{def:U10b-twfe}
+\term{双向固定效应模型}{two-way fixed effects (TWFE) model}为
+\begin{equation}\label{eq:U10b-twfe}
+y_{it}=x_{it}\T\beta+\alpha_i+\lambda_t+u_{it},\qquad i=1,\dots,N,\ t=1,\dots,T,
+\end{equation}
+其中 $\alpha_i$ 为个体效应（individual effects），$\lambda_t$ 为\term{时间效应}{time effects}（年份效应，year effects）。二者都不可观测，且都允许与 $x_{it}$ 任意相关。2025 真题与本书都记作 $\lambda_t$，Hansen 记作 $v_t$，也有文献记作 $f_t$。
+\end{defn}
+
+估计方法是\key{双重组内变换}（double within transformation）：先后消去 $\alpha_i$ 与 $\lambda_t$，再对变换后的方程做 OLS。目标始终是估计 $\beta$；$\alpha_i$、$\lambda_t$ 只需控制，不必估计。
+
+\subsubsection{时间效应 \texorpdfstring{$\lambda_t$}{lambda\_t} 的含义：共同冲击}
+
+$\lambda_t$ 是同一年份对所有个体共同起作用的冲击：经济周期、通货膨胀、利率、全国性政策、统计口径变化（Hansen §17.26）。它比线性时间趋势 $\gamma t$ 灵活得多：$\lambda_t$ 每年一个值，可以是任意形状，只要求对所有个体相同（Hansen §17.27）。若 $x_{it}$ 也随这些共同因素变化（如各企业的投资都随经济周期波动），遗漏 $\lambda_t$ 就产生偏误（本章数值例一节给出具体数字）。
+
+\subsubsection{可观测的个体层面变量 \texorpdfstring{$z_i$}{z\_i} 与时间层面变量 \texorpdfstring{$g_t$}{g\_t}}
+
+模型中还可以加入可观测的个体层面变量 $z_i$（不随 $t$ 变，如性别）与时间层面变量 $g_t$（不随 $i$ 变，如全国利率）：
+\[
+y_{it}=x_{it}\T\beta+(z_i\T\gamma+\alpha_i)+(g_t\T\delta+\lambda_t)+u_{it}.
+\]
+但 $z_i\T\gamma$ 与 $\alpha_i$ 一样只随 $i$ 变，$g_t\T\delta$ 与 $\lambda_t$ 一样只随 $t$ 变，它们会被双向变换一起消去（见本节后文“时不变变量与共同时间序列变量都被消去”）。另一条估计 $\beta$ 的途径是 Mundlak 回归（下一节）。
+
+\subsection{双向组内变换的推导：四个均值方程}
+
+\subsubsection{三种样本均值}
+
+思路：先对时间求平均并相减，消去 $\alpha_i$（单向组内变换），但这会留下 $\lambda_t-\bar\lambda$；再对个体求平均得到一个同样含 $\lambda_t-\bar\lambda$ 的方程，两式相减即可。下面假设面板\key{平衡}。定义个体均值、时间均值、总均值以及效应的均值：
+\[
+\bar y_{i\cdot}=\frac1T\sum_{t=1}^T y_{it},\quad
+\bar y_{\cdot t}=\frac1N\sum_{i=1}^N y_{it},\quad
+\bar y_{\cdot\cdot}=\frac1{NT}\sum_{i=1}^N\sum_{t=1}^T y_{it},\quad
+\bar\lambda=\frac1T\sum_{t=1}^T\lambda_t,\quad
+\bar\alpha=\frac1N\sum_{i=1}^N\alpha_i.
+\]
+$x$、$u$ 的均值同理。有时简记为 $\bar y_i$、$\bar y_t$、$\bar y$。
+
+\subsubsection{对模型分别求三种平均}
+
+对 \eqref{eq:U10b-twfe} 分别关于 $t$、关于 $i$、关于 $(i,t)$ 求平均：
+\begin{align}
+y_{it} &= x_{it}\T\beta+\alpha_i+\lambda_t+u_{it} \label{eq:U10b-m1}\\
+\bar y_{i\cdot} &= \bar x_{i\cdot}\T\beta+\alpha_i+\bar\lambda+\bar u_{i\cdot} \label{eq:U10b-m2}\\
+\bar y_{\cdot t} &= \bar x_{\cdot t}\T\beta+\bar\alpha+\lambda_t+\bar u_{\cdot t} \label{eq:U10b-m3}\\
+\bar y_{\cdot\cdot} &= \bar x_{\cdot\cdot}\T\beta+\bar\alpha+\bar\lambda+\bar u_{\cdot\cdot} \label{eq:U10b-m4}
+\end{align}
+\eqref{eq:U10b-m2} 是对 \eqref{eq:U10b-m1} 关于 $t$ 平均：$\alpha_i$ 不随 $t$ 变，原样保留；$\lambda_t$ 平均成 $\bar\lambda$。\eqref{eq:U10b-m3} 是关于 $i$ 平均：$\lambda_t$ 原样保留，$\alpha_i$ 平均成 $\bar\alpha$。\eqref{eq:U10b-m4} 是关于 $i,t$ 同时平均。
+
+\subsubsection{两次相减消去 \texorpdfstring{$\alpha_i$}{alpha\_i} 与 \texorpdfstring{$\lambda_t$}{lambda\_t}}
+
+\eqref{eq:U10b-m1} 与 \eqref{eq:U10b-m2} 相减消去 $\alpha_i$，\eqref{eq:U10b-m3} 与 \eqref{eq:U10b-m4} 相减消去 $\bar\alpha$，二者都剩下 $\lambda_t-\bar\lambda$，再相减：
+\begin{align*}
+y_{it}-\bar y_{i\cdot} &= (x_{it}-\bar x_{i\cdot})\T\beta+(\lambda_t-\bar\lambda)+(u_{it}-\bar u_{i\cdot}) \why{\eqref{eq:U10b-m1}$-$\eqref{eq:U10b-m2}；$\alpha_i-\alpha_i=0$}\\
+\bar y_{\cdot t}-\bar y_{\cdot\cdot} &= (\bar x_{\cdot t}-\bar x_{\cdot\cdot})\T\beta+(\lambda_t-\bar\lambda)+(\bar u_{\cdot t}-\bar u_{\cdot\cdot}) \why{\eqref{eq:U10b-m3}$-$\eqref{eq:U10b-m4}；$\bar\alpha-\bar\alpha=0$}\\
+(y_{it}-\bar y_{i\cdot})-(\bar y_{\cdot t}-\bar y_{\cdot\cdot}) &= \bigl[(x_{it}-\bar x_{i\cdot})-(\bar x_{\cdot t}-\bar x_{\cdot\cdot})\bigr]\T\beta \\
+&\qquad+(u_{it}-\bar u_{i\cdot})-(\bar u_{\cdot t}-\bar u_{\cdot\cdot}) \why{两式相减，$\lambda_t-\bar\lambda$ 抵消}
+\end{align*}
+最后一式就是 $\ddot y_{it}=\ddot x_{it}\T\beta+\ddot u_{it}$。变换后的方程不含任何不可观测效应，直接做 OLS 即可。
+
+\subsubsection{定义：双向组内变换 \texorpdfstring{$\ddot y_{it}$}{y-ddot}}
+
+\begin{defn}[双向组内变换]\label{def:U10b-ddot}
+\begin{equation}\label{eq:U10b-ddot}
+\ddot y_{it}\equiv y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}
+\end{equation}
+称为\term{双向组内变换}{two-way within transformation}，也叫\term{双向去均值}{double demeaning}；$\ddot x_{it}$、$\ddot u_{it}$ 同理。
+\end{defn}
+它等于 $(y_{it}-\bar y_{i\cdot})-(\bar y_{\cdot t}-\bar y_{\cdot\cdot})$：先在个体内去均值，再减去“时间均值相对总均值的偏离”。
+
+\subsection{平衡面板下“精确消去”的证明}
+
+\subsubsection{复合效应 \texorpdfstring{$\alpha_i+\lambda_t$}{alpha\_i + lambda\_t} 的双向变换恒为零}
+
+要证：在平衡面板中，对任意 $\{\alpha_i\}$、$\{\lambda_t\}$，复合效应 $c_{it}\equiv\alpha_i+\lambda_t$ 的双向变换恒为零，$\ddot c_{it}=0$。
+\begin{align*}
+\bar c_{i\cdot} &= \frac1T\sum_{t=1}^T(\alpha_i+\lambda_t)=\alpha_i+\bar\lambda \why{个体 $i$ 有全部 $T$ 期}\\
+\bar c_{\cdot t} &= \frac1N\sum_{i=1}^N(\alpha_i+\lambda_t)=\bar\alpha+\lambda_t \why{第 $t$ 期有全部 $N$ 个个体}\\
+\bar c_{\cdot\cdot} &= \bar\alpha+\bar\lambda \why{对上式再按 $t$ 平均}\\
+\ddot c_{it} &= (\alpha_i+\lambda_t)-(\alpha_i+\bar\lambda)-(\bar\alpha+\lambda_t)+(\bar\alpha+\bar\lambda) \why{代入定义 \eqref{eq:U10b-ddot}}\\
+&= 0 \why{逐项抵消}
+\end{align*}
+
+\subsubsection{平衡性用在哪里}
+
+用在前两行：第一行要求每个个体的时间平均都是\key{同一个} $\bar\lambda$，第二行要求每期的横截面平均都是同一个 $\bar\alpha$。若个体 $i$ 只在时期集合 $\mathcal S_i$（共 $T_i$ 期）中被观测，第 $t$ 期只观测到个体集合 $\mathcal N_t$（共 $N_t$ 个），则
+\begin{align*}
+\bar c_{i\cdot} &= \alpha_i+\bar\lambda_{(i)},\quad \bar\lambda_{(i)}\equiv\frac1{T_i}\sum_{t\in\mathcal S_i}\lambda_t \why{随 $i$ 变}\\
+\bar c_{\cdot t} &= \bar\alpha_{(t)}+\lambda_t,\quad \bar\alpha_{(t)}\equiv\frac1{N_t}\sum_{i\in\mathcal N_t}\alpha_i \why{随 $t$ 变}\\
+\ddot c_{it} &= \bar c_{\cdot\cdot}-\bar\lambda_{(i)}-\bar\alpha_{(t)} \why{代入定义，$\alpha_i,\lambda_t$ 抵消}
+\end{align*}
+最后一项一般随 $(i,t)$ 变化而不为零，抵消不再成立（见本节非平衡面板部分）。
+
+\begin{thm}[双向组内变换]\label{thm:U10b-ddot}
+在平衡面板中，双向组内变换 \eqref{eq:U10b-ddot} 把 TWFE 模型 \eqref{eq:U10b-twfe} 精确地变为
+\[
+\ddot y_{it}=\ddot x_{it}\T\beta+\ddot u_{it},
+\]
+$\alpha_i$ 与 $\lambda_t$ 同时被消去，且对 $\alpha_i,\lambda_t$ 的取值及其与 $x_{it}$ 的相关性没有任何要求。
+\end{thm}
+
+\subsection{TWFE 估计量公式（求和形式）}
+
+\subsubsection{一般 \texorpdfstring{$K$}{K} 维回归元}
+
+对变换后的方程做 OLS，得到\term{双向组内估计量}{two-way within estimator}：
+\begin{equation}\label{eq:U10b-twfe-est}
+\hat\beta_{TWFE}=\Bigl(\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}\ddot x_{it}\T\Bigr)\inv\Bigl(\sum_{i=1}^N\sum_{t=1}^T\ddot x_{it}\ddot y_{it}\Bigr),\qquad \ddot x_{it}=x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot}.
+\end{equation}
+$x_{it}$ 为 $K\times1$，$\ddot x_{it}\ddot x_{it}\T$ 为 $K\times K$。
+
+\subsubsection{\texorpdfstring{$\ddot x$}{x-ddot} 在每个个体内、每个时期内求和都为零}
+
+平衡面板中，对每个 $t$ 有 $\sum_{i=1}^N\ddot x_{it}=0$，对每个 $i$ 有 $\sum_{t=1}^T\ddot x_{it}=0$（证明见下面的即时练习）。这条性质后面反复用到。
+
+\begin{prac}[\texorpdfstring{$\ddot x$}{x-ddot} 的两个零和性质]\label{pr:U10b-zerosum}
+证明：在平衡面板中，对每个 $t$ 有 $\sum_{i=1}^N\ddot x_{it}=0$，对每个 $i$ 有 $\sum_{t=1}^T\ddot x_{it}=0$。并由此说明当 $N=2$ 时 $\ddot x_{2t}=-\ddot x_{1t}$。
+
+\answer 固定 $t$：
+\begin{align*}
+\sum_{i=1}^N\ddot x_{it} &= \sum_i x_{it}-\sum_i\bar x_{i\cdot}-N\bar x_{\cdot t}+N\bar x_{\cdot\cdot} \why{代入定义}\\
+&= N\bar x_{\cdot t}-N\bar x_{\cdot\cdot}-N\bar x_{\cdot t}+N\bar x_{\cdot\cdot} \why{平衡：$\frac1N\sum_i\bar x_{i\cdot}=\bar x_{\cdot\cdot}$}\\
+&= 0.
+\end{align*}
+固定 $i$：
+\begin{align*}
+\sum_{t=1}^T\ddot x_{it} &= \sum_t x_{it}-T\bar x_{i\cdot}-\sum_t\bar x_{\cdot t}+T\bar x_{\cdot\cdot} \why{代入定义}\\
+&= T\bar x_{i\cdot}-T\bar x_{i\cdot}-T\bar x_{\cdot\cdot}+T\bar x_{\cdot\cdot} \why{平衡：$\frac1T\sum_t\bar x_{\cdot t}=\bar x_{\cdot\cdot}$}\\
+&= 0.
+\end{align*}
+$N=2$ 时第一式即 $\ddot x_{1t}+\ddot x_{2t}=0$，故 $\ddot x_{2t}=-\ddot x_{1t}$。
+\end{prac}
+
+\subsubsection{单个回归元与“分子中 \texorpdfstring{$\ddot y$}{y-ddot} 可换成 \texorpdfstring{$y$}{y}”}
+
+单个回归元时（2025 真题的情形），
+\[
+\hat\beta_{TWFE}=\frac{\sum_i\sum_t\ddot x_{it}\ddot y_{it}}{\sum_i\sum_t\ddot x_{it}^2}.
+\]
+与单向情形一样，分子中的 $\ddot y_{it}$ 可换成 $y_{it}$：
+\begin{align*}
+\sum_i\sum_t\ddot x_{it}\ddot y_{it} &= \sum_i\sum_t\ddot x_{it}y_{it}-\sum_i\bar y_{i\cdot}\sum_t\ddot x_{it}-\sum_t\bar y_{\cdot t}\sum_i\ddot x_{it}+\bar y_{\cdot\cdot}\sum_i\sum_t\ddot x_{it} \why{展开 $\ddot y_{it}$}\\
+&= \sum_i\sum_t\ddot x_{it}y_{it} \why{零和性质}
+\end{align*}
+但 $x$ 必须做双向去均值。
+
+\subsection{矩阵写法：\texorpdfstring{$Q=M_N\otimes M_T$}{Q = M\_N kron M\_T}}\label{sec:U10b-Qmat}
+
+\subsubsection{记号：\texorpdfstring{$M_N$}{M\_N}、\texorpdfstring{$D_\alpha$}{D\_alpha}、\texorpdfstring{$D_\lambda$}{D\_lambda}}
+
+数据按“个体在外、时间在内”排列：$Y=(Y_1\T,\dots,Y_N\T)\T$（$NT\times1$），$Y_i=(y_{i1},\dots,y_{iT})\T$；$X$ 为 $NT\times K$。记
+\[
+P_N=\tfrac1N\one_N\one_N\T,\quad M_N=I_N-P_N\quad(N\times N);\qquad
+D_\alpha=I_N\otimes\one_T\quad(NT\times N);\qquad
+D_\lambda=\one_N\otimes I_T\quad(NT\times T).
+\]
+$D_\alpha$ 是个体虚拟变量矩阵（第 $j$ 列为 $d_j$），$D_\lambda$ 是时间虚拟变量矩阵（第 $s$ 列为 $\mathrm{year}_s$，即 $\mathbf 1\{t=s\}$）。$P_T$、$M_T$ 的定义与性质见本章组内变换一节。TWFE 模型的矩阵形式为 $Y=X\beta+D_\alpha\alpha+D_\lambda\lambda+U$，$\alpha=(\alpha_1,\dots,\alpha_N)\T$，$\lambda=(\lambda_1,\dots,\lambda_T)\T$。
+
+\subsubsection{定理：\texorpdfstring{$Q$}{Q} 的三条性质}
+
+\begin{thm}[双向组内变换的矩阵形式]\label{thm:U10b-Q}
+令 $Q=M_N\otimes M_T$（$NT\times NT$）。则
+\begin{enumerate}[label=(\roman*)]
+  \item $(QY)_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$；
+  \item $QD_\alpha=0$，$QD_\lambda=0$；
+  \item $Q$ 对称、幂等，秩为 $(N-1)(T-1)$。
+\end{enumerate}
+于是 $\hat\beta_{TWFE}=(X\T QX)\inv X\T QY$。
+\end{thm}
+
+\subsubsection{证明 (i)：展开 Kronecker 积}
+
+\begin{align*}
+Q &= (I_N-P_N)\otimes(I_T-P_T) \why{定义}\\
+&= I_N\otimes I_T-I_N\otimes P_T-P_N\otimes I_T+P_N\otimes P_T \why{$\otimes$ 对加法的分配律}
+\end{align*}
+四项作用于 $Y$ 后，第 $(i,t)$ 个元素分别为：
+\begin{itemize}
+  \item $(I_N\otimes I_T)Y=Y$：得 $y_{it}$；
+  \item $I_N\otimes P_T=\diag(P_T,\dots,P_T)$，在每个个体块内取时间平均，$P_TY_i=\bar y_{i\cdot}\one_T$：得 $\bar y_{i\cdot}$；
+  \item $(P_N\otimes I_T)Y$ 的每个块都等于 $\frac1N\sum_{j=1}^NY_j$，其第 $t$ 个元素为 $\frac1N\sum_j y_{jt}$：得 $\bar y_{\cdot t}$；
+  \item $P_N\otimes P_T=(P_N\otimes I_T)(I_N\otimes P_T)$（混合积），先取个体内时间平均、再对个体平均：得 $\bar y_{\cdot\cdot}$。
+\end{itemize}
+四项按符号相加即得 (i)。
+
+\subsubsection{证明 (ii)：\texorpdfstring{$Q$}{Q} 消去两组虚拟变量}
+
+\begin{align*}
+QD_\alpha &= (M_N\otimes M_T)(I_N\otimes\one_T) \why{代入定义}\\
+&= (M_NI_N)\otimes(M_T\one_T) \why{混合积性质}\\
+&= M_N\otimes 0=0 \why{$M_T\one_T=0$}\\
+QD_\lambda &= (M_N\otimes M_T)(\one_N\otimes I_T) \why{代入定义}\\
+&= (M_N\one_N)\otimes(M_TI_T)=0\otimes M_T=0 \why{混合积；$M_N\one_N=0$}
+\end{align*}
+(ii) 是“精确消去”的矩阵版本：对 $Y=X\beta+D_\alpha\alpha+D_\lambda\lambda+U$ 左乘 $Q$，得 $QY=QX\beta+QU$。
+
+\subsubsection{证明 (iii)：对称、幂等与秩}
+
+\begin{align*}
+Q\T &= M_N\T\otimes M_T\T=M_N\otimes M_T=Q \why{$(A\otimes B)'=A'\otimes B'$；$M$ 对称}\\
+Q^2 &= (M_N\otimes M_T)(M_N\otimes M_T)=M_N^2\otimes M_T^2=Q \why{混合积；$M$ 幂等}\\
+\rank Q &= \tr Q=\tr(M_N)\cdot\tr(M_T) \why{幂等阵秩 $=$ 迹；$\tr(A\otimes B)=\tr A\tr B$}\\
+&= (N-1)(T-1) \why{$\tr M_N=N-1$，$\tr M_T=T-1$}
+\end{align*}
+最后，记 $\ddot X=QX$、$\ddot Y=QY$，对变换后方程做 OLS：
+\begin{align*}
+\hat\beta_{TWFE} &= (\ddot X\T\ddot X)\inv\ddot X\T\ddot Y \why{OLS}\\
+&= (X\T Q\T QX)\inv X\T Q\T QY \why{$\ddot X=QX$，$\ddot Y=QY$}\\
+&= (X\T QX)\inv X\T QY \why{$Q$ 对称幂等}
+\end{align*}
+\qed
+
+\subsubsection{残差自由度：\texorpdfstring{$NT-N-T+1-K$}{NT-N-T+1-K}}
+
+由 (iii)，TWFE 的残差自由度为
+\[
+(N-1)(T-1)-K=NT-N-T+1-K,
+\]
+与双向 LSDV 的参数个数 $N+(T-1)+K$ 一致（$N$ 个个体虚拟变量、$T-1$ 个时间虚拟变量、$K$ 个斜率；时间虚拟变量去掉一个，见下一节）。同方差、无序列相关时，$\sigma_u^2$ 的无偏估计为 $\hat\sigma_u^2=\sum_i\sum_t\hat u_{it}^2/[(N-1)(T-1)-K]$，证明见本章小结中的即时练习 \ref{pr:U10b-proj}。用 $NT-K$ 或 $NT-N-K$ 作分母都会低估 $\sigma_u^2$。
+
+\subsection{时不变变量与共同时间序列变量都被消去}
+
+\subsubsection{\texorpdfstring{$\ddot z_i=0$}{z-ddot = 0} 与 \texorpdfstring{$\ddot g_t=0$}{g-ddot = 0}}
+
+若加入可观测的 $z_i$（如性别）与 $g_t$（如全国利率）：$y_{it}=x_{it}\T\beta+z_i\T\gamma+g_t\T\delta+\alpha_i+\lambda_t+u_{it}$。对 $z_i$ 做双向变换：
+\begin{align*}
+\ddot z_i &= z_i-\bar z_{i\cdot}-\bar z_{\cdot t}+\bar z_{\cdot\cdot} \why{定义}\\
+&= z_i-z_i-\bar z+\bar z=0 \why{$\bar z_{i\cdot}=z_i$；平衡时 $\bar z_{\cdot t}=\bar z_{\cdot\cdot}=\bar z$}
+\end{align*}
+同理，
+\begin{align*}
+\ddot g_t &= g_t-\bar g_{i\cdot}-\bar g_{\cdot t}+\bar g_{\cdot\cdot} \why{定义}\\
+&= g_t-\bar g-g_t+\bar g=0 \why{$\bar g_{\cdot t}=g_t$；$\bar g_{i\cdot}=\bar g_{\cdot\cdot}=\bar g$}
+\end{align*}
+所以 TWFE 只能识别\key{同时在个体维度和时间维度上变化}的回归元的系数（Hansen §17.27）。
+
+\subsubsection{实证含义：宏观变量与年份固定效应不能并存}
+
+想估计宏观变量（利率、汇率、全国性政策强度）对企业的影响，就不能放年份固定效应：$g_t$ 与 $\lambda_t$ 完全共线。可行的办法是改用宏观变量与个体特征的交互项 $g_t\times z_i$，它在两个维度上都变化，系数可以识别。时不变变量的系数则要用随机效应或 Mundlak 类方法（第 11 章）。
+
+\subsection{非平衡面板：双向去均值不再精确消去}\label{sec:U10b-unbal}
+
+\subsubsection{例：缺一期观测的反例}
+
+\begin{exmp}[非平衡面板的反例]\label{ex:U10b-unbal}
+个体 1 观测 $t=1,2,3$，个体 2 只观测 $t=1,2$（缺 $t=3$），共 5 个观测。令 $y_{it}=\alpha_i+\lambda_t$（无 $x$、无误差）。按非平衡样本计算各均值，求 $\ddot y_{13}$；再取 $\alpha=(1,4)$、$\lambda=(0,2,4)$ 计算五个观测的 $\ddot y$。
+
+\solution 各均值（均按实际可得的观测计算）：
+\begin{align*}
+\bar y_{1\cdot} &= \alpha_1+\tfrac13(\lambda_1+\lambda_2+\lambda_3) \why{个体 1 有 3 期}\\
+\bar y_{2\cdot} &= \alpha_2+\tfrac12(\lambda_1+\lambda_2) \why{个体 2 只有 2 期}\\
+\bar y_{\cdot 3} &= \alpha_1+\lambda_3 \why{第 3 期只有个体 1}\\
+\bar y_{\cdot\cdot} &= \tfrac15(3\alpha_1+2\alpha_2+2\lambda_1+2\lambda_2+\lambda_3) \why{5 个观测的平均}
+\end{align*}
+于是
+\begin{align*}
+\ddot y_{13} &= y_{13}-\bar y_{1\cdot}-\bar y_{\cdot3}+\bar y_{\cdot\cdot} \why{定义}\\
+&= (\alpha_1+\lambda_3)-\alpha_1-\tfrac13(\lambda_1+\lambda_2+\lambda_3)-(\alpha_1+\lambda_3) \\
+&\qquad+\tfrac15(3\alpha_1+2\alpha_2+2\lambda_1+2\lambda_2+\lambda_3) \why{代入各均值}\\
+&= \bigl(-1+\tfrac35\bigr)\alpha_1+\tfrac25\alpha_2+\bigl(-\tfrac13+\tfrac25\bigr)(\lambda_1+\lambda_2)+\bigl(-\tfrac13+\tfrac15\bigr)\lambda_3 \why{合并同类项}\\
+&= -\tfrac25(\alpha_1-\alpha_2)+\tfrac1{15}(\lambda_1+\lambda_2-2\lambda_3)\neq0 \why{整理}
+\end{align*}
+取 $\alpha=(1,4)$、$\lambda=(0,2,4)$：$y=(1,3,5;\,4,6)$，$\bar y_{1\cdot}=3$，$\bar y_{2\cdot}=5$，$\bar y_{\cdot t}=(2.5,4.5,5)$，$\bar y_{\cdot\cdot}=19/5=3.8$。
+\begin{center}
+\begin{tabular}{cccccc}
+\toprule
+$(i,t)$ & $y_{it}$ & $\bar y_{i\cdot}$ & $\bar y_{\cdot t}$ & $\bar y_{\cdot\cdot}$ & $\ddot y_{it}$\\
+\midrule
+$(1,1)$ & 1 & 3 & 2.5 & 3.8 & $-0.7$\\
+$(1,2)$ & 3 & 3 & 4.5 & 3.8 & $-0.7$\\
+$(1,3)$ & 5 & 3 & 5 & 3.8 & $0.8$\\
+$(2,1)$ & 4 & 5 & 2.5 & 3.8 & $0.3$\\
+$(2,2)$ & 6 & 5 & 4.5 & 3.8 & $0.3$\\
+\bottomrule
+\end{tabular}
+\end{center}
+检验：$\ddot y_{13}=-\frac25(1-4)+\frac1{15}(0+2-8)=1.2-0.4=0.8$，与表一致。五个 $\ddot y$ 本应全为零。个体效应与时间效应都没有被消干净；若它们与 $x_{it}$ 相关，简单双向去均值的 OLS 就有偏。
+\end{exmp}
+
+问题的根源：$\bar y_{i\cdot}$ 中的 $\lambda$ 平均依赖于个体 $i$ 被观测的时期集合，$\bar y_{\cdot t}$ 中的 $\alpha$ 平均依赖于第 $t$ 期出现的个体集合（上文“平衡性用在哪里”）。
+
+\subsubsection{结论：非平衡面板中 TWFE 的正确做法}
+
+\begin{thm}[非平衡面板中的 TWFE]\label{thm:U10b-unbal}
+非平衡面板中，简单公式 $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$ 一般\key{不能}消去 $\alpha_i$、$\lambda_t$。正确做法（Hansen §17.27）：
+\begin{enumerate}[label=(\alph*)]
+  \item 个体虚拟变量 + 时间虚拟变量的 LSDV；或等价地
+  \item 先做个体内去均值，再对\key{去均值后的}时间虚拟变量做回归（偏出），见下一节。
+\end{enumerate}
+软件中 \texttt{xtreg y x i.year, fe} 与 \texttt{reghdfe} 都是这样做的。由 FWL，(a)(b) 在任何面板（平衡或不平衡）下都相等；一般只有在平衡面板中它们才等于简单双向去均值。
+\end{thm}
+
+为什么 (a)(b) 不需要平衡：FWL 定理对任何设计矩阵都成立。偏出 $[D_\alpha,D_\lambda^*]$（$D_\lambda^*$ 为去掉一列的时间虚拟变量矩阵）后的残差化变量严格正交于所有 $\alpha_i$、$\lambda_t$ 的方向，所以 $\hat\beta$ 不受这些效应影响，与各个体被观测的时期集合无关。非平衡时 (b) 的显式矩阵写法（Wansbeek--Kapteyn 变换）以及交替去均值算法见下一节末尾。另外，“先个体去均值、再每期减一次横截面均值”只做一轮，在非平衡面板中一般仍不正确。
+
+\begin{english}
+In the TWFE model $y_{it}=x_{it}'\beta+\alpha_i+\lambda_t+u_{it}$, averaging over $t$, over $i$, and over both gives $\bar y_{i\cdot}$, $\bar y_{\cdot t}$ and $\bar y_{\cdot\cdot}$. The two-way within transformation $\ddot y_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$ eliminates both $\alpha_i$ and $\lambda_t$ in a balanced panel, because $\bar\lambda$ is common to all individuals and $\bar\alpha$ is common to all periods. Hence $\hat\beta_{TWFE}=\bigl(\sum_i\sum_t\ddot x_{it}\ddot x_{it}'\bigr)^{-1}\sum_i\sum_t\ddot x_{it}\ddot y_{it}$, or in matrix form $(X'QX)^{-1}X'QY$ with $Q=M_N\otimes M_T$, which is symmetric idempotent with rank $(N-1)(T-1)$. Time-invariant regressors and common time-series regressors are wiped out. In unbalanced panels the simple double demeaning does not remove the effects; one should use unit dummies plus time dummies (equivalently, within-transform and then partial out the demeaned time dummies).
+\end{english}
+
+%======================================================================
+\section{“个体去均值 + 时间虚拟变量”与双向去均值的数值等价}\label{sec:U10b-equiv}
+
+上一节用“减两次均值”消去 $\alpha_i$ 与 $\lambda_t$。实践中更常见的做法是把 $\lambda_t$ 用时间虚拟变量表示：要么全部用虚拟变量（双向 LSDV），要么只对 $\alpha_i$ 做组内变换、时间效应留给虚拟变量（2025 真题第 1 题 (b) 的做法）。本节证明：平衡面板中这几种做法给出\key{完全相同}的 $\hat\beta$；非平衡面板中虚拟变量做法仍然正确，简单双向去均值则不然。
+
+\subsection{LSDV 写法：个体虚拟变量与年份虚拟变量}
+
+\subsubsection{用年份虚拟变量表示 \texorpdfstring{$\lambda_t$}{lambda\_t}}
+
+$\alpha_i$、$\lambda_t$ 都不可观测，最常用的做法是 LSDV（并按个体聚类标准误）。与个体效应 $\alpha_i=\sum_j\alpha_jd_{j,it}$ 完全类似，定义第 $s$ 期的\term{时间虚拟变量}{time dummy}
+\[
+\mathrm{year}_{s,it}=\mathbf 1\{t=s\}=\begin{cases}1,& t=s\ (\text{第 } s \text{ 年}),\\ 0,& \text{其他},\end{cases}
+\]
+即本章 LSDV 一节数据表中 $\mathrm{year}_1$、$\mathrm{year}_2$ 两列。于是
+\begin{align*}
+\lambda_t &= \lambda_t\cdot 1=\lambda_t\cdot\mathrm{year}_{t,it} \why{第 $t$ 期 $\mathrm{year}_t=1$}\\
+&= \lambda_1\mathrm{year}_{1,it}+\lambda_2\mathrm{year}_{2,it}+\cdots+\lambda_T\mathrm{year}_{T,it}=\sum_{s=1}^T\lambda_s\mathrm{year}_{s,it} \why{$s\neq t$ 的项为 0}
+\end{align*}
+
+\subsubsection{双向 LSDV 模型}
+
+代入 \eqref{eq:U10b-twfe}，得\term{双向 LSDV 模型}{two-way LSDV model}：
+\begin{equation}\label{eq:U10b-lsdv2}
+y_{it}=\sum_{j=1}^N\alpha_jd_{j,it}+\sum_{s=2}^T\lambda_s\mathrm{year}_{s,it}+x_{it}\T\beta+u_{it}.
+\end{equation}
+它是普通的线性回归，直接用 OLS 估计。第 1 期虚拟变量被去掉的原因见下一小节。这种“个体虚拟变量 + 年份虚拟变量”的回归也是 DiD 回归的基础（本章 TWFE 与 DiD 一节）。
+
+\subsubsection{与 2025 真题记号的对应}
+
+\tagexam\ 2025 真题的提示写作 $\lambda_t=a_1f_1+\cdots+a_Tf_T$，其中 $f_t$ 表示时间虚拟变量、$a_t$ 为其系数，与这里的 $\mathrm{year}_s$、$\lambda_s$ 一一对应（$f_s\leftrightarrow\mathrm{year}_s$，$a_s\leftrightarrow\lambda_s$）。
+
+\subsection{时间虚拟变量矩阵与虚拟变量陷阱}
+
+\subsubsection{\texorpdfstring{$D_\alpha\one_N=\one_{NT}=D_\lambda\one_T$}{D\_alpha 1 = 1 = D\_lambda 1}：两组虚拟变量秩亏一}
+
+矩阵形式：$Y=X\beta+D_\alpha\alpha+D_\lambda\lambda+U$，$D_\lambda=\one_N\otimes I_T$。全部个体虚拟变量之和与全部时间虚拟变量之和都是常数列：
+\begin{align*}
+D_\alpha\one_N &= (I_N\otimes\one_T)(\one_N\otimes1)=\one_N\otimes\one_T=\one_{NT} \why{混合积}\\
+D_\lambda\one_T &= (\one_N\otimes I_T)(1\otimes\one_T)=\one_N\otimes\one_T=\one_{NT} \why{混合积}
+\end{align*}
+于是 $[D_\alpha,D_\lambda]\begin{psmallmatrix}\one_N\\-\one_T\end{psmallmatrix}=0$，$[D_\alpha,D_\lambda]$ 的 $N+T$ 列只张成 $N+T-1$ 维空间，必须去掉一列。
+
+\subsubsection{去掉哪一个、去掉几个}
+
+\begin{itemize}
+  \item 回归含截距：截距本身又是常数列，个体虚拟变量与时间虚拟变量\key{各去掉一个}；
+  \item 回归不含截距：保留全部 $N$ 个个体虚拟变量，只需去掉\key{一个时间虚拟变量}，即 \eqref{eq:U10b-lsdv2} 的写法。
+\end{itemize}
+记去掉第 1 期后的时间虚拟变量矩阵为
+\[
+D_\lambda^*=\one_N\otimes I_T^*\quad(NT\times(T-1)),
+\]
+$I_T^*$ 为 $I_T$ 去掉第一列（$T\times(T-1)$）。去掉哪一个都不影响 $\hat\beta$：几种去法的列空间相同，FWL 偏出的是同一个投影。
+
+\subsubsection{去掉第 1 期后 \texorpdfstring{$\lambda_s$}{lambda\_s} 的含义：相对基期的差}
+
+把复合效应改写为
+\begin{align*}
+\alpha_i+\lambda_t &= (\alpha_i+\lambda_1)+(\lambda_t-\lambda_1) \why{加一项减一项}
+\end{align*}
+所以 \eqref{eq:U10b-lsdv2} 中 $d_i$ 的系数实为 $\alpha_i+\lambda_1$，$\mathrm{year}_s$ 的系数实为 $\lambda_s-\lambda_1$（相对第 1 期的差）。为简便仍记作 $\alpha_i$、$\lambda_s$。
+
+\subsection{只消去 \texorpdfstring{$\alpha_i$}{alpha\_i} 再加时间虚拟变量：\texorpdfstring{$\hat\beta$}{beta-hat} 的公式}\label{sec:U10b-oneway-dummies}
+
+\tagexam\ 这是 2025 真题第 1 题 (b) 的理论。做法：只做个体内去均值（消去 $\alpha_i$），时间效应用虚拟变量控制。
+
+\subsubsection{第 1 步：个体内去均值，时间虚拟变量也被去均值}
+
+对 \eqref{eq:U10b-lsdv2} 做单向组内变换（每个变量减去个体 $i$ 的时间平均），$\alpha_i$ 消失，时间虚拟变量也被去均值：
+\[
+\dot y_{it}=\dot x_{it}\T\beta+\sum_{s=2}^T\lambda_s\dot{\mathrm{year}}_{s,it}+\dot u_{it},\qquad
+\dot{\mathrm{year}}_{s,it}=\mathbf 1\{t=s\}-\tfrac1T,
+\]
+其中 $\dot y_{it}=y_{it}-\bar y_{i\cdot}$；平衡面板中每个个体恰有一期 $t=s$，故 $\mathrm{year}_s$ 的个体均值为 $1/T$。
+
+\subsubsection{去均值后的 \texorpdfstring{$T$}{T} 个时间虚拟变量完全共线}
+
+若按真题提示放全部 $T$ 个时间虚拟变量 $a_1f_1+\cdots+a_Tf_T$，去均值后
+\begin{align*}
+\sum_{s=1}^T\dot{\mathrm{year}}_{s,it} &= \sum_{s=1}^T\mathbf 1\{t=s\}-T\cdot\tfrac1T \why{代入定义}\\
+&= 1-1=0 \why{恰有一个 $s=t$}
+\end{align*}
+$T$ 个去均值虚拟变量完全共线，必须去掉一个（这里去掉 $s=1$）。
+
+\subsubsection{矩阵形式}
+
+\[
+\dot Y=\dot X\beta+\dot F\lambda^*+\dot U,\qquad \dot Y=M_DY,\ \dot X=M_DX,\ \lambda^*=(\lambda_2,\dots,\lambda_T)\T,
+\]
+其中 $M_D=I_N\otimes M_T$，去均值后的时间虚拟变量矩阵为
+\begin{align*}
+\dot F &= M_DD_\lambda^*=(I_N\otimes M_T)(\one_N\otimes I_T^*) \why{代入定义}\\
+&= (I_N\one_N)\otimes(M_TI_T^*)=\one_N\otimes(M_TI_T^*)\quad(NT\times(T-1)) \why{混合积}
+\end{align*}
+
+\subsubsection{第 2 步：用 FWL 偏出去均值的时间虚拟变量}
+
+对去均值方程做 OLS，用 FWL 只取 $\beta$ 的系数：
+\begin{equation}\label{eq:U10b-fe-dummies}
+\boxed{\ \hat\beta_{FE}=\bigl(\dot X\T M_{\dot F}\dot X\bigr)\inv\dot X\T M_{\dot F}\dot Y,\qquad M_{\dot F}=I_{NT}-\dot F(\dot F\T\dot F)\inv\dot F\T.\ }
+\end{equation}
+
+\subsubsection{求和形式：残差化后恰为 \texorpdfstring{$\ddot x_{it}$}{x-ddot}}
+
+下文引理 2 将证明：$\dot x_{it}$ 对去均值时间虚拟变量回归的拟合值是该期的横截面均值
+\begin{align*}
+\bar{\dot x}_{\cdot t} &\equiv \frac1N\sum_{j=1}^N\dot x_{jt}=\frac1N\sum_j x_{jt}-\frac1N\sum_j\bar x_{j\cdot} \why{代入 $\dot x_{jt}$}\\
+&= \bar x_{\cdot t}-\bar x_{\cdot\cdot} \why{平衡：$\tfrac1N\sum_j\bar x_{j\cdot}=\bar x_{\cdot\cdot}$}
+\end{align*}
+残差是 $\dot x_{it}-\bar{\dot x}_{\cdot t}$。所以
+\[
+\hat\beta_{FE}=\Bigl[\sum_i\sum_t(\dot x_{it}-\bar{\dot x}_{\cdot t})(\dot x_{it}-\bar{\dot x}_{\cdot t})\T\Bigr]\inv\sum_i\sum_t(\dot x_{it}-\bar{\dot x}_{\cdot t})(\dot y_{it}-\bar{\dot y}_{\cdot t}),
+\]
+而
+\begin{align*}
+\dot x_{it}-\bar{\dot x}_{\cdot t} &= (x_{it}-\bar x_{i\cdot})-(\bar x_{\cdot t}-\bar x_{\cdot\cdot}) \why{代入上式}\\
+&= \ddot x_{it} \why{定义 \eqref{eq:U10b-ddot}}
+\end{align*}
+恰好是双向去均值。下面给出严格证明。
+
+\subsection{定理：三种算法给出完全相同的 \texorpdfstring{$\hat\beta$}{beta-hat}}\label{sec:U10b-equiv-thm}
+
+\begin{thm}[TWFE 的三种等价算法（平衡面板）]\label{thm:U10b-equiv}
+在平衡面板中，以下三种方法得到数值上完全相同的 $\hat\beta$（以及相同的残差）：
+\begin{enumerate}[label=(\Alph*)]
+  \item 双向去均值后 OLS：$\hat\beta=(X\T QX)\inv X\T QY$，$Q=M_N\otimes M_T$；
+  \item 个体去均值 + 去均值后的时间虚拟变量：公式 \eqref{eq:U10b-fe-dummies}（Stata：\texttt{xtreg y x i.year, fe}）；
+  \item 双向 LSDV：$y$ 对 $x$、全部个体虚拟变量、$T-1$ 个时间虚拟变量做 OLS（Stata：\texttt{reg y x i.id i.year}）。
+\end{enumerate}
+\end{thm}
+
+证明分两个引理和两步。
+
+\subsubsection{引理 1：\texorpdfstring{$M_{D_\alpha}=I_N\otimes M_T$}{M\_D = I kron M\_T}}
+
+本章 FWL 一节已证，这里重述关键两行：
+\begin{align*}
+P_{D_\alpha} &= (I_N\otimes\one_T)\bigl[(I_N\otimes\one_T\T)(I_N\otimes\one_T)\bigr]\inv(I_N\otimes\one_T\T) \why{投影矩阵定义}\\
+&= (I_N\otimes\one_T)(I_N\otimes T)\inv(I_N\otimes\one_T\T)=I_N\otimes\tfrac1T\one_T\one_T\T=I_N\otimes P_T \why{混合积；$\one_T\T\one_T=T$}
+\end{align*}
+故 $M_{D_\alpha}=I_N\otimes I_T-I_N\otimes P_T=I_N\otimes M_T=M_D$。
+
+\subsubsection{引理 2：\texorpdfstring{$P_{\dot F}=P_N\otimes M_T$}{P\_F = P\_N kron M\_T}}
+
+要证：$\dot F$ 列空间上的正交投影为 $R\equiv P_N\otimes M_T$。思路：先求出 $\dot F$ 的列空间，再验证 $R$ 对称幂等且列空间恰为它。
+
+(a) 列空间。$\dot F=\one_N\otimes(M_TI_T^*)$，$M_TI_T^*$ 的列是 $M_Te_2,\dots,M_Te_T$（$e_s$ 为 $I_T$ 的第 $s$ 列）。
+\begin{align*}
+\sum_{s=1}^T M_Te_s &= M_T\one_T=0 \why{$\sum_se_s=\one_T$}\\
+M_Te_1 &= -\sum_{s\ge2}M_Te_s \why{移项}
+\end{align*}
+所以 $\operatorname{col}(M_TI_T^*)=\operatorname{span}\{M_Te_1,\dots,M_Te_T\}=\operatorname{col}(M_T)$，进而 $\operatorname{col}(\dot F)=\operatorname{col}(\one_N\otimes M_T)$。
+
+(b) 对称幂等。
+\begin{align*}
+R\T &= P_N\T\otimes M_T\T=R \why{$P_N$、$M_T$ 对称}\\
+R^2 &= P_N^2\otimes M_T^2=P_N\otimes M_T=R \why{混合积；二者幂等}
+\end{align*}
+
+(c) $R$ 的列空间等于 $\operatorname{col}(\one_N\otimes M_T)$。一方面
+\begin{align*}
+R(\one_N\otimes M_T) &= (P_N\one_N)\otimes(M_TM_T)=\one_N\otimes M_T \why{混合积；$P_N\one_N=\one_N$}
+\end{align*}
+故 $\operatorname{col}(\one_N\otimes M_T)\subseteq\operatorname{col}(R)$。另一方面
+\begin{align*}
+\tfrac1N(\one_N\otimes M_T)(\one_N\T\otimes I_T) &= \tfrac1N(\one_N\one_N\T)\otimes(M_TI_T)=P_N\otimes M_T=R \why{混合积}
+\end{align*}
+故 $\operatorname{col}(R)\subseteq\operatorname{col}(\one_N\otimes M_T)$。
+
+对称幂等且列空间正确的矩阵，就是该空间上的正交投影，所以 $P_{\dot F}=R=P_N\otimes M_T$。\qed
+
+\subsubsection{第 1 步：(B) = (A)}
+
+对 $\dot Y=\dot X\beta+\dot F\lambda^*+\dot U$ 用 FWL。先计算残差化后的 $\dot X$：
+\begin{align*}
+M_{\dot F}\dot X &= (I_{NT}-P_N\otimes M_T)(I_N\otimes M_T)X \why{引理 1、2}\\
+&= \bigl[I_N\otimes M_T-(P_N\otimes M_T)(I_N\otimes M_T)\bigr]X \why{展开乘积}\\
+&= \bigl[I_N\otimes M_T-P_N\otimes M_T^2\bigr]X \why{混合积}\\
+&= \bigl[(I_N-P_N)\otimes M_T\bigr]X \why{$M_T^2=M_T$；分配律}\\
+&= (M_N\otimes M_T)X=QX=\ddot X \why{结论 \ref{thm:U10b-Q}}
+\end{align*}
+即 $M_{\dot F}M_D=Q$。同理 $M_{\dot F}\dot Y=QY=\ddot Y$。代入 \eqref{eq:U10b-fe-dummies}：
+\begin{align*}
+\hat\beta_{(B)} &= \bigl[(M_{\dot F}\dot X)\T(M_{\dot F}\dot X)\bigr]\inv(M_{\dot F}\dot X)\T(M_{\dot F}\dot Y) \why{$M_{\dot F}$ 对称幂等}\\
+&= (\ddot X\T\ddot X)\inv\ddot X\T\ddot Y=(X\T QX)\inv X\T QY=\hat\beta_{(A)} \why{$Q$ 对称幂等}
+\end{align*}
+
+\subsubsection{第 2 步：(C) = (A)}
+
+在 (C) 中要偏出的是 $W=[D_\alpha,D_\lambda^*]$。投影的一个基本性质（第 3 章 FWL 定理的推论）：
+\[
+P_{[A,B]}=P_A+P_{M_AB}.
+\]
+理由：$[A,M_AB]=[A,B]\begin{psmallmatrix}I&-(A\T A)\inv A\T B\\0&I\end{psmallmatrix}$，右乘可逆矩阵不改变列空间，故 $\operatorname{col}[A,B]=\operatorname{col}[A,M_AB]$；又 $A\T M_AB=0$，两块正交，正交和空间上的投影等于各块投影之和。取 $A=D_\alpha$、$B=D_\lambda^*$，则 $M_AB=M_{D_\alpha}D_\lambda^*=\dot F$：
+\begin{align*}
+M_W &= I_{NT}-P_{D_\alpha}-P_{\dot F} \why{上式}\\
+&= I_N\otimes I_T-I_N\otimes P_T-P_N\otimes M_T \why{引理 1、2}\\
+&= I_N\otimes M_T-P_N\otimes M_T=M_N\otimes M_T=Q \why{合并；分配律}
+\end{align*}
+由 FWL，
+\[
+\hat\beta_{(C)}=(X\T M_WX)\inv X\T M_WY=(X\T QX)\inv X\T QY=\hat\beta_{(A)}.
+\]
+三种方法的残差都等于 $\ddot Y-\ddot X\hat\beta$（(C) 的残差为 $M_W(Y-X\hat\beta)=QY-QX\hat\beta$）。\qed
+
+另外，由 FWL，(C) 中时间虚拟变量的系数与 (B) 中的 $\hat\lambda^*$ 也相同：对 (C) 先偏出 $D_\alpha$，得到的正是 (B) 的回归。
+
+\subsubsection{直观：时间虚拟变量吸收的就是横截面均值}
+
+个体去均值之后，剩下的时间效应是 $\lambda_t-\bar\lambda$，它对所有个体相同；用时间虚拟变量去吸收它，就等于“每期减去该期的横截面平均”。所以
+\[
+\text{个体去均值 + 时间虚拟变量}=\text{个体去均值 + 时间去均值}=\text{双向去均值}.
+\]
+平衡面板中个体维度与时间维度的平均互不干扰（$P_N\otimes I_T$ 与 $I_N\otimes P_T$ 可交换，二者之积为 $P_N\otimes P_T$），一次各减一次就够了。
+
+\begin{keypt}[2025 真题第 1 题的作答骨架]
+(a) 写出 $\ddot Y_{it}=Y_{it}-\bar Y_{i\cdot}-\bar Y_{\cdot t}+\bar Y_{\cdot\cdot}$，用四个均值方程说明 $\alpha_i$、$\lambda_t$ 被消去（指出需平衡面板），给出 $\hat\beta_{FE}=\sum\sum\ddot x_{it}\ddot Y_{it}\big/\sum\sum\ddot x_{it}^2$。(b) 写出 $\lambda_t=\sum_sa_sf_s$，个体去均值后的回归 $\dot Y_{it}=\beta\dot x_{it}+\sum_{s\ge2}a_s\dot f_{s,it}+\dot\epsilon_{it}$，给出 \eqref{eq:U10b-fe-dummies}，并用 FWL 说明它等于 (a) 的结果。逐步作答见第 17 章。
+\end{keypt}
+
+\subsection{手工实现的陷阱：去均值的虚拟变量与原始虚拟变量}\label{sec:U10b-pitfall}
+
+若只对 $y$、$x$ 做个体去均值，却把\key{原始的}（未去均值的）时间虚拟变量放进回归，结果取决于放法。
+
+\subsubsection{放 \texorpdfstring{$T-1$}{T-1} 个原始虚拟变量、不放截距：错误}
+
+$\{\mathrm{year}_2,\dots,\mathrm{year}_T\}$ 的列空间不含常数列。$\dot x$ 对它们回归的拟合值：$t\ge2$ 时为该期横截面均值 $\bar{\dot x}_{\cdot t}$，$t=1$ 时为 0。所以残差化后的 $x$ 在 $t\ge2$ 时等于 $\ddot x_{it}$，在 $t=1$ 时却是 $\dot x_{i1}$：第 1 期的观测没有被“横截面去均值”，残差化后的 $x$ 不是 $\ddot x$，估计有偏。本章数值例中这种放法得到 $\hat\beta=5/3\approx1.667$，而正确答案是 1。
+
+\subsubsection{放全部 \texorpdfstring{$T$}{T} 个原始虚拟变量，或 \texorpdfstring{$T-1$}{T-1} 个加截距：仅在平衡面板中正确}
+
+此时偏出的列空间就是 $\operatorname{col}(D_\lambda)$（$T-1$ 个加截距张成同一空间）。$M_{D_\lambda}=M_N\otimes I_T$，而 $(M_N\otimes I_T)(I_N\otimes M_T)=M_N\otimes M_T=Q$，同样得到 $\ddot X$（证明见下面的即时练习）。非平衡面板中这一做法等于“先个体去均值、再每期减横截面均值”，一般\key{不等于}正确的 TWFE（本章非平衡面板部分）。
+
+\begin{prac}[原始虚拟变量的放法]\label{pr:U10b-rawdummies}
+在平衡面板中，研究者对 $y,x$ 做个体去均值后，回归 $\dot y_{it}$ 于 $\dot x_{it}$ 与全部 $T$ 个原始时间虚拟变量（无截距）。用 Kronecker 积证明所得 $\hat\beta$ 等于 $\hat\beta_{TWFE}$。
+
+\answer 偏出的矩阵是 $D_\lambda=\one_N\otimes I_T$。
+\begin{align*}
+D_\lambda\T D_\lambda &= (\one_N\T\otimes I_T)(\one_N\otimes I_T)=(\one_N\T\one_N)\otimes I_T=NI_T \why{混合积}\\
+P_{D_\lambda} &= \tfrac1N(\one_N\otimes I_T)(\one_N\T\otimes I_T)=\tfrac1N\one_N\one_N\T\otimes I_T=P_N\otimes I_T \why{混合积}\\
+M_{D_\lambda} &= I_N\otimes I_T-P_N\otimes I_T=M_N\otimes I_T \why{分配律}\\
+M_{D_\lambda}\dot X &= (M_N\otimes I_T)(I_N\otimes M_T)X=(M_N\otimes M_T)X=\ddot X \why{混合积}
+\end{align*}
+同理 $M_{D_\lambda}\dot Y=\ddot Y$。由 FWL，$\hat\beta=(\dot X\T M_{D_\lambda}\dot X)\inv\dot X\T M_{D_\lambda}\dot Y=(\ddot X\T\ddot X)\inv\ddot X\T\ddot Y=\hat\beta_{TWFE}$。
+\end{prac}
+
+\subsubsection{把虚拟变量也去均值、去掉一个：任何面板都正确}
+
+用 $\dot{\mathrm{year}}_s$（去均值的虚拟变量）并去掉一个，正是结论 \ref{thm:U10b-equiv} 的 (B)，在非平衡面板中仍然正确（下一小节）。用 \texttt{xtreg y x i.year, fe} 时软件会自动对虚拟变量去均值，不会出错。
+
+\subsection{推广到非平衡面板：Wansbeek--Kapteyn 变换与交替去均值}\label{sec:U10b-wk}
+
+\subsubsection{非平衡时 (B) 的显式写法}
+
+记个体 $i$ 的观测时期集合为 $\mathcal S_i$、$T_i=|\mathcal S_i|$，总观测数 $n=\sum_iT_i$。个体去均值后的时间虚拟变量为
+\[
+\dot{\mathrm{year}}_{s,it}=\mathbf 1\{t=s\}-\mathbf 1\{s\in\mathcal S_i\}/T_i,
+\]
+平衡时退化为 $\mathbf 1\{t=s\}-1/T$。记其矩阵为 $\dot F=M_{D_\alpha}D_\lambda^*$（$n\times(T-1)$）。由 $P_{[A,B]}=P_A+P_{M_AB}$（对任何设计矩阵都成立），
+\begin{align*}
+M_{[D_\alpha,D_\lambda^*]} &= I_n-P_{D_\alpha}-P_{\dot F}=M_{D_\alpha}-\dot F(\dot F\T\dot F)\inv\dot F\T\equiv Q_u \why{$P_{[A,B]}=P_A+P_{M_AB}$}\\
+\hat\beta_{TWFE} &= (X\T Q_uX)\inv X\T Q_uY \why{FWL}
+\end{align*}
+公式 \eqref{eq:U10b-fe-dummies} 的形式不变。要点：第二步是对 $\dot F$ 的\key{回归}，而不是“每期减去横截面均值”（Hansen §17.27 特别强调这一点）；平衡时 $Q_u=M_N\otimes M_T$，回归恰好退化为减均值。这个 $Q_u$ 就是非平衡面板的双向组内变换（Wansbeek and Kapteyn, 1989, \emph{Journal of Econometrics}）。
+
+\subsubsection{数值算法：交替去均值直到收敛}
+
+等价的数值算法：反复交替做“个体去均值”与“时间去均值”，直到收敛。这就是\term{交替投影}{alternating projections}，\texttt{reghdfe} 用的就是这类算法：交替作用 $M_{D_\alpha}$ 与 $M_{D_\lambda}$，极限是 $\operatorname{col}(D_\alpha)$ 与 $\operatorname{col}(D_\lambda)$ 的正交补之交上的投影，即 $M_{[D_\alpha,D_\lambda]}=Q_u$。只做一轮（个体去均值后再减一次各期均值），在非平衡面板中一般仍不正确。
+
+\subsection{Mundlak 表示：对 \texorpdfstring{$x_{it}$、$\bar x_{i\cdot}$、$\bar x_{\cdot t}$}{x, x-bar\_i, x-bar\_t} 做混合 OLS}\label{sec:U10b-mundlak}
+
+\subsubsection{Mundlak 方法的思想}
+
+\term{Mundlak 方法}{Mundlak approach}（Mundlak, 1978, \emph{Econometrica}）：既然 $\alpha_i$ 与 $x_{it}$ 相关，就把这种相关显式地建模为
+\[
+\alpha_i=\bar x_{i\cdot}\T\pi+a_i,
+\]
+$a_i$ 与 $x$ 不相关。代回模型后，只要在混合回归中加入 $\bar x_{i\cdot}$ 作为控制变量。
+
+\subsubsection{双向 Mundlak 回归}
+
+推广到双向（Wooldridge 2021 称为 two-way Mundlak regression，工作论文）：再令 $\lambda_t=\bar x_{\cdot t}\T\xi+b_t$，代入 \eqref{eq:U10b-twfe}：
+\begin{align*}
+y_{it} &= x_{it}\T\beta+(\bar x_{i\cdot}\T\pi+a_i)+(\bar x_{\cdot t}\T\xi+b_t)+u_{it} \why{代入 $\alpha_i,\lambda_t$}\\
+&= \mu+x_{it}\T\beta+\bar x_{i\cdot}\T\pi+\bar x_{\cdot t}\T\xi+e_{it} \why{$\mu$ 吸收 $a_i,b_t$ 的均值}
+\end{align*}
+其中 $e_{it}$ 由 $a_i$、$b_t$、$u_{it}$ 的离差组成。
+
+\subsubsection{定理：双向 Mundlak 回归 = TWFE}
+
+\begin{thm}[双向 Mundlak 回归 = TWFE（平衡面板）]\label{thm:U10b-mundlak}
+在平衡面板中，$y_{it}$ 对 $(1,x_{it},\bar x_{i\cdot},\bar x_{\cdot t})$ 做混合 OLS，$x_{it}$ 的系数在数值上等于 $\hat\beta_{TWFE}$。单向版本：$y_{it}$ 对 $(1,x_{it},\bar x_{i\cdot})$ 做混合 OLS，$x_{it}$ 的系数等于 $\hat\beta_{WG}$。
+\end{thm}
+
+\subsubsection{FWL 证明：\texorpdfstring{$x$}{x} 对控制变量回归的残差恰为 \texorpdfstring{$\ddot x$}{x-ddot}}
+
+记控制变量矩阵 $W$ 的第 $(i,t)$ 行为 $(1,\bar x_{i\cdot}\T,\bar x_{\cdot t}\T)$（$W$ 为 $NT\times(1+2K)$）。由 FWL，$x$ 的系数等于 $y$ 对“$x$ 关于 $W$ 回归的残差”的回归系数。分两步求这个残差。
+
+第一步，把 $x_{it}$ 分解为
+\[
+x_{it}=\ddot x_{it}+\underbrace{(\bar x_{i\cdot}-\bar x_{\cdot\cdot})+(\bar x_{\cdot t}-\bar x_{\cdot\cdot})+\bar x_{\cdot\cdot}}_{\in\ \operatorname{col}(W)}.
+\]
+（右边展开即 $x_{it}$。）后三项都是 $W$ 各列的线性组合：$\bar x_{\cdot\cdot}$ 是常数列的倍数，$\bar x_{i\cdot}-\bar x_{\cdot\cdot}$ 与 $\bar x_{\cdot t}-\bar x_{\cdot\cdot}$ 各是一列减去常数。
+
+第二步，$\ddot x$ 与 $W$ 的每一列正交。$W$ 的列要么在个体内为常数（$1$、$\bar x_{i\cdot}$），要么在时期内为常数（$\bar x_{\cdot t}$），而 $\ddot x$ 在每个个体内、每个时期内求和都为零（即时练习 \ref{pr:U10b-zerosum}）：
+\begin{align*}
+\sum_i\sum_t\ddot x_{it}\bar x_{i\cdot}\T &= \sum_i\Bigl(\sum_t\ddot x_{it}\Bigr)\bar x_{i\cdot}\T=0 \why{$\bar x_{i\cdot}$ 与 $t$ 无关}\\
+\sum_i\sum_t\ddot x_{it}\bar x_{\cdot t}\T &= \sum_t\Bigl(\sum_i\ddot x_{it}\Bigr)\bar x_{\cdot t}\T=0 \why{交换求和次序}
+\end{align*}
+常数列的情形同理。于是 $x=\ddot x+Wc$ 且 $W\T\ddot x=0$，故 $M_Wx=\ddot x$。由 FWL，
+\begin{align*}
+\hat\beta_x &= \Bigl(\sum\ddot x\ddot x\T\Bigr)\inv\sum\ddot x\,y \why{FWL}\\
+&= \Bigl(\sum\ddot x\ddot x\T\Bigr)\inv\sum\ddot x\,\ddot y=\hat\beta_{TWFE} \why{零和性质}
+\end{align*}
+单向情形把 $W$ 换成 $(1,\bar x_{i\cdot})$、$\ddot x$ 换成 $\dot x$ 即可。\qed
+
+\subsubsection{Mundlak 表示的用途}
+
+Mundlak 表示把“固定效应”改写成“带个体均值（与时间均值）作控制变量的普通回归”，从而：(i) 可以对 $H_0:\pi=0$ 做检验，这就是稳健版 Hausman 检验（第 11 章）；(ii) 可以在同一回归中加入时不变变量 $z_i$。
+
+\subsection{Stata 实现}\label{sec:U10b-stata}
+
+传统做法是“组内估计 + 年份虚拟变量”：\texttt{xtreg y x i.year, fe vce(robust)}，年份虚拟变量的系数就是 $\hat\lambda_t$（相对基期）。
+\begin{lstlisting}
+xtset id year
+xtreg y x i.year, fe vce(cluster id)             // TWFE: unit FE + year dummies
+areg  y x i.year, absorb(id) vce(cluster id)     // same beta
+reg   y x i.id i.year, vce(cluster id)           // two-way LSDV, same beta
+* user-written, fast with many FE (ssc install reghdfe):
+reghdfe y x, absorb(id year) vce(cluster id)
+\end{lstlisting}
+以上四条在任何面板（含非平衡）下都给出同一个 $\hat\beta$，因为它们都是“个体效应 + 时间虚拟变量”的 FWL 实现（标准误的有限样本修正因子可能略有差别）；只有“手工简单双向去均值”在非平衡面板中会出错。\tagext\ \texttt{reghdfe} 是社区编写的命令，用交替投影法吸收多组固定效应，适合 $N$、$T$ 都大或有多组固定效应的情形。
+
+\begin{english}
+Approximating $\lambda_t$ by time dummies, $\lambda_t=\sum_s\lambda_s\,\mathrm{year}_{s,it}$, and applying the one-way within transformation gives $\dot y_{it}=\dot x_{it}'\beta+\sum_{s\ge2}\lambda_s\,\dot{\mathrm{year}}_{s,it}+\dot u_{it}$; one dummy must be dropped because the demeaned dummies sum to zero. By the FWL theorem, $\hat\beta_{FE}=(\dot X'M_{\dot F}\dot X)^{-1}\dot X'M_{\dot F}\dot Y$, where $\dot F$ collects the demeaned time dummies. In a balanced panel, $P_{\dot F}=P_N\otimes M_T$ and hence $M_{\dot F}M_D=M_N\otimes M_T$, so this estimator is numerically identical to OLS on the two-way demeaned data, to the two-way LSDV estimator, and to the coefficient on $x_{it}$ in the two-way Mundlak regression. In unbalanced panels the dummy-variable approach remains valid, but the simple two-way demeaning formula does not.
+\end{english}
+
+%======================================================================
+\section{数值例：\texorpdfstring{$N=2$、$T=3$}{N=2, T=3} 演示 WG 与 TWFE}\label{sec:U10b-numex}
+
+本节用一组可手算的小数据把前两节的结论逐一落到数字上：单向 WG 为何偏、TWFE 如何纠正、几种虚拟变量算法为何相同、错误放法错在哪里。数据沿用本章组内估计一节手算 WG 的例子。
+
+\subsection{数据与数据生成过程}
+
+设真实模型 $y_{it}=\alpha_i+\lambda_t+\beta x_{it}+u_{it}$，其中 $\beta=1$，$\alpha=(1,4)$，$\lambda=(0,2,4)$（逐年上升的共同趋势），误差 $u_{1t}=(1,0,-1)$，$u_{2t}=(-1,1,0)$。$x$ 也逐年上升（与 $\lambda_t$ 相关），且个体 2 的 $x$ 更大（与 $\alpha_i$ 相关）：
+\begin{center}
+\begin{tabular}{cc|cc|ccc|cc}
+\toprule
+$i$ & $t$ & $x_{it}$ & $y_{it}$ & $\alpha_i$ & $\lambda_t$ & $u_{it}$ & $\dot x_{it}$ & $\dot y_{it}$\\
+\midrule
+1 & 1 & 1 & 3 & 1 & 0 & $1$ & $-2$ & $-3$\\
+1 & 2 & 2 & 5 & 1 & 2 & $0$ & $-1$ & $-1$\\
+1 & 3 & 6 & 10 & 1 & 4 & $-1$ & $3$ & $4$\\
+2 & 1 & 3 & 6 & 4 & 0 & $-1$ & $-2$ & $-5$\\
+2 & 2 & 6 & 13 & 4 & 2 & $1$ & $1$ & $2$\\
+2 & 3 & 6 & 14 & 4 & 4 & $0$ & $1$ & $3$\\
+\bottomrule
+\end{tabular}
+\end{center}
+验证：$y_{11}=1+0+1+1=3$，$y_{22}=4+2+6+1=13$，其余同理。各种均值：
+\[
+\bar x_{1\cdot}=3,\ \bar x_{2\cdot}=5,\ \bar y_{1\cdot}=6,\ \bar y_{2\cdot}=11;\quad
+\bar x_{\cdot t}=(2,4,6),\ \bar y_{\cdot t}=(4.5,9,12);\quad
+\bar x_{\cdot\cdot}=4,\ \bar y_{\cdot\cdot}=8.5.
+\]
+
+\subsection{单向 WG：只消去 \texorpdfstring{$\alpha_i$}{alpha\_i}，\texorpdfstring{$\hat\beta_{WG}=1.7$}{beta\_WG = 1.7}}
+
+\begin{exmp}[单向 WG 的手算]\label{ex:U10b-wg}
+只做个体内去均值，求 $\hat\beta_{WG}$，并用矩阵 $M_3$ 验证 $\dot x_{1t}$。
+
+\solution 由上表的 $\dot x$、$\dot y$：
+\begin{align*}
+\textstyle\sum\dot x^2 &= (4+1+9)+(4+1+1)=20 \why{逐项平方}\\
+\textstyle\sum\dot x\dot y &= (6+1+12)+(10+2+3)=34 \why{逐项相乘}\\
+\hat\beta_{WG} &= 34/20=1.7 \why{WG 公式}
+\end{align*}
+矩阵形式：$M_3=I_3-\frac13\one_3\one_3\T=\frac13\begin{psmallmatrix}2&-1&-1\\-1&2&-1\\-1&-1&2\end{psmallmatrix}$，
+\[
+M_3X_1=X_1-\bar x_{1\cdot}\one_3=(1,2,6)\T-3(1,1,1)\T=(-2,-1,3)\T,
+\]
+与上表一致。真值是 1，单向 WG 偏高 0.7（原因见后文）。
+\end{exmp}
+
+\subsection{双向去均值与 TWFE：\texorpdfstring{$\hat\beta_{TWFE}=1$}{beta\_TWFE = 1}}
+
+\begin{exmp}[TWFE 的手算]\label{ex:U10b-twfe-num}
+计算 $\ddot x_{it}$、$\ddot y_{it}$ 与 $\hat\beta_{TWFE}$，并用 $Q=M_2\otimes M_3$ 验证。
+
+\solution 按 $\ddot x_{it}=x_{it}-\bar x_{i\cdot}-\bar x_{\cdot t}+\bar x_{\cdot\cdot}$：
+\begin{align*}
+\ddot x_{1t} &= x_{1t}-3-\bar x_{\cdot t}+4=(1-3-2+4,\ 2-3-4+4,\ 6-3-6+4)=(0,-1,1) \why{代入均值}\\
+\ddot x_{2t} &= x_{2t}-5-\bar x_{\cdot t}+4=(3-5-2+4,\ 6-5-4+4,\ 6-5-6+4)=(0,1,-1) \why{代入均值}\\
+\ddot y_{1t} &= y_{1t}-6-\bar y_{\cdot t}+8.5=(1,-1.5,0.5) \why{代入均值}\\
+\ddot y_{2t} &= y_{2t}-11-\bar y_{\cdot t}+8.5=(-1,1.5,-0.5) \why{代入均值}
+\end{align*}
+逐项：$\ddot y_{11}=3-6-4.5+8.5=1$，$\ddot y_{12}=5-6-9+8.5=-1.5$，$\ddot y_{13}=10-6-12+8.5=0.5$。于是
+\begin{align*}
+\textstyle\sum\ddot x^2 &= 0+1+1+0+1+1=4 \why{逐项平方}\\
+\textstyle\sum\ddot x\ddot y &= (0+1.5+0.5)+(0+1.5+0.5)=4 \why{逐项相乘}\\
+\hat\beta_{TWFE} &= 4/4=1 \why{公式 \eqref{eq:U10b-twfe-est}}
+\end{align*}
+TWFE 恰好估出真值 1。与即时练习 \ref{pr:U10b-zerosum} 一致：$\ddot x_{2t}=-\ddot x_{1t}$，$\ddot y_{2t}=-\ddot y_{1t}$。
+
+矩阵验证：$M_2=\frac12\begin{psmallmatrix}1&-1\\-1&1\end{psmallmatrix}$，$Q=M_2\otimes M_3$。$QY$ 的第一个块为
+\begin{align*}
+(QY)_1 &= \tfrac12M_3Y_1-\tfrac12M_3Y_2 \why{$M_2$ 第一行为 $(\frac12,-\frac12)$}\\
+&= \tfrac12\bigl[(-3,-1,4)-(-5,2,3)\bigr]\T=(1,-1.5,0.5)\T \why{$M_3Y_i=\dot Y_i$}
+\end{align*}
+第二个块为其相反数，正是上面的 $\ddot y$。
+\end{exmp}
+
+\subsection{用虚拟变量与 Mundlak 回归验证}
+
+\begin{exmp}[四种回归的结果对照]\label{ex:U10b-dummies-num}
+分别用 (1) 双向 LSDV；(2) 个体去均值 + 去均值的年份虚拟变量；(3) 个体去均值 + 原始 $\mathrm{year}_2,\mathrm{year}_3$（无截距）；(4) Mundlak 回归，计算 $x$ 的系数。
+
+\solution \textbf{(1) 双向 LSDV}：$y$ 对 $(x,d_1,d_2,\mathrm{year}_2,\mathrm{year}_3)$ 做 OLS（无截距）。由结论 \ref{thm:U10b-equiv}，$\hat\beta=\hat\beta_{TWFE}=1$。给定 $\hat\beta$，其余系数是 $r_{it}\equiv y_{it}-x_{it}\hat\beta=(2,3,4;\,3,7,8)$ 对两组虚拟变量的拟合。平衡面板中拟合值为 $\bar r_{i\cdot}+\bar r_{\cdot t}-\bar r_{\cdot\cdot}$（因残差 $\ddot r$ 与两组虚拟变量都正交）：
+\begin{align*}
+&\bar r_{1\cdot}=3,\ \bar r_{2\cdot}=6,\ \bar r_{\cdot t}=(2.5,5,6),\ \bar r_{\cdot\cdot}=4.5 \why{求均值}\\
+&\hat\alpha_i=\bar r_{i\cdot}+\bar r_{\cdot1}-\bar r_{\cdot\cdot}=\bar r_{i\cdot}-2\ \Rightarrow\ \hat\alpha=(1,4) \why{基期 $t=1$}\\
+&\hat\lambda_s=\bar r_{\cdot s}-\bar r_{\cdot1}\ \Rightarrow\ \hat\lambda_2=2.5,\ \hat\lambda_3=3.5 \why{相对 $\lambda_1$}
+\end{align*}
+残差为 $(1,-0.5,-0.5;\,-1,0.5,0.5)$，恰等于 $\ddot y-\ddot x\hat\beta$。例如 $\hat y_{12}=\hat\alpha_1+\hat\lambda_2+\hat\beta x_{12}=1+2.5+2=5.5$，残差 $5-5.5=-0.5$。
+
+\textbf{(2) 个体去均值 + 去均值的年份虚拟变量}（\texttt{xtreg y x i.year, fe}）：由结论 \ref{thm:U10b-equiv} (B)，$\hat\beta=1$，且 $\hat\lambda_2=2.5$、$\hat\lambda_3=3.5$，与 (1) 相同。
+
+\textbf{(3) 错误放法}：$\dot y$ 对 $\dot x$ 与原始 $\mathrm{year}_2,\mathrm{year}_3$（无截距）。按 FWL，先把 $\dot x$ 对 $(\mathrm{year}_2,\mathrm{year}_3)$ 回归取残差：$t=2,3$ 时减去该期均值 $\bar{\dot x}_{\cdot2}=0$、$\bar{\dot x}_{\cdot3}=2$；$t=1$ 时拟合值为 0，原样保留：
+\begin{align*}
+\tilde x &= (-2,\ -1-0,\ 3-2;\ -2,\ 1-0,\ 1-2)=(-2,-1,1;\,-2,1,-1) \why{残差化}\\
+\textstyle\sum\tilde x\dot y &= 6+1+4+10+2-3=20 \why{与 $\dot y$ 相乘}\\
+\textstyle\sum\tilde x^2 &= 4+1+1+4+1+1=12 \why{逐项平方}\\
+\hat\beta &= 20/12=5/3\approx1.667 \why{FWL}
+\end{align*}
+第 1 期的 $\tilde x_{i1}=-2$ 而非 $\ddot x_{i1}=0$，这就是错误所在。
+
+\textbf{(4) Mundlak 回归}：$\bar x_{i\cdot}=(3,3,3;\,5,5,5)$，$\bar x_{\cdot t}=(2,4,6;\,2,4,6)$。由结论 \ref{thm:U10b-mundlak}，$y$ 对 $(1,x,\bar x_{i\cdot},\bar x_{\cdot t})$ 混合 OLS 时 $x$ 的系数为 $\sum\ddot x\,y/\sum\ddot x^2$：
+\begin{align*}
+\textstyle\sum\ddot x\,y &= 0\cdot3-1\cdot5+1\cdot10+0\cdot6+1\cdot13-1\cdot14=4 \why{零和性质：可用 $y$}\\
+\hat\beta_x &= 4/4=1 \why{FWL}
+\end{align*}
+对 $(1,x,\bar x_{i\cdot})$ 混合 OLS 时，$x$ 的系数为 $\sum\dot x\,y/\sum\dot x^2=(-6-5+30-12+13+14)/20=34/20=1.7=\hat\beta_{WG}$。
+\end{exmp}
+
+\subsection{为什么单向 WG 偏了：遗漏的时间效应}
+
+\begin{exmp}[单向 WG 偏误的分解]\label{ex:U10b-wgbias}
+把 $\hat\beta_{WG}-\beta=0.7$ 分解为“遗漏时间效应”与“误差”两部分。
+
+\solution 对 TWFE 模型只做单向变换，$\lambda_t$ 只被减去 $\bar\lambda$：$\dot y_{it}=\beta\dot x_{it}+(\lambda_t-\bar\lambda)+\dot u_{it}$，误差中还含有 $\lambda_t-\bar\lambda=(0,2,4)-2=(-2,0,2)$。本例 $\bar u_{1\cdot}=\bar u_{2\cdot}=0$，故 $\dot u_{1t}=(1,0,-1)$，$\dot u_{2t}=(-1,1,0)$。
+\begin{align*}
+\hat\beta_{WG}-\beta &= \frac{\sum\dot x_{it}\bigl[(\lambda_t-\bar\lambda)+\dot u_{it}\bigr]}{\sum\dot x_{it}^2} \why{单向变换后误差为 $(\lambda_t-\bar\lambda)+\dot u_{it}$}\\
+&= \frac{\overbrace{(4+0+6)+(4+0+2)}^{=16}+\overbrace{(-2-0-3)+(2+1+0)}^{=-2}}{20} \why{代入 $\dot x$、$\lambda_t-\bar\lambda$、$\dot u$}\\
+&= 0.8-0.1=0.7 \why{故 $\hat\beta_{WG}=1.7$}
+\end{align*}
+0.8 来自遗漏的年份效应（$x$ 与 $\lambda_t$ 同步上升），$-0.1$ 来自误差。TWFE 中 $\ddot u_{1t}=u_{1t}-\bar u_{1\cdot}-\bar u_{\cdot t}+\bar u_{\cdot\cdot}=(1,0,-1)-0-(0,0.5,-0.5)+0=(1,-0.5,-0.5)$，
+\[
+\textstyle\sum_t\ddot x_{1t}\ddot u_{1t}=0+0.5-0.5=0,
+\]
+个体 2 同理（$\ddot x_{2t}=-\ddot x_{1t}$，$\ddot u_{2t}=-\ddot u_{1t}$），所以 $\sum\ddot x\ddot u=0$，本例的估计误差恰好为零。一般样本中 $\sum\ddot x\ddot u\neq0$，但严格外生下其条件期望为零。
+\end{exmp}
+
+\subsection{\texorpdfstring{$N=2$}{N=2} 时 TWFE 的直观：先横截面相减、再时间去均值}
+
+\begin{exmp}[两步差分算法]\label{ex:U10b-n2}
+$N=2$ 时，用“先两个个体相减、再对时间去均值”重新计算 $\hat\beta_{TWFE}$。
+
+\solution 第一步，两个个体相减消去 $\lambda_t$：
+\begin{align*}
+y_{1t}-y_{2t} &= (\alpha_1-\alpha_2)+\beta(x_{1t}-x_{2t})+(u_{1t}-u_{2t}) \why{$\lambda_t-\lambda_t=0$}\\
+\Delta^{(12)}x_t &= x_{1t}-x_{2t}=(-2,-4,0),\quad \Delta^{(12)}y_t=(-3,-8,-4) \why{代入数据}
+\end{align*}
+第二步，对 $t$ 去均值消去 $\alpha_1-\alpha_2$：$\Delta^{(12)}x_t$ 的均值为 $-2$，$\Delta^{(12)}y_t$ 的均值为 $-5$，去均值后分别为 $(0,-2,2)$ 与 $(2,-3,1)$。斜率
+\[
+\frac{0\cdot2+(-2)(-3)+2\cdot1}{0+4+4}=\frac88=1=\hat\beta_{TWFE}.
+\]
+为什么相等：$N=2$ 时 $\bar x_{\cdot t}=\frac12(x_{1t}+x_{2t})$，故
+\begin{align*}
+\ddot x_{1t} &= (x_{1t}-\bar x_{\cdot t})-(\bar x_{1\cdot}-\bar x_{\cdot\cdot}) \why{重排定义}\\
+&= \tfrac12\Delta^{(12)}x_t-\tfrac12\overline{\Delta^{(12)}x} \why{$x_{1t}-\bar x_{\cdot t}=\frac12\Delta^{(12)}x_t$，再对 $t$ 平均}
+\end{align*}
+且 $\ddot x_{2t}=-\ddot x_{1t}$（$\ddot y$ 同理）。于是 $\sum_i\sum_t\ddot x_{it}^2=2\cdot\frac14\sum_t(\Delta^{(12)}x_t-\overline{\Delta^{(12)}x})^2$，$\sum_i\sum_t\ddot x_{it}\ddot y_{it}$ 同样是两步算法中相应求和的 $\frac12$ 倍，比值不变。这正是“双重差分”的思想：先在个体之间差分（消去时间效应），再在时间上差分（消去个体效应）。
+\end{exmp}
+
+\begin{prac}[没有时间效应时仍用 TWFE]\label{pr:U10b-nolambda}
+在本例中，若真实模型没有时间效应（$\lambda_t\equiv0$），但研究者仍用 TWFE。估计量还无偏吗？代价是什么？
+
+\answer 仍然无偏（且一致）：TWFE 对任意 $\lambda_t$（包括 $\lambda_t=0$）都精确消去，只要严格外生成立，$\E(\sum\ddot x\ddot u\mid X)=0$。代价是效率：双向变换额外扔掉了时间维度上的共同变异。本例中 $\sum\ddot x^2=4$ 远小于 $\sum\dot x^2=20$。在同方差、无序列相关下，
+\begin{align*}
+\Var(\hat\beta_{TWFE}\mid X) &= \sigma_u^2\Big/\textstyle\sum\ddot x^2=\sigma_u^2/4 \why{$\hat\beta-\beta=\sum\ddot xu/\sum\ddot x^2$}\\
+\Var(\hat\beta_{WG}\mid X) &= \sigma_u^2\Big/\textstyle\sum\dot x^2=\sigma_u^2/20 \why{$\lambda_t\equiv0$ 时 WG 无偏}
+\end{align*}
+方差大了 5 倍。这是“多控制一组效应”的典型权衡：用效率换稳健性。
+\end{prac}
+
+\begin{english}
+In a small example with $N=2$, $T=3$, $\beta=1$ and a common upward trend $\lambda_t$ that is correlated with $x_{it}$, the one-way within estimator gives $\hat\beta_{WG}=1.7$, because the omitted time effect $\lambda_t-\bar\lambda$ remains in the error and is correlated with $\dot x_{it}$. The two-way within estimator removes both effects and gives $\hat\beta_{TWFE}=1$. The two-way LSDV regression, the within regression with demeaned year dummies, and the two-way Mundlak regression all reproduce $\hat\beta=1$, whereas adding raw year dummies without an intercept to the demeaned regression gives the wrong value $5/3$. With $N=2$, TWFE is equivalent to differencing across the two units and then demeaning over time, which is the logic of difference-in-differences.
+\end{english}
+
+%======================================================================
+\section{TWFE 与 DiD 的连接（简述）}\label{sec:U10b-did}
+
+上一节 $N=2$ 的例子已经显示，TWFE 的本质是“两次差分”。本节把这一点精确化：当回归元是“处理组 $\times$ 生效期”的交互项时，TWFE 估计量就是经典的\term{双重差分}{difference-in-differences, DiD}估计量。DiD 的识别假设与处理效应框架见第 15 章。
+
+\subsection{处理变量 \texorpdfstring{$w_{it}=d_id_t$}{w = d\_i d\_t} 与经典 DiD 回归}
+
+\subsubsection{处理状态、生效期与交互项}
+
+定义三个虚拟变量：
+\[
+d_i=\begin{cases}1,&\text{处理组（treated）}\\0,&\text{对照组（untreated）}\end{cases},\qquad
+d_t=\begin{cases}1,&\text{政策已生效（effective）}\\0,&\text{未生效}\end{cases},
+\]
+\[
+w_{it}=d_i\cdot d_t=\begin{cases}1,&\text{处理组且已生效}\\0,&\text{其他}.\end{cases}
+\]
+$d_i$ 刻画\term{处理状态}{treatment status}，$d_t$ 是生效时期虚拟变量（effective date dummy），$w_{it}$ 是二者的交互项：只有处理组在生效期才等于 1。
+
+\subsubsection{经典 DiD 回归与 DiD 的定义}
+
+经典 DiD 回归为
+\[
+y_{it}=\alpha_0+\alpha_1d_i+\alpha_2d_t+\beta w_{it}+u_{it}.
+\]
+记 $\bar y_{(d,e)}$ 为 $d_i=d$、$d_t=e$ 的格子中 $y_{it}$ 的样本均值：$\bar y_{(1,1)}$（处理组、生效后）、$\bar y_{(1,0)}$（处理组、生效前）、$\bar y_{(0,1)}$（对照组、生效后）、$\bar y_{(0,0)}$（对照组、生效前）。DiD 定义为
+\[
+\text{DiD}=\bigl(\bar y_{(1,1)}-\bar y_{(1,0)}\bigr)-\bigl(\bar y_{(0,1)}-\bar y_{(0,0)}\bigr),
+\]
+即“处理组的前后变化”减去“对照组的前后变化”。回归中 4 个参数对应 4 个格子（饱和回归），拟合值等于格子均值：
+\begin{align*}
+\bar y_{(0,0)} &= \hat\alpha_0,\qquad \bar y_{(0,1)}=\hat\alpha_0+\hat\alpha_2 \why{$d_i=0$ 的两格}\\
+\bar y_{(1,0)} &= \hat\alpha_0+\hat\alpha_1,\qquad \bar y_{(1,1)}=\hat\alpha_0+\hat\alpha_1+\hat\alpha_2+\hat\beta \why{$d_i=1$ 的两格}\\
+\hat\beta &= \bigl(\bar y_{(1,1)}-\bar y_{(1,0)}\bigr)-\bigl(\bar y_{(0,1)}-\bar y_{(0,0)}\bigr) \why{四式相减}
+\end{align*}
+所以经典 DiD 回归中交互项的系数就是 DiD。
+
+\subsubsection{以 \texorpdfstring{$w_{it}$}{w\_it} 为回归元的 TWFE 模型}
+
+设 $N_1$ 个个体受处理（$d_i=1$），$N_0=N-N_1$ 个为对照；最后 $T_1$ 期为政策生效期（$d_t=1$），前 $T_0=T-T_1$ 期为生效前。所有处理个体同时开始受处理，称为\term{共同时点}{common timing}。把 $w_{it}=d_id_t$ 作为 TWFE 的回归元：
+\[
+y_{it}=\alpha_i+\lambda_t+\beta w_{it}+u_{it}.
+\]
+与经典 DiD 回归对比：TWFE 用 $\alpha_i$ 代替了 $\alpha_0+\alpha_1d_i$，用 $\lambda_t$ 代替了 $\alpha_2d_t$，控制得更细。$\hat\beta_{TWFE}$ 由 $(y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot})$ 对 $(w_{it}-\bar w_{i\cdot}-\bar w_{\cdot t}+\bar w_{\cdot\cdot})$ 的 OLS 得到，其中 $\bar w_{\cdot\cdot}=\frac1{NT}\sum_i\sum_tw_{it}=\frac{N_1T_1}{NT}$。
+
+\subsection{结论：\texorpdfstring{$\hat\beta_{TWFE}=\hat\beta_{DiD}$}{beta\_TWFE = beta\_DiD}}
+
+\begin{thm}[TWFE = DiD（两组、共同时点、平衡面板）]\label{thm:U10b-did}
+在上述设定下，
+\[
+\bar w_{\cdot\cdot}=\frac{N_1T_1}{NT},\qquad
+\ddot w_{it}=\Bigl(d_i-\frac{N_1}N\Bigr)\Bigl(d_t-\frac{T_1}T\Bigr),\qquad
+\hat\beta_{TWFE}=\bigl(\bar y_{(1,1)}-\bar y_{(1,0)}\bigr)-\bigl(\bar y_{(0,1)}-\bar y_{(0,0)}\bigr)=\hat\beta_{DiD}.
+\]
+\end{thm}
+
+证明思路：先求 $w$ 的三种均值并把 $\ddot w_{it}$ 因式分解，再分别算 $\hat\beta_{TWFE}=\sum\ddot wy/\sum\ddot w^2$ 的分母与分子。记 $p=N_1/N$（处理组比例），$q=T_1/T$（生效期比例）。
+
+\subsubsection{第 1 步：\texorpdfstring{$w$}{w} 的三种均值与 \texorpdfstring{$\bar w_{\cdot\cdot}=pq$}{w-bar = pq}}
+
+\begin{align*}
+\bar w_{i\cdot} &= \frac1T\sum_td_id_t=d_i\,q \why{$\sum_td_t=T_1$}\\
+\bar w_{\cdot t} &= \frac1N\sum_id_id_t=d_t\,p \why{$\sum_id_i=N_1$}\\
+\bar w_{\cdot\cdot} &= \frac1{NT}\sum_id_i\sum_td_t=\frac{N_1T_1}{NT}=pq \why{双重求和可分离}
+\end{align*}
+
+\subsubsection{第 2 步：\texorpdfstring{$\ddot w_{it}=(d_i-p)(d_t-q)$}{w-ddot = (d\_i - p)(d\_t - q)}}
+
+\begin{align*}
+\ddot w_{it} &= d_id_t-d_iq-d_tp+pq \why{代入三种均值}\\
+&= (d_i-p)(d_t-q) \why{因式分解}
+\end{align*}
+
+\subsubsection{第 3 步：分母 \texorpdfstring{$\sum\ddot w^2=NTp(1-p)q(1-q)$}{sum w-ddot\^{}2 = NT p(1-p) q(1-q)}}
+
+\begin{align*}
+\sum_i\sum_t\ddot w_{it}^2 &= \sum_i(d_i-p)^2\cdot\sum_t(d_t-q)^2 \why{乘积可分离}\\
+&= \bigl[N_1(1-p)^2+N_0p^2\bigr]\bigl[T_1(1-q)^2+T_0q^2\bigr] \why{$d_i,d_t\in\{0,1\}$}\\
+&= \bigl[Np(1-p)^2+N(1-p)p^2\bigr]\bigl[Tq(1-q)^2+T(1-q)q^2\bigr] \why{$N_1=Np$，$N_0=N(1-p)$ 等}\\
+&= Np(1-p)\cdot Tq(1-q) \why{提出公因子，$(1-p)+p=1$}
+\end{align*}
+
+\subsubsection{第 4 步：分子按四个格子分组}
+
+由零和性质，$\sum\ddot w\ddot y=\sum\ddot w\,y$。四个格子的大小分别为 $N_1T_1$、$N_1T_0$、$N_0T_1$、$N_0T_0$，$\ddot w$ 在格子内为常数：
+\begin{align*}
+\sum_i\sum_t\ddot w_{it}y_{it} &= (1-p)(1-q)N_1T_1\,\bar y_{(1,1)}-(1-p)q\,N_1T_0\,\bar y_{(1,0)} \\
+&\qquad-p(1-q)N_0T_1\,\bar y_{(0,1)}+pq\,N_0T_0\,\bar y_{(0,0)} \why{$\ddot w$ 在各格子取值}\\
+&= NTp(1-p)q(1-q)\bigl[\bar y_{(1,1)}-\bar y_{(1,0)}-\bar y_{(0,1)}+\bar y_{(0,0)}\bigr] \why{代入 $N_1T_1=NTpq$ 等}
+\end{align*}
+最后一步中四个系数相同：例如 $(1-p)q\cdot N_1T_0=(1-p)q\cdot NTp(1-q)$。分子除以分母即得 $\hat\beta_{TWFE}=(\bar y_{(1,1)}-\bar y_{(1,0)})-(\bar y_{(0,1)}-\bar y_{(0,0)})$。\qed
+
+\subsection{数值例：\texorpdfstring{$\bar w$}{w-bar} 与 \texorpdfstring{$\ddot w_{it}$}{w-ddot} 的计算}
+
+\begin{exmp}[6 个城市、5 年]\label{ex:U10b-did6}
+$N=6$ 个城市，$N_1=2$ 个受政策影响；$T=5$ 年，后 $T_1=3$ 年政策生效。求 $\bar w$ 与四个格子的 $\ddot w$；并写出 2025 真题 $2\times2$ 情形的结果。
+
+\solution $p=1/3$，$q=3/5$。
+\begin{align*}
+\bar w_{\cdot\cdot} &= \frac{2\times3}{30}=0.2=pq \why{$N_1T_1/(NT)$}\\
+\ddot w(\text{处理组、生效期}) &= \bigl(1-\tfrac13\bigr)\bigl(1-\tfrac35\bigr)=\tfrac23\cdot\tfrac25=\tfrac4{15} \why{$(d_i-p)(d_t-q)$}\\
+\ddot w(\text{处理组、生效前}) &= \tfrac23\cdot\bigl(-\tfrac35\bigr)=-\tfrac25 \why{同上}\\
+\ddot w(\text{对照组、生效期}) &= \bigl(-\tfrac13\bigr)\cdot\tfrac25=-\tfrac2{15} \why{同上}\\
+\ddot w(\text{对照组、生效前}) &= \bigl(0-\tfrac13\bigr)\bigl(0-\tfrac35\bigr)=\tfrac15 \why{同上}
+\end{align*}
+\tagexam\ 2025 真题第 1 题 (2) 的 $2\times2$ 情形：$N=T=2$，$N_1=T_1=1$，$p=q=\frac12$，$\bar w=\frac14$，$\ddot w_{it}=\pm\frac14$。
+\end{exmp}
+
+\begin{exmp}[10 个城市、5 年：验证分母公式]\label{ex:U10b-did10}
+政策在 $N=10$ 个城市中的 $N_1=4$ 个实施，在 $T=5$ 年中的最后 $T_1=2$ 年生效，$w_{it}=d_id_t$。(a) 求 $\bar w$ 与 $\ddot w_{it}$ 的四个可能取值；(b) 验证 $\sum\sum\ddot w_{it}^2=NTp(1-p)q(1-q)$；(c) 说明 $y_{it}=\alpha_i+\lambda_t+\beta w_{it}+u_{it}$ 的 TWFE 估计量等于四个格子均值的 DiD。
+
+\solution (a) $p=0.4$，$q=0.4$，$\bar w=\frac{4\times2}{50}=0.16=pq$。$\ddot w_{it}=(d_i-0.4)(d_t-0.4)$：处理组生效期 $0.6\times0.6=0.36$；处理组生效前 $0.6\times(-0.4)=-0.24$；对照组生效期 $(-0.4)(0.6)=-0.24$；对照组生效前 $(-0.4)(-0.4)=0.16$。
+
+(b) 格子大小 $N_1T_1=8$，$N_1T_0=12$，$N_0T_1=12$，$N_0T_0=18$：
+\begin{align*}
+\textstyle\sum\ddot w^2 &= 8(0.36)^2+12(0.24)^2+12(0.24)^2+18(0.16)^2 \why{按格子求和}\\
+&= 1.0368+0.6912+0.6912+0.4608=2.88 \why{逐项计算}\\
+NTp(1-p)q(1-q) &= 50\times0.4\times0.6\times0.4\times0.6=2.88 \why{公式}
+\end{align*}
+二者一致。(c) 由结论 \ref{thm:U10b-did} 证明的第 4 步：分子 $=\sum\ddot w\,y=NTp(1-p)q(1-q)[\bar y_{(1,1)}-\bar y_{(1,0)}-\bar y_{(0,1)}+\bar y_{(0,0)}]$，除以 (b) 即得。
+\end{exmp}
+
+\subsection{适用范围：共同时点、平衡面板与第 15 章}
+
+上面的等价是\key{纯代数}结论，需要：两组、所有处理个体\key{同时}开始受处理、处理一旦开始不撤销、平衡面板。在\term{交错处理}{staggered adoption}（不同个体在不同年份开始受处理）且处理效应随个体或时间变化时，$\hat\beta_{TWFE}$ 是各种 $2\times2$ DiD 的加权平均（Goodman-Bacon 分解），其中一部分比较拿“已经受处理的个体”当对照组，导致某些个体—时期的处理效应获得负权重，$\hat\beta_{TWFE}$ 不再等于任何单一的 DiD，也不一定落在各处理效应的取值范围内。DiD 的识别假设（平行趋势）、处理效应的定义（ATT）、异质性处理效应下的新估计量，以及 2025 真题第 1 题 (2) 问，全部见第 15 章（逐步作答见第 17 章）。
+
+\begin{prac}[\texorpdfstring{$2\times2$}{2x2} 情形]\label{pr:U10b-did22}
+$N=T=2$，个体 1 受处理，第 2 期生效。四个观测值：$y_{11}=6$（处理组、生效前），$y_{12}=10$（处理组、生效后），$y_{21}=5$，$y_{22}=7$。(a) 写出 $\ddot w_{it}$ 的四个取值并验证 $\bar w=1/4$；(b) 计算 $\hat\beta_{TWFE}$ 并与 DiD 比较。
+
+\answer (a) $p=q=\frac12$，$\ddot w_{it}=(d_i-\frac12)(d_t-\frac12)$：
+\[
+\ddot w_{12}=\tfrac12\cdot\tfrac12=\tfrac14,\quad \ddot w_{11}=\tfrac12\cdot(-\tfrac12)=-\tfrac14,\quad \ddot w_{22}=(-\tfrac12)\cdot\tfrac12=-\tfrac14,\quad \ddot w_{21}=(-\tfrac12)(-\tfrac12)=\tfrac14;
+\]
+$\bar w=\frac{1\cdot1}{4}=\frac14$（四个观测中只有 $w_{12}=1$）。(b)
+\begin{align*}
+\textstyle\sum\ddot w^2 &= 4\times\tfrac1{16}=\tfrac14 \why{四个 $\pm\frac14$}\\
+\textstyle\sum\ddot w\,y &= \tfrac14(10-6-7+5)=\tfrac12 \why{按符号分组}\\
+\hat\beta_{TWFE} &= \frac{1/2}{1/4}=2 \why{相除}\\
+\text{DiD} &= (10-6)-(7-5)=4-2=2 \why{定义}
+\end{align*}
+二者相同。
+\end{prac}
+
+\begin{english}
+In the two-group, common-timing design with $w_{it}=d_id_t$, the two-way demeaned treatment is $\ddot w_{it}=(d_i-N_1/N)(d_t-T_1/T)$ and $\bar w=N_1T_1/(NT)$. OLS of $\ddot y_{it}$ on $\ddot w_{it}$ yields $\hat\beta_{TWFE}=(\bar y_{11}-\bar y_{10})-(\bar y_{01}-\bar y_{00})$, i.e.\ the TWFE estimator coincides with the classic difference-in-differences estimator. This is a purely algebraic result for a balanced panel. The equivalence breaks down under staggered adoption with heterogeneous effects, where the TWFE coefficient is a weighted average of many $2\times2$ comparisons, some of which use already-treated units as controls.
+\end{english}
+
+%======================================================================
+\section{本章小结}\label{sec:U10b-summary}
+
+\subsection{核心公式与结论}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.3cm}LL@{}}
+\toprule
+主题 & 公式 & 条件 / 要点\\
+\midrule
+静态面板模型 & $y_{it}=\alpha_i+x_{it}\T\beta+u_{it}$ & FE 模型 $\E(\alpha_i\mid x_{it})\neq0$；RE 模型 $\E(\alpha_i\mid x_{it})=0$；先定模型，再选估计\\
+LSDV & $Y=(I_N\otimes\one_T)\alpha+X\beta+U$，OLS & $\hat\beta$ 一致；$\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta$ 仅 $T\to\infty$ 时一致（伴随参数）\\
+组内变换 & $y_{it}-\bar y_{i\cdot}=(x_{it}-\bar x_{i\cdot})\T\beta+(u_{it}-\bar u_{i\cdot})$ & 消去 $\alpha_i$ 与一切时不变变量\\
+WG / FE 估计量 & $\hat\beta_{FE}=\bigl(\sum_iX_i\T M_TX_i\bigr)\inv\sum_iX_i\T M_TY_i=(X\T M_DX)\inv X\T M_DY$，$M_D=I_N\otimes M_T$ & 一致性：严格外生 $\E(x_{is}u_{it})=0\ \forall s,t$；个体内有时间变异；$N\to\infty$；对 $\alpha_i$ 无要求\\
+FWL & $M_{D_\alpha}=I_N\otimes M_T\Rightarrow\hat\beta_{LSDV}=\hat\beta_{WG}$ & 数值相等，残差相同\\
+方差 & 夹心 $A\inv\bigl(\sum_i\dot X_i\T\Sigma_i\dot X_i\bigr)A\inv$，$A=\sum_i\dot X_i\T\dot X_i$ & 经典自由度 $NT-N-K$；按个体聚类 \texttt{vce(cluster id)}；White 型对 FE 不一致\\
+嵌套多层效应 & 只识别 $\alpha_i+\alpha_j$ & 最低层组内变换全部消去；上层虚拟变量共线\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{单向固定效应：核心公式}
+\end{center}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.3cm}LL@{}}
+\toprule
+主题 & 公式 & 条件 / 要点\\
+\midrule
+TWFE 模型 & $y_{it}=x_{it}\T\beta+\alpha_i+\lambda_t+u_{it}$ & $\alpha_i,\lambda_t$ 都可与 $x_{it}$ 任意相关\\
+双向组内变换 & $\ddot y_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$，$Q=M_N\otimes M_T$ & 平衡面板精确消去 $\alpha_i,\lambda_t$；$QD_\alpha=QD_\lambda=0$；$\rank Q=(N-1)(T-1)$\\
+TWFE 估计量 & $\hat\beta_{TWFE}=\bigl(\sum\sum\ddot x\ddot x\T\bigr)\inv\sum\sum\ddot x\ddot y=(X\T QX)\inv X\T QY$ & 残差自由度 $NT-N-T+1-K$；分子 $\ddot y$ 可换成 $y$\\
+被消去的变量 & $\ddot z_i=0$，$\ddot g_t=0$ & 只识别在 $i$、$t$ 两维都变化的回归元\\
+个体去均值 + 时间虚拟变量 & $\hat\beta=(\dot X\T M_{\dot F}\dot X)\inv\dot X\T M_{\dot F}\dot Y$，$P_{\dot F}=P_N\otimes M_T$ & 关键 $M_{\dot F}M_D=M_N\otimes M_T$；去均值后须去掉一个虚拟变量\\
+数值等价 & 双向去均值 $=$ 个体去均值 + 去均值时间虚拟变量 $=$ 双向 LSDV $=$ 双向 Mundlak & 平衡面板；残差也相同\\
+非平衡面板 & $Q_u=M_{D_\alpha}-\dot F(\dot F\T\dot F)\inv\dot F\T$ & 简单双向去均值失效；LSDV、$Q_u$、交替去均值三者相同\\
+DiD & $w_{it}=d_id_t$，$\ddot w_{it}=(d_i-\frac{N_1}N)(d_t-\frac{T_1}T)$，$\bar w=\frac{N_1T_1}{NT}$ & $\hat\beta_{TWFE}=\hat\beta_{DiD}$（两组、共同时点、平衡面板）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{双向固定效应与 DiD：核心公式}
+\end{center}
+
+一句话：固定效应估计用“组内变异”换取对不可观测个体（及时间）效应的完全稳健；LSDV、组内变换、虚拟变量 + 去均值，在平衡面板中只是同一个 FWL 投影的不同算法。
+
+\subsection{方法对照与选择要点}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.6cm}p{4.4cm}L@{}}
+\toprule
+情形 & 推荐做法 & 理由 / 注意\\
+\midrule
+$\alpha_i$ 可能与 $x_{it}$ 相关 & 单向 FE（WG $=$ LSDV） & 只用组内变异；$N$ 大时用组内变换，避免 $N$ 个虚拟变量的计算负担\\
+$T=2$ & FD 与 FE 任选 & 二者数值相同\\
+存在与 $x$ 相关的共同冲击 & TWFE：\texttt{xtreg y x i.year, fe} & 不控制则单向 WG 有偏（本章数值例偏 0.7）\\
+不确定是否有时间效应 & 加年份虚拟变量，对其系数做联合显著性检验 & 多控制一组效应：稳健但损失效率\\
+非平衡面板 & 个体 FE + 年份虚拟变量（\texttt{xtreg}、\texttt{areg}、\texttt{reghdfe}） & 不要手工简单双向去均值\\
+嵌套层级（省—市） & 固定效应放在最低层 & 上层效应自动被吸收，不可单独识别\\
+多组不嵌套效应 & \texttt{reghdfe y x, absorb(...)} & 交替投影；工人—企业效应需有流动\\
+关心时不变变量或宏观变量 & Mundlak、RE、Hausman--Taylor（第 11 章），或用交互项 & FE / TWFE 把它们消去\\
+标准误 & 按个体或更高层级聚类 & 簇间独立、簇内相关任意；簇数要足够多\\
+动态面板（含 $y_{i,t-1}$） & 差分 + 工具变量（第 12 章） & 严格外生失败，WG 不一致\\
+政策评估：两组、共同时点 & TWFE 即 DiD & 交错处理且效应异质时见第 15 章\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{面板估计方法的选择}
+\end{center}
+
+\subsection{常见错误清单}
+
+\begin{enumerate}
+  \item 非平衡面板中直接用 $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$ 做 OLS。正确做法：个体效应 + 时间虚拟变量（或 $Q_u$、交替去均值）。
+  \item 个体去均值后放 $T-1$ 个\key{原始}年份虚拟变量且不放截距（本章数值例得 $5/3$，真值 1）。
+  \item 去均值后放全部 $T$ 个去均值年份虚拟变量（完全共线）；或含截距时两组虚拟变量都不去掉一个。
+  \item 试图用 FE / TWFE 估计时不变变量（性别）或共同时间序列变量（全国利率）的系数。
+  \item 嵌套层级中以为同时放城市与省份虚拟变量就能分别估计省份效应。
+  \item 把 $\hat\alpha_i$（或 $\widehat{\alpha_i+\alpha_j}$）当作一致估计：$T$ 固定时不一致；但这不影响线性模型中 $\hat\beta$ 的一致性。
+  \item $\sigma_u^2$ 的分母用错：单向 FE 应为 $NT-N-K$，TWFE 应为 $NT-N-T+1-K$，不是 $NT-K$。
+  \item FE 中使用 White 异方差稳健标准误（不一致）；应按个体聚类。
+  \item 只对 $y$ 去均值、不对 $x$ 去均值：$\ddot y$ 可换成 $y$，$\ddot x$ 不能换成 $x$。
+  \item 含平方项、交互项时先去均值再平方：应先构造 $x^2$、$x_1x_2$，再对每个回归元去均值。
+  \item 交错处理且处理效应异质时，仍把 $\hat\beta_{TWFE}$ 解释为平均处理效应。
+  \item 动态面板（回归元含 $y_{i,t-1}$）中仍用 WG。
+\end{enumerate}
+
+\subsection{综合练习}
+
+\begin{prac}[TWFE projection algebra]\label{pr:U10b-proj}
+Consider a balanced panel with $N$ units and $T$ periods, and let $Q=M_N\otimes M_T$. (a) Show that $Q$ is symmetric and idempotent with rank $(N-1)(T-1)$. (b) Show that $Q(I_N\otimes\one_T)=0$ and $Q(\one_N\otimes I_T)=0$. (c) Show that the $(i,t)$ element of $QY$ is $y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y_{\cdot\cdot}$. (d) Derive an unbiased estimator of $\sigma_u^2$ under homoskedasticity and no serial correlation, and state its degrees of freedom.
+
+\answer (a)(b)(c) 的完整推导见结论 \ref{thm:U10b-Q} 的证明，要点：(a) $Q\T=M_N\T\otimes M_T\T=Q$，$Q^2=M_N^2\otimes M_T^2=Q$（混合积），$\rank Q=\tr Q=\tr M_N\cdot\tr M_T=(N-1)(T-1)$；(b) 混合积加 $M_T\one_T=0$、$M_N\one_N=0$；(c) 展开 $Q=I\otimes I-I\otimes P_T-P_N\otimes I+P_N\otimes P_T$，四项依次给出 $y_{it}$、$\bar y_{i\cdot}$、$\bar y_{\cdot t}$、$\bar y_{\cdot\cdot}$。
+
+(d) 记 $\ddot X=QX$，$P_{\ddot X}=\ddot X(\ddot X\T\ddot X)\inv\ddot X\T$。由 (b)，$QY=\ddot X\beta+QU$。TWFE 残差为
+\begin{align*}
+\hat U &= QY-\ddot X\hat\beta=(I-P_{\ddot X})QY \why{$\ddot X\hat\beta=P_{\ddot X}QY$}\\
+&= (I-P_{\ddot X})(\ddot X\beta+QU)=(I-P_{\ddot X})QU \why{$(I-P_{\ddot X})\ddot X=0$}\\
+&= (Q-P_{\ddot X})U \why{$P_{\ddot X}Q=P_{\ddot X}$，因 $Q\ddot X=\ddot X$}
+\end{align*}
+$Q-P_{\ddot X}$ 对称；又 $QP_{\ddot X}=P_{\ddot X}Q=P_{\ddot X}$，故 $(Q-P_{\ddot X})^2=Q-2P_{\ddot X}+P_{\ddot X}=Q-P_{\ddot X}$，幂等。于是
+\begin{align*}
+\E(\hat U\T\hat U\mid X) &= \E\bigl[U\T(Q-P_{\ddot X})U\mid X\bigr] \why{代入，幂等}\\
+&= \tr\bigl[(Q-P_{\ddot X})\E(UU\T\mid X)\bigr] \why{标量 $=$ 迹；迹可轮换}\\
+&= \sigma_u^2\tr(Q-P_{\ddot X})=\sigma_u^2\bigl[(N-1)(T-1)-K\bigr] \why{$\E(UU\T\mid X)=\sigma_u^2I$；$\tr P_{\ddot X}=K$}
+\end{align*}
+无偏估计量为
+\[
+\hat\sigma_u^2=\frac{\sum_i\sum_t\hat u_{it}^2}{(N-1)(T-1)-K}=\frac{\sum_i\sum_t\hat u_{it}^2}{NT-N-T+1-K},
+\]
+自由度 $NT-N-T+1-K$，与双向 LSDV 的参数个数 $N+(T-1)+K$ 一致。
+\end{prac}
+
+\begin{prac}[One-way within plus time dummies]\label{pr:U10b-onewaydum}
+Consider $Y_{it}=\alpha_i+\lambda_t+\beta x_{it}+\epsilon_{it}$ with a balanced panel. A researcher approximates $\lambda_t$ by time dummies and applies only the within transformation that removes $\alpha_i$. (a) Write the transformed regression and the formula of $\hat\beta_{FE}$. (b) Prove that $\hat\beta_{FE}$ in (a) equals the estimator based on the two-way within transformation. (c) Using the data of the numerical example in this chapter ($N=2$, $T=3$), compute $\hat\beta_{FE}$ from (a). What would the researcher get if he included the raw dummies $\mathrm{year}_2,\mathrm{year}_3$ without demeaning and without an intercept? Explain.
+
+\answer (a) 个体去均值后的回归：
+\[
+\dot Y_{it}=\beta\dot x_{it}+\sum_{s=2}^T\lambda_s\dot{\mathrm{year}}_{s,it}+\dot\epsilon_{it},\qquad \dot{\mathrm{year}}_{s,it}=\mathbf 1\{t=s\}-1/T,
+\]
+（去均值后 $T$ 个虚拟变量之和为零，须去掉一个）。由 FWL，$\hat\beta_{FE}=(\dot x\T M_{\dot F}\dot x)\inv\dot x\T M_{\dot F}\dot Y$，$\dot F$ 为去均值时间虚拟变量矩阵。
+
+(b) 见结论 \ref{thm:U10b-equiv} 的第 1 步：由引理 2，$P_{\dot F}=P_N\otimes M_T$，故 $M_{\dot F}M_D=(I_{NT}-P_N\otimes M_T)(I_N\otimes M_T)=M_N\otimes M_T=Q$，于是 $M_{\dot F}\dot x=\ddot x$、$M_{\dot F}\dot Y=\ddot Y$，$\hat\beta_{FE}=(\ddot x\T\ddot x)\inv\ddot x\T\ddot Y=\hat\beta_{TWFE}$。
+
+(c) $\hat\beta_{FE}=\sum\ddot x\ddot y/\sum\ddot x^2=4/4=1$（例 \ref{ex:U10b-twfe-num}）。原始虚拟变量、无截距：$\hat\beta=5/3$（例 \ref{ex:U10b-dummies-num}）。原因：$\{\mathrm{year}_2,\mathrm{year}_3\}$ 的列空间不含常数列，偏出它们相当于只对 $t=2,3$ 两期做横截面去均值，而 $t=1$ 期的 $\dot x_{i1}$ 原样保留，残差化后的 $x$ 不是 $\ddot x$，不再消去时间效应。补救：加截距、或放全部 3 个原始虚拟变量、或使用去均值的虚拟变量。
+\end{prac}
+
+\begin{prac}[Incidental parameters]\label{pr:U10b-incid}
+In the one-way FE model with $\E(U_iU_i\T\mid X_i)=\sigma_u^2I_T$, let $\hat u_{it}$ be the LSDV residuals. (a) Show that $\hat\alpha_i=\bar y_{i\cdot}-\bar x_{i\cdot}\T\hat\beta$ is inconsistent for $\alpha_i$ as $N\to\infty$ with $T$ fixed. What is its asymptotic variance? (b) Show that $\frac1{NT}\sum_i\sum_t\hat u_{it}^2\pto\frac{T-1}{T}\sigma_u^2$. (c) Why does the incidental parameter problem not affect $\hat\beta_{FE}$ in the linear model?
+
+\answer (a)
+\begin{align*}
+\hat\alpha_i-\alpha_i &= (\alpha_i+\bar x_{i\cdot}\T\beta+\bar u_{i\cdot})-\bar x_{i\cdot}\T\hat\beta-\alpha_i \why{代入 $\bar y_{i\cdot}$}\\
+&= \bar u_{i\cdot}-\bar x_{i\cdot}\T(\hat\beta-\beta)\pto\bar u_{i\cdot} \why{$\hat\beta\pto\beta$}
+\end{align*}
+$\bar u_{i\cdot}$ 是 $T$ 个误差的平均，$T$ 固定时不退化，方差为 $\sigma_u^2/T$（见本章 LSDV 一节的伴随参数问题）。只有 $T\to\infty$ 时 $\hat\alpha_i$ 才一致。
+
+(b) LSDV 残差等于 WG 残差。由 $M_TY_i=M_TX_i\beta+M_TU_i$（$M_T\one_T\alpha_i=0$），
+\begin{align*}
+\hat U_i &= M_T(Y_i-X_i\hat\beta)=M_TU_i-M_TX_i(\hat\beta-\beta) \why{代入 $M_TY_i$}\\
+\frac1{NT}\sum_i\hat U_i\T\hat U_i &= \frac1{NT}\sum_iU_i\T M_TU_i-\frac2{NT}(\hat\beta-\beta)\T\sum_iX_i\T M_TU_i \\
+&\qquad+\frac1{NT}(\hat\beta-\beta)\T\sum_iX_i\T M_TX_i(\hat\beta-\beta) \why{展开；$M_T$ 对称幂等}
+\end{align*}
+后两项中 $\hat\beta-\beta\pto0$，$\frac1N\sum_iX_i\T M_TU_i\pto0$，$\frac1N\sum_iX_i\T M_TX_i\pto Q_T$，故二者都 $\pto0$。第一项由 WLLN：
+\begin{align*}
+\frac1{NT}\sum_iU_i\T M_TU_i &\pto \frac1T\E(U_i\T M_TU_i) \why{WLLN（跨 $i$ 独立同分布）}\\
+&= \frac1T\E\bigl[\tr\bigl(M_T\E(U_iU_i\T\mid X_i)\bigr)\bigr] \why{迹可轮换；迭代期望律}\\
+&= \frac1T\sigma_u^2\tr(M_T)=\frac{T-1}{T}\sigma_u^2 \why{$\tr M_T=T-1$}
+\end{align*}
+所以 $\frac1{NT}\sum\hat u^2$ 不一致，正确的分母是 $NT-N-K$（自由度修正）。
+
+(c) 线性模型中存在一个不依赖 $\alpha_i$ 的变换（组内变换）把 $\alpha_i$ 精确消去：$\hat\beta_{FE}-\beta=(X\T M_DX)\inv X\T M_DU$ 与 $\alpha$ 无关，$\hat\alpha_i$ 的估计误差不会“传染”给 $\hat\beta$。非线性模型（如 logit）没有这样的变换，$\hat\alpha_i$ 的误差会进入 $\hat\beta$ 的一阶条件，导致 $\hat\beta$ 也不一致（第 11 章）。
+\end{prac}
+
+\begin{prac}[Clustered inference]\label{pr:U10b-cluster}
+Explain why the conventional variance $\hat\sigma_u^2\bigl(\sum_iX_i\T M_TX_i\bigr)\inv$ may be invalid in panel data, write the cluster-robust variance estimator for $\hat\beta_{FE}$, and state the conditions under which it is consistent. When should one cluster at a level higher than the individual?
+
+\answer 经典方差要求 $\Sigma_i\equiv\E(U_iU_i\T\mid X_i)=\sigma_u^2I_T$。面板误差通常有异方差与个体内序列相关（如持续性冲击），此时夹心中的“肉” $\sum_i\dot X_i\T\Sigma_i\dot X_i\neq\sigma_u^2\sum_i\dot X_i\T\dot X_i$，经典标准误一般偏小。按个体聚类的稳健方差为
+\[
+\hat V=\Bigl(\sum_i\dot X_i\T\dot X_i\Bigr)\inv\Bigl(\sum_i\dot X_i\T\hat U_i\hat U_i\T\dot X_i\Bigr)\Bigl(\sum_i\dot X_i\T\dot X_i\Bigr)\inv,\qquad \dot X_i=M_TX_i.
+\]
+一致的条件：个体（簇）之间独立，簇内相关结构任意；簇的个数 $N\to\infty$（$T$ 固定即可）；严格外生与秩条件成立。若不同个体的冲击在某个更高层级（如同省、同行业）内相关，应在该层级聚类（个体嵌套于簇内），并要求簇数足够多（经验上 $G\ge30$）。Stata：\texttt{xtreg y x, fe vce(cluster id)} 或 \texttt{vce(cluster province)}。
+\end{prac}
+
+\begin{english}
+Fixed effects estimation uses only within variation and is therefore fully robust to unobserved individual (and time) effects that may be arbitrarily correlated with the regressors. In the one-way model, the LSDV and within estimators are numerically identical by the FWL theorem, since the residual maker of the unit dummies is $I_N\otimes M_T$; the individual effects themselves are not consistently estimated when $T$ is fixed. In the two-way model, the two-way within transformation $Q=M_N\otimes M_T$ removes both $\alpha_i$ and $\lambda_t$ in a balanced panel, and OLS on the transformed data equals the two-way LSDV estimator, the within estimator with demeaned time dummies, and the two-way Mundlak regression. In unbalanced panels one should use unit fixed effects plus time dummies. Inference should be based on cluster-robust standard errors, clustered at the individual level or higher.
+\end{english}

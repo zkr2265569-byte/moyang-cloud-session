@@ -1,0 +1,1228 @@
+%======================================================================
+% U13a  第 13 章（前半）：截面相关、强弱相关、因子模型、强弱因子、矩阵形式与识别
+%======================================================================
+\chapter{截面相关、因子模型与主成分分析}
+\label{ch:U13a-factor}
+
+前面各章只允许面板误差有两类相关：同一个体跨时间的相关（HAC）与已知组内的相关（聚类），见第 5 章。本章处理第三类、也是最难处理的一类：\key{同一时刻不同个体之间的相关}（截面相关，CSD）。学习路线：用标量 $\frac1N\one\T\Sigma_u\one$ 区分强、弱相关 $\to$ 说明\key{潜在因子模型}是产生强截面相关的标准机制，区分强、弱因子 $\to$ 矩阵形式与识别 $\to$ \key{主成分分析（PCA）}估计、因子个数的选择与应用。第 14 章把因子结构放进面板回归的误差项（即第 10 章预告的交互固定效应 $\alpha_{it}=\lambda_i\T f_t$），第 16 章的合成控制、面板数据法与矩阵补全也建立在本章之上。对应 Hansen 第 11.11--11.14、11.16 节与附录 A.15；强/弱截面相关、SAR 模型、IPCA 与弱因子 Hansen 未涉及。所需的迹、特征分解与瑞利商见第 1 章。
+
+\begin{keypt}[本章高频考点]
+\begin{enumerate}
+  \item 写出 CSD 的定义，说明它与聚类相关、HAC 的区别；用 $\frac1N\one\T\Sigma_u\one$ 判断强/弱相关，完成两个极端例子的计算。
+  \item 由因子模型推导 $\Cov(u_{it},u_{jt})=\lambda_i\T\E(f_tf_t\T)\lambda_j$，说明强因子与弱因子的载荷条件。
+  \item 说明旋转不定性，写出两种标准化条件，数清约束个数 $r^2$。
+  \item 完整推导 PCA 估计量：$\min\tr(VV\T)\Rightarrow$ 给定 $F$ 的 $\hat\Lambda\Rightarrow$ 集中化 $\Rightarrow\max\tr(F\T U\T UF)\Rightarrow$ 前 $r$ 个特征向量；写出极值 $e_1+\dots+e_r$。
+  \item 用残差平方和（SSR）与信息准则选择因子个数。
+\end{enumerate}
+前三项是本章前七节的内容，后两项在本章后半部分展开。
+\end{keypt}
+
+%======================================================================
+\section{因子模型在方法谱系中的位置：监督学习与无监督学习}\label{sec:U13a-position}
+
+因子模型（factor models）又称因子分析（factor analysis）。学习它之前，先把它与熟悉的 OLS 以及机器学习中的深度神经网络放进同一个分类框架，看清它要解决的是什么问题。
+
+\subsection{三种方法的分类：OLS、PCA/因子分析与 DNN}
+
+\subsubsection{监督学习：用带标签的数据学习从 \texorpdfstring{$x$}{x} 到 \texorpdfstring{$y$}{y} 的映射}
+
+\term{监督学习}{supervised learning}的数据带有要预测的目标变量（称为“标签”）。OLS 是典型的监督学习：数据为 $(y_i,x_i)$，$y$ 是标签，目标是学习从 $x$ 到 $y$ 的线性映射 $\hat y=x\T\hat\beta$。
+
+\subsubsection{无监督学习：只有数据矩阵，寻找共同变动的方向}
+
+\term{无监督学习}{unsupervised learning}只有一组变量本身，没有“被解释变量”与“解释变量”之分，任务是发现数据的内部结构（降维、聚类等）。\term{主成分分析}{principal component analysis, PCA}与\term{因子分析}{factor analysis}属于无监督学习：它们只用一个数据矩阵 $Y$，只问一个问题——
+\begin{center}
+$N$ 个序列的共同变动，能否用 $r\ll N$ 个因子概括？
+\end{center}
+
+\subsubsection{深度神经网络：灵活的非线性回归与 logit 回归的推广}
+
+\term{深度神经网络}{deep neural network, DNN}与 OLS 一样使用 $(y_i,x_i)$，属于监督学习。它本质上是一个高度灵活的\key{非线性回归}；若输出层用 logistic（sigmoid）函数，它就是 logit 回归的非线性推广；输出层用 softmax 函数时，它是多项 logit 回归的非线性推广。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l l L L@{}}
+\toprule
+方法 & 学习类型 & 用到的数据 & 目标\\
+\midrule
+OLS & 监督学习 & $(y_i,x_i)$：有标签 $y$ & 学习从 $x$ 到 $y$ 的线性映射，$\hat y=x\T\hat\beta$\\
+PCA / 因子分析 & 无监督学习 & 只有数据矩阵 $Y$，没有 $y$ 与 $x$ 之分 & 找出少数几个能概括全部变量共同变动的方向（因子）\\
+DNN & 监督学习 & $(y_i,x_i)$ & 非线性回归；输出层用 sigmoid/softmax 时是 logit 回归的推广\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{OLS、PCA/因子分析与 DNN 的分类}\label{tab:U13a-ml}
+\end{center}
+
+\subsubsection{直观：OLS 问“\texorpdfstring{$y$}{y} 是多少”，PCA 问“背后有几股力量”}
+
+OLS 回答“给定 $x$，$y$ 是多少”；PCA 回答“这一大堆变量背后，真正在动的只有哪几股力量”。在资产定价中，$N$ 只股票的收益率就是这样一大堆变量，背后的“几股力量”（市场、规模、价值……）就是因子。
+
+\begin{extend}[自编码器：非线性的 PCA]
+用神经网络做无监督降维的\term{自编码器}{autoencoder}先把高维输入压缩成少数几个“瓶颈”变量，再从中重建输入；当网络全部取线性激活时，它张成的就是主成分空间。因此自编码器可以看作“非线性 PCA”，是 PCA 与 DNN 之间的桥梁。本章讨论时变载荷与 IPCA 时还会再遇到它（条件自编码器）。
+\end{extend}
+
+\subsection{本章与下一章的路线图}
+
+本章的逻辑链条如下图所示：先刻画面板误差的相关方向，再量化截面相关的强弱，然后用因子模型解释强相关的来源，区分强弱因子，解决识别问题，最后用 PCA 估计、选择因子个数并讨论应用。
+
+\begin{center}
+\begin{tikzpicture}[font=\small,
+  box/.style={draw=chead,rounded corners,align=center,text width=2.9cm,minimum height=1.15cm,fill=chead!4},
+  >={Stealth[length=2mm]}]
+\node[box] (a) at (0,0) {面板误差相关\\HAC / 聚类 / CSD};
+\node[box] (b) at (4,0) {强相关与弱相关\\$\frac1N\one\T\Sigma_u\one$};
+\node[box] (c) at (8,0) {因子模型\\产生 CSD};
+\node[box] (d) at (12,0) {强因子与弱因子};
+\node[box] (e) at (12,-1.9) {识别：\\旋转与标准化};
+\node[box] (f) at (8,-1.9) {PCA 估计：\\特征向量};
+\node[box] (g) at (4,-1.9) {因子个数：\\SSR $+$ 信息准则};
+\node[box] (h) at (0,-1.9) {应用：预测、资产定价；第 14、16 章};
+\draw[->] (a)--(b); \draw[->] (b)--(c); \draw[->] (c)--(d); \draw[->] (d)--(e);
+\draw[->] (e)--(f); \draw[->] (f)--(g); \draw[->] (g)--(h);
+\end{tikzpicture}
+\captionof{figure}{第 13 章的路线图（上行刻画并解释截面相关，下行从识别开始转入估计与应用）}\label{fig:U13a-road}
+\end{center}
+
+\begin{english}
+Ordinary least squares is a supervised learning method: it uses a labelled outcome $y$ to learn the mapping from $x$ to $y$. Principal component analysis and factor analysis are unsupervised: they use only the data matrix and look for a small number of common components that summarize the co-movement of many variables. A deep neural network is a flexible nonlinear regression; with a logistic output layer it generalizes the logit model. An autoencoder can be viewed as a nonlinear version of principal component analysis.
+\end{english}
+
+%======================================================================
+\section{面板误差的依赖结构：从 HAC、聚类到截面相关}\label{sec:U13a-dep}
+
+本节回答：面板误差 $u_{it}$ 可以在哪些“方向”上相关？每种相关怎样处理？为什么截面相关最难对付？
+
+\subsection{出发点：单向固定效应面板模型}
+
+\subsubsection{模型：系统部分 \texorpdfstring{$\alpha_i+x_{it}'\beta$}{alpha\_i + x\_it'beta} 加误差 \texorpdfstring{$u_{it}$}{u\_it}}
+
+从标准的单向固定效应面板模型出发：
+\begin{equation}\label{eq:U13a-panel}
+y_{it}=\underbrace{\alpha_i+x_{it}\T\beta}_{\text{系统部分}}+u_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\end{equation}
+其中 $\alpha_i$ 为个体效应，$x_{it}$ 为 $K\times1$ 解释变量，$\beta$ 为 $K\times1$ 系数，$u_{it}$ 为误差。
+
+\subsubsection{两种估计：LSDV 与混合最小二乘（PLS）}
+
+\begin{itemize}
+\item \term{虚拟变量最小二乘}{least squares dummy variables, LSDV}：把 $\alpha_i$ 当作 $N$ 个个体虚拟变量的系数一起回归，所得 $\hat\beta$ 在数值上等于组内（WG/FE）估计量（第 10 章 FWL 定理一节）。
+\item \term{混合最小二乘}{pooled least squares, PLS}：忽略 $\alpha_i$，把全部 $(i,t)$ 观测堆在一起做 OLS。
+\end{itemize}
+无论用哪种估计，统计推断（标准误、检验）都依赖误差 $u_{it}$ 的相关结构。本章关心的是：$u_{it}$ 在\key{哪个方向}上相关。
+
+\subsection{三类误差依赖}
+
+\subsubsection{HAC：同一个体跨时间的相关}
+
+\term{异方差与自相关}{heteroskedasticity and autocorrelation, HAC}：$\Var(u_{it})$ 随 $i,t$ 变化，且同一个体不同时期的误差相关，$\E(u_{it}u_{is})\neq0$（$t\neq s$）。处理方法：HAC（Newey--West）标准误，或按个体聚类的标准误（第 5 章）。
+
+\subsubsection{聚类：已知组内相关、组间独立}
+
+\term{聚类相关}{cluster dependence}：观测被分为若干个\key{已知}的组（由组标识 cluster id 给出，例如同一省份、同一行业），组内相关、组间独立。处理方法：聚类稳健标准误，要求组数 $G\to\infty$（第 5 章）。
+
+\subsubsection{截面相关：同一时期不同个体之间的相关}
+
+\term{截面相关}{cross-sectional dependence, CSD}：同一时期 $t$，不同个体 $i\neq j$ 的误差相关，并且\key{事先不知道}谁和谁相关、相关模式如何。这是本章的主角。
+
+\subsubsection{三类依赖的对照}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l l l L@{}}
+\toprule
+依赖类型 & 相关的方向 & 结构是否已知 & 典型处理\\
+\midrule
+HAC & 同一 $i$，不同 $t$ & 已知（时间顺序） & Newey--West 标准误 / 按个体聚类\\
+聚类 & 同一组内的 $i,j$ & 已知（cluster id） & 聚类稳健标准误（$G\to\infty$）\\
+CSD & 同一 $t$，任意 $i\neq j$ & 一般未知 & 因子模型、空间模型（第 13、14 章）\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{面板误差的三类依赖}\label{tab:U13a-dep}
+\end{center}
+
+\subsection{截面相关的定义及其对被解释变量的含义}
+
+\begin{defn}[截面相关 CSD]\label{def:U13a-csd}
+设 $\E(u_{it})=0$。称面板误差存在\key{截面相关}，如果存在 $i\neq j$ 使
+\[
+\E(u_{it}u_{jt})\neq0\qquad\text{（个体 $i$ 与 $j$ 在同一时期相关）}.
+\]
+由于 $\E(u_{it})=0$，$\E(u_{it}u_{jt})=\Cov(u_{it},u_{jt})$。
+\end{defn}
+
+\subsubsection{误差的截面相关传递给被解释变量：\texorpdfstring{$\E(u_{it}u_{jt})\neq0\Rightarrow\Cov(y_{it},y_{jt})\neq0$}{E(u\_it u\_jt) != 0 => Cov(y\_it, y\_jt) != 0}}
+
+要说明：误差的截面相关会传递给被解释变量本身。思路：把系统部分视为给定（非随机，或在其上取条件），则 $y_{it}$ 偏离其均值的部分恰好是 $u_{it}$。由模型（\ref{eq:U13a-panel}）与 $\E(u_{it})=0$，$\E(y_{it})=\alpha_i+x_{it}\T\beta$，于是
+\begin{align*}
+\Cov(y_{it},y_{jt})&=\E\bigl[(y_{it}-\E y_{it})(y_{jt}-\E y_{jt})\bigr] \why{协方差的定义}\\
+&=\E\bigl[(y_{it}-\alpha_i-x_{it}\T\beta)(y_{jt}-\alpha_j-x_{jt}\T\beta)\bigr] \why{代入 $\E y_{it}$}\\
+&=\E(u_{it}u_{jt}) \why{由 (\ref{eq:U13a-panel})}
+\end{align*}
+所以 $\E(u_{it}u_{jt})\neq0\Rightarrow\Cov(y_{it},y_{jt})\neq0$。若 $x_{it}$ 也是随机的，$\Cov(y_{it},y_{jt})$ 还会多出 $x$ 部分的协方差，但只要 $x$ 部分不恰好与之抵消，误差的截面相关仍会传递给 $y$。在纯因子模型（本章纯因子模型一节）中没有 $x$，$y_{it}$ 的截面相关与误差的截面相关完全是一回事。
+
+\subsection{为什么说截面相关比聚类更一般}
+
+\subsubsection{从协方差矩阵看：分块对角与任意位置非零}
+
+把同一时期的误差排成 $N\times1$ 向量 $u_t=(u_{1t},\dots,u_{Nt})\T$，其协方差矩阵记为 $\Sigma_u$（$N\times N$）。以 $N=6$、两组各 3 个个体为例（$\ast$ 表示可能非零）：
+\[
+\text{聚类：}\ \Sigma_u=\begin{pmatrix}
+\ast&\ast&\ast&0&0&0\\
+\ast&\ast&\ast&0&0&0\\
+\ast&\ast&\ast&0&0&0\\
+0&0&0&\ast&\ast&\ast\\
+0&0&0&\ast&\ast&\ast\\
+0&0&0&\ast&\ast&\ast
+\end{pmatrix},\qquad
+\text{CSD：}\ \Sigma_u=\begin{pmatrix}
+\ast&\ast&\ast&\ast&\ast&\ast\\
+\ast&\ast&\ast&\ast&\ast&\ast\\
+\ast&\ast&\ast&\ast&\ast&\ast\\
+\ast&\ast&\ast&\ast&\ast&\ast\\
+\ast&\ast&\ast&\ast&\ast&\ast\\
+\ast&\ast&\ast&\ast&\ast&\ast
+\end{pmatrix}.
+\]
+\begin{itemize}
+\item 聚类：把个体按组排序后，$\Sigma_u$ 是\key{分块对角}矩阵，非零的非对角元素只出现在\key{已知}的对角块里；
+\item CSD：$\Sigma_u$ 的任何非对角元素都可能非零，且非零位置\key{未知}。
+\end{itemize}
+所以聚类是 CSD 的特例——“相关只发生在已知组内”。
+
+\subsubsection{聚类只是把独立的单位从“个体”换成“组”}
+
+传统截面数据 $(y_i,x_i)$ 与面板数据 $(y_{it},x_{it})$ 的分析都假设\key{不同个体相互独立}（independence over $i$）；聚类结构（cluster structure）也只是把独立的单位从“个体”换成“组”，组与组之间仍然独立。而同一时期 $(y_{it},y_{jt})$ 之间的相关，通常来自不可观测的\key{潜在因子} $f_t$（本章潜在因子模型一节）。
+
+\subsubsection{全局相关时找不到组间独立的分组}
+
+反过来，若相关是全局性的——几乎所有个体两两相关，例如都受同一宏观冲击影响——就找不到“组间独立”的分组，聚类方法无从下手。
+
+\subsection{聚类稳健标准误能否处理截面相关}
+
+检验或应对 CSD 时，一个自然的问题是：聚类稳健标准误（cluster-robust standard errors）能否解决截面相关？答案分三层。
+
+\subsubsection{按个体聚类不能处理截面相关}
+
+按个体聚类允许同一 $i$ 跨时间任意相关，但假设\key{不同个体独立}——恰好排除了 CSD。
+
+\subsubsection{只影响标准误时：按时间聚类、双向聚类与 Driscoll--Kraay 标准误}
+
+若 CSD 只造成标准误错误（例如产生 CSD 的因子与 $x_{it}$ 不相关，估计量仍一致），可以：
+\begin{itemize}
+\item 按时间聚类：允许同一 $t$ 内任意个体相关，要求 $T$ 大；
+\item 双向聚类：同时按个体与按时间聚类；
+\item Driscoll \& Kraay (1998) 标准误：同时允许截面相关与序列相关，依赖 $T$ 大，Stata 命令 \texttt{xtscc}（第 5 章）。
+\end{itemize}
+
+\subsubsection{影响一致性时：任何标准误修正都无济于事}
+
+若 CSD 来自与 $x_{it}$ 相关的潜在因子，FE 估计量本身就\key{不一致}（第 14 章），任何标准误修正都无济于事，必须用 PCA、CCE 等专门方法。
+
+\begin{prac}[识别依赖类型]\label{prac:U13a-deptype}
+判断下列情形中误差的主要依赖类型（HAC、聚类、CSD），并说明按个体聚类的标准误是否足够：
+(a) 同一家企业的利润冲击具有持续性；
+(b) 同一个班级的学生共享同样的教学环境，成绩受共同的班级冲击影响，不同班级之间独立；
+(c) 2020 年疫情同时冲击所有上市公司的销售额，各公司受冲击的程度不同。
+\answer
+(a) 同一 $i$ 跨时间相关，属 HAC（序列相关）。按个体聚类允许同一企业任意跨期相关，足够。
+
+(b) 已知组（班级）内相关、组间独立，属聚类。应按班级聚类，且班级数要多（$G\to\infty$）。
+
+(c) 同一时期所有个体都受共同冲击，且影响程度 $\lambda_i$ 不同，属 CSD（全局因子 $\lambda_if_t$）。按个体聚类假设个体间独立，不够；若该冲击还与回归元相关，FE 估计量本身不一致，需用第 14 章的方法。
+\end{prac}
+
+\begin{english}
+Cross-sectional dependence (CSD) means that $E(u_{it}u_{jt})\neq0$ for some $i\neq j$, i.e.\ the errors of different units are correlated at the same point in time. CSD is more general than cluster dependence: clustering allows correlation only within known groups and assumes independence across groups, whereas under CSD any pair of units may be correlated and the pattern is unknown. HAC refers to dependence over time within a unit. Clustering standard errors by unit does not address CSD; moreover, if the dependence arises from latent factors correlated with the regressors, the fixed-effects estimator is inconsistent and no standard-error correction can fix it.
+\end{english}
+
+%======================================================================
+\section{强（全局）相关与弱（局部）相关}\label{sec:U13a-sw}
+
+截面相关有程度之分：有的冲击只在少数“邻居”之间传播，有的冲击波及几乎所有个体。本节先给直观定义，再用一个标量把“强”与“弱”量化，最后用几个可以精确计算的例子（等协方差、无相关、聚类、空间自回归）演示判断方法。
+
+\subsection{直观定义：多数个体对相关还是少数个体对相关}
+
+\begin{defn}[强相关与弱相关：直观版本]\label{def:U13a-sw-intuitive}
+\term{强相关}{strong dependence}（也称\term{全局相关}{global dependence}）：对\key{大多数}个体对 $(i,j)$，相关都不为零。\\
+\term{弱相关}{weak dependence}（也称\term{局部相关}{local dependence}）：只有\key{少数}个体对 $(i,j)$ 相关。
+\end{defn}
+
+“大多数”与“少数”需要量化，下面用一个标量来刻画。
+
+\subsection{度量：标量 \texorpdfstring{$\frac1N\one_N'\Sigma_u\one_N$}{(1/N) 1'Sigma\_u 1}}
+
+\subsubsection{截面协方差矩阵 \texorpdfstring{$\Sigma_u$}{Sigma\_u}}
+
+把同一时期的误差排成向量 $u_t=(u_{1t},u_{2t},\dots,u_{Nt})\T$（$N\times1$），其协方差矩阵（设不随 $t$ 变化）为
+\[
+\underset{N\times N}{\Sigma_u}=\Var(u_t)=
+\begin{pmatrix}
+\Cov(u_{1t},u_{1t}) & \Cov(u_{1t},u_{2t}) & \cdots & \Cov(u_{1t},u_{Nt})\\
+\Cov(u_{2t},u_{1t}) & \Cov(u_{2t},u_{2t}) & \cdots & \Cov(u_{2t},u_{Nt})\\
+\vdots & \vdots & \ddots & \vdots\\
+\Cov(u_{Nt},u_{1t}) & \Cov(u_{Nt},u_{2t}) & \cdots & \Cov(u_{Nt},u_{Nt})
+\end{pmatrix}.
+\]
+对角线是各个体的方差 $\sigma_i^2$，非对角线是截面协方差。CSD 就是“非对角线不全为零”。
+
+\subsubsection{\texorpdfstring{$\one'A\one$}{1'A1} 等于矩阵全部元素之和}
+
+令 $\one_N=(1,\dots,1)\T$（$N\times1$）。对任意 $N\times N$ 矩阵 $A=(a_{ij})$：
+\begin{align*}
+A\one_N&=\Bigl(\sum_{j}a_{1j},\ \dots,\ \sum_ja_{Nj}\Bigr)\T \why{第 $i$ 个元素是第 $i$ 行之和}\\
+\one_N\T A\one_N&=\sum_{i=1}^N\sum_{j=1}^Na_{ij} \why{再把 $N$ 个行和加总}
+\end{align*}
+即 $\one\T A\one$ 就是把 $A$ 的\key{所有}元素加起来。
+
+\subsubsection{把 \texorpdfstring{$N^2$}{N\^{}2} 个元素压缩成一个标量：方差加协方差}
+
+考虑标量
+\[
+\underbrace{\frac1N\one_N\T\Sigma_u\one_N}_{\text{标量}},\qquad \one_N=(1,\dots,1)\T\ (N\times1).
+\]
+下面推导它等于什么：
+\begin{align*}
+\frac1N\one_N\T\Sigma_u\one_N&=\frac1N\sum_{i=1}^N\sum_{j=1}^N(\Sigma_u)_{ij} \why{$\one\T A\one=\sum_i\sum_ja_{ij}$}\\
+&=\frac1N\sum_{i=1}^N\sum_{j=1}^N\Cov(u_{it},u_{jt}) \why{$\Sigma_u$ 的 $(i,j)$ 元}\\
+&=\frac1N\Bigl[\underbrace{\sum_{i}\sigma_i^2}_{N\text{ 个方差}}+\underbrace{\sum_{i\neq j}\Cov(u_{it},u_{jt})}_{N(N-1)\text{ 个协方差}}\Bigr] \why{拆成对角与非对角}
+\end{align*}
+注意：括号里是\key{全部} $N\times N$ 个元素，而不只是对角元素。
+
+\subsubsection{等价写法：\texorpdfstring{$\frac1N\one'\Sigma_u\one=N\Var(\bar u_t)$}{(1/N) 1'Sigma 1 = N Var(u-bar\_t)}}
+
+令 $\bar u_t=\frac1N\sum_{i=1}^Nu_{it}$ 为截面平均。
+\begin{align*}
+\one_N\T\Sigma_u\one_N&=\one_N\T\Var(u_t)\one_N \why{$\Sigma_u=\Var(u_t)$}\\
+&=\Var(\one_N\T u_t) \why{$\Var(a\T u)=a\T\Var(u)a$}\\
+&=\Var\Bigl(\sum_{i=1}^Nu_{it}\Bigr) \why{$\one\T u_t=\sum_iu_{it}$}\\
+&=\Var(N\bar u_t)=N^2\Var(\bar u_t) \why{$\Var(cX)=c^2\Var(X)$}
+\end{align*}
+两边除以 $N$：
+\begin{equation}\label{eq:U13a-NVar}
+\boxed{\ \frac1N\one_N\T\Sigma_u\one_N=N\cdot\Var(\bar u_t)\ }
+\end{equation}
+
+\subsubsection{含义：截面平均能否把误差平均掉}
+
+（\ref{eq:U13a-NVar}）说明这个标量衡量的是“截面平均能否把误差平均掉”：
+\begin{itemize}
+\item 若个体之间几乎独立，平均后方差按 $1/N$ 下降，$N\Var(\bar u_t)$ 有界；
+\item 若个体之间普遍相关，平均也消不掉，$\Var(\bar u_t)$ 不随 $N$ 下降，$N\Var(\bar u_t)$ 随 $N$ 发散。
+\end{itemize}
+这一点在第 14 章的 CCE 方法中至关重要：CCE 正是靠截面平均把弱相关的特质误差平均掉、只留下因子。
+
+\subsubsection{强相关与弱相关的正式定义}
+
+\begin{defn}[用 \texorpdfstring{$\frac1N\one'\Sigma_u\one$}{(1/N)1'Sigma 1} 度量强/弱相关]\label{def:U13a-sw}
+当 $N\to\infty$ 时，
+\begin{itemize}
+\item \key{强相关}：$\frac1N\one_N\T\Sigma_u\one_N\to\infty$（发散，典型速度为 $N$）；
+\item \key{弱相关}：$\frac1N\one_N\T\Sigma_u\one_N=$ 常数（有界）。
+\end{itemize}
+\end{defn}
+
+为什么“典型速度为 $N$”：$\Sigma_u$ 共有 $N^2$ 个元素，若它们都是同阶的非零常数，总和是 $O(N^2)$，除以 $N$ 后是 $O(N^2)/N=O(N)$。
+
+\subsection{极端例一：所有方差与协方差相等 \texorpdfstring{$\Rightarrow$}{=>} 强相关}
+
+\begin{exmp}[极端例一：等协方差]\label{ex:U13a-equal}
+设所有方差与协方差都等于同一个常数：$\Cov(u_{it},u_{jt})=\Cov(u_{it},u_{it})=\sigma^2$ 对一切 $i,j$。求 $\frac1N\one\T\Sigma_u\one$ 并判断强弱。
+\solution
+$\Sigma_u$ 的每个元素都是 $\sigma^2$，而 $\one_N\one_N\T$ 的每个元素都是 $1$，故 $\Sigma_u=\sigma^2\one_N\one_N\T$。
+\begin{align*}
+\frac1N\one_N\T\Sigma_u\one_N&=\frac1N\one_N\T(\sigma^2\one_N\one_N\T)\one_N \why{代入 $\Sigma_u$}\\
+&=\frac{\sigma^2}N(\one_N\T\one_N)(\one_N\T\one_N) \why{矩阵乘法结合律}\\
+&=\frac{\sigma^2}N\cdot N\cdot N=\frac1N\cdot N^2\cdot\sigma^2 \why{$\one_N\T\one_N=N$}\\
+&=N\sigma^2\ \to\ \infty \why{$N\to\infty$}
+\end{align*}
+所以是\key{强相关}。直观：每一对个体都一样相关，$N^2$ 个元素全部等于 $\sigma^2$。由（\ref{eq:U13a-NVar}），$\Var(\bar u_t)=\sigma^2$，截面平均完全没有降低方差（此时相关系数全为 1，各个体误差实际上完全相同）。
+\end{exmp}
+
+\subsection{极端例二：截面不相关 \texorpdfstring{$\Rightarrow$}{=>} 弱相关}
+
+\begin{exmp}[极端例二：截面不相关]\label{ex:U13a-diag}
+设 $\Cov(u_{it},u_{jt})=0$ 对一切 $i\neq j$，方差 $\Var(u_{it})=\sigma_i^2\le\bar\sigma^2<\infty$。求 $\frac1N\one\T\Sigma_u\one$ 并判断强弱。
+\solution
+此时 $\Sigma_u=\diag(\sigma_1^2,\dots,\sigma_N^2)$。
+\begin{align*}
+\frac1N\one_N\T\Sigma_u\one_N&=\frac1N\bigl(\sigma_1^2+\sigma_2^2+\dots+\sigma_N^2\bigr) \why{只剩对角元}\\
+&\le\frac1N\cdot N\bar\sigma^2=\bar\sigma^2 \why{每个 $\sigma_i^2\le\bar\sigma^2$}
+\end{align*}
+即 $N$ 个有界数的平均，是常数（有界），所以是\key{弱相关}——实际上是“无截面相关”，弱相关的最极端情形。
+\end{exmp}
+
+\subsection{中间情形：分块（聚类）结构}
+
+两个极端例之间，最有启发性的是聚类结构。它把上一节的聚类与本节的强/弱相关联系起来。
+
+\begin{exmp}[聚类结构下的 \texorpdfstring{$\frac1N\one'\Sigma_u\one$}{(1/N)1'Sigma 1}]\label{ex:U13a-cluster}
+设 $N=Gm$ 个个体分成 $G$ 组，每组 $m$ 个；方差均为 $\sigma^2$，组内相关系数为 $\rho$，组间不相关。求 $\frac1N\one\T\Sigma_u\one$。
+\solution
+按组排序后 $\Sigma_u$ 是 $G$ 个 $m\times m$ 对角块组成的分块对角阵。每个对角块有 $m$ 个对角元（各为 $\sigma^2$）和 $m(m-1)$ 个非对角元（各为 $\rho\sigma^2$），故每块元素之和为 $m\sigma^2+m(m-1)\rho\sigma^2$。于是
+\begin{align*}
+\frac1N\one\T\Sigma_u\one&=\frac1N\cdot G\bigl[m\sigma^2+m(m-1)\rho\sigma^2\bigr] \why{$G$ 个块，块外为 0}\\
+&=\frac{Gm}{N}\,\sigma^2\bigl[1+(m-1)\rho\bigr] \why{提出 $m\sigma^2$}\\
+&=\sigma^2\bigl[1+(m-1)\rho\bigr] \why{$Gm=N$}
+\end{align*}
+\end{exmp}
+
+\subsubsection{组大小固定、组数趋于无穷：弱相关}
+
+若组大小 $m$ 固定、组数 $G\to\infty$，则 $\sigma^2[1+(m-1)\rho]$ 有界 $\Rightarrow$ \key{弱相关}。这正是聚类稳健推断要求“$G\to\infty$”的情形。
+
+\subsubsection{组数固定、组大小趋于无穷：强相关}
+
+若组数 $G$ 固定、$m=N/G\to\infty$，则结果 $\approx\sigma^2\rho N/G\to\infty$ $\Rightarrow$ \key{强相关}。此时“组太少、组太大”，聚类方法失效。
+
+\subsubsection{与 Moulton 方差膨胀因子的联系}
+
+$1+(m-1)\rho$ 正是第 5 章的 Moulton 方差膨胀因子：组内相关使截面平均的方差比独立情形放大 $1+(m-1)\rho$ 倍。
+
+\subsection{空间自回归（SAR）模型：弱相关的典型例子}
+
+空间模型是弱相关的标准例子：相关只在“邻居”之间传播。
+
+\subsubsection{SAR 模型与空间权重矩阵}
+
+\term{空间自回归模型}{spatial autoregressive model, SAR}写作
+\[
+y_{it}=\rho\sum_{j=1}^Nw_{ij}\,y_{jt}+\cdots,
+\]
+其中 $w_{ij}\ge0$ 是事先给定的\term{空间权重矩阵}{spatial weight matrix} $W=(w_{ij})$（$N\times N$）的元素，例如地理相邻为正、否则为 0，且 $w_{ii}=0$；“$\cdots$”代表其余解释变量与误差。个体 $i$ 只\key{直接}受“邻居”的影响。
+
+\subsubsection{关键条件：有界行和 \texorpdfstring{$\sum_j|w_{ij}|<\infty$}{sum\_j |w\_ij| < infinity}}
+
+SAR 模型产生弱相关的关键条件是
+\[
+\sum_{j=1}^N|w_{ij}|<\infty\qquad\text{（对每个 $i$ 是一个有限数，且不随 $N$ 发散）},
+\]
+即每个个体的邻居权重之和有界；常用的\key{行标准化}权重矩阵每行之和等于 1。作为粗略的示意，若把相关看作只发生在邻居之间、协方差与 $w_{ij}$ 同阶，则
+\[
+\frac1N\one_N\T\Sigma_y\one_N\ \approx\ \frac1N\sum_i\sum_jw_{ij}=\text{有限数};\qquad
+\text{行标准化时}\ \frac1N\sum_i\sum_jw_{ij}=\frac1N\cdot N=1 .
+\]
+
+\subsubsection{准确的协方差矩阵：\texorpdfstring{$\Sigma_y=\sigma^2(I_N-\rho W)^{-1}(I_N-\rho W')^{-1}$}{Sigma\_y = sigma\^{}2 (I - rho W)\^{}(-1) (I - rho W')\^{}(-1)}}
+
+上面的“协方差与 $w_{ij}$ 同阶”只是示意，协方差由 $W$ 决定但并不字面等于 $w_{ij}$。准确的推导如下。略去回归元，SAR 模型的向量形式为 $y_t=\rho Wy_t+\varepsilon_t$，其中 $y_t,\varepsilon_t$ 为 $N\times1$，$\Var(\varepsilon_t)=\sigma^2I_N$，并设 $I_N-\rho W$ 可逆。
+\begin{align*}
+(I_N-\rho W)y_t&=\varepsilon_t \why{移项}\\
+y_t&=(I_N-\rho W)\inv\varepsilon_t \why{左乘 $(I_N-\rho W)\inv$}\\
+\Sigma_y=\Var(y_t)&=(I_N-\rho W)\inv\Var(\varepsilon_t)\bigl[(I_N-\rho W)\inv\bigr]\T \why{$\Var(A\varepsilon)=A\Var(\varepsilon)A\T$}\\
+&=\sigma^2(I_N-\rho W)\inv(I_N-\rho W\T)\inv \why{$(A\inv)\T=(A\T)\inv$}
+\end{align*}
+相关为什么是“局部”的：当 $|\rho|<1$ 且 $W$ 行标准化时，$(I_N-\rho W)\inv=I_N+\rho W+\rho^2W^2+\cdots$。$W^k$ 的 $(i,j)$ 元非零当且仅当从 $i$ 出发走 $k$ 步邻接关系能到达 $j$（“邻居的邻居……”），其权重 $\rho^k$ 随距离几何衰减。所以相关只在邻居之间（以及邻居的邻居之间，随距离几何衰减）传播，是局部的、有界的。
+
+\subsubsection{例：环形邻接矩阵下的完整计算}
+
+\begin{exmp}[SAR 模型是弱相关：环形邻接矩阵]\label{ex:U13a-ring}
+设 $N\ (\ge3)$ 个个体围成一圈，每个个体只有左右两个邻居，权重各 $\frac12$：$w_{i,i-1}=w_{i,i+1}=\frac12$（下标按模 $N$ 计），其余为 0。则 $W$ 对称，每行、每列之和都是 1：$W\one=\one$，$\one\T W=\one\T$。取 $|\rho|<1$，$\Var(\varepsilon_t)=\sigma^2I_N$。求 $\frac1N\one\T\Sigma_y\one$。
+\solution
+先求 $(I-\rho W)\inv\one$：
+\begin{align*}
+(I-\rho W)\one&=\one-\rho\one=(1-\rho)\one \why{$W\one=\one$}\\
+\one&=(1-\rho)(I-\rho W)\inv\one \why{两边左乘 $(I-\rho W)\inv$}\\
+(I-\rho W)\inv\one&=\tfrac1{1-\rho}\one \why{两边除以 $1-\rho$}
+\end{align*}
+令 $a=(I-\rho W\T)\inv\one$。因为 $\bigl[(I-\rho W)\inv\bigr]\T=(I-\rho W\T)\inv$，有 $\one\T(I-\rho W)\inv=a\T$。于是
+\begin{align*}
+\one\T\Sigma_y\one&=\sigma^2\,\one\T(I-\rho W)\inv(I-\rho W\T)\inv\one \why{代入 $\Sigma_y$}\\
+&=\sigma^2a\T a=\sigma^2\bigl\|(I-\rho W\T)\inv\one\bigr\|^2 \why{$a\T a=\|a\|^2$}\\
+&=\sigma^2\Bigl\|\tfrac1{1-\rho}\one\Bigr\|^2 \why{$W\T=W$，上式}\\
+&=\frac{\sigma^2}{(1-\rho)^2}\,\one\T\one=\frac{\sigma^2N}{(1-\rho)^2} \why{$\one\T\one=N$}
+\end{align*}
+所以
+\[
+\frac1N\one\T\Sigma_y\one=\frac{\sigma^2}{(1-\rho)^2},
+\]
+\key{与 $N$ 无关}，是弱相关。例如 $\rho=0.5$、$\sigma^2=1$ 时恒等于 $1/0.25=4$；对 $N=5,10,50,200$ 数值计算均得 4。
+\end{exmp}
+
+\subsection{另一种度量：最大特征值与截面相关指数 \tagext}
+
+\subsubsection{用最大特征值 \texorpdfstring{$\lambda_{\max}(\Sigma_u)$}{lambda\_max(Sigma\_u)} 刻画强弱}
+
+$\frac1N\one\T\Sigma_u\one$ 只沿“等权平均”一个方向看相关性。文献中更一般的刻画是 $\Sigma_u$ 的最大特征值：
+\[
+\text{弱相关}\iff\lambda_{\max}(\Sigma_u)\ \text{有界};\qquad
+\text{强相关}\iff\lambda_{\max}(\Sigma_u)\to\infty .
+\]
+
+\subsubsection{两种度量的关系：\texorpdfstring{$\frac1N\one'\Sigma_u\one\le\lambda_{\max}(\Sigma_u)$}{(1/N)1'Sigma 1 <= lambda\_max}}
+
+要证：最大特征值有界蕴含 $\frac1N\one\T\Sigma_u\one$ 有界。思路：把 $\frac1N\one\T\Sigma_u\one$ 写成瑞利商（第 1 章）。
+\begin{align*}
+\frac1N\one\T\Sigma_u\one&=\frac{\one\T\Sigma_u\one}{\one\T\one} \why{$\one\T\one=N$}\\
+&\le\max_{x\neq0}\frac{x\T\Sigma_ux}{x\T x} \why{取 $x=\one$ 只是一个特例}\\
+&=\lambda_{\max}(\Sigma_u) \why{瑞利商的最大值}
+\end{align*}
+所以“最大特征值有界”$\Rightarrow$“$\frac1N\one\T\Sigma_u\one$ 有界”；反之不一定：载荷正负抵消时，$\frac1N\one\T\Sigma_u\one$ 有界而最大特征值发散（本章强因子与弱因子一节的反例）。在环形 SAR 例中，$W$ 对称、行和为 1，其特征值都在 $[-1,1]$ 内，$\Sigma_y=\sigma^2(I-\rho W)^{-2}$ 的特征值为 $\sigma^2/(1-\rho\mu)^2$（$\mu$ 为 $W$ 的特征值），最大不超过 $\sigma^2/(1-|\rho|)^2$，所以 SAR 在最大特征值意义下也是弱相关。
+
+\subsubsection{文献中的定义：近似因子模型假设与截面相关指数}
+
+Hansen 近似因子模型的假设（Hansen 第 11.14 节，Assumption 11.1 第 1 条）要求特质误差协方差矩阵的最大特征值有界，正是这个意义上的“弱相关”。Chudik, Pesaran \& Tosetti (2011, \emph{Econometrics Journal}) 系统定义了强/弱截面相关；Bailey, Kapetanios \& Pesaran (2016, \emph{Journal of Applied Econometrics}) 用\term{截面相关指数}{exponent of cross-sectional dependence} $\alpha\in[0,1]$ 刻画受共同冲击影响的个体所占的规模（约 $N^\alpha$ 个个体，$\alpha=1$ 为最强），它对应 $\Var(\bar u_t)$ 随 $N$ 衰减的速度：$\alpha$ 越大，衰减越慢。
+
+\begin{keypt}[强/弱相关的必记结论]
+\begin{itemize}
+\item 记住 $\frac1N\one\T\Sigma_u\one=\frac1N\sum_i\sum_j\Cov(u_{it},u_{jt})=N\Var(\bar u_t)$。
+\item 两个极端例的结果：等协方差 $\Rightarrow N\sigma^2\to\infty$（强）；对角 $\Rightarrow\frac1N\sum_i\sigma_i^2$（弱）。
+\item 聚类结构：$\sigma^2[1+(m-1)\rho]$；$m$ 固定为弱，$G$ 固定为强。
+\item SAR 模型的关键条件是 $\sum_j|w_{ij}|<\infty$，它是弱相关的标准例子。
+\end{itemize}
+\end{keypt}
+
+\begin{prac}[判断强/弱相关]\label{prac:U13a-band}
+设 $\Sigma_u$ 的对角元均为 1；对 $i\neq j$，若 $|i-j|=1$ 则 $\Cov(u_{it},u_{jt})=0.4$，否则为 0（每个个体只与“编号相邻”的个体相关）。
+(a) 对 $N=3$ 写出 $\Sigma_u$ 并计算 $\frac1N\one\T\Sigma_u\one$；
+(b) 对一般 $N$ 求 $\frac1N\one\T\Sigma_u\one$，判断强弱；
+(c) 若改为“任意 $i\neq j$ 的协方差都是 $0.4$”呢？
+\answer
+(a) $\Sigma_u=\begin{pmatrix}1&0.4&0\\0.4&1&0.4\\0&0.4&1\end{pmatrix}$，元素之和 $=3+4\times0.4=4.6$，$\frac13\times4.6\approx1.533$。
+
+(b) 对角元之和为 $N$；相邻对共有 $N-1$ 对，每对在矩阵中出现两次（$(i,j)$ 与 $(j,i)$），贡献 $2(N-1)\times0.4$。故
+\[
+\frac1N\one\T\Sigma_u\one=\frac{N+0.8(N-1)}N=1.8-\frac{0.8}N\to1.8,
+\]
+有界，\key{弱相关}。
+
+(c) 非对角元之和为 $N(N-1)\times0.4$，$\frac1N\one\T\Sigma_u\one=\frac{N+0.4N(N-1)}{N}=1+0.4(N-1)\to\infty$，\key{强相关}。这与极端例一同理。
+\end{prac}
+
+\begin{prac}[聚类与强弱相关]\label{prac:U13a-clusternum}
+某研究有 $N=3000$ 家企业，分属 $G$ 个行业，行业内企业误差的相关系数 $\rho=0.1$，行业间不相关，方差为 1。分别计算 $G=1000$（每行业 3 家）与 $G=3$（每行业 1000 家）时的 $\frac1N\one\T\Sigma_u\one$，并说明哪种情况下按行业聚类的标准误可靠。
+\answer
+由聚类结构的公式 $\frac1N\one\T\Sigma_u\one=\sigma^2[1+(m-1)\rho]$，$\sigma^2=1$：
+
+$G=1000$，$m=3$：$1+2\times0.1=1.2$，有界，弱相关；且组数多，聚类推断可靠。
+
+$G=3$，$m=1000$：$1+999\times0.1=100.9$，随 $N$ 增长而发散，属强相关；只有 3 个组，聚类标准误的“$G\to\infty$”要求严重不满足，不可靠。
+\end{prac}
+
+\begin{english}
+A convenient scalar measure of cross-sectional dependence is $\frac1N\mathbf 1_N'\Sigma_u\mathbf 1_N=\frac1N\sum_i\sum_j\operatorname{Cov}(u_{it},u_{jt})=N\operatorname{Var}(\bar u_t)$. Dependence is strong (global) if this quantity diverges as $N\to\infty$, typically at rate $N$, and weak (local) if it remains bounded. For example, if all covariances equal $\sigma^2$, the measure equals $N\sigma^2\to\infty$; if the errors are cross-sectionally uncorrelated, it equals $\frac1N\sum_i\sigma_i^2$, which is bounded. Spatial autoregressive models with $\sum_j|w_{ij}|<\infty$ are the leading example of weak dependence. A more general characterization uses the largest eigenvalue of $\Sigma_u$: dependence is weak if $\lambda_{\max}(\Sigma_u)$ is bounded.
+\end{english}
+
+%======================================================================
+\section{潜在因子模型如何产生截面相关}\label{sec:U13a-factorcsd}
+
+上一节只描述了截面相关的“强弱”，没有回答它从哪里来。本节的结论可以概括为一句话：
+\begin{center}
+CSD $\Longleftarrow$ \key{潜在因子模型}（latent factor model）。
+\end{center}
+截面相关最常见、最重要的来源是\key{共同的不可观测冲击}。其他模型（如上一节的空间模型）也能描述 CSD，但因子模型最流行。
+
+\subsection{单因子模型：公共因子、因子载荷与特质误差}
+
+\begin{defn}[单因子模型]\label{def:U13a-onefactor}
+\[
+u_{it}=\lambda_if_t+v_{it},
+\]
+\begin{itemize}
+\item $f_t$：\term{公共因子}{common factor}，只随时间变化、对所有个体相同（如宏观冲击、市场收益、新冠疫情）；不可观测（\term{潜在的}{latent}）；
+\item $\lambda_i$：\term{因子载荷}{factor loading}（也称个体对因子的反应 response），个体 $i$ 对因子的敏感程度，不随时间变化；
+\item $v_{it}$：\term{特质误差}{idiosyncratic error}，个体自身的冲击。
+\end{itemize}
+\end{defn}
+
+\subsubsection{推导协方差所需的标准假设}
+
+设 $\E(f_t)=0$，$\sigma_f^2=\E(f_t^2)$，并假设
+\begin{enumerate}[label=(\roman*)]
+\item $\E(v_{it})=0$；
+\item $v_{it}$ 与 $f_t$ 不相关：$\E(f_tv_{jt})=0$ 对一切 $j$；
+\item 特质误差截面不相关：$\E(v_{it}v_{jt})=0$（$i\neq j$）；
+\item 载荷 $\lambda_i$ 是常数，或是与 $(f_t,v_{jt})$ 独立的随机变量。
+\end{enumerate}
+由 $\E f_t=0$ 与 (i)，$\E(u_{it})=\E(\lambda_i)\E(f_t)+\E(v_{it})=0$。
+
+\subsection{单因子下的协方差：\texorpdfstring{$\Cov(u_{it},u_{jt})=\E(\lambda_i\lambda_jf_t^2)$}{Cov(u\_it, u\_jt) = E(lambda\_i lambda\_j f\_t\^{}2)}}
+
+要证：因子结构使不同个体的误差相关。思路：把两个误差相乘展开，交叉项由假设消去。设 $i\neq j$。
+\begin{align*}
+\Cov(u_{it},u_{jt})&=\E(u_{it}u_{jt}) \why{$\E u_{it}=0$}\\
+&=\E\bigl[(\lambda_if_t+v_{it})(\lambda_jf_t+v_{jt})\bigr] \why{代入模型}\\
+&=\E(\lambda_if_t\lambda_jf_t)+\E(v_{it}\lambda_jf_t)+\E(v_{jt}\lambda_if_t)+\E(v_{it}v_{jt}) \why{展开，期望线性性}\\
+&=\E(\lambda_i\lambda_jf_t^2)+0+0+0 \why{假设 (ii)(iii)(iv)}\\
+&=\E(\lambda_i\lambda_jf_t^2)\ \neq\ 0\quad\text{（一般情况下）} \why{只要 $\lambda_i\lambda_j\neq0$ 且 $f_t^2\neq0$}
+\end{align*}
+其中第二项为零的理由是 $\E(v_{it}\lambda_jf_t)=\E(\lambda_j)\E(f_tv_{it})=0$（由 (iv) 把 $\lambda_j$ 分离出来，再用 (ii)）；第三项同理；第四项由 (iii) 为零。
+
+\subsubsection{载荷为常数时：\texorpdfstring{$\Cov(u_{it},u_{jt})=\lambda_i\lambda_j\sigma_f^2$}{Cov = lambda\_i lambda\_j sigma\_f\^{}2}}
+
+若 $\lambda_i,\lambda_j$ 为常数，可以把它们提到期望外面：
+\[
+\Cov(u_{it},u_{jt})=\lambda_i\lambda_j\E(f_t^2)=\lambda_i\lambda_j\sigma_f^2 .
+\]
+若载荷是与 $f_t$ 独立的随机变量，则 $\Cov(u_{it},u_{jt})=\E(\lambda_i\lambda_j)\sigma_f^2$。
+
+\subsubsection{因子是截面相关的来源，也是控制截面相关的工具}
+
+结论：哪怕特质误差 $v$ 完全截面独立，只要两个个体都“载荷”在同一个因子上，它们的总误差就相关——因子是 CSD 的来源。反过来，把因子结构写进模型，就可以\key{控制} CSD（control CSD）：去掉 $\lambda_if_t$ 之后，剩下的 $v_{it}$ 只有弱相关。
+
+\subsection{载荷为零的个体不受因子影响}
+
+若 $\lambda_i=0$ 而 $\lambda_j\neq0$，则
+\[
+\Cov(u_{it},u_{jt})=0\cdot\lambda_j\sigma_f^2=0 .
+\]
+个体 $i$ 不受因子影响，它与任何个体都不因该因子而相关。因此\key{载荷为零的个体越多，因子造成的相关就越“局部”}——这正是下一节强/弱因子的出发点。
+
+\subsection{多因子模型与向量记号}
+
+\begin{defn}[多因子模型]\label{def:U13a-multifactor}
+\[
+u_{it}=\lambda_{i1}f_{1t}+\lambda_{i2}f_{2t}+\dots+\lambda_{ir}f_{rt}+v_{it}=\lambda_i\T f_t+v_{it},
+\]
+\[
+\underset{r\times1}{\lambda_i}=\begin{pmatrix}\lambda_{i1}\\ \vdots\\ \lambda_{ir}\end{pmatrix},\qquad
+\underset{r\times1}{f_t}=\begin{pmatrix}f_{1t}\\ \vdots\\ f_{rt}\end{pmatrix},\qquad r=\text{因子个数}.
+\]
+\end{defn}
+
+\subsubsection{多因子下的协方差：\texorpdfstring{$\Cov(u_{it},u_{jt})=\lambda_i'\Sigma_f\lambda_j$}{Cov(u\_it, u\_jt) = lambda\_i' Sigma\_f lambda\_j}}
+
+同样的推导（向量版）。设 $\E f_t=0$，$\Sigma_f=\E(f_tf_t\T)$（$r\times r$），载荷非随机，(ii)(iii) 照旧（$\E(f_tv_{jt})=0$ 现为 $r\times1$ 零向量）。设 $i\neq j$：
+\begin{align*}
+\Cov(u_{it},u_{jt})&=\E\bigl[(\lambda_i\T f_t+v_{it})(\lambda_j\T f_t+v_{jt})\bigr] \why{$\E u=0$；代入模型}\\
+&=\E\bigl[(\lambda_i\T f_t+v_{it})(f_t\T\lambda_j+v_{jt})\bigr] \why{$\lambda_j\T f_t=f_t\T\lambda_j$（标量转置）}\\
+&=\E(\lambda_i\T f_tf_t\T\lambda_j)+\lambda_i\T\E(f_tv_{jt})+\E(v_{it}f_t\T)\lambda_j+\E(v_{it}v_{jt}) \why{展开；提出常数}\\
+&=\E(\lambda_i\T f_tf_t\T\lambda_j)\ \neq0\ \text{（一般情况下）} \why{交叉项与 $v$ 项为 0}\\
+&=\lambda_i\T\Sigma_f\lambda_j \why{期望只作用于 $f_t$}
+\end{align*}
+
+\subsubsection{纯因子模型中的同一结论：\texorpdfstring{$\E(y_{it}y_{jt})\neq0$}{E(y\_it y\_jt) != 0}}
+
+若把因子结构直接放在可观测变量上（纯因子模型，本章纯因子模型一节），$y_{it}=\lambda_i\T f_t+u_{it}$（这里 $u_{it}$ 是特质误差，截面不相关），同样得到
+\[
+\E(y_{it}y_{jt})=\E(\lambda_i\T f_tf_t\T\lambda_j)+\underbrace{\E(u_{it}u_{jt})}_{=0}\neq0 .
+\]
+
+\subsection{因子结构下的协方差矩阵：\texorpdfstring{$\Sigma_u=\Lambda\Sigma_f\Lambda'+\Sigma_v$}{Sigma\_u = Lambda Sigma\_f Lambda' + Sigma\_v}}
+
+把 $N$ 个个体叠起来：$u_t=\Lambda f_t+v_t$，其中 $u_t,v_t$ 为 $N\times1$，
+\[
+\underset{N\times r}{\Lambda}=(\lambda_1,\dots,\lambda_N)\T=\begin{pmatrix}\lambda_1\T\\ \vdots\\ \lambda_N\T\end{pmatrix}.
+\]
+设 $\E f_t=0$，$\E v_t=0$，$\E(f_tv_t\T)=0$（$f_t\perp v_t$），$\Sigma_v=\Var(v_t)$。
+\begin{align*}
+\Sigma_u=\Var(u_t)&=\E\bigl[(\Lambda f_t+v_t)(\Lambda f_t+v_t)\T\bigr] \why{$\E u_t=0$}\\
+&=\E\bigl[(\Lambda f_t+v_t)(f_t\T\Lambda\T+v_t\T)\bigr] \why{$(AB)\T=B\T A\T$}\\
+&=\Lambda\E(f_tf_t\T)\Lambda\T+\Lambda\E(f_tv_t\T)+\E(v_tf_t\T)\Lambda\T+\E(v_tv_t\T) \why{展开；提出常数矩阵}\\
+&=\Lambda\Sigma_f\Lambda\T+\Sigma_v \why{$f_t\perp v_t$}
+\end{align*}
+\begin{equation}\label{eq:U13a-Sigmau}
+\boxed{\ \Sigma_u=\Var(u_t)=\Lambda\Sigma_f\Lambda\T+\Sigma_v\ }
+\end{equation}
+它的 $(i,j)$ 元（$i\neq j$）正是上面的 $\lambda_i\T\Sigma_f\lambda_j$（加上 $\Sigma_v$ 的 $(i,j)$ 元）。
+
+\subsubsection{低秩的共同部分与特质部分}
+
+$\Lambda\Sigma_f\Lambda\T$ 是秩为 $r$ 的\key{低秩}部分（共同部分；$\Lambda$ 列满秩、$\Sigma_f$ 正定时秩恰为 $r$），$\Sigma_v$ 是特质部分（若特质误差截面不相关，则为对角阵）。这与 Hansen 第 11.13 节的分解 $\Sigma=\Lambda\Lambda\T+\Psi$ 一致：Hansen 把因子标准化为 $\E(FF\T)=I_r$，即取 $\Sigma_f=I_r$；因子分析文献称 $\Lambda\Lambda\T$ 为共同度（communality），$\Psi$ 为特殊度（uniqueness）。
+
+\subsection{因子模型下 \texorpdfstring{$\frac1N\one'\Sigma_u\one$}{(1/N)1'Sigma\_u 1} 的计算}
+
+把上一节的强弱度量用到因子结构上。以单因子、$\lambda=(\lambda_1,\dots,\lambda_N)\T$ 非随机、$\Sigma_v=\diag(\sigma_{v1}^2,\dots,\sigma_{vN}^2)$ 且各 $\sigma_{vi}^2$ 有界为例，此时 $\Sigma_u=\sigma_f^2\lambda\lambda\T+\Sigma_v$。记 $\bar\lambda=\frac1N\sum_i\lambda_i$。
+\begin{align*}
+\frac1N\one\T\Sigma_u\one&=\frac1N\one\T(\sigma_f^2\lambda\lambda\T+\Sigma_v)\one \why{$\Sigma_u=\sigma_f^2\lambda\lambda\T+\Sigma_v$}\\
+&=\frac{\sigma_f^2}N(\one\T\lambda)(\lambda\T\one)+\frac1N\one\T\Sigma_v\one \why{分配律}\\
+&=\frac{\sigma_f^2}N(\one\T\lambda)^2+\frac1N\sum_i\sigma_{vi}^2 \why{$\lambda\T\one=\one\T\lambda$；$\Sigma_v$ 对角}\\
+&=\frac{\sigma_f^2}N\Bigl(\sum_{i=1}^N\lambda_i\Bigr)^2+O(1) \why{$\sigma_{vi}^2$ 有界}\\
+&=N\sigma_f^2\bar\lambda^2+O(1) \why{$\sum_i\lambda_i=N\bar\lambda$}
+\end{align*}
+
+\subsubsection{载荷之和以速度 \texorpdfstring{$N$}{N} 发散：强相关}
+
+若 $\sum_i\lambda_i$ 以速度 $N$ 发散（$\bar\lambda\to$ 非零常数），第一项 $\approx N\sigma_f^2\bar\lambda^2\to\infty$，\key{强相关}。
+
+\subsubsection{载荷之和有界：弱相关}
+
+若 $\sum_i\lambda_i=$ 常数 $c$（例如只有有限个个体载荷非零），第一项 $=\sigma_f^2c^2/N\to0$，整个量有界，\key{弱相关}。
+
+这一计算把“因子载荷的大小”与“相关的强弱”精确地连在一起，引出下一节。
+
+\begin{prac}[局部因子]\label{prac:U13a-localfactor}
+设 $u_{it}=\lambda_if_t+v_{it}$，$\sigma_f^2=1$，$\Var(v_{it})=1$ 且截面独立。前 $m$ 个个体 $\lambda_i=1$，其余 $\lambda_i=0$。
+(a) 求 $\Cov(u_{1t},u_{2t})$ 与 $\Cov(u_{1t},u_{Nt})$（设 $m\ge2$，$N>m$）；
+(b) 求 $\frac1N\one\T\Sigma_u\one$；
+(c) 分别讨论 $m=5$ 固定与 $m=N/2$ 时的强弱。
+\answer
+(a) $\Cov(u_{1t},u_{2t})=\lambda_1\lambda_2\sigma_f^2=1\times1\times1=1$；$\Cov(u_{1t},u_{Nt})=\lambda_1\lambda_N\sigma_f^2=1\times0\times1=0$。
+
+(b) 由上面的公式，$\sum_i\lambda_i=m$，$\sum_i\sigma_{vi}^2=N$：
+\[
+\frac1N\one\T\Sigma_u\one=\frac1N\Bigl(\sum_i\lambda_i\Bigr)^2+\frac1N\sum_i1=\frac{m^2}N+1 .
+\]
+
+(c) $m=5$：$\frac{25}N+1\to1$，有界，弱相关（局部因子，如飓风只影响少数地区）。$m=N/2$：$\frac{N^2/4}{N}+1=\frac N4+1\to\infty$，强相关（全局因子，如新冠影响一半以上的个体）。
+\end{prac}
+
+\begin{english}
+A latent factor model $u_{it}=\lambda_i'f_t+v_{it}$, where $f_t$ is an $r\times1$ vector of unobserved common factors and $\lambda_i$ is the vector of factor loadings, generates cross-sectional dependence. Assuming that $v_{it}$ is uncorrelated with $f_t$ and across units, $\operatorname{Cov}(u_{it},u_{jt})=E(\lambda_i'f_tf_t'\lambda_j)=\lambda_i'\Sigma_f\lambda_j$, which is nonzero in general. In matrix form, $\Sigma_u=\Lambda\Sigma_f\Lambda'+\Sigma_v$: a low-rank common component plus an idiosyncratic component. A unit with $\lambda_i=0$ is not affected by the factor. In the one-factor case, $\frac1N\mathbf 1'\Sigma_u\mathbf 1=N\sigma_f^2\bar\lambda^2+O(1)$, so the dependence is strong when $\sum_i\lambda_i$ grows at rate $N$ and weak when it is bounded.
+\end{english}
+
+%======================================================================
+\section{强（全局）因子与弱（局部）因子}\label{sec:U13a-sfwf}
+
+上一节表明，因子造成的截面相关是强是弱，取决于载荷在个体间的分布。本节把“因子的强弱”与“相关的强弱”直接对应起来，并说明为什么 PCA 只能找出强因子。
+
+\subsection{定义：载荷之和发散还是有界}
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{@{}l L L@{}}
+\toprule
+ & 强因子 / 全局因子 & 弱因子 / 局部因子\\
+\midrule
+产生的相关 & 强相关：$\frac1N\one\T\Sigma_u\one\to$ 发散 & 弱相关：$\frac1N\one\T\Sigma_u\one=$ 常数\\
+载荷之和（单因子） & $\sum_{i=1}^N\lambda_i\to$ 发散 & $\sum_{i=1}^N\lambda_i=$ 常数\\
+载荷均值（向量） & $\frac1N\sum_{i=1}^N\lambda_i\to$ 非零常数向量 & $\frac1N\sum_{i=1}^N\lambda_i\to0$\\
+影响范围 & 影响每一个（几乎所有）$i$ & 只影响少数个体\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{强因子与弱因子的对照}\label{tab:U13a-sfwf}
+\end{center}
+
+\subsubsection{两种写法等价：\texorpdfstring{$\sum_i\lambda_i$}{sum lambda\_i} 以速度 \texorpdfstring{$N$}{N} 发散与 \texorpdfstring{$\frac1N\sum_i\lambda_i\to$}{(1/N) sum lambda\_i ->} 非零常数}
+
+因为 $\sum_i\lambda_i=N\cdot\frac1N\sum_i\lambda_i$，
+\[
+\sum_i\lambda_i\ \text{以速度 $N$ 发散}\iff\frac1N\sum_i\lambda_i\to\text{非零常数};\qquad
+\sum_i\lambda_i\ \text{有界}\ \Rightarrow\ \frac1N\sum_i\lambda_i=O(1/N)\to0 .
+\]
+
+\begin{defn}[强因子与弱因子]\label{def:U13a-sfwf}
+因子 $f_t$ 称为\term{强因子}{strong factor}（\term{全局因子}{global factor}），若它的载荷在越来越多的个体上不为零，使 $\frac1N\sum_i\lambda_i\to$ 非零常数（向量）；称为\term{弱因子}{weak factor}（\term{局部因子}{local factor}），若只有少数个体载荷非零，使 $\sum_i\lambda_i$ 有界、$\frac1N\sum_i\lambda_i\to0$。
+\end{defn}
+
+\subsection{例：新冠疫情（全局因子）与飓风（局部因子）}
+
+\begin{itemize}
+\item \key{弱因子 / 局部因子：影响部分个体}，例如飓风——只冲击沿海少数地区，载荷对绝大多数个体为 0；
+\item \key{强因子 / 全局因子：影响几乎所有个体}，例如新冠疫情——几乎每个企业、地区、行业都受到冲击。
+\end{itemize}
+
+\subsection{载荷正负抵消的漏洞与 \texorpdfstring{$\Lambda'\Lambda/N$}{Lambda'Lambda/N} 条件}
+
+“载荷之和”的判据有一个漏洞：载荷可能正负相消。
+
+\begin{exmp}[正负抵消的反例]\label{ex:U13a-cancel}
+设 $N$ 为偶数，一半个体 $\lambda_i=1$，另一半 $\lambda_i=-1$；单因子，$\sigma_f^2=1$，$\Sigma_v=I_N$。判断该因子的强弱。
+\solution
+按载荷之和的判据：
+\begin{align*}
+\sum_i\lambda_i&=\tfrac N2\cdot1+\tfrac N2\cdot(-1)=0 \why{正负各半}\\
+\frac1N\one\T\Sigma_u\one&=\frac{\sigma_f^2}N\Bigl(\sum_i\lambda_i\Bigr)^2+\frac1N\sum_i\sigma_{vi}^2=\frac1N\cdot0^2+1=1 \why{因子模型下的公式}
+\end{align*}
+按 $\frac1N\one\T\Sigma_u\one$ 的度量是“弱相关”。但逐对看：
+\begin{align*}
+\Cov(u_{it},u_{jt})&=\lambda_i\lambda_j\sigma_f^2=\pm1 \why{$i\neq j$}\\
+\Var(u_{it})&=\lambda_i^2\sigma_f^2+\sigma_{vi}^2=1+1=2 \why{$f_t\perp v_{it}$}\\
+\Corr(u_{it},u_{jt})&=\frac{\pm1}{\sqrt2\sqrt2}=\pm\tfrac12 \why{相关系数定义}
+\end{align*}
+每一对个体都相关，因子影响了\key{所有}个体，显然是全局因子。再看最大特征值：$\Sigma_u=\lambda\lambda\T+I_N$，$\Sigma_u\lambda=\lambda(\lambda\T\lambda)+\lambda=(\lambda\T\lambda+1)\lambda$，故
+\[
+\lambda_{\max}(\Sigma_u)=\lambda\T\lambda+1=\sum_i\lambda_i^2+1=N+1\to\infty .
+\]
+所以按最大特征值它是强相关。$\frac1N\one\T\Sigma_u\one$ 只看等权平均方向，正负载荷在这个方向上恰好抵消。
+\end{exmp}
+
+\subsubsection{用载荷平方和表述的强因子条件 \texorpdfstring{$\Lambda'\Lambda/N\to\Sigma_\Lambda>0$}{Lambda'Lambda/N -> Sigma\_Lambda > 0}}
+
+因此文献中强因子的标准条件用载荷的\key{平方和}（不会相消）表述：
+\[
+\text{强因子：}\ \frac1N\sum_{i=1}^N\lambda_i\lambda_i\T=\frac{\Lambda\T\Lambda}N\to\Sigma_\Lambda>0\ \text{（正定）};\qquad
+\text{弱因子：}\ \sum_{i=1}^N\lambda_i\lambda_i\T\ \text{有界}.
+\]
+这里用到 $\Lambda\T\Lambda=\sum_i\lambda_i\lambda_i\T$（$\Lambda\T$ 的第 $i$ 列是 $\lambda_i$）。单因子时它就是 $\frac1N\sum_i\lambda_i^2\to$ 正常数，在上例中 $\frac1N\sum_i\lambda_i^2=1$，正确地判为强因子。
+
+\subsubsection{Hansen 的写法：\texorpdfstring{$\lambda_{\min}(\Lambda'\Lambda)\to\infty$}{lambda\_min(Lambda'Lambda) -> infinity}}
+
+Hansen 第 11.14 节 Assumption 11.1 第 2 条写作 $\lambda_{\min}(\Lambda\T\Lambda)\to\infty$，含义相同：每个因子都“越来越多地”出现在个体中。二者的关系是：若 $\Lambda\T\Lambda/N\to\Sigma_\Lambda>0$，则 $\lambda_{\min}(\Lambda\T\Lambda)=N\lambda_{\min}(\Lambda\T\Lambda/N)\approx N\lambda_{\min}(\Sigma_\Lambda)\to\infty$。
+
+\begin{note}[作答建议]
+作答时写“强因子：$\sum_i\lambda_i$ 发散（$\frac1N\sum_i\lambda_i\to$ 常数）；弱因子：$\sum_i\lambda_i$ 有界（$\frac1N\sum_i\lambda_i\to0$）”即可；如有余力，补一句“更严格的条件是 $\Lambda\T\Lambda/N\to\Sigma_\Lambda>0$，以避免正负载荷相互抵消”。
+\end{note}
+
+\subsection{同时含强因子与弱因子的模型}
+
+\begin{defn}[含强、弱因子的模型]\label{def:U13a-sw-model}
+\[
+u_{it}=\lambda_i^{s\prime}f_t^s+\lambda_i^{w\prime}f_t^w+v_{it},
+\]
+上标 $s$ 表示强（strong）因子及其载荷，$w$ 表示弱（weak）因子及其载荷。
+\end{defn}
+
+相关文献：Bai \& Ng (2023, \emph{Journal of Econometrics})，题为 \emph{Approximate factor models with weaker loadings}，研究载荷比标准强因子弱的因子模型；资产定价中关于弱因子的讨论见本章应用一节。
+
+\subsection{PCA 只能识别强因子：特征值视角}
+
+核心结论：\key{PCA 只能识别 $\lambda_i^s,f_t^s$，不能识别 $\lambda_i^w,f_t^w$}。原因要从协方差矩阵的特征值来看（PCA 估计见本章下一部分：它取的是最大的几个特征值对应的特征向量）。
+
+\subsubsection{单因子协方差矩阵 \texorpdfstring{$\sigma_f^2\lambda\lambda'+\sigma^2I_N$}{sigma\_f\^{}2 lambda lambda' + sigma\^{}2 I} 的特征值}
+
+单因子、$\Sigma_v=\sigma^2I_N$ 时，$\Sigma_u=\sigma_f^2\lambda\lambda\T+\sigma^2I_N$。要证：它的特征值为
+\[
+\underbrace{\sigma_f^2\lambda\T\lambda+\sigma^2}_{\text{因子方向}},\ \underbrace{\sigma^2,\dots,\sigma^2}_{N-1\text{ 个}} .
+\]
+思路：分别检验 $\lambda$ 方向与 $\lambda$ 的正交方向。
+\begin{align*}
+\Sigma_u\lambda&=\sigma_f^2\lambda(\lambda\T\lambda)+\sigma^2\lambda \why{结合律}\\
+&=(\sigma_f^2\lambda\T\lambda+\sigma^2)\lambda \why{$\lambda\T\lambda$ 是标量}\\
+\Sigma_ug&=\sigma_f^2\lambda(\lambda\T g)+\sigma^2g=\sigma^2g \why{对任何 $g\perp\lambda$，$\lambda\T g=0$}
+\end{align*}
+所以 $\lambda/\|\lambda\|$ 是特征向量，特征值 $\sigma_f^2\lambda\T\lambda+\sigma^2$；与 $\lambda$ 正交的子空间是 $N-1$ 维，其中每个向量都是特征值 $\sigma^2$ 的特征向量。等价地说：$\lambda\lambda\T$ 的唯一非零特征值是 $\lambda\T\lambda$，对应特征向量 $\lambda/\|\lambda\|$；加上 $\sigma^2I$ 使所有特征值平移 $\sigma^2$。
+
+\subsubsection{强因子：因子方向的特征值约为 \texorpdfstring{$N\sigma_f^2$}{N sigma\_f\^{}2}，远高于噪声}
+
+强因子时 $\lambda\T\lambda=\sum_i\lambda_i^2\asymp N$，因子方向的特征值 $\approx N\sigma_f^2$，远远高于噪声特征值 $\sigma^2$——“鹤立鸡群”，PCA 一眼就能把它挑出来。
+
+\subsubsection{弱因子：因子方向的特征值与噪声同阶，被噪声淹没}
+
+弱因子时 $\lambda\T\lambda$ 有界，因子方向的特征值与噪声特征值同阶。实际中 $\Sigma_v$ 并非恰好是 $\sigma^2I$，且要用样本估计，噪声特征值本身有 $O(1)$ 的散布，弱因子的特征值淹没其中，PCA \key{无法把它与噪声区分开}。
+
+\begin{exmp}[\texorpdfstring{$3\times3$}{3 x 3} 手算：强载荷与弱载荷的特征值]\label{ex:U13a-eig33}
+取 $N=3$，$\sigma_f^2=\sigma^2=1$。分别对 (a) $\lambda=(1,1,1)\T$ 与 (b) $\lambda=(1,0,0)\T$ 求 $\Sigma_u=\lambda\lambda\T+I_3$ 的特征值、最大特征值的特征向量与 $\frac13\one\T\Sigma_u\one$。
+\solution
+(a) 强（全局）载荷 $\lambda=(1,1,1)\T$：
+\[
+\Sigma_u=\lambda\lambda\T+I_3=\begin{pmatrix}2&1&1\\1&2&1\\1&1&2\end{pmatrix}.
+\]
+特征方程：令 $x=2-e$，
+\begin{align*}
+\det(\Sigma_u-eI)&=\det\begin{pmatrix}x&1&1\\1&x&1\\1&1&x\end{pmatrix} \why{对角元 $2-e=x$}\\
+&=x(x^2-1)-1\cdot(x-1)+1\cdot(1-x) \why{按第一行展开}\\
+&=x^3-3x+2 \why{合并同类项}\\
+&=(x-1)^2(x+2)=0 \why{因式分解，$x=1$ 是二重根}
+\end{align*}
+得 $x=1,1,-2$，即特征值 $e=2-x=1,1,4$。$e_1=4$ 的特征向量：解 $(\Sigma_u-4I)g=0$，第一行为 $-2g_1+g_2+g_3=0$，其余两行类似，得 $g_1=g_2=g_3$，单位化得 $g=(1,1,1)\T/\sqrt3$——正是载荷方向。最大特征值 $=\lambda\T\lambda+1=N+1$，随 $N$ 线性增长。$\frac13\one\T\Sigma_u\one=\frac{6+6}3=4$（对角元之和 6，非对角元之和 6）。
+
+(b) 弱（局部）载荷 $\lambda=(1,0,0)\T$：$\Sigma_u=\diag(2,1,1)$，特征值 $2,1,1$。无论 $N$ 多大，最大特征值都只有 $1+1=2$；$\frac13\one\T\Sigma_u\one=\frac43$。
+
+（数值核对：(a) 的特征值为 $[1,1,4]$；(b) 为 $[1,1,2]$。）
+\end{exmp}
+
+\begin{prac}[强弱因子的特征值]\label{prac:U13a-eig}
+设 $\Sigma_u=\lambda\lambda\T+I_N$。
+(a) 证明 $\lambda/\|\lambda\|$ 是特征向量，对应特征值 $\lambda\T\lambda+1$；任何与 $\lambda$ 正交的向量都是特征值为 1 的特征向量。
+(b) 分别对 $\lambda=(1,\dots,1)\T$ 与 $\lambda=(1,0,\dots,0)\T$ 写出最大特征值，并说明 $N=1000$ 时 PCA 能否识别该因子。
+\answer
+(a) $\Sigma_u\lambda=\lambda(\lambda\T\lambda)+\lambda=(\lambda\T\lambda+1)\lambda$，故 $\lambda$（及其单位化）是特征向量，特征值 $\lambda\T\lambda+1$。若 $g\T\lambda=0$，$\Sigma_ug=\lambda(\lambda\T g)+g=g$，特征值为 1。与 $\lambda$ 正交的子空间是 $N-1$ 维，所以特征值 1 的重数是 $N-1$。
+
+(b) $\lambda=\one_N$：最大特征值 $N+1=1001$，远大于其余特征值 1，PCA 能清楚识别（强因子）。$\lambda=(1,0,\dots,0)\T$：最大特征值 2，与噪声特征值 1 同阶；样本中噪声特征值有波动，PCA 无法可靠识别（弱因子）。
+\end{prac}
+
+\subsection{弱因子的识别：Bai \& Ng (2023)}
+
+关于“强因子与弱因子”，有两个研究方向：(a) 识别弱因子（Bai \& Ng 2023）；(b) 用因子做预测（见本章应用一节）。Bai \& Ng (2023, \emph{Journal of Econometrics}) 考虑载荷“比强因子弱、但不至于有界”的中间情形，例如 $\Lambda\T\Lambda$ 以 $N^\alpha$（$0<\alpha<1$）而不是 $N$ 的速度增长，研究在什么条件下 PCA 仍能一致估计因子、收敛速度如何变慢。直观结论：
+\begin{itemize}
+\item 载荷越弱，因子特征值与噪声特征值的差距越小，PCA 越慢、越不可靠；
+\item 弱到 $\sum_i\lambda_i^2$ 有界时，PCA 无法识别该因子。
+\end{itemize}
+考试掌握上述直观结论即可。
+
+\begin{keypt}[强/弱因子的必记结论]
+\begin{itemize}
+\item 强/全局因子：$\sum_i\lambda_i$ 发散（$\frac1N\sum_i\lambda_i\to$ 常数），影响几乎所有个体（新冠）；弱/局部因子：$\sum_i\lambda_i$ 有界（$\frac1N\sum_i\lambda_i\to0$），只影响少数个体（飓风）。更严格的强因子条件：$\Lambda\T\Lambda/N\to\Sigma_\Lambda>0$。
+\item PCA 只能识别强因子（Bai \& Ng 2023, \emph{JoE}）；原因是弱因子的特征值与噪声同阶。
+\end{itemize}
+\end{keypt}
+
+\begin{english}
+A factor is strong (global) if it affects almost all units, so that $\frac1N\sum_i\lambda_i$ converges to a nonzero constant (more rigorously, $\Lambda'\Lambda/N\to\Sigma_\Lambda>0$, which rules out cancellation of positive and negative loadings); it then generates strong cross-sectional dependence. A factor is weak (local) if it affects only a small number of units, so that $\sum_i\lambda_i$ is bounded and $\frac1N\sum_i\lambda_i\to0$; it generates only weak dependence. A pandemic is an example of a global factor and a hurricane of a local factor. Principal component analysis consistently recovers only the strong factors, because the eigenvalues associated with weak factors are of the same order as those of the idiosyncratic noise (Bai and Ng, 2023, \emph{Journal of Econometrics}).
+\end{english}
+
+%======================================================================
+\section{纯因子模型、矩阵形式与时变载荷}\label{sec:U13a-pure}
+
+前两节把因子结构放在误差项里，用来解释截面相关。本节把因子结构直接放在可观测数据上，写成矩阵形式，说明它为什么是一种“降维”，再介绍载荷随时间或随个体特征变化的推广（IPCA）。
+
+\subsection{纯因子模型}
+
+\begin{defn}[纯因子模型]\label{def:U13a-pure}
+\[
+y_{it}=\lambda_i\T f_t+u_{it}=\lambda_{i1}f_{1t}+\dots+\lambda_{ir}f_{rt}+u_{it},\qquad i=1,\dots,N;\ t=1,\dots,T,
+\]
+称为\term{纯因子模型}{pure factor model}：右边没有可观测回归元，$\lambda_i\T f_t$ 称为\term{潜在因子结构}{latent factor structure}。
+\end{defn}
+
+\subsubsection{两种用法：直接用于数据与用于回归误差}
+
+\begin{itemize}
+\item \key{直接用于数据}：$y_{it}$ 可以是股票收益率 $r_{it}$、宏观序列、地区 GDP 增长等；
+\item \key{用于回归误差}：在面板回归 $y_{it}=x_{it}\T\beta+u_{it}$ 中，$u_{it}=\lambda_i\T f_t+v_{it}$ 本身就是纯因子模型（第 14 章展开）。
+\end{itemize}
+
+\subsubsection{两套记号的对应：\texorpdfstring{$u=\lambda'f+v$}{u = lambda'f + v} 与 \texorpdfstring{$y=\lambda'f+u$}{y = lambda'f + u}}
+
+本章两套记号并用，数学完全相同，请注意对应：
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+写法 & 数据矩阵 & 特质误差矩阵\\
+\midrule
+$u_{it}=\lambda_i\T f_t+v_{it}$（因子结构在回归误差中） & $U$ & $V$\\
+$y_{it}=\lambda_i\T f_t+u_{it}$（因子结构在可观测变量中） & $Y$ & $U$\\
+\bottomrule
+\end{tabular}
+\end{center}
+例如本章 PCA 推导以 $U=\Lambda F\T+V$ 为主，股票收益率的例子中 $u_{it}$ 就是收益率 $r_{it}$。
+
+\subsubsection{因子分析的两个难点：因子不可观测、个数未知}
+
+因子模型面对两个问题：公共因子 $f_t$ \key{有几个}（how many?），以及\key{如何得到}载荷 $\lambda_i$ 与因子 $f_t$。归结为两句话：
+\begin{center}
+“$f_t$: unobserved”，\qquad “$\#(f_t)$ is unknown”。
+\end{center}
+因子不可观测、个数未知，这是因子分析一切困难的来源。
+
+\subsection{矩阵形式 \texorpdfstring{$Y=\Lambda F'+U$}{Y = Lambda F' + U} 与各矩阵的维度}
+
+以 $u_{it}=\lambda_i\T f_t+v_{it}$ 的写法为例。
+
+\subsubsection{按时间叠放：\texorpdfstring{$U_i=F\lambda_i+V_i$}{U\_i = F lambda\_i + V\_i}}
+
+固定个体 $i$，把 $T$ 期叠起来。因为 $u_{it}=\lambda_i\T f_t+v_{it}=f_t\T\lambda_i+v_{it}$（标量转置），
+\[
+\underset{T\times1}{U_i}=\begin{pmatrix}u_{i1}\\u_{i2}\\ \vdots\\u_{iT}\end{pmatrix}
+=\begin{pmatrix}f_1\T\\f_2\T\\ \vdots\\f_T\T\end{pmatrix}\lambda_i+\begin{pmatrix}v_{i1}\\v_{i2}\\ \vdots\\v_{iT}\end{pmatrix}
+\quad\Longrightarrow\quad
+\underset{T\times1}{U_i}=\underset{T\times r}{F}\ \underset{r\times1}{\lambda_i}+\underset{T\times1}{V_i}.
+\]
+这里 $F=(f_1,\dots,f_T)\T$，$F$ 的第 $t$ 行是 $f_t\T$。
+
+\subsubsection{因子模型是回归元不可观测的回归}
+
+对每个 $i$，$U_i=F\lambda_i+V_i$ 就是一个“回归元为 $F$、系数为 $\lambda_i$”的时间序列回归。区别只在于回归元 $F$ 不可观测——因子模型可以看作\key{回归元不可观测的回归}。
+
+\subsubsection{再按个体叠成 \texorpdfstring{$N\times T$}{N x T} 矩阵：\texorpdfstring{$U=\Lambda F'+V$}{U = Lambda F' + V}}
+
+把 $U_1\T,\dots,U_N\T$ 作为行叠起来。先对每个 $i$ 转置：
+\begin{align*}
+U_i\T&=(F\lambda_i+V_i)\T \why{对 $U_i=F\lambda_i+V_i$ 转置}\\
+&=\lambda_i\T F\T+V_i\T \why{$(AB)\T=B\T A\T$}
+\end{align*}
+第 $i$ 行为 $\lambda_i\T F\T$ 的矩阵正是 $\Lambda F\T$（因为 $\Lambda$ 的第 $i$ 行是 $\lambda_i\T$），所以
+\begin{equation}\label{eq:U13a-matrix}
+\boxed{\ \underset{N\times T}{U}=\underset{N\times r}{\Lambda}\ \underset{r\times T}{F\T}+\underset{N\times T}{V}\ },\qquad
+U=\begin{pmatrix}U_1\T\\U_2\T\\ \vdots\\U_N\T\end{pmatrix},\quad
+\Lambda=\begin{pmatrix}\lambda_1\T\\ \vdots\\ \lambda_N\T\end{pmatrix}.
+\end{equation}
+乘积 $\Lambda F\T$ 的“内维度”是 $r$。用 $y$ 的写法完全相同：
+\[
+\underset{N\times T}{Y}=\underset{N\times r}{\Lambda}\ \underset{r\times T}{F\T}+\underset{N\times T}{U},\qquad
+Y=(y_{it})_{N\times T},\quad \Lambda=(\lambda_i\T)_{N\times r},\quad F=(f_t\T)_{T\times r}.
+\]
+
+\subsubsection{记号约定：\texorpdfstring{$f_t$}{f\_t} 是 \texorpdfstring{$F$}{F} 的行，\texorpdfstring{$F_{\cdot k}$}{F\_.k} 是 \texorpdfstring{$F$}{F} 的列}
+
+$F$ 是 $T\times r$（$T$ 行、$r$ 列）。本书约定：$f_t$（$r\times1$）是第 $t$ 期的因子向量，即 $F$ 的第 $t$ 行的转置；$F$ 的第 $k$ 列记为 $F_{\cdot k}$（$T\times1$），是第 $k$ 个因子的整条时间路径，$F=(F_{\cdot1},\dots,F_{\cdot r})$。讨论标准化条件中的正交性时用的是列 $F_{\cdot k}$，叠放 $U_i=F\lambda_i+V_i$ 时用的是行 $f_t\T$，不要混淆。类似地，$\Lambda$ 的第 $k$ 列记为 $\Lambda_{\cdot k}$（$N\times1$）。
+
+\subsubsection{\texorpdfstring{$r=1$}{r = 1}：共同部分是外积，秩为 1}
+
+当 $r=1$ 时，
+\[
+Y=\underset{N\times1}{\Lambda}\ \underset{1\times T}{f\T}+U,
+\]
+共同部分是一个列向量乘一个行向量（外积），\key{秩为 1}。
+
+\subsection{降维与低秩回归：参数个数}
+
+\subsubsection{\texorpdfstring{$NT$}{NT} 个数据与 \texorpdfstring{$(N+T)r$}{(N+T)r} 个参数}
+
+\begin{itemize}
+\item 原始数据 $U$：$N\times T$ 个数，\key{高维}；
+\item 因子模型：共同部分只需 $\Lambda$（$N\times r$）和 $F$（$T\times r$），共 $(N+T)r$ 个数。
+\end{itemize}
+$\Lambda F\T$ 是一个\key{秩为 $r$ 的低秩矩阵}，所以因子模型是一种\term{降维}{dimension reduction}方法，也叫\term{低秩回归}{low-rank regression}（Hansen 第 11.11 节的\term{降秩回归}{reduced rank regression}是同一思想）。
+
+\begin{exmp}[股票收益率的参数个数]\label{ex:U13a-count}
+$N=500$ 只股票、$T=240$ 个月、$r=3$ 个因子。比较原始数据个数与共同部分的参数个数。
+\solution
+\begin{align*}
+NT&=500\times240=120{,}000 \why{原始数据个数}\\
+(N+T)r&=(500+240)\times3=2220 \why{$\Lambda$ 与 $F$ 的元素个数}\\
+(N+T)r-r^2&=2220-9=2211 \why{减去 $r^2$ 个识别约束}
+\end{align*}
+$r^2$ 个识别约束见本章下一节。共同部分只需约 $2.2$ 千个自由参数，就概括了 12 万个数据中的共同运动。
+\end{exmp}
+
+\subsubsection{低秩的含义：每个个体的时间路径都是 \texorpdfstring{$r$}{r} 条基本路径的组合}
+
+$N\times T$ 矩阵 $\Lambda F\T$ 的第 $i$ 行（个体 $i$ 的时间路径）是
+\[
+\lambda_i\T F\T=\lambda_{i1}F_{\cdot1}\T+\lambda_{i2}F_{\cdot2}\T+\dots+\lambda_{ir}F_{\cdot r}\T ,
+\]
+即 $F$ 的 $r$ 列的线性组合。换言之，$N$ 个个体的共同运动只有 $r$ 个“基本形状”，每个个体按自己的载荷把它们加权组合。第 16 章的矩阵补全正是利用这一低秩结构去“填补”缺失的反事实结果。
+
+\subsection{时变载荷的三种设定}
+
+标准模型中 $\lambda_i$ 不随时间变化。把载荷改成时变的 $\lambda_{it}$ 后，载荷参数个数变成 $NTr$，不少于数据个数 $NT$，必须加结构。可行的设定有三种。
+
+\subsubsection{载荷是时间的光滑函数：\texorpdfstring{$\lambda_{it}=\lambda_i(t)$}{lambda\_it = lambda\_i(t)}}
+
+载荷随时间缓慢、光滑地变化。可用核加权的局部 PCA 估计，例如 Su \& Wang (2017, \emph{Journal of Econometrics}) 的时变因子模型。\tagext
+
+\subsubsection{载荷是可观测特征的函数：\texorpdfstring{$\lambda_{it}=\lambda_i(z_{it})$}{lambda\_it = lambda\_i(z\_it)}}
+
+载荷随可观测的个体特征 $z_{it}$ 变化——这就是下一小节的 IPCA。
+
+\subsubsection{特征维数很高时：需要正则化或机器学习}
+
+若特征的个数 $\#(z_{it})$ 很多（高维），需要正则化或机器学习方法（本节半参数 IPCA 一小节）。
+
+\subsection{工具主成分分析 IPCA（Kelly, Pruitt \& Su, 2019）}
+
+完整文献：Kelly, Pruitt \& Su (2019), \emph{Characteristics are covariances: A unified model of risk and return}, \emph{Journal of Financial Economics}。IPCA 即\term{工具主成分分析}{instrumented principal component analysis, IPCA}。
+
+\subsubsection{动机：遗漏因子与随特征变化的风险暴露}
+
+资产收益的因子模型 $r_{it}=a_i+b_i\T f_t+u_{it}$ 中，$f_t$ 是潜在的：真实定价因子未被观测，相当于“遗漏因子”（omitted factors）。实证上，股票的风险暴露会随公司特征（市值、账面市值比、动量……）变化，所以让载荷依赖特征：
+\begin{align*}
+r_{it}&=a_i+b_i\T f_t+u_{it} \why{载荷不变的因子模型}\\
+&=a_i+b_i(z_{it})\T f_t+u_{it} \why{载荷是特征 $z_{it}$ 的函数}\\
+&=a_i+z_{it}\T\Gamma f_t+u_{it} \why{线性设定 $b_i(z_{it})\T=z_{it}\T\Gamma$}
+\end{align*}
+其中 $z_{it}$ 是 $L\times1$ 的公司特征向量（原文使用了数十个特征），$\Gamma$ 是 $L\times r$ 的映射矩阵，$f_t$ 为 $r\times1$。
+
+\subsubsection{映射 \texorpdfstring{$\Gamma$}{Gamma} 对所有个体共同：参数个数与 \texorpdfstring{$N$}{N} 无关}
+
+IPCA 中从特征到载荷的映射 $\Gamma$ 是\key{所有个体共同的}：记 $\beta_{it}=b_i(z_{it})$，则 $\beta_{it}\T=z_{it}\T\Gamma$，$\Gamma$ 不带下标 $i$。这正是 IPCA 节省参数的关键：载荷的异质性（跨个体、跨时间）全部由可观测特征 $z_{it}$ 解释，载荷部分的未知参数只有 $L\times r$ 个，与 $N$ 无关。若写成带个体下标的 $b_i(z_{it})\T=z_{it}\T\Pi_i$，参数个数变成 $NLr$，随 $N$ 增长，就失去了这一优点。
+
+\subsubsection{为什么叫“工具”PCA}
+
+特征 $z_{it}$ 起到“工具变量”（instrument）的作用：它们把高维、时变的载荷压缩成 $\Gamma$ 的低维参数。原文标题“Characteristics are covariances”的含义是：特征之所以能预测收益，是因为它们决定了资产对系统性因子的暴露（协方差）。
+
+\subsubsection{交替最小二乘估计 \tagext}
+
+估计用\key{交替最小二乘}：
+\begin{enumerate}
+\item 给定 $\Gamma$，每期 $t$ 把 $r_t$（$N\times1$）对 $Z_t\Gamma$（$N\times r$，$Z_t$ 的第 $i$ 行为 $z_{it}\T$）做截面回归，得 $\hat f_t$；
+\item 给定 $\{f_t\}$，把 $r_{it}$ 对 $z_{it}\otimes f_t$（$Lr\times1$）做混合回归，得 $\mathrm{vec}(\Gamma\T)$；
+\item 两步交替直到收敛。
+\end{enumerate}
+第 2 步用到的恒等式 $z_{it}\T\Gamma f_t=(z_{it}\otimes f_t)\T\mathrm{vec}(\Gamma\T)$ 推导如下：
+\begin{align*}
+z_{it}\T\Gamma f_t&=f_t\T\Gamma\T z_{it} \why{标量转置}\\
+&=\mathrm{vec}(f_t\T\Gamma\T z_{it}) \why{标量的 vec 是自身}\\
+&=(z_{it}\T\otimes f_t\T)\,\mathrm{vec}(\Gamma\T) \why{$\mathrm{vec}(ABC)=(C\T\otimes A)\mathrm{vec}(B)$}\\
+&=(z_{it}\otimes f_t)\T\mathrm{vec}(\Gamma\T) \why{$(A\otimes B)\T=A\T\otimes B\T$}
+\end{align*}
+所以给定 $f_t$，模型对 $\mathrm{vec}(\Gamma\T)$ 是线性的。这一“给定一组参数估另一组、交替迭代”的结构与第 14 章 Bai (2009) 交互固定效应估计量的迭代完全同构。
+
+\subsection{半参数 IPCA、序列估计与高维特征}
+
+\subsubsection{用基函数展开 \texorpdfstring{$b(\cdot)$}{b(.)}：序列（筛）估计}
+
+线性设定 $b_i(z_{it})\T=z_{it}\T\Gamma$ 可能太强。更灵活的设定是
+\[
+a_i+b_i(z_{it})\T f_t,\qquad b_i(z_{it})=\phi_1(z_{it})\pi_1+\phi_2(z_{it})\pi_2+\cdots\qquad\text{(series estimation)},
+\]
+即用一组基函数 $\phi_k(\cdot)$（多项式、样条等）展开未知函数 $b(\cdot)$，再估计系数 $\pi_k$——这就是\term{序列估计}{series estimation}（也称\term{筛估计}{sieve estimation}），由此得到半参数 IPCA。展开后模型对 $\pi_k$ 线性，又回到 IPCA 的形式，只是“特征”换成了 $\phi_k(z_{it})$。
+
+\begin{extend}[相关文献]
+Connor, Hagmann \& Linton (2012, \emph{Econometrica}) 半参数估计 Fama--French 模型；Fan, Liao \& Wang (2016, \emph{Annals of Statistics}) 提出 projected PCA，让载荷是特征的非参数函数。
+\end{extend}
+
+\subsubsection{特征很多时：正则化与条件自编码器}
+
+当特征个数很大（文献中称为\term{因子动物园}{factor zoo}）时，可用正则化或神经网络：例如 Gu, Kelly \& Xiu (2021, \emph{Journal of Econometrics}) 的条件自编码器资产定价模型，把 IPCA 中线性的 $z\T\Gamma$ 换成神经网络——这又回到了本章开头“PCA 与 DNN”的联系。
+
+\begin{english}
+In the pure factor model $y_{it}=\lambda_i'f_t+u_{it}$, stacking over $t$ gives $Y_i=F\lambda_i+U_i$ with $F$ of dimension $T\times r$, and stacking over $i$ gives the matrix form $Y=\Lambda F'+U$, where $Y$ and $U$ are $N\times T$, $\Lambda$ is $N\times r$ and $F$ is $T\times r$. The factor model can be viewed as a regression with unobserved regressors. The common component $\Lambda F'$ has rank $r$, so the factor model is a dimension-reduction (low-rank) device: $NT$ data points are summarized by $(N+T)r$ parameters. Loadings may be time-varying, e.g.\ $\lambda_i(t)$, or functions of observed characteristics, $\lambda_i(z_{it})$; the latter with a linear map $z_{it}'\Gamma$ common to all units is the instrumented PCA (IPCA) of Kelly, Pruitt and Su (2019).
+\end{english}
+
+%======================================================================
+\section{识别：旋转不定性与标准化}\label{sec:U13a-ident}
+
+估计之前必须先回答：$\Lambda$ 与 $F$ 能否从数据中唯一确定？本节说明答案是“不能”，除非加上 $r^2$ 个标准化约束；加上约束后，二者在符号与次序意义下唯一。
+
+\subsection{因子模型的两个基本问题：识别与因子个数}
+
+对纯因子模型 $y_{it}=\lambda_i\T f_t+u_{it}$，有两个基本问题：
+\begin{enumerate}
+\item 如何识别 $\lambda_i$ 与 $f_t$？（\term{识别}{identification}）
+\item 有几个因子？（number of factors，见本章因子个数一节）
+\end{enumerate}
+本节处理第一个问题。
+
+\subsection{旋转不定性与观测等价}
+
+\begin{thm}[旋转不定性]\label{thm:U13a-rotation}
+对任意 $r\times r$ 可逆矩阵 $C$，令
+\[
+f_t^*=C\inv f_t,\qquad \lambda_i^*=C\T\lambda_i,
+\]
+则 $\lambda_i^{*\prime}f_t^*=\lambda_i\T f_t$。因此 $(\lambda_i,f_t)$ 与 $(\lambda_i^*,f_t^*)$ 生成完全相同的数据，二者\term{观测等价}{observationally equivalent}，仅凭数据无法区分。矩阵形式：$\Lambda^*=\Lambda C$，$F^*=F(C\inv)\T$，$\Lambda^*F^{*\prime}=\Lambda CC\inv F\T=\Lambda F\T$。
+\end{thm}
+
+\subsubsection{证明：在中间插入单位矩阵 \texorpdfstring{$I_r=CC^{-1}$}{I\_r = C C\^{}(-1)}}
+
+思路：$\lambda_i\T f_t$ 中间可以插入任意 $CC\inv=I_r$，再把 $C$ 归给载荷、$C\inv$ 归给因子。
+\begin{align*}
+u_{it}&=\lambda_i\T f_t+v_{it}=\lambda_i\T I_rf_t+v_{it} \why{(1) 原表示}\\
+&=\lambda_i\T CC\inv f_t+v_{it} \why{$I_r=CC\inv$}\\
+&=(C\T\lambda_i)\T(C\inv f_t)+v_{it} \why{$(C\T\lambda_i)\T=\lambda_i\T C$}\\
+&=\lambda_i^{*\prime}f_t^*+v_{it} \why{(2) 新表示}
+\end{align*}
+(1) 与 (2) 的 $u_{it}$、$v_{it}$ 完全相同，故两组参数观测等价。这种“换一组坐标轴表示同一个因子空间”的操作叫\term{旋转}{rotation}，这种不可识别性叫\term{旋转不定性}{rotational indeterminacy}。
+
+\subsubsection{矩阵形式：\texorpdfstring{$\Lambda^*=\Lambda C$, $F^*=F(C^{-1})'$}{Lambda* = Lambda C, F* = F (C\^{}(-1))'}}
+
+$\Lambda^*$ 的第 $i$ 行是 $\lambda_i^{*\prime}=(C\T\lambda_i)\T=\lambda_i\T C$，所以 $\Lambda^*=\Lambda C$；$F^*$ 的第 $t$ 行是 $f_t^{*\prime}=(C\inv f_t)\T=f_t\T(C\inv)\T$，所以 $F^*=F(C\inv)\T$。验证：
+\begin{align*}
+\Lambda^*F^{*\prime}&=\Lambda C\bigl[F(C\inv)\T\bigr]\T \why{代入}\\
+&=\Lambda C\,C\inv F\T \why{$(AB)\T=B\T A\T$，$((C\inv)\T)\T=C\inv$}\\
+&=\Lambda F\T \why{$CC\inv=I_r$}
+\end{align*}
+
+\subsubsection{等价的另一种写法：\texorpdfstring{$\lambda_i^*=C^{-1}\lambda_i$, $f_t^*=C'f_t$}{lambda* = C\^{}(-1) lambda, f* = C'f}}
+
+把定理中的 $C$ 换成 $(C\T)\inv$（仍是任意可逆矩阵），得到另一种同样正确的写法：
+\begin{align*}
+\lambda_i\T f_t&=\lambda_i\T(C\inv)\T C\T f_t \why{插入 $(C\inv)\T C\T=(CC\inv)\T=I_r$}\\
+&=(C\inv\lambda_i)\T(C\T f_t) \why{$(C\inv\lambda_i)\T=\lambda_i\T(C\inv)\T$}
+\end{align*}
+即 $\lambda_i^*=C\inv\lambda_i$ 与 $f_t^*=C\T f_t$ 配套。两种写法表达的都是“观测等价”，关键是\key{载荷与因子的变换必须配套}。
+
+\begin{note}[易错点：载荷与因子的变换不配套]
+常见错误是把 $\lambda_i^*=C\lambda_i$ 与 $f_t^*=C\inv f_t$ 搭配，或把 $\lambda_i^*=C\inv\lambda_i$ 与 $f_t^*=Cf_t$ 搭配。前者 $(C\lambda_i)\T(C\inv f_t)=\lambda_i\T C\T C\inv f_t$，后者 $(C\inv\lambda_i)\T(Cf_t)=\lambda_i\T(C\T)\inv Cf_t$，一般都不等于 $\lambda_i\T f_t$，只在 $C$ 对称时才成立。考试中写 $\lambda_i^*=C\T\lambda_i$、$f_t^*=C\inv f_t$，并注明 $C$ 为任意 $r\times r$ 满秩矩阵。数值验证见本节练习。
+\end{note}
+
+\begin{exmp}[\texorpdfstring{$r=1$}{r = 1}：尺度不定性]\label{ex:U13a-scale}
+$r=1$ 时 $C=c$ 是非零标量，说明单因子模型中什么无法识别。
+\solution
+\begin{align*}
+\lambda_if_t&=\lambda_i\cdot c\cdot\tfrac1c\cdot f_t \why{插入 $c\cdot\frac1c=1$}\\
+&=(c\lambda_i)(f_t/c) \why{重新组合}
+\end{align*}
+例如 $\lambda_i=2,f_t=3$ 与 $\lambda_i^*=6,f_t^*=1$（$c=3$）给出同样的 $6$。所以单因子模型中因子的“单位”无法识别：把载荷放大 $c$ 倍、因子缩小 $c$ 倍，数据不变（$c=-1$ 时连符号也无法识别）。
+\end{exmp}
+
+\subsection{识别条件（标准化）：用 \texorpdfstring{$r^2$}{r\^{}2} 个约束钉住 \texorpdfstring{$C$}{C}}
+
+既然 $C$ 有 $r^2$ 个自由元素，就需要 $r^2$ 个约束把它“钉死”。下面给出两种等价的\term{标准化}{normalization}。
+
+\subsubsection{准备：\texorpdfstring{$F'F=\sum_tf_tf_t'$}{F'F = sum f\_t f\_t'} 与 \texorpdfstring{$\Lambda'\Lambda=\sum_i\lambda_i\lambda_i'$}{Lambda'Lambda = sum lambda\_i lambda\_i'}}
+
+\begin{align*}
+F\T F&=(f_1,\dots,f_T)\begin{pmatrix}f_1\T\\ \vdots\\ f_T\T\end{pmatrix} \why{$F=(f_1,\dots,f_T)\T$}\\
+&=\sum_{t=1}^Tf_tf_t\T \why{分块矩阵乘法}
+\end{align*}
+同理 $\Lambda\T\Lambda=\sum_{i=1}^N\lambda_i\lambda_i\T$。二者都是 $r\times r$ 对称矩阵。
+
+\subsubsection{标准化一：\texorpdfstring{$F'F=I_r$}{F'F = I\_r} 且 \texorpdfstring{$\Lambda'\Lambda$}{Lambda'Lambda} 为对角阵}
+
+\begin{defn}[标准化一（旋转约束）]\label{def:U13a-norm1}
+\[
+\sum_{t=1}^Tf_tf_t\T=I_r\ \Leftrightarrow\ F\T F=I_r;\qquad
+\sum_{i=1}^N\lambda_i\lambda_i\T=\Lambda\T\Lambda=\text{对角矩阵}.
+\]
+在这两条约束下，$u_{it}=\lambda_i\T f_t+v_{it}$ 的表示唯一（在符号与次序意义下）。这组约束称为\term{旋转约束}{rotation restriction}。
+\end{defn}
+
+写成 $F$ 的列：$F=(F_{\cdot1},\dots,F_{\cdot r})$，则 $F\T F$ 的 $(k,l)$ 元是 $F_{\cdot k}\T F_{\cdot l}$：
+\[
+F\T F=\begin{pmatrix}
+F_{\cdot1}\T F_{\cdot1} & F_{\cdot1}\T F_{\cdot2} & \cdots & F_{\cdot1}\T F_{\cdot r}\\
+\vdots & \ddots & & \vdots\\
+F_{\cdot r}\T F_{\cdot1} & \cdots & & F_{\cdot r}\T F_{\cdot r}
+\end{pmatrix}=I_r
+\iff F_{\cdot k}\T F_{\cdot k}=1,\quad F_{\cdot k}\T F_{\cdot l}=0\ (k\neq l),
+\]
+即 $F$ 的各列\key{单位长度且两两正交}（标准正交）。这恰好是对称矩阵特征向量的性质：特征向量 $g_1,g_2$ 满足 $g_1\T g_1=1$、$g_2\T g_2=1$、$g_1\T g_2=0$。所以在这一标准化下，PCA 归结为特征分解（本章 PCA 估计一节）。
+
+\subsubsection{标准化二：\texorpdfstring{$\frac1TF'F=I_r$}{F'F/T = I\_r} 且 \texorpdfstring{$\frac1N\Lambda'\Lambda$}{Lambda'Lambda/N} 为对角阵}
+
+\begin{defn}[标准化二（Bai--Ng 的写法）]\label{def:U13a-norm2}
+\[
+\frac1T\sum_{t=1}^Tf_tf_t\T=I_r,\qquad \frac1N\sum_{i=1}^N\lambda_i\lambda_i\T=\text{对角矩阵}
+\quad\to\quad\lambda_i,f_t\ \text{可唯一识别}\quad\to\quad\text{估计方法：主成分分析}.
+\]
+\end{defn}
+
+$\frac1TF\T F=I_r$ 的含义是“每个因子的样本二阶矩为 1、不同因子样本不相关”。它与 $F\T F=I_r$ 只差一个尺度 $\sqrt T$：若 $F_{(1)}$ 满足标准化一，则 $F_{(2)}=\sqrt T\,F_{(1)}$ 满足标准化二：
+\begin{align*}
+\tfrac1TF_{(2)}\T F_{(2)}&=\tfrac1T\bigl(\sqrt TF_{(1)}\bigr)\T\bigl(\sqrt TF_{(1)}\bigr) \why{代入 $F_{(2)}$}\\
+&=\tfrac TT\,F_{(1)}\T F_{(1)}=I_r \why{$F_{(1)}\T F_{(1)}=I_r$}
+\end{align*}
+相应地载荷缩小 $\sqrt T$ 倍，$\Lambda_{(2)}=\Lambda_{(1)}/\sqrt T$，于是拟合的共同部分不变：$\Lambda_{(2)}F_{(2)}\T=\frac1{\sqrt T}\Lambda_{(1)}\cdot\sqrt TF_{(1)}\T=\Lambda_{(1)}F_{(1)}\T$（两种标准化下 PCA 解的完整比较见本章 PCA 估计一节）。$\Lambda\T\Lambda$ 对角与 $\frac1N\Lambda\T\Lambda$ 对角是同一个约束。
+
+\subsubsection{为什么恰好需要 \texorpdfstring{$r^2$}{r\^{}2} 个约束}
+
+\begin{itemize}
+\item $F\T F=I_r$（或 $\frac1TF\T F=I_r$）：$r\times r$ 对称矩阵等式，独立方程 $\frac{r(r+1)}2$ 个（对角元 $r$ 个，加上三角非对角元 $\frac{r(r-1)}2$ 个）；
+\item $\Lambda\T\Lambda$ 为对角阵：要求非对角元为 0，对称矩阵的上三角非对角元共 $\frac{r(r-1)}2$ 个；
+\item 合计：
+\[
+\frac{r(r+1)}2+\frac{r(r-1)}2=\frac{r^2+r+r^2-r}2=r^2,
+\]
+正好等于 $C$ 的自由元素个数。
+\end{itemize}
+
+\subsubsection{\texorpdfstring{$F'F=I_r$}{F'F = I\_r} 只把 \texorpdfstring{$C$}{C} 限制为正交矩阵}
+
+要证：若 $F$ 与 $F^*=F(C\inv)\T$ 都满足 $F\T F=I_r$，则 $C$ 是正交矩阵。
+\begin{align*}
+I_r=F^{*\prime}F^*&=\bigl[F(C\inv)\T\bigr]\T\bigl[F(C\inv)\T\bigr] \why{代入 $F^*$}\\
+&=C\inv F\T F(C\inv)\T \why{$(AB)\T=B\T A\T$}\\
+&=C\inv(C\inv)\T=C\inv(C\T)\inv \why{$F\T F=I_r$；$(C\inv)\T=(C\T)\inv$}\\
+&=(C\T C)\inv \why{$(AB)\inv=B\inv A\inv$}
+\end{align*}
+所以 $C\T C=I_r$，$C$ 是正交矩阵。也就是说，$F\T F=I_r$ 只排除了“拉伸”，还剩“在因子空间内转动”的自由（正交矩阵有 $\frac{r(r-1)}2$ 个自由度）。
+
+\subsubsection{\texorpdfstring{$\Lambda'\Lambda$}{Lambda'Lambda} 对角再把转动固定住}
+
+设 $\Lambda\T\Lambda=D=\diag(d_1,\dots,d_r)$，对角元互不相同；$C$ 正交且 $\Lambda^{*\prime}\Lambda^*$ 也是对角阵 $D^*$。
+\begin{align*}
+D^*=\Lambda^{*\prime}\Lambda^*&=(\Lambda C)\T(\Lambda C)=C\T DC \why{$\Lambda^*=\Lambda C$}\\
+CD^*&=DC \why{左乘 $C$，$CC\T=I_r$}
+\end{align*}
+比较两边第 $k$ 列：$D\,c_k=d_k^*\,c_k$，即 $C$ 的每一列 $c_k$ 都是对角阵 $D$ 的特征向量。$D$ 的对角元互不相同时，它的单位特征向量只能是 $\pm e_l$（$e_l$ 为第 $l$ 个单位向量），所以 $C$ 只能是“带符号的置换矩阵”：只能交换因子的次序、改变因子的符号，不能再转动。这就引出剩余的两点不定性。
+
+\subsection{剩余的不定性：符号与次序}
+
+\subsubsection{符号：\texorpdfstring{$F_{\cdot k}$}{F\_.k} 与 \texorpdfstring{$\Lambda_{\cdot k}$}{Lambda\_.k} 同时乘 \texorpdfstring{$-1$}{-1}}
+
+把 $F$ 的第 $k$ 列 $F_{\cdot k}$ 与 $\Lambda$ 的第 $k$ 列 $\Lambda_{\cdot k}$ 同时乘 $-1$（即 $C=\diag(1,\dots,-1,\dots,1)$），$F\T F=I_r$ 与 $\Lambda\T\Lambda$ 对角都仍然成立，$\Lambda F\T$ 不变。所以每个因子的\key{符号}无法识别。
+
+\subsubsection{次序：按 \texorpdfstring{$\Lambda'\Lambda$}{Lambda'Lambda} 的对角元从大到小排列}
+
+同时交换 $F$ 与 $\Lambda$ 的两列，约束也仍然成立，所以因子的\key{排列次序}也无法识别。惯例是：按 $\Lambda\T\Lambda$ 的对角元（等价地，按特征值）从大到小排列，符号任意取定。因此“唯一识别”指的是\key{在符号意义下唯一}，且要求 $\Lambda\T\Lambda$ 的对角元互不相同。
+
+\subsubsection{能识别的是因子张成的空间}
+
+旋转不定性意味着因子的“经济意义”无法从统计上识别。Hansen 第 11.13 节指出：任何一种正交旋转都是同样有效的表示，因此不宜对单个载荷的估计值赋予含义。能识别的只是因子张成的空间（以及共同部分 $\Lambda F\T$）。
+
+\begin{keypt}[识别的必记结论]
+\begin{itemize}
+\item 写出 $\lambda_i\T f_t=\lambda_i\T CC\inv f_t=\lambda_i^{*\prime}f_t^*$，$\lambda_i^*=C\T\lambda_i$，$f_t^*=C\inv f_t$，说明“观测等价”。
+\item 标准化：$F\T F=I_r$（或 $\frac1TF\T F=I_r$）$+$ $\Lambda\T\Lambda$ 对角；约束个数 $\frac{r(r+1)}2+\frac{r(r-1)}2=r^2$。
+\item 标准化后仍有符号与次序不定；因子的“意义”无法从统计上识别，能识别的只是因子张成的空间。
+\end{itemize}
+\end{keypt}
+
+\begin{prac}[旋转的数值验证]\label{prac:U13a-rotate}
+设 $r=2$，$\lambda_i=(1,2)\T$，$f_t=(3,1)\T$，$C=\begin{pmatrix}1&1\\0&2\end{pmatrix}$。
+(a) 计算 $\lambda_i^*=C\T\lambda_i$、$f_t^*=C\inv f_t$，验证 $\lambda_i^{*\prime}f_t^*=\lambda_i\T f_t$；
+(b) 说明若错用 $\lambda_i^*=C\lambda_i$（仍取 $f_t^*=C\inv f_t$）会怎样；
+(c) 验证另一种写法 $\lambda_i^*=C\inv\lambda_i$ 必须与 $f_t^*=C\T f_t$ 搭配，与 $Cf_t$ 搭配则出错。
+\answer
+(a) 原值 $\lambda_i\T f_t=1\times3+2\times1=5$。
+\begin{align*}
+C\T&=\begin{pmatrix}1&0\\1&2\end{pmatrix},\qquad \lambda_i^*=C\T\lambda_i=(1,\ 1+4)\T=(1,5)\T \why{矩阵乘法}\\
+C\inv&=\frac12\begin{pmatrix}2&-1\\0&1\end{pmatrix} \why{$\det C=2$，伴随矩阵}\\
+f_t^*&=C\inv f_t=\tfrac12(6-1,\ 1)\T=(2.5,\ 0.5)\T \why{矩阵乘法}\\
+\lambda_i^{*\prime}f_t^*&=1\times2.5+5\times0.5=5 \why{与原值相同}
+\end{align*}
+
+(b) $C\lambda_i=(1+2,\ 4)\T=(3,4)\T$，则 $(3,4)(2.5,0.5)\T=7.5+2=9.5\neq5$，因为 $C$ 不对称。
+
+(c) $C\inv\lambda_i=\frac12(2-2,\ 2)\T=(0,1)\T$。与 $Cf_t=(3+1,\ 2)\T=(4,2)\T$ 搭配：$(0,1)(4,2)\T=2\neq5$，出错；与 $C\T f_t=(3,\ 3+2)\T=(3,5)\T$ 搭配：$(0,1)(3,5)\T=5$，正确。
+\end{prac}
+
+\begin{english}
+The factors and loadings are not separately identified: for any invertible $r\times r$ matrix $C$, $\lambda_i'f_t=\lambda_i'CC^{-1}f_t=\lambda_i^{*\prime}f_t^*$ with $\lambda_i^*=C'\lambda_i$ and $f_t^*=C^{-1}f_t$, so the two representations are observationally equivalent (rotational indeterminacy). Since $C$ has $r^2$ free elements, $r^2$ restrictions are needed. The standard normalization is $F'F/T=I_r$ (or $F'F=I_r$) together with $\Lambda'\Lambda$ diagonal, which provides $r(r+1)/2+r(r-1)/2=r^2$ restrictions and identifies the factors and loadings up to sign (and ordering), provided the diagonal elements of $\Lambda'\Lambda$ are distinct. Only the space spanned by the factors is identified, so individual loadings should not be given a structural interpretation.
+\end{english}
+
+本节的标准化为估计做好了准备：在 $F\T F=I_r$ 下，最小二乘问题化为迹最大化，其解正是特征向量。下一节完整推导主成分分析（PCA）估计量。

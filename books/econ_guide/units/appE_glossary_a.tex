@@ -1,0 +1,704 @@
+\chapter{中英术语对照表}
+
+本表汇总全书出现的专业术语，按英文字母顺序逐词排列（忽略大小写，连字符视同空格，括号内的缩写与变体不参与排序）；同一术语的不同写法、缩写或单复数形式合并为一条，变体列在括号内。
+“简释”用一句话给出术语的含义或关键公式，便于考场快速核对；术语在正文中的详细讨论及页码，请查书末英文术语索引。
+
+\begingroup
+\footnotesize
+\setlength{\LTpre}{2pt}\setlength{\LTpost}{4pt}
+\renewcommand{\arraystretch}{1.1}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{A}\addcontentsline{toc}{section}{A}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+acceptance region & 接受域 & 不拒绝 $H_0$ 的检验统计量取值集合，即拒绝域的补集 \\
+adapted & 适应 & 变量在 $t$ 期信息集中已知（关于 $\mathcal{F}_t$ 可测） \\
+adjusted R-squared ($\bar R^2$, R-bar-squared) & 调整 $R^2$ & $\bar R^2=1-s^2/\tilde\sigma_y^2$（$\tilde\sigma_y^2$ 为 $y$ 的无偏样本方差），用自由度惩罚增加回归元；增加一个回归元时 $\bar R^2$ 上升当且仅当其 $|t|>1$ \\
+Aitken theorem & Aitken 定理 & 已知 $\Omega$ 时，GLS 在线性无偏估计量中方差最小 \\
+Akaike information criterion (AIC) & 赤池信息准则 & $-2\ell_n(\hat\theta)+2k$，每个参数罚 2；正态回归中略去常数后为 $n\ln\hat\sigma^2+2k$ \\
+almost everywhere & 几乎处处 & 除概率（测度）为零的集合外处处成立 \\
+alternating projections & 交替投影（交替去均值） & 反复按个体、按时期去均值直至收敛，用于非平衡面板或多维固定效应 \\
+alternative hypothesis & 备择假设 & $H_1$，参数空间中原假设的补集 \\
+analysis of variance (ANOVA); ANOVA formula & 方差分析（方差分析公式） & 含常数项时 $\sum_i(y_i-\bar y)^2=\sum_i(\hat y_i-\bar y)^2+\sum_i\hat u_i^2$，即总平方和 = 解释平方和 + 残差平方和；Wooldridge 记为 SST = SSE + SSR，另一常见记法为 TSS = ESS + SSE（此时 SSE 指残差平方和，与 Hansen 一致） \\
+Anderson--Hsiao estimator & Anderson--Hsiao 估计量 & 对一阶差分方程做 IV，以 $y_{i,t-2}$（或 $\Delta y_{i,t-2}$）作 $\Delta y_{i,t-1}$ 的工具 \\
+Anderson--Rubin test & Anderson--Rubin 检验 & 检验 $H_0:\beta=\beta_0$：看样本矩 $\bar g_n(\beta_0)=n^{-1}Z'(y-X\beta_0)$ 是否接近 0（等价于把 $y-X\beta_0$ 对工具回归、检验系数全为零），$AR(\beta_0)=n\,\bar g_n(\beta_0)'\hat\Omega(\beta_0)^{-1}\bar g_n(\beta_0)\dto\chi^2_L$（$L$ 为工具个数；不估计参数，故自由度为 $L$ 而非 $L-K$）；分布与工具强弱无关，故对弱工具稳健；只检验内生变量系数时自由度为排除工具个数 $L_2$ \\
+Andrews rule & Andrews 规则 & Andrews (1991) 的 HAC 带宽参照规则 $M=Cn^{1/3}$，常数 $C$ 依赖序列的自相关；按 AR(1) 系数 $\rho=0.25$ 校准时 $M\approx0.75\,n^{1/3}$ \\
+annihilator (residual-maker) matrix $M$ & 零化矩阵（残差生成矩阵）$M$ & $M=I_n-X(X'X)^{-1}X'=I_n-P$，$MX=0$，$MY=\hat u$ 为残差；投影到 $X$ 列空间的正交补 \\
+annualized growth rate & 年化增长率 & 把单期增长率按全年复利换算，如季度增长率 $g$ 年化为 $(1+g)^4-1$ \\
+approximate factor model & 近似因子模型 & 允许特质误差存在弱截面相关与弱序列相关的因子模型 \\
+AR(2) test & 二阶序列相关检验 & 检验差分残差无二阶序列相关，以判断差分 GMM 的滞后工具是否有效 \\
+arbitrage pricing theory (APT) & 套利定价理论 & 多因子资产定价理论，因子模型的来源之一 \\
+ARCH model & 自回归条件异方差模型 & 条件方差依赖过去的平方新息，如 $\sigma_t^2=\omega+\alpha e_{t-1}^2$ \\
+Arellano--Bond estimator & Arellano--Bond 估计量 & 差分 GMM：以全部可用的滞后水平值 $y_{i,t-2},y_{i,t-3},\dots$ 作差分方程的工具 \\
+ARMA process & 自回归移动平均过程 & 同时含 AR 与 MA 部分的线性过程 \\
+Ashenfelter's dip & Ashenfelter 低谷 & 处理前结果暂时性下滑、随后均值回归，使 DiD 有偏（通常高估效应） \\
+asymptotic bias (asymptotically biased) & 渐近偏误（渐近有偏） & 标准化后的极限（正态）分布中心不为零 \\
+asymptotic covariance matrix & 渐近协方差矩阵 & $\sqrt n(\hat\beta-\beta)$ 极限分布的协方差矩阵 $V$ \\
+asymptotic critical value & 渐近临界值 & 由渐近原假设分布取得的临界值，如 1.96 \\
+asymptotic distribution & 渐近分布 & 依分布收敛的极限分布 \\
+asymptotic efficiency & 渐近有效性 & 渐近方差在矩阵（半正定）序意义下更小 \\
+asymptotic equivalence & 渐近等价 & 两统计量之差为 $o_p(1)$，大样本下检验决策趋于一致 \\
+asymptotic linear representation & 渐近线性表示 & $\sqrt n(\hat\theta-\theta)=n^{-1/2}\sum_i\psi(w_i)+o_p(1)$，估计误差近似为样本均值项 \\
+asymptotic local power & 渐近局部功效 & 局部备择 $\theta_n=\theta_0+h/\sqrt n$ 下拒绝概率的极限 \\
+asymptotic normality (asymptotically normal) & 渐近正态性（渐近正态） & $\sqrt n(\hat\theta-\theta)\dto N(0,V)$ \\
+asymptotic null distribution & 渐近零分布 & $H_0$ 下检验统计量的极限分布 \\
+asymptotic size & 渐近水平 & $n\to\infty$ 时第一类错误概率的极限 \\
+asymptotic variance & 渐近方差 & 渐近正态分布中的方差（矩阵）$V$ \\
+asymptotically pivotal & 渐近枢轴 & 极限分布不含未知参数，如 $t$ 统计量 $\dto N(0,1)$ \\
+attenuation & 衰减（向零压缩） & 估计值的绝对值被系统性压小 \\
+attenuation bias & 衰减偏误 & $x$ 有经典测量误差时 OLS 系数向 0 收缩：$\plim\hat\beta=\beta\,\sigma_{x^*}^2/(\sigma_{x^*}^2+\sigma_v^2)$（$x^*$ 为真值，$v$ 为测量误差） \\
+augmented Dickey--Fuller (ADF) test & 增广 DF 检验 & 在 DF 回归中加入差分滞后项的单位根检验，临界值非标准 \\
+augmented regression & 增广回归 & 在回归中加入截面平均作为额外回归元（CCE 的做法） \\
+autocorrelation & 自相关 & $\rho(k)=\gamma(k)/\gamma(0)$ \\
+autocovariance & 自协方差 & $\gamma(k)=\Cov(Y_t,Y_{t-k})$ \\
+autoencoder & 自编码器 & 用神经网络做无监督降维，可视为非线性 PCA \\
+autoregressive distributed lag (AR-DL) model & 自回归分布滞后模型 & 同时含因变量滞后与解释变量滞后的模型 \\
+autoregressive polynomial & 自回归多项式 & $\alpha(z)=1-\alpha_1z-\dots-\alpha_pz^p$ \\
+autoregressive (AR) process & 自回归过程 & 当期值由自身滞后线性决定再加冲击：$Y_t=\alpha_0+\alpha_1Y_{t-1}+\dots+\alpha_pY_{t-p}+e_t$ \\
+auxiliary regression & 辅助回归 & 为构造检验或分解而做的附加回归；如把遗漏变量对回归元回归，斜率 $\delta$ 进入遗漏变量偏误公式 \\
+average causal effect (ACE) & 平均因果效应 & 个体因果效应的（条件）平均 \\
+average treatment effect (ATE) & 平均处理效应 & 对全体单位平均的 $E[y(1)-y(0)]$ \\
+average treatment effect on the treated (ATT) & 处理组平均处理效应 & $E[y(1)-y(0)\mid D=1]$，DiD 的识别目标 \\
+averaging matrix & 平均矩阵 & $P_T=\one_T\one_T'/T$，把序列换成其时间均值 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{B}\addcontentsline{toc}{section}{B}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+bad control & 坏控制 & 受处理影响的控制变量，加入后会剔除部分处理效应 \\
+Bai--Ng information criteria & Bai--Ng 信息准则 & $IC(k)=\ln V(k)+k\,g(N,T)$，可一致选择因子个数 \\
+balanced panel & 平衡面板 & 每个个体都有完整的 $T$ 期观测 \\
+band matrix & 带状矩阵 & 只在主对角线附近非零的矩阵，如差分 GMM 一步权重中的三对角矩阵 $H$ \\
+bandwidth & 带宽 & 核估计中控制平滑程度的窗口宽度 $h$；HAC 估计中指截断滞后数 \\
+Bartlett kernel & Bartlett 核（Bartlett 权） & 权重 $w_j=1-j/(M+1)$（$M$ 为截断滞后数），保证 Newey--West 方差估计半正定 \\
+base category & 参照组 & 不设虚拟变量、作为比较基准的类别 \\
+base group (excluded group) & 基准组 & 被省略的类别，虚拟变量系数都相对它解释 \\
+Bayesian information criterion (BIC) & 贝叶斯信息准则 & $-2\ell_n(\hat\theta)+k\ln n$，每个参数罚 $\ln n$ \\
+before--after estimator & 前后比较估计量 & 只用处理组的前后之差，不扣除对照组的变化 \\
+best linear approximation & 最佳线性近似 & 使 $E[(m(X)-X'b)^2]$ 最小的线性函数，等于 BLP \\
+best linear predictor (BLP) & 最佳线性预测 & 均方误差最小的线性预测 $x'\beta$，$\beta=[E(xx')]^{-1}E(xy)$ \\
+best linear unbiased estimator (BLUE) & 最佳线性无偏估计量 & 线性无偏估计量中方差最小者，如同方差下的 OLS \\
+best predictor & 最佳预测 & 均方误差最小的预测，即 CEF $E(y\mid x)$ \\
+between estimator & 组间估计量 & 对个体时间均值方程做 OLS，只利用个体间变异 \\
+bias & 偏差（偏误） & $E(\hat\theta)-\theta$ \\
+bias-adjusted LM test & 偏误调整 LM 检验 & 修正 LM 统计量在有限 $T$ 下的均值偏差，用于 $N$ 较大时的截面相关检验 \\
+bias-corrected estimator & 偏误修正估计量 & 减去估计的偏误以消除主阶偏差的估计量 \\
+bias correction & 偏误修正 & 用已知或估计的偏误主项校正估计量 \\
+bias--variance trade-off & 偏差—方差权衡 & 允许少量偏误以换取方差下降，从而降低均方误差 \\
+block-diagonal instrument matrix & 块对角工具矩阵 & 差分 GMM 中每期方程只用本期可用的滞后值作工具，排成块对角矩阵 $W_i$ \\
+block-diagonal matrix & 块对角矩阵 & 只有对角位置有非零子块的分块矩阵；各对角块可逆时，其逆仍为块对角，对角块为原各块之逆 \\
+Bonferroni correction & Bonferroni 修正 & $k$ 个检验各用水平 $\alpha/k$，使族错误率不超过 $\alpha$ \\
+Boole's inequality & Boole 不等式 & 并集概率不超过概率之和：$P(\bigcup_jA_j)\le\sum_jP(A_j)$ \\
+bootstrap & 自助法 & 用重抽样近似估计量的抽样分布 \\
+bootstrap confidence interval & 自助法置信区间 & 由重抽样（如重抽残差）得到的估计量分布构造的置信区间 \\
+bounded in probability & 依概率有界 & $Z_n=O_p(1)$：对任意 $\varepsilon>0$ 存在常数 $M_\varepsilon<\infty$，使 $\limsup_{n\to\infty}P(|Z_n|>M_\varepsilon)\le\varepsilon$ \\
+bread and meat & 面包与肉 & 三明治方差 $Q^{-1}\Omega Q^{-1}$ 中两侧的 $Q^{-1}$（面包）与中间的 $\Omega$（肉） \\
+Breusch--Pagan LM test & Breusch--Pagan LM 检验 & 截面相关检验：$T\sum_{i<j}\hat\rho_{ij}^2\dto\chi^2_{N(N-1)/2}$（$N$ 固定、$T\to\infty$） \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{C}\addcontentsline{toc}{section}{C}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$C$ statistic & $C$ 统计量 & 用全部工具与剔除可疑工具后两次 $J$ 统计量之差，检验可疑工具子集是否有效；$H_0$ 下渐近服从 $\chi^2$，自由度为可疑工具个数 \\
+cancelling roots & 根抵消 & AR 与 MA 多项式有公因子，导致参数不可识别 \\
+capital asset pricing model (CAPM) & 资本资产定价模型 & 资产期望超额收益等于 $\beta_i$ 乘市场期望超额收益 \\
+Cauchy--Schwarz inequality & 柯西-施瓦茨不等式 & $|E(UV)|\le[E(U^2)E(V^2)]^{1/2}$ \\
+causal effect & 因果效应 & 其他因素不变时 $x$ 变化引起的 $y$ 的变化 \\
+CCE mean group estimator (CCEMG) & CCE 均值组估计量 & 逐个体做 CCE 回归后对系数取简单平均 \\
+CEF decomposition & 条件期望分解 & $y=E(y\mid x)+v$，且 $E(v\mid x)=0$ 恒成立 \\
+CEF error & CEF 误差 & $u=y-E(y\mid x)$，满足 $E(u\mid x)=0$ \\
+centered covariance estimator & 中心化协方差估计 & 先减去样本矩均值再计算的 $\Omega$ 估计 \\
+central limit theorem (CLT) & 中心极限定理 & $\sqrt n(\bar Y-\mu)\dto N(0,\Var(Y))$ \\
+central moment & 中心矩 & $E[(Y-\mu)^k]$，以均值为中心的 $k$ 阶矩 \\
+characteristic equation & 特征方程 & $\det(A-\lambda I)=0$，其根为特征值 \\
+characteristic function & 特征函数 & $\phi(s)=E\exp(\mathrm{i}sX)$，唯一决定分布 \\
+Chebyshev's inequality & Chebyshev 不等式 & $P(|Z-EZ|>\delta)\le\Var(Z)/\delta^2$ \\
+cherry picking & 挑选设定 & 按拟合度或结果挑选模型设定，导致推断偏误 \\
+chi-square distribution & 卡方分布 & $k$ 个独立标准正态的平方和，均值 $k$、方差 $2k$ \\
+choice variable & 选择变量 & 由同一主体选择的回归元，通常应视为内生 \\
+Cholesky decomposition & Cholesky 分解 & 正定矩阵分解为下三角矩阵乘其转置：$A=LL'$ \\
+Chow test & Chow 检验 & 检验两组样本的回归系数是否相同（$F$ 检验） \\
+classical measurement error & 经典测量误差 & 观测值 = 真值 + 误差，误差均值为 0 且与真值及其他变量无关 \\
+cluster & 聚类（簇） & 组内相关、组间独立的观测群 \\
+cluster dependence & 聚类相关 & 已知组内相关、组间独立的误差结构 \\
+cluster-robust standard error(s) & 聚类稳健标准误 & CRVE 对角元开方得到、允许组内任意相关的标准误 \\
+cluster-robust variance estimator (estimation), CRVE & 聚类稳健方差估计（量） & 允许簇内任意相关、簇间独立的三明治方差，“肉”为 $\sum_gX_g'\hat u_g\hat u_g'X_g$；需要簇数较多 \\
+cluster structure & 聚类结构 & 簇内相关、簇间独立的抽样结构 \\
+coarse clustering & 粗聚类 & 簇少而大：方差估计偏误小，但噪声大 \\
+coefficient of determination ($R^2$, R-squared) & 决定系数（拟合优度） & $R^2=1-{}$残差平方和$/$总平方和，即被回归解释的样本变异比例 \\
+cohort & 处理队列 & 首次处理时期相同的一批单位 \\
+cohort-time ATT & 组别—时期处理效应 & $g$ 期进入处理的组在 $t$ 期的 ATT \\
+cohort-time effect & 队列-时期效应 & 队列 $r$ 在第 $s$ 期的 ATT，记为 $\tau_{rs}$ \\
+coincident events & 同期事件 & 与政策同时发生、只影响处理组的其他冲击 \\
+cointegration & 协整 & 若干单位根序列的某个线性组合平稳 \\
+collapsed instruments & 合并工具 & 每个滞后阶只用一列工具，以控制工具个数 \\
+column space (range space) & 列空间 & 矩阵各列所有线性组合构成的空间 \\
+common correlated effects (CCE) & 共同相关效应 & 用截面平均代理潜在因子的估计方法 \\
+common factor(s) & 公共因子（共同因子） & 随时间变化、影响所有个体的不可观测冲击 $f_t$ \\
+common regressors & 共同回归元 & 多方程系统中各方程回归元相同（$X_j=X$），$\bar X_i=I_m\otimes X_i'$；此时 SUR 等于逐方程 OLS \\
+companion matrix & 伴随矩阵 & 把 AR($p$) 写成一阶向量形式（VAR(1)）时的系数矩阵 \\
+composite error & 复合误差 & $v_{it}=\alpha_i+u_{it}$ \\
+concentrated (profiled) least squares & 集中（化）最小二乘 & 先对部分参数求解，再代回目标函数优化其余参数 \\
+concentrated log-likelihood & 集中对数似然 & 代入 $\hat\sigma^2(\beta)$ 后只含 $\beta$ 的对数似然 \\
+conditional causal effect & 条件因果效应 & 给定其他变量时 $x_j$ 对 $y$ 的因果效应 \\
+conditional density & 条件密度 & $f(y\mid x)=f(y,x)/f_X(x)$ \\
+conditional distribution & 条件分布 & 给定 $X=x$ 时 $Y$ 的分布，密度为 $f(x,y)/f_X(x)$ \\
+conditional expectation & 条件期望 & 给定 $X$ 时 $Y$ 的均值，是 $X$ 的函数 \\
+conditional expectation function (CEF) & 条件期望函数 & $m(x)=E(Y\mid X=x)$，即回归函数；若 $Y=X'\beta+e$ 且 $E(e\mid X)=0$，则 $m(x)=x'\beta$ \\
+conditional heteroskedasticity & 条件异方差 & 误差的条件方差随 $X$ 变化 \\
+conditional homoskedasticity & 条件同方差 & $E(e^2\mid X)=\sigma^2$ 不随回归元变化；多方程时为 $E(ee'\mid X)=\Sigma$ \\
+conditional independence assumption (CIA) & 条件独立假设 & 给定 $x_2$，$x_1$ 与不可观测因素独立 \\
+conditional Jensen's inequality & 条件 Jensen 不等式 & 凸函数 $\phi$ 满足 $\phi(E[Y\mid X])\le E[\phi(Y)\mid X]$ \\
+conditional logit & 条件 logit & 以 $\sum_ty_{it}$ 为条件消去 $\alpha_i$ 的固定效应 logit \\
+conditional moment restriction & 条件矩约束 & $E(u\mid z)=0$，使 $z$ 的任意函数都是有效工具 \\
+conditional parallel trends & 条件平行趋势 & 给定协变量后平行趋势成立 \\
+conditional unbiasedness & 条件无偏 & 给定 $X$ 时估计量的期望等于真值：$E(\hat\beta\mid X)=\beta$ \\
+conditional variance & 条件方差 & $\Var(Y\mid X)=E(Y^2\mid X)-[E(Y\mid X)]^2$ \\
+conditioning theorem & 条件定理（取出已知因子） & $E[g(X)Y\mid X]=g(X)E(Y\mid X)$ \\
+confidence interval & 置信区间 & 以给定概率（覆盖概率）包含真值的随机区间 \\
+confidence region & 置信区域 & 多参数的置信集合，Wald 型为椭球 \\
+congruence transformation & 合同变换 & $M\mapsto C'MC$，保持半正定性与矩阵序 \\
+conservative test & 保守检验 & 实际水平低于名义水平，功效受损 \\
+consistency (consistent) & 一致性（一致） & 样本量趋于无穷时估计量依概率收敛于真值：$\hat\theta\pto\theta$ \\
+consistent estimator & 一致估计量 & $n\to\infty$ 时依概率收敛到真值的估计量 \\
+consistent test & 一致检验 & 在任一固定备择下功效趋于 1 \\
+constant correlation & 恒定相关 & $x_{it}$ 与 $\alpha_i$ 的相关不随时间变化，即 $E(\alpha_i\Delta x_{it})=0$ \\
+constrained GMM & 约束 GMM & 在线性约束下最小化 GMM 准则 \\
+constrained least squares & 约束最小二乘 & 在参数约束下最小化残差平方和；如合成控制中要求权重非负且和为 1 \\
+contemporaneous exogeneity & 同期外生 & 只要求 $E(u_{it}\mid x_{it})=0$；FE 一致需要严格外生，同期外生不够 \\
+continuous mapping theorem (CMT) & 连续映射定理 & 连续函数保持依概率收敛与依分布收敛 \\
+continuous treatment & 连续处理 & 处理变量取连续值，如允许销售的时长 \\
+continuously-updated GMM (CU-GMM) & 连续更新 GMM & 权重矩阵 $\hat\Omega(\beta)^{-1}$ 随 $\beta$ 一起变化，需数值优化 \\
+contract teacher & 合同制教员 & DDK 实验中以合同聘用的非编制教员 \\
+control function & 控制函数 & 在结构方程中加入第一阶段残差，以吸收回归元的内生部分 \\
+control group & 控制组（对照组） & 不受政策影响的单位，$d_i=0$ \\
+control variates & 控制变量法 & 用已知均值的辅助变量修正样本均值，以降低模拟方差 \\
+convergence criterion & 收敛判据 & 相邻两次迭代估计之差小于阈值（如 $10^{-4}$）即停止 \\
+convergence in distribution & 依分布收敛 & 分布函数在极限分布函数的连续点处收敛 \\
+convergence in probability & 依概率收敛 & 对任意 $\delta>0$，$P(|Z_n-Z|>\delta)\to0$ \\
+convex hull & 凸包 & 控制单位所有凸组合构成的集合 \\
+correlated random effects (CRE) & 相关随机效应 & 设 $\alpha_i=\bar x_i'\pi+a_i$ 的随机效应模型（Mundlak 方法） \\
+correlation coefficient & 相关系数 & 协方差除以两个标准差，取值于 $[-1,1]$ \\
+count data & 计数数据 & 取非负整数值的因变量 \\
+counterexample & 反例 & 满足前提但结论不成立的具体例子 \\
+counterfactual & 反事实 & 处理单位若未受处理时的结果，不可观测 \\
+covariance & 协方差 & $E[(X-\mu_X)(Y-\mu_Y)]$，双线性 \\
+covariance matrix & 协方差矩阵 & $E[(Z-\mu)(Z-\mu)']$，对称半正定 \\
+covariance (weak) stationarity & 协方差平稳（弱平稳） & 均值与方差有限且不随时间变化，自协方差只依赖间隔 \\
+coverage probability & 覆盖概率 & 随机区间包含真值的概率 \\
+cps{}09mar & cps{}09mar 数据集 & 2009 年 3 月 CPS 中全职工作者的样本 \\
+CR1 adjustment & CR1 小样本调整 & 聚类方差乘 $\frac{n-1}{n-K}\cdot\frac{G}{G-1}$（$G$ 为簇数），Stata 中 \texttt{cluster} 选项的默认 \\
+Cramér--Rao lower bound & Cramér--Rao 下界 & 无偏估计量方差的下界 $\mathcal{I}(\theta)^{-1}$ \\
+Cramér--Wold device & Cramér--Wold 方法 & 向量依分布收敛等价于所有线性组合依分布收敛 \\
+crime displacement & 犯罪转移 & 犯罪从受保护地点转移到附近地点 \\
+criterion-based test & 准则函数型检验 & 比较有无约束时目标函数值之差（如 LR、GMM 距离统计量） \\
+critical value & 临界值 & 拒绝域的边界，如 1.96、3.84 \\
+cross-equation restriction & 跨方程约束 & 涉及不同方程系数的参数约束 \\
+cross-sectional average & 截面平均 & 同一时期所有个体的平均 $\bar z_t=N^{-1}\sum_iz_{it}$ \\
+cross-sectional data & 截面数据 & 同一时点对多个个体各观测一次所得的数据 \\
+cross-sectional dependence (CSD) & 截面相关（横截面相依） & 同一时期不同个体的误差相关：$E(u_{it}u_{jt})\ne0$（$i\ne j$） \\
+cumulative distribution function (CDF) & 累积分布函数 & $F(x)=P(X\le x)$ \\
+Current Population Survey (CPS) & 当前人口调查 & 美国人口普查局的月度住户调查 \\
+curse of dimensionality & 维数灾难 & 维数增加使非参数估计精度急剧下降 \\
+cyclic property of trace & 迹的循环性 & $\tr(ABC)=\tr(BCA)=\tr(CAB)$，只能循环移位，不能任意换序 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{D}\addcontentsline{toc}{section}{D}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+data generating process (DGP) & 数据生成过程 & 生成数据的真实概率机制；模拟中由研究者设定 \\
+DDK2011 & DDK2011 数据集 & Duflo、Dupas 与 Kremer (2011) 肯尼亚小学分班实验数据的摘录 \\
+deep neural network (DNN) & 深度神经网络 & 多层非线性回归；输出层取 logistic 时是 logit 的推广 \\
+degrees of freedom & 自由度 & 残差空间维数 $n-K$，等于 $\tr(M)$ \\
+degrees-of-freedom adjustment (correction) & 自由度修正 & 方差估计中扣除已估参数个数，只影响标准误；如 FE 的经典方差估计应除以 $NT-N-K$ \\
+delta method & Delta 方法 & 光滑函数 $g(\hat\theta)$ 的渐近方差为 $GVG'$，$G=\partial g/\partial\theta'$ \\
+demeaning & 去均值 & 减去个体时间均值，即组内变换 \\
+demeaning matrix & 去均值矩阵 & $M_T=I_T-P_T$，$M_T\one_T=0$，可消去个体效应 \\
+dependent variable & 被解释变量 & 回归中被解释的变量 $y$ \\
+determinant & 行列式 & 方阵的数值特征，等于特征值之积 \\
+Dickey--Fuller test & DF/ADF 检验 & 时间序列单位根检验，$H_0$ 为存在单位根，临界值非标准 \\
+difference estimator & 单差估计量 & 只做一次差分（前后差或组间差），会混入时间趋势或组间水平差 \\
+difference GMM (Arellano--Bond) & 差分 GMM & 在一阶差分方程上、以全部滞后水平值为工具的 GMM 估计 \\
+difference-in-differences (DiD) & 双重差分 & 处理组前后变化减去对照组前后变化 \\
+difference-in-Hansen test & Difference-in-Hansen 检验 & 检验某一工具子集是否有效的 $C$ 统计量（两次 Hansen $J$ 之差） \\
+diffusion index & 扩散指数 & 从大量预测变量中提取、用于预测的主成分因子 \\
+dimension check & 维度检查 & 逐项核对矩阵维度以发现推导错误 \\
+dimension reduction & 降维 & 用少数因子概括高维数据 \\
+distance statistic & 距离统计量 & 约束与无约束 GMM 准则值之差，类似 LR 检验 \\
+distributed lag (DL) model & 分布滞后（模型） & $y$ 只对 $x$ 的当期与各期滞后回归（不含 $y$ 的滞后）；如把 $y$ 写成 $x$ 各期滞后的几何加权和 \\
+disturbance term & 扰动项 & 误差项的别称，代表不确定性 \\
+diversification & 分散化 & 大组合中特质风险随 $N$ 增大而消失 \\
+dominated convergence theorem & 控制收敛定理 & 存在可积控制函数时，极限与期望可交换 \\
+donor pool & 捐赠池 & 合成控制中可用于构造合成单位的控制单位集合 \\
+double asymptotics & 双重渐近 & $N$ 与 $T$ 同时趋于无穷的渐近理论 \\
+double demeaning & 双向去均值 & 即双向组内变换：平衡面板中 $\ddot y_{it}=y_{it}-\bar y_{i\cdot}-\bar y_{\cdot t}+\bar y$ \\
+doubly robust (DR) estimator & 双重稳健估计量 & 结果回归与倾向得分模型只要一者正确即一致 \\
+drift & 漂移项 & 单位根过程中的常数项 \\
+Driscoll--Kraay standard errors & Driscoll--Kraay 标准误 & 容许截面相关的面板 HAC 标准误 \\
+dummy variable & 虚拟变量 & 取 0/1 的指示型回归元 \\
+dummy variable matrix & 虚拟变量矩阵 & $D=I_N\otimes\one_T$，LSDV 中的个体虚拟变量 \\
+dummy variable trap & 虚拟变量陷阱 & 截距与全部类别的虚拟变量完全共线 \\
+Durbin--Wu--Hausman test & Durbin--Wu--Hausman 检验 & 基于控制函数回归或估计量对比的内生性检验 \\
+dynamic panel (data model) & 动态面板（数据模型） & 解释变量中含被解释变量滞后项 $y_{i,t-1}$ 的面板模型 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{E}\addcontentsline{toc}{section}{E}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+Eckart--Young theorem & Eckart--Young 定理 & 截断 SVD 是 Frobenius 范数下的最优低秩逼近 \\
+economic significance & 经济显著性 & 效应大小在经济上是否重要（区别于统计显著性） \\
+effective date dummy & 生效时期虚拟变量 & $d_t$，政策在 $t$ 期是否已生效 \\
+effective sample size (number of clusters) & 有效样本量（簇数） & 聚类时推断精度由簇数 $G$ 而非观测数 $n$ 决定 \\
+efficiency bound & 效率下界 & 一类估计量的渐近方差能达到的最小值；如 GMM 的 $(Q'\Omega^{-1}Q)^{-1}$；动态面板 AR(1) 中 $N,T\to\infty$ 时 $\sqrt{NT}(\hat\rho-\rho)$ 的下界 $1-\rho^2$（Alvarez--Arellano） \\
+efficient & 有效 & 同类估计量中方差最小 \\
+efficient GMM (EGMM) & 有效 GMM & 取 $W=\Omega^{-1}$，渐近方差达到下界 $(Q'\Omega^{-1}Q)^{-1}$；线性 IV 中 $Q=E(z_ix_i')$，$\Omega=E(z_iz_i'u_i^2)$ \\
+efficient minimum distance (EMD) & 有效最小距离 & 以方差估计之逆为权重的最小距离估计 \\
+efficient weight matrix & 有效权重矩阵 & $\Omega^{-1}$，即矩向量协方差矩阵之逆 \\
+eigenvalue & 特征值 & 满足 $Av=\lambda v$（$v\ne0$）的 $\lambda$ \\
+eigenvalue ratio estimator & 特征值比估计 & 取相邻特征值之比 $e_k/e_{k+1}$ 最大处的 $k$ 作为因子个数（Ahn--Horenstein） \\
+eigenvector & 特征向量 & 满足 $Av=\lambda v$ 的非零向量 $v$ \\
+endogeneity & 内生性 & 回归元与误差相关：$E(xu)\ne0$（从而 $E(u\mid x)\ne0$） \\
+endogeneity bias & 内生性偏误 & 内生导致的 OLS 偏误，本质是不一致：$\plim\hat\beta\ne\beta$ \\
+endogeneity test & 内生性检验 & 检验 $H_0$：回归元外生 \\
+endogenous model & 内生模型 & 至少一个回归元内生，需用 IV/GMM 估计 \\
+endogenous regressor & 内生回归元 & 与结构误差相关的解释变量 \\
+equicorrelation & 等相关 & 任意两期误差的相关系数都相同 \\
+equidispersion & 等离散 & 泊松分布的均值等于方差 \\
+equivalence test & 等价性检验 & 检验参数是否落在经济上可忽略的区间内 \\
+equivariance & 等变性 & 参数变换后估计量按同样方式变换：$\widehat{g(\theta)}=g(\hat\theta)$ \\
+ergodic theorem & 遍历定理 & 严平稳遍历且一阶矩有限时，样本均值一致 \\
+ergodicity & 遍历性 & 保证时间平均收敛到总体均值的相依性条件 \\
+error covariance matrix & 误差协方差矩阵 & $\Sigma=E(ee')$，刻画方程间误差的相关 \\
+error term & 误差项 & 未被回归元解释的部分 $u$ \\
+estimate & 估计值 & 估计量在给定样本上的取值 \\
+estimated fixed effect & 固定效应估计值 & $\hat\alpha_i=\bar y_i-\bar x_i'\hat\beta_{\mathrm{FE}}$ \\
+estimator & 估计量 & 样本的函数，是随机变量 \\
+event study & 事件研究 & 含前导项与滞后项的动态 DiD 回归 \\
+event time & 事件时间 & 相对首次处理期的时间 $e=t-E_i$（$E_i$ 为个体 $i$ 的首次处理期） \\
+exactly identified & 恰好识别 & 工具（矩条件）个数等于参数个数：$L=K$ \\
+excluded instruments & 排除的工具 & 不在结构方程中、专为内生变量引入的工具 \\
+exclusion restriction & 排他性约束 & 工具不出现在结构方程中，只通过 $x$ 影响 $y$ \\
+exclusion test & 排除检验 & 检验一组系数同时为零 \\
+exogeneity & 外生性 & $E(u\mid x)=0$，误差均值不依赖回归元 \\
+exogeneity condition & 外生性条件 & $E(u\mid z)=0$，蕴含 $E(zu)=0$ \\
+exogenous model & 外生模型 & 全部回归元外生，可用 OLS/MLE 估计 \\
+exogenous regressor & 外生回归元 & 满足 $E(u\mid x)=0$ 的解释变量 \\
+expectation & 期望 & 按分布加权的平均值，线性运算 \\
+explained sum of squares & 解释平方和 & $\sum_i(\hat y_i-\bar y)^2$；Wooldridge 记为 SSE，而 Hansen 的 SSE 指残差平方和，作答时应写全称 \\
+exponent of cross-sectional dependence & 截面相关指数 & 刻画截面相关强度的 $\alpha\in[0,1]$，$\alpha=1$ 最强 \\
+extended TWFE & 扩展 TWFE & 含全部“队列 $\times$ 处理后时期”交互项的 TWFE 回归 \\
+externally studentized residual & 外部学生化残差 & 用删去该观测后的方差估计标准化的残差：$\hat e_i/\big(s_{(-i)}\sqrt{1-h_{ii}}\big)$ \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{F}\addcontentsline{toc}{section}{F}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$F$ distribution & $F$ 分布 & 两个独立卡方变量各除以自由度后之比 \\
+$F$ statistic & $F$ 统计量 & $F=[(\tilde e'\tilde e-\hat e'\hat e)/q]/s^2$（约束与无约束残差平方和之差），等于同方差 Wald 统计量除以 $q$ \\
+$F$ test (F-test) & $F$ 检验 & 比较约束与无约束残差平方和的检验 \\
+factor analysis & 因子分析 & 用少数潜在因子解释多个变量的共同变动 \\
+factor-augmented regression & 因子增广回归 & 以估计的因子为回归元的回归或预测 \\
+factor loading(s) & 因子载荷 & 个体对公共因子的敏感度 $\lambda_i$ \\
+factor model & 因子模型 & 用少数共同因子刻画大量变量的共动 \\
+factor zoo & 因子动物园 & 文献中提出的大量候选定价因子 \\
+Fama--French factors & Fama--French 因子 & MKT、SMB、HML（及 RMW、CMA）等可观测因子 \\
+Fama--MacBeth two-pass regression & Fama--MacBeth 两步回归 & 先逐资产做时间序列回归估 $\beta$，再逐期做截面回归估风险溢价 \\
+family-wise (familywise) error rate & 族错误率 & 一组检验中至少一个错误拒绝的概率 \\
+FE estimation & FE 估计 & 把 $\alpha_i$ 当作参数并消去（LSDV 或组内变换） \\
+feasible GLS (FGLS) & 可行广义最小二乘 & 用估计的协方差矩阵 $\hat\Omega$ 代替真值的 GLS \\
+feedback & 反馈 & 过去冲击影响未来回归元，破坏严格外生 \\
+FEF-IV estimator & FEF-IV 估计量 & FEF 的第二步改用 IV/2SLS \\
+few clusters problem & 少簇问题 & 簇数少时 CRVE 偏小、检验过度拒绝 \\
+Fieller interval & Fieller 型区间 & 对比值 $\theta=\beta_1/\beta_2$，反演线性化检验 $\beta_1-\theta\beta_2=0$ 得到的置信集合 \\
+fine clustering & 细聚类 & 簇多而小，可能遗漏更高层级的相关 \\
+finite-sample adjustment $a_n$ & 小样本调整因子 & 聚类方差乘 $a_n=\frac{n-1}{n-K}\cdot\frac{G}{G-1}$ \\
+first construct then transform & 先构造后变换 & 平方、交互等非线性项须先在水平上生成，再做组内变换 \\
+first difference (first differencing, FD) & 一阶差分 & $\Delta y_{it}=y_{it}-y_{i,t-1}$，相邻两期相减以消去 $\alpha_i$ \\
+first-difference (FD, differenced) estimator & 一阶差分估计量 & 相邻期相减消去 $\alpha_i$ 后，对差分方程做 OLS \\
+first-difference OLS & 一阶差分 OLS & 对差分方程做 OLS；动态面板中 $\Delta y_{i,t-1}$ 与 $\Delta u_{it}$ 相关，故不一致 \\
+first-order condition (FOC) & 一阶条件 & 令梯度为零得到的方程；OLS 中即正规方程 \\
+first stage & 第一阶段 & 内生变量对全部工具（含内含外生变量）的 OLS 回归 \\
+first-stage $F$ statistic & 第一阶段 $F$ 统计量 & 检验排除工具系数联合为零的 $F$ 值，衡量工具强弱 \\
+fitted common component & 拟合共同部分 & $\hat\Lambda\hat F'$，与因子的标准化方式无关 \\
+fitted value & 拟合值 & $\hat y_i=x_i'\hat\beta$，样本内预测 \\
+fixed design & 固定设计 & 回归元非随机、由研究者设定 \\
+fixed effects (FE, within) estimator & 固定效应（组内）估计量 & 对组内变换后的数据做 OLS，即组内估计量，等于 LSDV \\
+fixed effects filtered (FEF) estimator & 固定效应过滤估计量 & 先用组内估计得 $\hat\beta$，再把残差的个体均值对时不变变量 $z_i$ 回归 \\
+fixed effects (FE) model & 固定效应模型 & 个体效应 $\alpha_i$ 可与 $x_{it}$ 任意相关的模型 \\
+forbidden comparison & 禁止比较 & 以已处理单位作对照的 2$\times$2 比较 \\
+forecast mean squared error & 预测均方误差 & 预测误差平方的期望 \\
+forward mean & 前向均值 & 某期之后各期观测的平均 \\
+forward orthogonal deviations (FOD) & 前向正交离差 & 减去未来各期均值并缩放，以消去 $\alpha_i$ \\
+Frees test & Frees 检验 & 基于 Spearman 秩相关平方均值的截面相关检验 \\
+Friedman test & Friedman 检验 & 基于平均 Spearman 秩相关的截面相关检验 \\
+Frisch--Waugh--Lovell (FWL) theorem & FWL 定理 & 分块回归中 $\hat\beta_2$ 等于剔除 $X_1$ 后的残差对残差回归系数：$\hat\beta_2=(X_2'M_1X_2)^{-1}X_2'M_1y$ \\
+Frobenius norm & Frobenius 范数 & $\|A\|=(\tr A'A)^{1/2}$，满足次乘性 $\|AB\|\le\|A\|\,\|B\|$ \\
+Fubini's theorem & Fubini 定理 & 绝对可积时可交换重积分（或求和）次序 \\
+full column rank & 满列秩 & $n\times K$ 矩阵的秩为 $K$，保证 $X'X$ 可逆 \\
+fully interacted regression & 全交互回归 & 所有回归元都与组别虚拟变量交互 \\
+fundamental problem of causal inference & 因果推断根本问题 & 同一单位只能观测到一种潜在结果 \\
+fuzzy DiD (Wald-DiD) & 模糊双重差分 & 结果的 DiD 除以处理率的 DiD \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{G}\addcontentsline{toc}{section}{G}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$G\ge30$ rule of thumb & $G\ge30$ 经验法则 & 簇少于约 30 个时，聚类稳健推断不可靠 \\
+Gauss--Markov theorem (BLUE) & 高斯—马尔可夫定理 & 同方差（球形误差）下 OLS 是最佳线性无偏估计量 \\
+Gauss--Newton iteration & Gauss--Newton 迭代 & 在当前值处线性化并迭代求解非线性最小二乘 \\
+Gaussian process & 高斯过程 & 任意有限维分布均为多元正态的随机过程 \\
+generalized Gauss--Markov theorem & 广义高斯—马尔可夫定理 & 误差协方差为 $\Omega$ 时，线性无偏估计量的方差不小于 $(X'\Omega^{-1}X)^{-1}$ \\
+generalized inverse & 广义逆 & 满足 $AA^-A=A$ 的 $A^-$；Moore--Penrose 逆给出最小范数解 \\
+generalized least squares (GLS) & 广义最小二乘 & $(X'\Omega^{-1}X)^{-1}X'\Omega^{-1}Y$，按误差协方差之逆加权，已知 $\Omega$ 时最优 \\
+generalized method of moments (GMM) & 广义矩估计 & 最小化样本矩的加权二次型 $\bar g_n(\beta)'W\bar g_n(\beta)$ 得到的估计量 \\
+generalized synthetic control & 广义合成控制 & 用交互固定效应模型插补反事实的方法 \\
+generated regressor & 生成回归元 & 由前一步估计得到的回归元，第二步标准误一般需修正 \\
+GMM criterion function & GMM 准则函数 & $J(\beta)=n\,\bar g_n(\beta)'W\bar g_n(\beta)$，样本矩到 0 的加权距离 \\
+GMM distance statistic & GMM 距离统计量 & 约束与无约束 $J$ 之差（用同一有效权重矩阵），渐近 $\chi^2_q$（$q$ 为约束个数） \\
+gmmstyle instruments & GMM 式工具 & 每个滞后、每个时期各占一列的工具 \\
+Goodman-Bacon decomposition & Goodman-Bacon 分解 & TWFE 估计量是所有 2$\times$2 DiD 的加权平均 \\
+goodness of fit & 拟合优度 & 衡量模型对样本拟合程度的指标，如 $R^2$ \\
+gradient & 梯度 & 标量函数对向量的偏导排成的同形列向量 \\
+Granger causality & Granger 因果 & 控制自身历史后，另一变量的历史仍有预测力 \\
+group-time ATT & 组-时期 ATT & Callaway--Sant'Anna 的 $ATT(g,t)$：$g$ 期首次处理组在 $t$ 期的 ATT \\
+growth rate & 增长率 & $100\Delta\log Y_t$，约等于百分比变化 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{H}\addcontentsline{toc}{section}{H}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+HAC covariance estimator & 异方差自相关稳健方差估计 & 以长期方差估计为“肉”的三明治方差（如 Newey--West） \\
+Hansen $J$ statistic ($J$ test) & Hansen $J$ 统计量（$J$ 检验） & 有效权重下 GMM 准则在估计值处的值；异方差稳健的过度识别检验，渐近 $\chi^2_{L-K}$（$L$ 为工具个数，$K$ 为参数个数） \\
+Hausman lemma & Hausman 引理 & 有效估计量与两估计量之差渐近不相关，故差的方差 = 方差之差 \\
+Hausman--Taylor model & Hausman--Taylor 模型 & 用模型内的外生变量为时不变内生变量作工具 \\
+Hausman test & Hausman 检验 & 比较 $H_0$ 下有效与始终一致的两个估计量（如 RE 与 FE），差的二次型渐近服从 $\chi^2$，自由度为所比较的系数个数 \\
+HC0 (Eicker--White) & HC0（White 估计量） & 用残差平方构造的基准稳健方差 $(X'X)^{-1}\big(\sum_ix_ix_i'\hat e_i^2\big)(X'X)^{-1}$ \\
+HC0, HC1, HC2, HC3 & HC0--HC3 & 异方差稳健方差的四种形式（后三者为小样本修正） \\
+HC1 & HC1 & HC0 乘 $n/(n-K)$，Stata 中 \texttt{robust} 选项的默认 \\
+HC2 (Horn--Horn--Duncan) & HC2 & 残差平方除以 $1-h_{ii}$，同方差下无偏 \\
+HC3 (jackknife-type) & HC3 & 残差平方除以 $(1-h_{ii})^2$，偏保守 \\
+Hessian matrix & 海塞矩阵 & 二阶偏导矩阵；处处正定则函数严格凸 \\
+heterogeneous slopes & 异质斜率 & 斜率系数因个体而异，记为 $\beta_i$ \\
+heterogeneous treatment effects & 异质处理效应 & 处理效应随个体、时间或队列变化 \\
+heteroskedasticity (heteroskedastic) & 异方差 & 误差的条件方差 $E(u^2\mid x)$ 随 $x$ 变化 \\
+heteroskedasticity and autocorrelation (HAC) & 异方差与自相关 & 误差方差不等且（个体内）跨期相关 \\
+heteroskedasticity and autocorrelation consistent (HAC) & 异方差与自相关一致 & 同时容许异方差与序列相关的方差估计 \\
+heteroskedasticity-consistent (HC) covariance matrix estimator & 异方差稳健协方差矩阵估计量 & 不假设同方差的夹心型 OLS 方差估计（HC 系列，即 White 估计量） \\
+heteroskedasticity-robust covariance (matrix) & 异方差稳健协方差矩阵 & 不依赖同方差假设、夹心形式 $Q^{-1}\Omega Q^{-1}$ 的方差估计 \\
+heteroskedasticity-robust (HC) standard error(s) & 异方差稳健标准误 & 用 $x_ix_i'\hat u_i^2$ 估计夹心中间项的 White 标准误；Stata 默认 HC1，R 的 sandwich 包默认 HC3 \\
+heteroskedasticity-robust variance estimator & 异方差稳健方差估计 & 用残差外积构造的三明治方差估计 \\
+Hölder's inequality & Hölder 不等式 & $E|XY|\le(E|X|^p)^{1/p}(E|Y|^q)^{1/q}$，其中 $1/p+1/q=1$ \\
+homogeneity test & 同质性检验 & 检验各处理单位或各期的效应是否相同 \\
+homogeneous control effect & 同质对照效应 & 各对照单位的时间变化相同 \\
+homogeneous treatment effect & 同质处理效应 & 所有处理单位的效应相同 \\
+homoskedastic linear CEF model & 同方差线性 CEF 模型 & 线性 CEF 且 $E(u^2\mid x)=\sigma^2$ \\
+homoskedastic Wald statistic & 同方差 Wald 统计量 & 用同方差方差估计构造的 Wald 统计量 \\
+homoskedasticity (homoskedastic) & 同方差 & 误差的条件方差 $E(u^2\mid x)=\sigma^2$ 为常数，不随 $x$ 变化 \\
+homoskedasticity-formula standard error & 同方差公式标准误 & 由 $s^2(X'X)^{-1}$ 的对角元开方得到的标准误 \\
+horizontal regression & 水平回归 & 以单位为观测、利用时间模式进行预测的回归 \\
+Horn--Horn--Duncan (HC2) estimator & HC2 稳健方差估计 & 用 $1/(1-h_{ii})$ 修正残差平方的稳健方差 \\
+hypothesized value & 假设值 & 原假设中给定的参数值 $\beta_0$ \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{I}\addcontentsline{toc}{section}{I}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+idempotent matrix & 幂等矩阵 & $A^2=A$；特征值为 0 或 1，秩等于迹 \\
+identification & 识别 & 参数可由数据分布唯一确定 \\
+identification (rank condition) & 识别（秩条件） & $\rank(\Gamma)=K$（等价地 $L\times K$ 矩阵 $E(z_ix_i')$ 列满秩，故需 $L\ge K$），保证参数可由矩条件唯一确定 \\
+identification by functional form & 函数形式识别 & 依靠非线性函数形式假设实现识别 \\
+identification failure & 识别失败 & 工具与内生变量完全无关，IV 不一致且极限分布为 Cauchy 型 \\
+identity matrix & 单位矩阵 & 对角元为 1、其余为 0 的方阵 $I_n$ \\
+idiosyncratic error & 特异误差 & 随个体和时间都变化的误差 $u_{it}$ \\
+i.i.d. sampling & 独立同分布抽样 & 不同观测相互独立且同分布 \\
+ill-conditioned matrix & 病态矩阵 & 条件数（最大与最小奇异值之比）很大，数值求逆精度差 \\
+Im--Pesaran--Shin test & IPS 检验 & 面板单位根检验，允许各个体自回归根不同，用个体 ADF $t$ 值的平均 \\
+impulse response function (IRF) & 脉冲响应函数 & $t$ 期单位冲击对 $t+j$ 期变量的影响 $b_j$ \\
+imputation & 插补 & 用模型或控制组估计缺失的 $y(0)$ \\
+imputation estimator & 插补估计量 & 用未处理观测估计固定效应，再插补处理观测的 $y(0)$ \\
+in-sample fit & 样本内拟合 & 处理前合成值与实际值的贴合程度 \\
+in-space placebo & 空间安慰剂 & 轮流把每个控制单位当作处理单位重做估计 \\
+in-time placebo & 时间安慰剂 & 把政策时点人为提前做检验 \\
+incidental parameter problem & 伴随参数问题 & 参数个数随样本增长，$T$ 固定时这些参数不能一致估计 \\
+included exogenous variable(s) & 内含外生变量（包含的外生变量） & 既在结构方程中作回归元、又充当自身工具的外生变量 \\
+inconsistency & 不一致性 & 估计量的概率极限不等于真值 \\
+independence & 独立 & 联合密度等于边际密度之积 \\
+independent and identically distributed (i.i.d.) & 独立同分布 & 观测相互独立且分布相同 \\
+indicator function & 示性函数 & $\mathbf{1}\{A\}$：事件 $A$ 成立取 1，否则取 0 \\
+indirect least squares (ILS) & 间接最小二乘 & 由简约式系数反解结构参数（简约式系数除以第一阶段系数），恰好识别时等于 IV \\
+individual effect(s) & 个体效应 & 随个体变、不随时间变的不可观测因素 $\alpha_i$，如能力、偏好、企业效应 \\
+individual-effect variance & 个体效应方差 & $\sigma_\alpha^2=\Var(\alpha_i)$（Hansen 记为 $\sigma_u^2$），随机效应 FGLS 所需参数 \\
+individual-mean operator & 个体均值算子 & $P_T$，把向量变为其时间均值 \\
+individual-specific linear trend & 个体线性趋势 & $\alpha_i+b_it$，可视为因子 $f_t=(1,t)'$ 已知的交互效应 \\
+individual treatment effect & 个体处理效应 & 单个单位（或单元格）的 $y(1)-y(0)$ \\
+influential observation & 影响观测 & 删去后显著改变估计值的观测 \\
+information criterion (AIC, AICc) & 信息准则 & 拟合度加参数个数惩罚的模型选择标准；AICc 为 AIC 的小样本修正，面板数据法中可用来选择控制单位个数 \\
+information matrix & 信息矩阵 & 得分函数的方差 $\mathcal{I}=E(ss')$ \\
+information matrix equality & 信息矩阵等式 & 模型正确设定时，信息矩阵等于负的 Hessian 期望 \\
+information set & 信息集 & 某时点已知变量的集合，随时间扩大 \\
+initial condition & 初始值（初始条件） & 样本第一个观测 $y_{i0}$ 及其与 $\alpha_i$ 的关系 \\
+inner product & 内积 & $a'b=\sum_ka_kb_k$，结果为标量 \\
+instrument exogeneity & 工具外生性 & 工具与误差项不相关：$E(z_iu_i)=0$ \\
+instrument proliferation & 工具数膨胀 & 差分 GMM 的工具个数随 $T$ 平方增长 \\
+instrument relevance & 工具相关性 & 工具与内生回归元相关 \\
+instrumental variable (IV) & 工具变量 & 与内生回归元相关、与误差 $u$ 无关、只通过 $x$ 影响 $y$ 的变量 \\
+instrumented PCA (IPCA) & 工具主成分分析 & 载荷由公司特征线性决定（$\beta_{it}'=z_{it}'\Gamma$）的因子模型 \\
+integrated of order one, I(1) & 一阶单整 & 差分一次后才平稳的序列 \\
+interaction effect & 交互效应 & 一个变量的效应随另一变量变化 \\
+interaction term & 交互项 & 两回归元的乘积，刻画效应随另一变量的变化 \\
+interaction-weighted estimator & 交互加权估计量 & Sun--Abraham 提出的修正事件研究估计量 \\
+interactive fixed effects & 交互固定效应 & $\alpha_{it}=\lambda_i'f_t$ 的因子结构效应 \\
+internal instruments & 内部工具 & 由模型自身变量的滞后构成的工具 \\
+intra-cluster correlation & 组内相关 & 同一簇内观测之间的相关系数 \\
+invariance to reparameterization & 参数化不变性 & 检验结论不随参数化或约束写法改变；LR 与准则型检验具有，Wald 检验一般不具有 \\
+inverse & 逆矩阵 & 满足 $AA^{-1}=A^{-1}A=I$ 的唯一方阵 \\
+inverse-variance weighting & 逆方差加权 & 按方差倒数加权合并独立估计 \\
+invertibility & 可逆性 & 滞后多项式之逆绝对可和，等价于其根都在单位圆外 \\
+invertible (nonsingular) & 可逆（非奇异） & 方阵满秩，等价于行列式非零、无零特征值 \\
+iterated GMM & 迭代 GMM & 反复更新 $\hat\Omega$ 与 $\hat\beta$ 直至收敛 \\
+iterated SUR & 迭代 SUR & 反复更新 $\hat\Sigma$ 与系数直至收敛，正态误差下等于 MLE \\
+iterative principal components estimator & 迭代主成分估计量 & Bai (2009)：主成分与 OLS 交替进行直至收敛 \\
+IV estimator & 工具变量估计量 & $\hat\beta_{\mathrm{IV}}=(Z'X)^{-1}Z'Y$，恰好识别时的矩估计 \\
+ivstyle instruments & IV 式工具 & 每个变量只占一列的普通工具 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{J}\addcontentsline{toc}{section}{J}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+jackknife & 刀切法 & 逐一剔除观测重新估计，以评估估计量的变异性与偏误 \\
+Jacobian matrix & 雅可比矩阵 & 向量函数（$m\times1$）对 $\beta'$ 的导数矩阵，维度 $m\times K$ \\
+Jensen's inequality & Jensen 不等式 & 凸函数 $g$ 满足 $E\,g(X)\ge g(EX)$ \\
+joint density & 联合密度 & $(Y,X)$ 的联合概率密度 $f(y,x)$ \\
+joint distribution & 联合分布 & 多个随机变量同时取值的分布 \\
+joint hypothesis & 联合假设 & 多个约束同时成立的原假设 \\
+joint (multiple) test & 联合检验 & 同时检验多个约束（$F$ 或 Wald 检验） \\
+jointly normal & 联合正态 & 任意线性组合都服从正态分布 \\
+just-identified (just identified) & 恰好识别 & $L=K$，矩方程有唯一解，GMM 估计与权重矩阵 $W$ 无关 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{K}\addcontentsline{toc}{section}{K}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$k$-class estimator & $k$ 类估计量 & $\kappa=0$ 为 OLS，$\kappa=1$ 为 2SLS，$\kappa=\hat\kappa_{\mathrm{LIML}}$ 为 LIML \\
+$K$-means clustering & $K$ 均值聚类 & 按最近中心迭代分组的聚类算法 \\
+$K$-nearest neighbours (KNN) & $K$ 近邻 & 以最近的 $K$ 个邻居定义邻域 \\
+kernel estimation & 核估计 & 按与目标点的距离加权的局部平均，如核密度估计 $\hat f(x)$ \\
+Kleibergen--Paap rk statistic & Kleibergen--Paap 统计量 & 异方差稳健的弱工具检验统计量 \\
+Kronecker product & Kronecker 积 & $A\otimes B$：以 $a_{ij}B$ 为块排成的大矩阵 \\
+kurtosis & 峰度 & $E(e^4)/\sigma^4$，正态分布为 3，厚尾时更大 \\
+kurtosis ratio & 峰度比例 & 异方差下真实方差与同方差公式之比（如 $\sigma_i^2=x_i^2$ 时为 $E(x^4)/(Ex^2)^2$），即同方差公式的低估倍数 \\
+Ky Fan theorem & Ky Fan 定理 & 在 $F'F=I_r$ 下，$\tr(F'SF)$ 的最大值等于 $S$ 前 $r$ 个最大特征值之和 \\
+\end{longtable}
+
+\par\penalty-100\ifdim\dimexpr\pagegoal-\pagetotal\relax<16\baselineskip\newpage\fi
+\section*{L}\addcontentsline{toc}{section}{L}
+\begin{longtable}{@{}>{\bfseries\boldmath\raggedright\arraybackslash}p{4.6cm}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}p{\dimexpr\textwidth-7.8cm-4\tabcolsep\relax}@{}}
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endfirsthead
+\toprule
+English & \textbf{中文} & \textbf{简释}\\
+\midrule
+\endhead
+\midrule
+\multicolumn{3}{r@{}}{\footnotesize\itshape （续下页）}\\
+\endfoot
+\bottomrule
+\endlastfoot
+$L_2$ penalty & $L_2$ 惩罚 & 对系数平方和施加的惩罚项 $\lambda\|\beta\|^2$（岭回归） \\
+lag operator & 滞后算子 & $LY_t=Y_{t-1}$ \\
+lag truncation number (bandwidth) & 截断滞后数（带宽） & Newey--West 估计中纳入的最大滞后阶 $M$ \\
+Lagrange multiplier & 拉格朗日乘子 & 约束的影子价格 \\
+Lagrange multiplier (LM) test & 拉格朗日乘子检验 & 只用受约束估计计算的得分检验 \\
+Lagrangian & 拉格朗日函数 & 目标函数加上乘子乘约束 \\
+lags & 滞后项 & 事件研究中处理后各相对期的系数，即动态效应 \\
+latent factor model & 潜在因子模型 & 数据或误差由不可观测的公共因子线性驱动 \\
+latent factor structure & 潜在因子结构 & 共同成分 $\lambda_i'f_t$ \\
+law of iterated expectations (LIE) & 迭代期望律（重期望律） & $E[E(Y\mid X)]=E(Y)$；更一般地 $E[E(Y\mid X_1,X_2)\mid X_1]=E(Y\mid X_1)$，即小信息集胜出 \\
+law of large numbers (LLN) & 大数定律 & 样本均值依概率收敛于总体期望 \\
+law of total variance & 方差分解 & $\Var(Y)=E[\Var(Y\mid X)]+\Var[E(Y\mid X)]$ \\
+leading indicator & 先行指标 & 先于经济活动变动的变量 \\
+leads & 前导项 & 事件研究中处理前各相对期的系数，用于事前趋势检验 \\
+least absolute deviation (LAD) & 最小绝对偏差（最小绝对离差） & 最小化残差绝对值之和，无闭式解，用线性规划求解 \\
+least squares dummy variable(s) (LSDV) estimator & 最小二乘虚拟变量估计 & 加入全部个体虚拟变量后做 OLS，把固定效应作为虚拟变量系数一并估计；等价于组内估计 \\
+leave-one-out estimator (regression) & 留一法估计量（留一回归） & 删去第 $i$ 个观测后重新做 OLS 得到的 $\hat\beta_{(-i)}$ \\
+leave-one-out prediction error & 留一预测误差 & $\tilde e_i=y_i-x_i'\hat\beta_{(-i)}=\hat e_i/(1-h_{ii})$ \\
+level equation & 水平方程 & 未差分的原方程，如 $y_{it}=\rho y_{i,t-1}+\alpha_i+u_{it}$ \\
+leverage (leverage value) & 杠杆值 & $h_{ii}=x_i'(X'X)^{-1}x_i$，衡量观测在回归元空间中的偏离程度，用于 HC2/HC3 \\
+leverage point & 杠杆点 & 杠杆值大的观测，未必是影响观测 \\
+Levin--Lin--Chu test & LLC 检验 & 面板单位根检验，备择假设下所有个体共享同一自回归根 \\
+likelihood function & 似然函数 & 样本联合密度视为参数的函数 \\
+likelihood ratio (LR) test & 似然比检验 & $LR=2[\ell_n(\hat\theta)-\ell_n(\tilde\theta)]$，比较无约束与有约束的最大对数似然 \\
+limited information maximum likelihood (LIML) & 有限信息最大似然 & $k$ 类估计量之一，对弱工具比 2SLS 更稳健 \\
+linear CEF model & 线性 CEF 模型 & $E(y\mid x)=x'\beta$ 的回归模型 \\
+linear combination of coefficients & 系数线性组合 & $\theta=R'\beta$，其渐近方差为 $R'VR$ \\
+linear estimator & 线性估计量 & 形如 $A'Y$、$A$ 只依赖 $X$ 的估计量 \\
+linear model & 线性模型 & 对参数线性的模型 $y=x'\beta+u$ \\
+linear panel & 线性面板 & 条件均值对参数线性的面板模型 \\
+linear probability model (LPM) & 线性概率模型 & 对 0/1 因变量直接做线性回归 \\
+linear process (MA($\infty$)) & 线性过程 & 白噪声的无穷阶平方可和加权和：$\sum_{j\ge0}b_je_{t-j}$ \\
+linear programming & 线性规划 & LAD 的数值求解方法 \\
+linear projection coefficient & 线性投影系数 & $\beta=[E(xx')]^{-1}E(xy)$ \\
+linear restriction & 线性约束 & 形如 $R'\beta=\theta_0$（$R$ 为 $k\times q$，列满秩），或写作 $R\beta=r$（$R$ 为 $q\times K$，行满秩） \\
+linearly independent & 线性无关 & 矩阵 $A$ 的各列线性无关：$Ac=0$ 只有零解 $c=0$ \\
+local alternative & 局部备择 & $\theta_n=\theta_0+h/\sqrt n$ 的备择序列 \\
+local average treatment effect (LATE) & 局部平均处理效应 & 依从者的平均处理效应 \\
+local misspecification & 局部误设 & 矩条件以 $n^{-1/2}$ 速度偏离 0 的设定 \\
+local-to-zero asymptotics & 局部趋零渐近 & 把第一阶段系数设为 $C/\sqrt n$ 来刻画弱工具 \\
+Loewner (psd) ordering & 矩阵半正定序 & $A\ge B$ 指 $A-B$ 半正定，用于比较估计量的有效性 \\
+log-likelihood (function) & 对数似然（函数） & 似然函数取对数，最大值点不变 \\
+log wage & 对数工资 & 小时工资取自然对数，系数近似为百分比效应 \\
+long panel & 长面板 & $T$ 也较大，需考虑时间序列性质 \\
+long regression / short regression & 长回归/短回归 & 长回归包含全部回归元，短回归遗漏部分回归元；二者系数之差即遗漏变量偏误 \\
+long-run effect & 长期效应 & $x$ 永久变化 1 单位的累积影响，如 $\beta/(1-\rho)$ \\
+long-run multiplier & 长期乘数 & 解释变量持久变动 1 单位的累计影响（分布滞后各系数之和） \\
+long-run variance & 长期方差 & 含各阶自协方差之和的方差：$\Omega=\sum_{\ell=-\infty}^{\infty}\Gamma(\ell)$ \\
+longitudinal data & 纵向数据 & 统计学对面板数据的称呼 \\
+low-rank matrix & 低秩矩阵 & 秩远小于行数与列数，可由少数因子表示 \\
+low-rank regression & 低秩回归 & 共同部分为秩 $r$ 矩阵 $\Lambda F'$ 的回归或降维 \\
+\end{longtable}
+\endgroup

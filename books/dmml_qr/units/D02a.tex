@@ -1,0 +1,376 @@
+\chapter{线性模型：Logistic 回归、Softmax 回归、感知器与支持向量机}
+\noindent\key{本章速览}\quad 四种线性分类器共用打分函数 $f(\bm x;\bm w)=\bm w^\top\bm x+b$，区别只在“分数 $\to$ 类别/概率”的方式与损失：Logistic 回归（Sigmoid + 二元交叉熵）、Softmax 回归（Softmax + 多类交叉熵）、感知器（错误驱动）、SVM（最大间隔）。两条主线结论：\key{交叉熵 = 负对数似然 = KL 散度 + 常数}；\key{梯度 = 输入 $\times$（预测 $-$ 真实）}。
+
+\noindent\key{记号}\quad $\mathcal D=\{(\bm x^{(n)},y^{(n)})\}_{n=1}^N$（上标 $(n)$ 为样本编号），$\bm x\in\R^D$（$D$ 特征维度），$C$ 类别数；向量为列向量，$\|\bm w\|=\sqrt{\bm w^\top\bm w}$；$\log$ 默认自然对数，信息论中以 2 为底时单位为 bit；§\ref{sec:D02a-aug} 起 $\bm x,\bm w$ 默认为增广向量（偏置 $b$ 已并入）。
+
+% ======================================================================
+\section{分类问题与示例}
+
+\subsection{分类问题的定义；二分类与多分类；分类与回归的区别}
+\begin{itemize}
+\item \term{分类}{classification}：根据输入数据的特征，将其划分到\key{预先定义好的}多个类别中的一类。形式化：由 $\mathcal D$（$y^{(n)}\in\{1,\dots,C\}$ 取有限个离散值）学映射 $\bm x\mapsto y$，使其对新样本也给出正确类别。$C=2$ 为\term{二分类}{binary classification}，$C>2$ 为\term{多分类}{multi-class classification}。
+\item 两个二分类例子：图像“猫？狗？”；邮件“正常邮件？垃圾邮件？”。共同流程：原始对象（像素、文字）$\to$ 特征向量 $\bm x$ $\to$ 分类器 $\to$ 类别；本章研究“特征向量 $\to$ 类别”这一步。
+\item 与回归的区别：回归 $y\in\R$、用平方损失；分类 $y$ 离散（“预测 3.7 类”无意义），需要 (1) 把连续打分转成类别或概率，(2) 设计适合分类的损失（交叉熵、合页损失；平方损失不合适，§\ref{sec:D02a-sq}）。
+\end{itemize}
+
+\subsection{类别标签的三种编码：0/1、\texorpdfstring{$\pm1$}{±1}、one-hot}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}p{3.6cm}p{2.6cm}L@{}}
+\toprule
+编码 & 取值 & 使用模型 & 好处 \\
+\midrule
+0/1 & $y\in\{0,1\}$ & Logistic 回归 & $y$ 可直接当作“$y=1$ 的概率” \\
+$\pm1$ & $y\in\{-1,+1\}$ & 感知器、SVM & “分对”统一写成 $y f(\bm x)>0$ \\
+one-hot & $\bm y\in\{0,1\}^C$，恰有一个 1 & Softmax 回归 & $\bm y$ 可当作真实类别的概率分布 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+换算：$y_{\pm}=2y_{01}-1$，$y_{01}=(y_{\pm}+1)/2$；$C=3$ 时第 3 类的 one-hot 为 $[0,0,1]^\top$。\textbf{易错} 同一模型的公式随编码而变，答题先看清标签取值。
+
+\subsection{图像分类数据集：CIFAR-10 与 ImageNet 的规模}
+\begin{itemize}
+\item \key{CIFAR-10}：\key{60000 张 $32\times32$ 彩色图像，10 类，每类 6000 张}（标准划分 50000 训练 + 10000 测试）；类别 airplane, automobile, bird, cat, deer, dog, frog, horse, ship, truck；RGB 3 通道 $\Rightarrow$ 每张 $32\times32\times3=3072$ 个数。
+\item \key{ImageNet}：\key{14,197,122 张图像，21841 个类别}，按语义由粗到细分层（来自 WordNet）：mammal $\to$ placental $\to$ carnivore $\to$ canine $\to$ dog $\to$ working dog $\to$ husky；vehicle $\to$ craft $\to$ watercraft $\to$ sailing vessel $\to$ sailboat $\to$ trimaran。常用 1000 类子集（ILSVRC）；层级越往下越难分（细粒度分类）。
+\end{itemize}
+
+\subsection{图像拉直为 3072 维向量与线性评分函数 \texorpdfstring{$f(\bm x,W)=W\bm x+\bm b$}{f(x,W)=Wx+b}}
+\begin{itemize}
+\item 拉直：$[32\times32\times3]$ 数组（像素值 $/255$ 归一到 $[0,1]$）按固定顺序排成一列（stretch pixels into single column）$\Rightarrow\bm x\in\R^{3072}$。
+\item \term{线性评分函数}{linear score function}：$f(\bm x,W)=W\bm x+\bm b$，$W\in\R^{C\times D}$，$\bm b\in\R^C$，输出 $C$ 个类别得分（class scores），预测 $\hat y=\argmax_c f_c(\bm x)$。CIFAR-10：$W$ 为 $10\times3072$，参数共 $10\times3072+10=30730$ 个。
+\item 逐行手算：$f_c=\bm w_c^\top\bm x+b_c$（$W$ 第 $c$ 行与 $\bm x$ 作内积，\key{再加 $b_c$}）。示意：$\bm x=(56,231,24,2)^\top$，$W$ 的三行 $(0.2,-0.5,0.1,2.0)$、$(1.5,1.3,2.1,0)$、$(0,0.25,0.2,-0.3)$，$\bm b=(1.1,3.2,-1.2)^\top$ $\Rightarrow$ cat $-96.8$、dog $437.9$、ship $60.75$；输入是猫却预测 dog——参数是随手给的，需要损失函数 + 优化来学 $W,\bm b$。\textbf{易错} ship 行内积为 $61.95$，加偏置 $-1.2$ 后才是 $60.75$。
+\item $W$ 的每一行 $\bm w_c^\top$ 的两种理解：① \key{几何}——一个类别的线性分类器，超平面 $\bm w_c^\top\bm x+b_c=0$，$\bm w_c$ 指向该类得分增大的一侧；$C$ 个分类器同时打分取最大，即 argmax 多分类（§\ref{sec:D02a-multi}）。② \key{模板匹配}——内积衡量 $\bm x$ 与 $\bm w_c$ 的相似度，$\bm w_c$ 还原成图像即该类“平均模板”（plane、ship 偏蓝），线性模型只靠整体颜色与布局打分，表达能力有限。
+\end{itemize}
+
+\subsection{视觉任务的层次：分类、分类 + 定位、目标检测、实例分割}
+输出由粗到细：\key{图像分类}（classification，整张图一个标签 CAT，单目标）$\to$ \key{分类 + 定位}（classification + localization，类别 + 一个矩形框，单目标）$\to$ \key{目标检测}（object detection，多个框及各自类别 CAT, DOG, DUCK，多目标）$\to$ \key{实例分割}（instance segmentation，逐像素分出每个对象实例，多目标）。本章只做第一种。
+
+\subsection{文本分类示例：垃圾邮件过滤、文档归类、情感分类}
+\begin{itemize}
+\item \key{垃圾邮件过滤}（二分类）：邮件文本 $\to$ 预处理（分词、去停用词、提取关键词）$\to$ 文本向量化（BoW）$\to$ 分类器判断 $\to$ 垃圾邮件进 SPAM FOLDER / 正常邮件进 INBOX。
+\item \key{文档归类}（多分类）：原始文本（Raw Text Data）归入 Technology / Sports / Fashion 三类；文本特征：\term{词袋模型}{Bag-of-Words, BoW} 与 \term{TF-IDF}{Term Frequency-Inverse Document Frequency}。
+\item \key{情感分类}（三分类，sentiment analysis）：“对服务完全不满意，这是有史以来最差的客户服务。”NEGATIVE；“做得不错，但我未来会有更高的期待。”NEUTRAL（同时含正负信号，不能只数正面词）；“太棒了！喜欢你们的工作！”POSITIVE。
+\item 归纳：猫/狗、垃圾邮件为二分类；CIFAR-10（10 类）、文档归类、情感分类（各 3 类）为多分类。
+\end{itemize}
+
+% ======================================================================
+\section{文本的特征表示：词袋模型（BoW）}\label{sec:D02a-bow}
+
+\subsection{为什么要把文本转为向量；BoW 两步：构建词汇表、文本向量化}
+线性模型 $f(\bm x)=\bm w^\top\bm x+b$ 只能处理数值向量，文本是变长字符序列 $\Rightarrow$ 需将样本 $\bm x$ 从文本形式转为向量形式。
+\begin{enumerate}
+\item \key{构建词汇表}：收集所有训练文本中出现的不重复词语，组成词汇表（vocabulary）；\key{词汇表大小 = 特征维度 $D$}。
+\item \key{文本向量化}：对每一篇文本，按词汇表统计每个词在该文本中的出现次数（词频向量）或是否出现（二值 BoW），作为特征向量对应维度的值。
+\end{enumerate}
+“词袋”= 只记每个词出现几次、不管顺序；中文先分词，英文按空格切分。
+
+\subsection{BoW 示意：“我喜欢读书”“我讨厌读书”与线性分类器 \texorpdfstring{$\theta^\top\bm z+\theta_0$}{theta'z+theta0}}
+词汇表 $\{$我, 喜欢, 讨厌, 读书$\}$，$D=4$；$\bm v_1=[1,1,0,1]^\top$，$\bm v_2=[1,0,1,1]^\top$。流程：文本 $\to$ BoW 向量 $\bm z$ $\to$ 线性分类器 $\theta^\top\bm z+\theta_0$ $\to$ 输出 $+/-$；$(\theta,\theta_0)$ 与 $(\bm w,b)$ 是同一个东西；边界 $\theta^\top\bm z+\theta_0=0$，法向量 $\theta$ 指向正类，原点到边界距离 $|\theta_0|/\|\theta\|$。取 $\theta=(0,1,-1,0)^\top$、$\theta_0=0$：$\theta^\top\bm v_1=1>0$（正面），$\theta^\top\bm v_2=-1<0$（负面）——$\theta_d$ 就是词 $d$ 对“正面”判断的贡献，由学习算法从数据中学出。
+
+\subsection{词袋模型的局限（词序、稀疏、语义）与 TF-IDF 预告}
+\begin{itemize}
+\item \key{忽略词序}：“狗咬人”与“人咬狗”向量相同；“我不喜欢读书”因含“喜欢”仍被加分。\key{高维稀疏}：词汇表数万维，每篇只用到极少数词。\key{不含语义}：“喜欢”与“热爱”是互不相关的两维。改进：n-gram、TF-IDF 加权、词向量（第 8 章）。
+\item TF-IDF：$\text{tf-idf}(t,d)=\text{tf}(t,d)\times\text{idf}(t)$，$\text{idf}(t)=\log\dfrac{N}{\text{df}(t)}$（$N$ 文档总数，$\text{df}(t)$ 含词 $t$ 的文档数）。处处出现的词（如“我”）idf 小、被压低；与 BoW 同一词汇表、同维度。示意：$N=3$，$\text{df}=2\Rightarrow\ln1.5=0.405$；$\text{df}=1\Rightarrow\ln3=1.099$。平滑变体、归一化与 \texttt{CountVectorizer}/\texttt{TfidfVectorizer} 代码见第 8 章。
+\end{itemize}
+
+% ======================================================================
+\section{线性分类模型}
+
+\subsection{定义：判别函数 \texorpdfstring{$f(\bm x;\bm w)=\bm w^\top\bm x+b$}{f(x;w)=w'x+b}}
+\term{线性分类模型}{linear classification model}：学习一个线性函数，把输入特征向量映射到类别空间，再根据映射结果分类。\term{判别函数}{discriminant function} $f(\bm x;\bm w)=\bm w^\top\bm x+b=\sum_{d=1}^D w_dx_d+b$，$\bm x=[x_1,\dots,x_D]^\top$，$\bm w$ 为\term{权重向量}{weight vector}，$b$ 为\term{偏置}{bias}。“线性”指 $f$ 对 $\bm x$ 是线性（仿射）函数，故决策边界 $f=0$ 是超平面；$f$ 是实数，还需决策规则（§\ref{sec:D02a-step}）变成类别。
+
+\subsection{决策边界：超平面 \texorpdfstring{$\bm w^\top\bm x+b=0$}{w'x+b=0}；\texorpdfstring{$\bm w$}{w} 是法向量且指向正类（证明）}
+$\{\bm x:\bm w^\top\bm x+b=0\}$ 是 $D-1$ 维\term{超平面}{hyperplane}（$D=2$ 直线，$D=3$ 平面），把空间分成两半：$f>0$ 判正类，$f<0$ 判负类。证明：① $\bm x_a,\bm x_b$ 都在超平面上，两式相减消去 $b$ 得 $\bm w^\top(\bm x_a-\bm x_b)=0$，$\bm w$ 与面内任意方向正交 $\Rightarrow$ 法向量；② 边界点 $\bm x_0$ 沿 $\bm w$ 走 $t>0$：$f(\bm x_0+t\bm w)=\underbrace{\bm w^\top\bm x_0+b}_{=0}+t\|\bm w\|^2>0$ $\Rightarrow$ $\bm w$ 指向正类。
+
+\subsection{点到超平面的距离：\texorpdfstring{$r=f(\bm x)/\|\bm w\|$}{r=f(x)/||w||}、原点距离 \texorpdfstring{$|b|/\|\bm w\|$}{|b|/||w||}、分对时 \texorpdfstring{$y f/\|\bm w\|$}{y f/||w||}（推导）}
+\begin{align*}
+\bm x&=\bm x_\perp+r\,\frac{\bm w}{\|\bm w\|} \why{$\bm x_\perp$ 为 $\bm x$ 在超平面上的投影，$\bm w/\|\bm w\|$ 为单位法向量}\\
+\bm w^\top\bm x+b&=(\bm w^\top\bm x_\perp+b)+r\,\frac{\bm w^\top\bm w}{\|\bm w\|}=0+r\|\bm w\| \why{左乘 $\bm w^\top$ 再加 $b$}\\
+\Rightarrow\ r&=\frac{\bm w^\top\bm x+b}{\|\bm w\|},\qquad \text{距离}=|r|=\frac{|\bm w^\top\bm x+b|}{\|\bm w\|} \why{带符号距离；$r>0$ 在 $\bm w$ 所指一侧}
+\end{align*}
+\begin{itemize}
+\item $|f(\bm x)|$ 越大离边界越远，分类越“有把握”。\key{原点}：取 $\bm x=\bm 0$，距离 $|b|/\|\bm w\|$（图中常标 $b/\|\bm w\|$，严格应加绝对值）；$b$ 的作用是让超平面不必过原点。示意：$\bm w=(3,4)^\top,b=-5$：点 $(3,4)$ 的 $f=20$，带符号距离 $20/5=4$；原点距离 $1$。
+\item \key{分对时}（$y\in\{\pm1\}$，$y$ 与 $f$ 同号）：$\dfrac{|\bm w^\top\bm x+b|}{\|\bm w\|}=\dfrac{y(\bm w^\top\bm x+b)}{\|\bm w\|}$，去掉绝对值便于优化，是 SVM 的出发点；分错时该式为负。
+\end{itemize}
+
+\subsection{增广特征向量与增广权重：把偏置并入权重}\label{sec:D02a-aug}
+$\tilde{\bm x}=[x_1,\dots,x_D,1]^\top\in\R^{D+1}$（\term{增广特征向量}{augmented feature vector}），$\tilde{\bm w}=[w_1,\dots,w_D,b]^\top$（增广权重向量），则 $\tilde{\bm w}^\top\tilde{\bm x}=\bm w^\top\bm x+b$，此后省略波浪号写 $\bm w^\top\bm x$（$\sigma(\bm w^\top\bm x)$、感知器 $\bm w^\top\bm x$ 均如此）。结构图中常数输入节点“1”及其权重“$b$”就是这一维。\textbf{易错} SVM 中 $b$ 不进入正则项 $\frac12\|\bm w\|^2$，故 SVM 单独写出 $b$。
+
+\subsection{神经元式结构图与阶跃决策函数 \texorpdfstring{$g(f)$}{g(f)}}\label{sec:D02a-step}
+结构：输入 $x_1,\dots,x_D$ 各乘权重 $w_d$，常数输入 1 乘 $b$ $\to$ $\Sigma$ 节点加权求和 $f=\bm w^\top\bm x+b$ $\to$ \term{阶跃函数}{step function} $g(f)$ $\to$ 输出 $+/-$。这是“人工神经元”的雏形：把阶跃换成 Sigmoid 就得到 Logistic 回归，再堆叠成神经网络（第 3 章）。决策函数 $g\big(f(\bm x;\bm w)\big)=1$（$f>0$），$=0$（$f<0$）；$f=0$（落在边界上）未定义，实践中归入任一类即可（感知器约定 $f\le0$ 判 $-1$）；若用 $\pm1$ 编码，$g$ 即符号函数 $\operatorname{sgn}(f)$。
+
+\subsection{四种线性分类模型一览}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{5.2cm}p{1.2cm}p{1.3cm}p{2.4cm}L@{}}
+\toprule
+模型 & 任务 & 标签 & 输出 & 学习准则（损失）\\
+\midrule
+Logistic 回归（logistic regression） & 二分类 & $\{0,1\}$ & 概率 $\sigma(\bm w^\top\bm x)$ & 交叉熵 \\
+Softmax 回归（softmax regression） & 多分类 & one-hot & 概率向量 & 多类交叉熵 \\
+感知器（perceptron） & 二分类 & $\{\pm1\}$ & $\pm1$ & $\max(0,-y\bm w^\top\bm x)$ \\
+支持向量机（SVM） & 二分类 & $\{\pm1\}$ & $\pm1$ & 最大间隔 / 合页损失 $\max(0,1-yf)$ \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{“损失函数？”：0-1 损失为何不能直接优化；替代损失的两条路线}
+\begin{itemize}
+\item \term{0-1 损失}{0-1 loss}：$\mathcal L_{01}=\mathbf 1\{y\neq g(f(\bm x;\bm w))\}$，分错记 1，平均即错误率——是最终关心的量，但：① 对 $\bm w$ 是\key{分段常数}，只在样本跨越边界时跳变；② \key{梯度几乎处处为 0}、跳变点不可导，梯度下降无从下手；③ 直接最小化错分个数一般是组合优化难题。
+\item 出路：用连续、（几乎处处）可导的\term{替代损失}{surrogate loss}。\key{概率路线}：光滑函数把 $f$ 映射为概率 + 交叉熵（负对数似然）——Logistic、Softmax 回归；\key{几何路线}（错误驱动/间隔）：只对分错或离边界太近的样本按“错多远”计损失——感知器 $\max(0,-yf)$、SVM 合页损失 $\max(0,1-yf)$。
+\end{itemize}
+
+% ======================================================================
+\section{Logistic 回归模型}
+
+\subsection{分类看作条件概率估计：概率映射函数 \texorpdfstring{$\phi$}{phi}}
+引入非线性函数预测条件概率 $p(y=c\mid\bm x)$；二分类时 $p(y=1\mid\bm x)=\phi\big(f(\bm x;\bm w)\big)$，$f$ 为线性打分函数，$\phi$ 为\term{概率映射函数}{probability mapping function}：把线性函数的值域从实数区间“挤压”到 $(0,1)$，从而可表示概率。原因：$f\in\R$ 不能直接当概率（计量中线性概率模型的缺陷）。$\phi$ 应满足：值域 $(0,1)$；单调递增；光滑可导（便于梯度下降）。
+
+\subsection{Sigmoid 函数：定义、值域、对称性 \texorpdfstring{$\sigma(-z)=1-\sigma(z)$}{sigma(-z)=1-sigma(z)}}
+\term{Logistic 函数}{logistic function}（\term{Sigmoid 函数}{sigmoid function}）：$\sigma(z)=\dfrac{1}{1+\exp(-z)}$。S 形曲线，过 $(0,0.5)$，$z\to+\infty$ 时 $\to1$，$z\to-\infty$ 时 $\to0$；$z=0$ 附近近似线性，两端饱和。
+\begin{align*}
+e^{-z}>0&\ \Rightarrow\ 1+e^{-z}>1\ \Rightarrow\ 0<\sigma(z)<1 \why{指数恒正}\\
+\sigma(-z)&=\frac{1}{1+e^{z}}=\frac{e^{-z}}{e^{-z}+1}=\frac{(1+e^{-z})-1}{1+e^{-z}}=1-\sigma(z) \why{分子分母同乘 $e^{-z}$，再加 1 减 1}
+\end{align*}
+含义：$p(y=0\mid\bm x)=1-\sigma(f)=\sigma(-f)$；$\sigma(0)=\tfrac12$；$\sigma$ 严格递增。
+
+\subsection{Sigmoid 导数 \texorpdfstring{$\sigma'(z)=\sigma(z)(1-\sigma(z))$}{sigma'=sigma(1-sigma)}（推导）与最大斜率 1/4}
+\begin{align*}
+\sigma'(z)&=-(1+e^{-z})^{-2}\cdot(-e^{-z})=\frac{e^{-z}}{(1+e^{-z})^2} \why{$\sigma=(1+e^{-z})^{-1}$，链式法则 $(u^{-1})'=-u^{-2}u'$}\\
+&=\frac{1}{1+e^{-z}}\cdot\frac{e^{-z}}{1+e^{-z}}=\sigma(z)\big(1-\sigma(z)\big) \why{第二个因子 $=1-\sigma(z)$}
+\end{align*}
+记 $p=\sigma(z)$：$\sigma'=p(1-p)=\tfrac14-(p-\tfrac12)^2\le\tfrac14$，在 $z=0$ 取最大 $\tfrac14$；$|z|$ 大时 $\sigma'\to0$（饱和，梯度消失的根源，第 3 章）。数值：$\sigma'(0)=0.25$，$\sigma(2)=0.8808$，$\sigma'(2)=0.1050$。
+
+\subsection{其他 \texorpdfstring{$\R\to(0,1)$}{R->(0,1)} 映射函数：Probit、Tanh、Arctan 等 \tagext}
+任何连续、严格单调递增的\key{累积分布函数（CDF）}都可以（值域 $(0,1)$、单调）；$\sigma$ 本身是标准 Logistic 分布的 CDF。
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.1cm}>{\raggedright\arraybackslash}p{4.2cm}L@{}}
+\toprule
+函数 & 表达式 & 说明 \\
+\midrule
+标准正态 CDF & $\Phi(z)=\int_{-\infty}^{z}(2\pi)^{-1/2}e^{-t^2/2}\,dt$ & \term{Probit 模型}{probit model}；无闭式；比 $\sigma$ 陡：$\Phi(1)=0.8413$，$\sigma(1)=0.7311$，$\sigma(1.7)=0.8455\approx\Phi(1)$ \\
+Tanh 变换 & $(1+\tanh z)/2$ & $\tanh z=2\sigma(2z)-1\Rightarrow$ 等于 $\sigma(2z)$，即缩放的 Sigmoid；$(1+\tanh(z/2))/2=\sigma(z)$\\
+Arctan 变换 & $1/2+(\arctan z)/\pi$ & 柯西分布 CDF，尾部趋近很慢 \\
+Softsign 变换 & $\big(1+z/(1+|z|)\big)/2$ & 以多项式速度趋近 0、1 \\
+Gumbel 型 & $1-\exp(-e^{z})$ & 互补双对数（complementary log-log）模型，不对称 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错} Hard sigmoid $\max\{0,\min(1,\frac{z+1}2)\}$ 值域为闭区间 $[0,1]$、两端导数为 0，不严格满足要求；举例首选 Probit。
+
+\subsection{Logistic 回归模型 \texorpdfstring{$p(y=1\mid\bm x)=\sigma(\bm w^\top\bm x)$}{p(y=1|x)=sigma(w'x)} 与预测规则}
+\[
+p(y=1\mid\bm x)=\sigma(\bm w^\top\bm x)\triangleq\frac{1}{1+\exp(-\bm w^\top\bm x)},\qquad p(y=0\mid\bm x)=1-\sigma(\bm w^\top\bm x)=\sigma(-\bm w^\top\bm x),
+\]
+$\bm x,\bm w$ 为增广向量，$y\in\{0,1\}$；$p(y=1\mid\bm x)>0.5$ 判 1，否则判 0。名为“回归”，实为分类——它回归的是概率。
+
+\subsection{对数几率（logit）：名称由来；决策边界仍是超平面}
+\begin{align*}
+p=\frac{1}{1+e^{-z}},\ 1-p=\frac{e^{-z}}{1+e^{-z}}\ \Rightarrow\ \frac{p}{1-p}=e^{z}\ \Rightarrow\ \log\frac{p}{1-p}=z=\bm w^\top\bm x \why{两式相除再取对数}
+\end{align*}
+$\frac{p}{1-p}$ 为\term{几率}{odds}，$\log\frac{p}{1-p}$ 为\term{对数几率}{log-odds, logit}：Logistic 回归 = 用线性函数拟合对数几率（“对数几率回归”），$\sigma$ 是 logit 的反函数。边界：$p=0.5\iff\bm w^\top\bm x=0$，$\sigma$ 单调不改变哪侧为正类 $\Rightarrow$ \key{Logistic 回归是线性分类器}（尽管 $\sigma$ 非线性）。
+
+\subsection{系数解释：几率比 \texorpdfstring{$e^{w_j}$}{exp(w_j)}}
+$x_j$ 增加 1 单位（其余不变），对数几率增加 $w_j$，几率乘以 $e^{w_j}$（\term{几率比}{odds ratio}）。示意：$w_j=0.7\Rightarrow\times2.01$；$w_j=-0.5\Rightarrow\times0.61$；$p=0.8$ 时几率 4、对数几率 $\ln4=1.386$，若 $w_1=\ln2$，$x_1+1$ 后几率 8、概率 $8/9=0.889$。
+
+% ======================================================================
+\section{信息论基础：熵、交叉熵与 KL 散度}
+
+\subsection{定义速查：自信息、熵、熵编码、交叉熵、KL 散度}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{5.2cm}L@{}}
+\toprule
+概念 & 公式 & 含义与要点 \\
+\midrule
+\textbf{自信息}\newline{\footnotesize self-information} & $I(x)=-\log p(x)$ & 小概率事件信息量大（惊讶程度）；$p=1$ 时 $I=0$，$p\to0$ 时 $I\to\infty$；均匀硬币正面 $I=1$ bit；独立事件可加 $I(x,y)=I(x)+I(y)$ \\
+\textbf{熵}\newline{\footnotesize entropy} & $H(X)=\E_X[I(x)]=-\sum_x p(x)\log p(x)$，约定 $0\log0=0$ & 衡量随机事件的\key{不确定性}；熵越高，随机变量的信息越多（结果越难猜，观察后平均获得的信息越多）\\
+\textbf{熵编码}\newline{\footnotesize entropy encoding} & 概率 $q(x)$ 的符号用 $-\log_2 q(x)$ 位编码 & 对分布为 $q$ 的符号编码时，\key{熵 $H(q)$ 是理论最优（最短）平均编码长度}（注意是 $H(q)$，不是自信息 $I$）\\
+\textbf{交叉熵}\newline{\footnotesize cross entropy} & $H(p,q)=\E_p[-\log q(x)]=-\sum_x p(x)\log q(x)$ & 按模型近似分布 $q$ 的最优编码，对真实分布 $p$ 的信息编码的平均长度；固定 $p$ 时 $p,q$ 越近越小，$H(p,q)\ge H(p)$，$q=p$ 取等；不对称，$p$ 放真实标签、$q$ 放模型预测 \\
+\textbf{KL 散度}\newline{\footnotesize Kullback-Leibler divergence} & $\mathrm{KL}(p,q)=\sum_x p(x)\log\dfrac{p(x)}{q(x)}=H(p,q)-H(p)$，也记 $D_{\mathrm{KL}}(p\,\|\,q)$ & 用 $q$ 近似 $p$ 造成的\key{信息损失} = 按 $q$ 编码比最优多花的平均长度；$\ge0$；\key{不对称、不满足三角不等式 $\Rightarrow$ 是“散度”不是距离}；单峰 $Q$ 近似多峰 $P$ 必然丢失结构 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+数值示意（以 2 为底）：$(\frac12,\frac12)$ 熵 1 bit；$(0.9,0.1)$ 熵 0.469；均匀骰子 $\log_26=2.585$。$p=(\frac12,\frac14,\frac18,\frac18)$：码长 1,2,3,3（A=0, B=10, C=110, D=111，前缀码），平均 $1.75=H(p)$；改用 2 位等长码即 $q$ 均匀，$H(p,q)=2$，$\mathrm{KL}=0.25$。$p=(\frac12,\frac12)$，$q=(\frac14,\frac34)$：$H(p,q)=1.2075$，$\mathrm{KL}(p,q)=0.2075\neq\mathrm{KL}(q,p)=0.1887$。
+
+\subsection{熵的性质：\texorpdfstring{$0\le H\le\log K$}{0<=H<=log K} 与伯努利熵曲线}
+$X$ 有 $K$ 个取值：$0\le H(X)\le\log K$；$H=0\iff$ 分布确定；$H=\log K\iff$ 均匀分布。
+\begin{align*}
+0<p(x)\le1&\Rightarrow-\log p(x)\ge0\Rightarrow H\ge0 \why{每项非负}\\
+H=\textstyle\sum_x p(x)\log\frac{1}{p(x)}&\le\log\textstyle\sum_x p(x)\cdot\frac{1}{p(x)}=\log K \why{Jensen：$\log$ 凹，$\E[\log Z]\le\log\E[Z]$；等号 $\iff 1/p(x)$ 为常数}
+\end{align*}
+伯努利 $H(p)=-p\log_2p-(1-p)\log_2(1-p)$：倒 U 形，$p=\frac12$ 时最大 1 bit，$p=0,1$ 时为 0。
+
+\subsection{KL 分解 \texorpdfstring{$\mathrm{KL}=H(p,q)-H(p)$}{KL=H(p,q)-H(p)} 与 Gibbs 不等式（证明）}
+\begin{align*}
+\textstyle\sum_x p\log\frac{p}{q}&=\textstyle\sum_x p\log p-\sum_x p\log q=-H(p)+H(p,q) \why{$\log\frac ab=\log a-\log b$}\\
+-\mathrm{KL}(p,q)=\textstyle\sum_x p\log\frac{q}{p}&\le\log\textstyle\sum_x p\cdot\frac{q}{p}=\log\sum_{x:\,p(x)>0}q(x)\le\log1=0 \why{Jensen，$Z=q/p$；$q$ 的部分和 $\le1$}
+\end{align*}
+故 $\mathrm{KL}(p,q)\ge0$，等号 $\iff p=q$（$q/p$ 为常数且和为 1）。
+
+\subsection{三者关系：固定 \texorpdfstring{$p$}{p} 时最小化交叉熵 \texorpdfstring{$\iff$}{<=>} 最小化 KL}
+$\boxed{H(p,q)=H(p)+\mathrm{KL}(p,q)}$（交叉熵 = 熵 + KL，$\mathrm{KL}\ge0$）。真实分布 $p$ 由数据（标签）给定，$H(p)$ 为常数 $\Rightarrow\min_q H(p,q)\iff\min_q\mathrm{KL}(p,q)$：最小化交叉熵就是让模型分布逼近真实分布——Logistic/Softmax 回归用交叉熵作损失的理由。
+\textit{Since the entropy of the true distribution does not depend on the model, minimizing the cross-entropy is equivalent to minimizing the KL divergence from the model distribution to the true one.}
+
+% ======================================================================
+\section{Logistic 回归的参数学习：交叉熵风险与梯度下降}
+
+\subsection{交叉熵风险函数 \texorpdfstring{$\mathcal R(\bm w)$}{R(w)}（二元交叉熵 / log loss）}
+记 $\hat y^{(n)}=\sigma(\bm w^\top\bm x^{(n)})=p(y=1\mid\bm x^{(n)})$，$y^{(n)}\in\{0,1\}$：
+\[
+\mathcal R(\bm w)=-\frac1N\sum_{n=1}^N\Big[y^{(n)}\log\hat y^{(n)}+\big(1-y^{(n)}\big)\log\big(1-\hat y^{(n)}\big)\Big].
+\]
+单样本 $\mathcal L=-y\log\hat y-(1-y)\log(1-\hat y)$ 称\term{二元交叉熵}{binary cross-entropy}或\term{对数损失}{log loss}。$y=1$ 时 $\mathcal L=-\log\hat y$，$y=0$ 时 $\mathcal L=-\log(1-\hat y)$；自信地错（$y=1,\hat y=0.01$）损失 $-\ln0.01=4.6$，惩罚很重。
+
+\subsection{风险函数的两个来源：极大似然（负对数似然）与分布间交叉熵}
+\begin{itemize}
+\item \key{来源一（MLE）}：伯努利 $p(y\mid\bm x;\bm w)=\hat y^{\,y}(1-\hat y)^{1-y}$；样本独立，$L(\bm w)=\prod_n(\hat y^{(n)})^{y^{(n)}}(1-\hat y^{(n)})^{1-y^{(n)}}$，取对数变求和，$\max_{\bm w}\log L\iff\min_{\bm w}-\frac1N\log L=\mathcal R(\bm w)$（取负、除以 $N$ 不改变最优解）。故最小化交叉熵风险 = 极大似然估计，交叉熵损失也叫\term{负对数似然}{negative log-likelihood, NLL}损失。
+\item \key{来源二（交叉熵）}：真实分布 $p_r=(y^{(n)},1-y^{(n)})$（$y=1$ 时为 $(1,0)$），预测分布 $p_\theta=(\hat y^{(n)},1-\hat y^{(n)})$，$H(p_r,p_\theta)=-y\log\hat y-(1-y)\log(1-\hat y)$，平均即 $\mathcal R(\bm w)$，等价于最小化 KL。
+\end{itemize}
+
+\subsection{梯度 \texorpdfstring{$\frac1N\sum\bm x(\hat y-y)$}{(1/N) sum x(yhat-y)} 的完整推导}
+记 $z=\bm w^\top\bm x$，$\hat y=\sigma(z)$，省略上标：
+\begin{align*}
+\frac{\partial z}{\partial\bm w}=\bm x,\qquad \frac{\partial\hat y}{\partial\bm w}&=\sigma'(z)\frac{\partial z}{\partial\bm w}=\hat y(1-\hat y)\bm x \why{链式法则 + $\sigma'=\sigma(1-\sigma)$}\\
+\frac{\partial\log\hat y}{\partial\bm w}=(1-\hat y)\bm x,\qquad \frac{\partial\log(1-\hat y)}{\partial\bm w}&=\frac{-\hat y(1-\hat y)\bm x}{1-\hat y}=-\hat y\bm x \why{$(\log u)'=u'/u$}\\
+\frac{\partial\mathcal L}{\partial\bm w}=-\big[y(1-\hat y)-(1-y)\hat y\big]\bm x&=-(y-\hat y)\bm x=(\hat y-y)\bm x \why{展开后交叉项 $\pm y\hat y$ 抵消}
+\end{align*}
+\[
+\boxed{\ \frac{\partial\mathcal R(\bm w)}{\partial\bm w}=\frac1N\sum_{n=1}^N\bm x^{(n)}\big(\sigma(\bm w^\top\bm x^{(n)})-y^{(n)}\big)=-\frac1N\sum_{n=1}^N\bm x^{(n)}\big(y^{(n)}-\hat y^{(n)}\big)\ }
+\]
+梯度 = 输入 $\times$（预测 $-$ 真实）：预测准时参数几乎不动，错得越离谱更新越大；Softmax 回归、感知器中同形。
+
+\subsection{梯度下降与随机梯度下降的更新式}
+\[
+\bm w_{t+1}=\bm w_t-\alpha\frac{\partial\mathcal R}{\partial\bm w}\Big|_{\bm w_t}=\bm w_t+\alpha\frac1N\sum_{n=1}^N\bm x^{(n)}\big(y^{(n)}-\hat y^{(n)}_{\bm w_t}\big),\qquad \hat y^{(n)}_{\bm w_t}=\sigma(\bm w_t^\top\bm x^{(n)}),
+\]
+$\alpha>0$ 为学习率。SGD（每次一个样本）：$\bm w\leftarrow\bm w+\alpha\,\bm x^{(n)}(y^{(n)}-\hat y^{(n)})$。
+\textbf{计算步骤}：① $z=\bm w^\top\bm x+b$，$\hat y=\sigma(z)$；② $\mathcal L=-\log\hat y$（$y=1$）或 $-\log(1-\hat y)$（$y=0$）；③ $\partial\mathcal L/\partial\bm w=(\hat y-y)\bm x$，\key{$\partial\mathcal L/\partial b=\hat y-y$}（$b$ 的“输入”恒为 1）；④ 沿负梯度更新，重算损失应下降。示意：$\bm w=(0.5,-1)^\top,b=1,\bm x=(2,1)^\top,y=1,\alpha=0.1$：$z=1$，$\hat y=0.7311$，$\mathcal L=0.3133$，$\bm w\to(0.5538,-0.9731)^\top$，$b\to1.0269$，新损失 $0.2724$。
+
+\subsection{风险函数的凸性（Hessian 半正定）与“没有闭式解”}
+\begin{align*}
+\nabla^2\mathcal R(\bm w)&=\frac1N\sum_n\bm x^{(n)}\frac{\partial\hat y^{(n)}}{\partial\bm w^\top}=\frac1N\sum_n\hat y^{(n)}(1-\hat y^{(n)})\,\bm x^{(n)}\bm x^{(n)\top} \why{$y^{(n)}$ 与 $\bm w$ 无关}\\
+\bm v^\top\nabla^2\mathcal R\,\bm v&=\frac1N\sum_n\underbrace{\hat y^{(n)}(1-\hat y^{(n)})}_{>0}(\bm v^\top\bm x^{(n)})^2\ge0,\ \forall\bm v \why{每项非负 $\Rightarrow$ 凸}
+\end{align*}
+凸 $\Rightarrow$ 局部最小即全局最小。但一阶条件 $\sum_n\bm x^{(n)}(\sigma(\bm w^\top\bm x^{(n)})-y^{(n)})=\bm 0$ 对 $\bm w$ 非线性，\key{无 OLS 式闭式解}，只能迭代（梯度下降、牛顿法）。
+
+\subsection{为什么不用平方损失}\label{sec:D02a-sq}
+$\mathcal L=\frac12(\hat y-y)^2$，$\hat y=\sigma(z)$ $\Rightarrow$ $\dfrac{\partial\mathcal L}{\partial\bm w}=(\hat y-y)\,\hat y(1-\hat y)\,\bm x$，比交叉熵梯度多因子 $\hat y(1-\hat y)\le\frac14$：\key{自信地错}（$y=1,\hat y\approx0$）时该因子 $\approx0$，梯度消失、学习停滞，而交叉熵梯度此时最大；且平方损失与 Sigmoid 复合后关于 $\bm w$ \key{非凸}。交叉熵还来自 MLE，有概率解释。
+
+\subsection{权重与偏置对 Sigmoid 曲线的影响：决策点 \texorpdfstring{$-b/w$}{-b/w}、斜率 \texorpdfstring{$w/4$}{w/4}}
+一维 $\hat y=\sigma(wx+b)$，$w>0$：
+\begin{align*}
+\hat y=0.5\iff wx+b=0\iff x=-b/w,\qquad \frac{d\hat y}{dx}\Big|_{x=-b/w}=w\,\sigma(0)(1-\sigma(0))=\frac w4 \why{$\sigma(0)=\tfrac12$；链式法则}
+\end{align*}
+$w=6,b=9$ 与 $w=10,b=15$：决策点都是 $x=-1.5$，斜率分别 1.5、2.5。结论：边界位置由 $-b/w$ 决定；$|w|$ 越大曲线越陡、越接近阶跃函数、预测越“自信”；固定 $w$ 改 $b$ 曲线左右平移；$w<0$ 时曲线左右翻转。
+
+\subsection{线性可分数据上权重发散与 L2 正则化}
+线性可分时把 $(\bm w,b)$ 同乘 $c>1$：边界不变，每点 $\hat y$ 更接近标签，$\mathcal R$ 严格下降 $\Rightarrow$ 下确界在 $\|\bm w\|\to\infty$ 处，\key{不加正则时最优解不存在（权重发散）}（$w=6,b=9\to w=10,b=15$ 正是此趋势，后者训练损失更小）。对策：L2 正则 $\mathcal R_\lambda(\bm w)=\mathcal R(\bm w)+\frac\lambda2\|\bm w\|^2$，梯度 $\frac1N\sum_n\bm x^{(n)}(\hat y^{(n)}-y^{(n)})+\lambda\bm w$；或提前停止。正则化后严格凸，最优解唯一且有限；偏置 $b$ 通常不加正则。sklearn 中 \texttt{C} 越小正则越强，\texttt{np.exp(clf.coef\_)} 即几率比：
+\begin{lstlisting}[language=Python]
+from sklearn.linear_model import LogisticRegression
+clf = LogisticRegression(C=1.0, max_iter=1000).fit(X_train, y_train)  # C=1/lambda; 默认L2; 多类即Softmax
+clf.predict_proba(X_test); clf.predict(X_test); clf.coef_, clf.intercept_  # 概率; 类别; w, b
+\end{lstlisting}
+
+% ======================================================================
+\section{Logistic 回归与计量经济学中的 Logit 模型 \tagext}
+
+\subsection{同一个模型的两套术语；目标差异：参数推断 vs 预测}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}LL@{}}
+\toprule
+机器学习 & 计量经济学（Hansen 第 25 章 Binary Choice）\\
+\midrule
+$p(y=1\mid\bm x)=\sigma(\bm w^\top\bm x)$；权重 $\bm w$、偏置 $b$；概率映射函数 $\phi$ & $P[Y=1\mid X=x]=\Lambda(x'\beta)$，$\Lambda(u)=(1+e^{-u})^{-1}$；系数 $\beta$（含截距）；单指标模型 $G(x'\beta)$，$G$ 为连接函数（link function）/ CDF \\
+最小化交叉熵风险；梯度下降 / SGD；关注样本外预测（准确率、AUC，第 4 章），常加正则、交叉验证 & 最大化对数似然 $\ell_n(\beta)$；牛顿–拉弗森迭代；关注一致性、标准误、显著性、边际效应的因果/结构解释 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+线性概率模型 $P(x)=x'\beta$（OLS）拟合值可能落在 $[0,1]$ 外——正是需要概率映射函数的原因。估计方法本质相同（MLE = 最小化交叉熵），差别在目的与评价标准。
+
+\subsection{潜变量解释：Logistic 误差得 Logit、正态误差得 Probit；系数尺度}
+$Y^*=X'\beta+e$，$Y=\mathbf 1\{Y^*>0\}$，$e$ 的 CDF 为 $G$ 且关于 0 对称 $\Rightarrow$ $P[Y=1\mid x]=P[e>-x'\beta]=1-G(-x'\beta)=G(x'\beta)$。$e\sim$ 标准 Logistic $\Rightarrow$ Logit；$e\sim N(0,1)\Rightarrow$ Probit。误差尺度不可识别，只能识别 $\beta/\sigma$：Probit 标准差归一为 1，Logit 误差标准差 $\pi/\sqrt3\approx1.8$ $\Rightarrow$ \key{Logit 系数 $\approx$ 1.6–1.8 $\times$ Probit 系数}，二者不能直接比大小；拟合概率几乎一样。
+
+\subsection{MLE 得分函数与 Hessian：与交叉熵梯度一一对应}
+$\ell_n(\beta)=\sum_i[Y_i\log\Lambda(X_i'\beta)+(1-Y_i)\log(1-\Lambda(X_i'\beta))]=-N\mathcal R(\bm w)$；得分 $\frac{\partial\ell_n}{\partial\beta}=\sum_iX_i\big(Y_i-\Lambda(X_i'\beta)\big)$，Hessian $\frac{\partial^2\ell_n}{\partial\beta\partial\beta'}=-\sum_i\Lambda_i(1-\Lambda_i)X_iX_i'$。得分 = 交叉熵梯度 $\times(-N)$；Hessian 负半定（$X$ 满列秩时负定）$\iff$ 风险凸，似然全局凹。软件用牛顿法 $\beta_{t+1}=\beta_t-H^{-1}S$，并用 $(-H)^{-1}$ 估计渐近方差 $\Rightarrow$ 标准误、$z$ 检验。
+
+\subsection{边际效应、平均边际效应（AME）与几率比}
+系数 $\beta_j$ 不是“$x_j$ 增 1 概率变多少”。边际效应 $\dfrac{\partial P(x)}{\partial x}=\beta\,\Lambda(x'\beta)\big(1-\Lambda(x'\beta)\big)$，随 $x$ 变，在 $P=0.5$ 处最大为 $\beta/4$（同上节斜率 $w/4$）；\term{平均边际效应}{average marginal effect, AME}：$\widehat{\text{AME}}=\hat\beta\cdot\frac1n\sum_i\Lambda_i(1-\Lambda_i)$。示意：$\beta_j=0.5$，$P=0.3$ $\Rightarrow$ 概率约增 $0.5\times0.3\times0.7=0.105$。另一种解释：几率比 $e^{\beta_j}$。statsmodels：\texttt{sm.Logit(y, sm.add\_constant(X)).fit()}（\texttt{sm.Probit}、\texttt{sm.MNLogit} 同法），\texttt{.get\_margeff(at="overall")} 给 AME。
+
+% ======================================================================
+\section{多分类问题}\label{sec:D02a-multi}
+
+\subsection{“一对其余”“一对一”“argmax”三种方式与比较}
+\begin{itemize}
+\item \term{一对其余}{one-vs-rest, OvR}：转化为 $C$ 个二分类，$f_c$ 判“属于 $c$ vs 不属于”，恰有一个 $f_c>0$ 时判为 $c$。缺陷：可能全判“否”或多个判“是”$\Rightarrow$ 无法判定区域；每个子问题正负样本严重不平衡（1 类对 $C-1$ 类）。
+\item \term{一对一}{one-vs-one, OvO}：每两类之间训练一个 $f_{ij}$（只用这两类样本），共 $\binom C2=\frac{C(C-1)}2$ 个，投票得票最多者胜出。缺陷：可能平票；分类器数按 $C^2$ 增长（$C=10$ 需 45 个）。
+\item \key{argmax 方式}（改进的一对其余；邱锡鹏书式 (3.10)(3.11)）：$C$ 个判别函数 $f_c(\bm x;\bm w_c)=\bm w_c^\top\bm x+b_c$，若对所有 $\tilde c\neq c$ 有 $f_c>f_{\tilde c}$，则 $y=\argmax_{c=1}^C f_c(\bm x;\bm w_c)$。比较大小而非看符号，空间被完整划分；类 $c$ 与 $\tilde c$ 的分界为超平面 $(\bm w_c-\bm w_{\tilde c})^\top\bm x+(b_c-b_{\tilde c})=0$，每类区域为凸多面体。线性评分函数 $W\bm x+\bm b$ 取最大、Softmax 回归都属此方式。
+\end{itemize}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2cm}p{3.6cm}p{3.2cm}L@{}}
+\toprule
+方式 & 分类器/判别函数个数 & 判决规则 & 无法判定区域 \\
+\midrule
+一对其余 & $C$ & 看哪个 $f_c>0$ & 有（全否或多是）\\
+一对一 & $C(C-1)/2$ & 投票 & 有（平票）\\
+argmax & $C$ & $\argmax_c f_c$ & 无（除边界平局）\\
+\midrule
+\multicolumn{4}{@{}l}{个数示意：$C=4$ 时 4、6、4；$C=10$ 时 10、45、10} \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% ======================================================================
+\section{Softmax 回归}
+\term{Softmax 回归}{softmax regression}（多项 Logistic 回归）= Logistic 回归的多类推广：argmax 方式的 $C$ 个线性打分 + Softmax 变成概率分布。
+
+\subsection{Softmax 函数与示意 \texorpdfstring{$[1.2,0.9,0.4]\to[0.46,0.34,0.20]$}{[1.2,0.9,0.4] -> [0.46,0.34,0.20]}}
+$\operatorname{softmax}(x_k)=\exp(x_k)\big/\sum_{i=1}^K\exp(x_i)$，$k=1,\dots,K$。示意：$e^{1.2}=3.320$，$e^{0.9}=2.460$，$e^{0.4}=1.492$，和 $7.272$ $\Rightarrow(0.4566,0.3383,0.2052)$。“soft”的 max：差距被指数放大，最大者份额最大，其他类仍有正概率。
+
+\subsection{Softmax 的性质：概率分布、保序、平移不变、数值稳定、参数冗余}
+\begin{enumerate}
+\item \key{概率分布}：每个分量 $>0$，$\sum_k\operatorname{softmax}(x_k)=1$。\key{保序}：$x_j>x_k\iff\operatorname{softmax}(x_j)>\operatorname{softmax}(x_k)$，故 $\argmax$ 不变——预测类别与 argmax 方式一致。
+\item \key{平移不变}：$\operatorname{softmax}(x_k+c)=\frac{e^ce^{x_k}}{e^c\sum_ie^{x_i}}=\operatorname{softmax}(x_k)$。\key{数值稳定}：先减最大值再取指数，防 $e^{1000}$ 溢出：$(1000,1001,1002)$ 减最大值得 $(-2,-1,0)$，softmax $=(0.0900,0.2447,0.6652)$。
+\item \key{参数冗余}：所有 $\bm w_c$ 加同一 $\bm v$，分数同加 $\bm v^\top\bm x$，概率不变 $\Rightarrow$ 参数不唯一，可令某类 $\bm w_C=\bm 0$ 为基准。
+\end{enumerate}
+
+\subsection{Softmax 回归模型：条件概率 \texorpdfstring{$P(y=c\mid\bm x)$}{P(y=c|x)}}
+\[
+P(y=c\mid\bm x)=\operatorname{softmax}(\bm w_c^\top\bm x)=\frac{\exp(\bm w_c^\top\bm x)}{\sum_{i=1}^C\exp(\bm w_i^\top\bm x)},\quad c=1,\dots,C;\qquad \hat{\bm y}=\operatorname{softmax}(W^\top\bm x)\in\R^C,
+\]
+$\bm x$ 为增广向量，$W=[\bm w_1,\dots,\bm w_C]\in\R^{D\times C}$，分数 $\bm z=W^\top\bm x\in\R^C$。\textbf{易错} 此处 $W$ \key{每列}对应一类，线性评分函数 $W\bm x+\bm b$ 中 $W$ \key{每行}对应一类，二者互为转置。
+
+\subsection{\texorpdfstring{$C=2$}{C=2} 时退化为 Logistic 回归（证明）}
+\begin{align*}
+P(y=1\mid\bm x)=\frac{e^{\bm w_1^\top\bm x}}{e^{\bm w_1^\top\bm x}+e^{\bm w_2^\top\bm x}}=\frac{1}{1+e^{(\bm w_2-\bm w_1)^\top\bm x}}=\sigma\big((\bm w_1-\bm w_2)^\top\bm x\big) \why{分子分母同除 $e^{\bm w_1^\top\bm x}$}
+\end{align*}
+即以 $\bm w=\bm w_1-\bm w_2$ 为参数的 Logistic 回归；两类时只有差 $\bm w_1-\bm w_2$ 可识别。
+
+\subsection{从 KL 散度到交叉熵再到负对数似然（“\texorpdfstring{$\propto$}{∝}”的含义）}
+$p_r(y\mid\bm x)$ 为真实（经验）分布，$p_\theta(y\mid\bm x)$ 为模型分布：
+\begin{align*}
+D_{\mathrm{KL}}(p_r\|p_\theta)&=\textstyle\sum_{y=1}^Cp_r(y\mid\bm x)\log\frac{p_r(y\mid\bm x)}{p_\theta(y\mid\bm x)} \why{KL 定义}\\
+&=\underbrace{\textstyle\sum_yp_r\log p_r}_{=-H(p_r)\text{，与 }\theta\text{ 无关}}-\textstyle\sum_yp_r\log p_\theta \why{对数商化为差}\\
+&\propto-\textstyle\sum_{y=1}^Cp_r(y\mid\bm x)\log p_\theta(y\mid\bm x)=-\log p_\theta(y^*\mid\bm x) \why{交叉熵；one-hot：只剩真实标签 $y^*$ 一项 = 负对数似然}
+\end{align*}
+“$\propto$”不是成正比，而是“与 $\theta$ 有关的部分只剩这一项”（严格写“= 交叉熵 + 常数”），故 $\argmin_\theta D_{\mathrm{KL}}=\argmin_\theta$ 交叉熵。结论：\key{最小化 KL $\iff$ 最小化交叉熵 $\iff$ 最小化负对数似然 $\iff$ MLE}。最后一步要求 $p_r(y\mid\bm x)=\mathbf 1\{y=y^*\}$；软标签（如标签平滑）不能化为单项。
+
+\subsection{one-hot 标签下的交叉熵（负对数似然）损失与示意 \texorpdfstring{$-\log0.4$}{-log 0.4}；交叉熵示意图读法}
+$\mathcal L(\bm y,f(\bm x,\theta))=-\sum_{c=1}^Cy_c\log f_c(\bm x,\theta)$（$\bm y$ one-hot，$f_c$ 为第 $c$ 类预测概率）。示意：真实 $[0,0,1]$，预测 $[0.3,0.3,0.4]$ $\Rightarrow\mathcal L=-(0\cdot\log0.3+0\cdot\log0.3+1\cdot\log0.4)=-\log0.4=0.9163$（以 2 为底 1.3219 bit）；预测改进为 $[0.1,0.1,0.8]$ 则 $-\ln0.8=0.2231$。\key{只看真实类别的预测概率}，其余类如何分配不影响损失。示意图读法：左图真实概率 $p_r(y\mid\bm x)$（one-hot 尖峰）与右图 $-\log p_\theta(y\mid\bm x)$（概率大处为深谷）按类别配对相乘再求和 $=H$，只剩真实类别处的 $-\log p_\theta$，谷越深损失越小。
+
+\subsection{学习三要素：模型、学习准则（交叉熵）、优化（梯度下降）}
+\begin{itemize}
+\item \key{模型}：$\hat{\bm y}=\operatorname{softmax}(W^\top\bm x)$。\quad \key{学习准则}（交叉熵）：$\mathcal R(W)=-\frac1N\sum_{n=1}^N(\bm y^{(n)})^\top\log\hat{\bm y}^{(n)}$，其中 $\log$ 逐分量作用，$(\bm y^{(n)})^\top\log\hat{\bm y}^{(n)}=\sum_cy^{(n)}_c\log\hat y^{(n)}_c$。
+\item \key{优化}（梯度下降）：$\frac{\partial\mathcal R(W)}{\partial W}=-\frac1N\sum_{n=1}^N\bm x^{(n)}\big(\bm y^{(n)}-\hat{\bm y}^{(n)}\big)^\top\in\R^{D\times C}$（与 $W$ 同形），$W_{t+1}=W_t+\alpha\frac1N\sum_n\bm x^{(n)}\big(\bm y^{(n)}-\hat{\bm y}^{(n)}_{W_t}\big)^\top$。
+\end{itemize}
+
+\subsection{梯度推导：Softmax 的 Jacobian 与 \texorpdfstring{$\partial\mathcal L/\partial\bm z=\hat{\bm y}-\bm y$}{dL/dz = yhat - y}}
+记 $\bm z=W^\top\bm x$（$z_c=\bm w_c^\top\bm x$），$\hat y_i=e^{z_i}/S$，$S=\sum_ke^{z_k}$：
+\begin{align*}
+i=j:\ \frac{\partial\hat y_i}{\partial z_i}&=\frac{e^{z_i}S-e^{z_i}e^{z_i}}{S^2}=\hat y_i(1-\hat y_i);\qquad i\neq j:\ \frac{\partial\hat y_i}{\partial z_j}=\frac{0\cdot S-e^{z_i}e^{z_j}}{S^2}=-\hat y_i\hat y_j \why{商法则，$\partial S/\partial z_j=e^{z_j}$}\\
+\frac{\partial\hat y_i}{\partial z_j}&=\hat y_i(\delta_{ij}-\hat y_j),\qquad \frac{\partial\hat{\bm y}}{\partial\bm z}=\diag(\hat{\bm y})-\hat{\bm y}\hat{\bm y}^\top \why{$\delta_{ij}$：$i=j$ 为 1；$C=2$ 即 $\sigma'=\sigma(1-\sigma)$}\\
+\frac{\partial\mathcal L}{\partial z_j}&=-\sum_iy_i\frac{1}{\hat y_i}\frac{\partial\hat y_i}{\partial z_j}=-\sum_iy_i(\delta_{ij}-\hat y_j)=-y_j+\hat y_j\sum_iy_i=\hat y_j-y_j \why{$\mathcal L=-\sum_iy_i\log\hat y_i$；one-hot $\sum_iy_i=1$}\\
+\frac{\partial\mathcal L}{\partial\bm w_c}&=(\hat y_c-y_c)\bm x,\qquad \frac{\partial\mathcal L}{\partial W}=\big[(\hat y_1-y_1)\bm x,\dots,(\hat y_C-y_C)\bm x\big]=\bm x(\hat{\bm y}-\bm y)^\top \why{$z_c$ 只依赖 $\bm w_c$，按列排成外积}
+\end{align*}
+\key{统一规律}：二分类 $\partial\mathcal L/\partial\bm w=\bm x(\hat y-y)$，多分类 $\partial\mathcal L/\partial W=\bm x(\hat{\bm y}-\bm y)^\top$，都是“输入 $\times$（预测 $-$ 真实）”。Sigmoid/Softmax 与交叉熵是配套组合（指数族的典则连接），$\sigma'$ 恰被交叉熵的 $1/\hat y$ 约掉；神经网络输出层误差项也是 $\hat{\bm y}-\bm y$。偏置梯度即 $\hat{\bm y}-\bm y$；真实类分量 $\hat y_{y^*}-1<0$，梯度下降会提高其得分。
+\textbf{计算步骤}：评分 $\bm z$ $\to$ $e^{\bm z}$ 归一得 $\hat{\bm y}$ $\to$ $\mathcal L=-\log\hat y_{y^*}$ $\to$ $\hat{\bm y}-\bm y$ $\to$ $\bm x(\hat{\bm y}-\bm y)^\top$。示意：$\bm z=(1,1,1.5)$，真实 cat $\bm y=(1,0,0)$：$\hat{\bm y}=(0.2741,0.2741,0.4519)$，$\mathcal L=-\ln0.2741=1.2943$，$\hat{\bm y}-\bm y=(-0.7259,0.2741,0.4519)$；$\bm x=(1,2)^\top$ 时 $\partial\mathcal L/\partial W$ 第 1 列 $=(-0.7259,-1.4519)^\top$。
+
+\subsection{与计量中多项 Logit 模型的关系 \tagext}
+Hansen 第 26 章多项 Logit（multinomial logit）$P_j(x)=\exp(x'\beta_j)/\sum_{\ell=1}^J\exp(x'\beta_\ell)$ 即 Softmax 回归（$J=2$ 为二元 Logit）。① \key{基准类别归一化}：平移不变 $\Rightarrow\beta_j$ 不能单独识别，令基准类 $\beta_J=0$，其余系数为相对基准类的差异（机器学习常靠正则化使解唯一）。② \key{随机效用}（McFadden）：$Y_j^*=x'\beta_j+\varepsilon_j$，$\varepsilon_j$ 独立同服从 I 型极值分布，选效用最大者 $\Rightarrow$ 选择概率恰为多项 Logit。对数似然 $\sum_i\sum_j\mathbf 1\{Y_i=j\}\log P_j(X_i)=-N\mathcal R(W)$，全局凹。

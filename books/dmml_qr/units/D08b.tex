@@ -1,0 +1,285 @@
+% ======================================================================
+% 单元 D08b：文本表示、情感分析、文本分类、LDA、文本指标、小结
+% ======================================================================
+\section{文本表示：One-hot、词袋、TF-IDF 与词嵌入}
+
+\subsection{文本向量化的定义}
+\term{文本向量化}{text vectorization}，又称文本表示学习（text representation learning）：把非结构化、计算机难以直接处理的文本转换为机器学习算法可处理的\key{结构化数值形式}（向量）。演进：稀疏表示（One-hot → 词袋 → TF-IDF）→ 稠密表示（词嵌入）。
+
+\subsection{One-hot 编码：定义、三个特点、词级与文档级}
+\term{独热编码}{one-hot encoding}：把分类变量表示为“一位为 1、其余为 0”的二进制向量；文本中用来表示词表中的单词。\key{三个特点}：(1) 每个单词由一个独特的二进制向量表示；(2) 向量长度 = 词汇表大小 $|V|$；(3) 对每个文本，包含词表中某词则相应位置为 1，否则为 0。词级（(1)(2)）：第 $j$ 个词 $=e_j$，任两词正交、距离相同（hello 与 hi、与 banana 一样远）→ \key{不含语义}；文档级（(3)）：各词 One-hot 取“或”= \key{二值词袋}（binary BoW），即 \texttt{CountVectorizer(binary=True)}。
+
+\subsection{词袋模型 BoW：定义、四个概念与两步}
+\term{词袋模型}{Bag of Words, BoW}：把文本表示为长向量，元素为每个词的存在或频率；\key{忽略语序和语法结构}，只考虑词的出现。四个概念：\key{语料库}（corpus，一组文档，用于训练、提取词表）、\key{词汇表}（vocabulary，所有唯一词的集合）、\key{向量化}（文本 → 数学向量）、\key{稀疏表示}（多数词在多数文本中不出现）。\key{两步}：(1) 构建词汇表：提取语料中所有唯一词；(2) 文本向量化：每个文本 → 长度 $|V|$ 的向量，词出现则该位置为 1（或出现次数），否则为 0。
+
+\subsection{CountVectorizer(binary=True)／CountVectorizer()／TfidfVectorizer() 模板与输出}
+\begin{lstlisting}[language=Python]
+from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
+corpus = ['Hello hello, how are you?', 'I am fine.', 'How about you?', 'I am fine too.']
+for vec in [CountVectorizer(binary=True), CountVectorizer(), TfidfVectorizer()]:
+    X = vec.fit_transform(corpus)          # 稀疏矩阵, X.shape = (4, 8)
+    print(vec.get_feature_names_out())     # ['about' 'am' 'are' 'fine' 'hello' 'how' 'too' 'you']
+    print(X.toarray().round(3))
+\end{lstlisting}
+\vspace{-6pt}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{3.5cm}p{2.5cm}p{2.5cm}L@{}}
+\toprule
+句子 & binary=True & 默认计数 BoW & TF-IDF（默认）\\
+\midrule
+Hello hello, how are you? & 0 0 1 0 1 1 0 1 & 0 0 1 0 \textbf{2} 1 0 1 & 0, 0, .400, 0, .800, .316, 0, .316 \\
+I am fine. & 0 1 0 1 0 0 0 0 & 同左 & 0, .707, 0, .707, 0, 0, 0, 0 \\
+How about you? & 1 0 0 0 0 1 0 1 & 同左 & .668, 0, 0, 0, 0, .526, 0, .526 \\
+I am fine too. & 0 1 0 1 0 0 1 0 & 同左 & 0, .526, 0, .526, 0, 0, .668, 0 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\textbf{易错}：(1) “I”不在词表——默认 \texttt{token\_pattern=r"(?u)\textbackslash b\textbackslash w\textbackslash w+\textbackslash b"} 只留 $\ge2$ 字符的词（中文\key{单字词也被丢弃}；保留用 \texttt{r"(?u)\textbackslash b\textbackslash w+\textbackslash b"}）；(2) 默认 \texttt{lowercase=True}，Hello/hello 合并 → BoW 记 2、二值记 1；(3) 词表按\key{字母序}；(4) 首句若为“Hello there, how are you?”则多出 there（9 列）；(5) 中文先 jieba 分词、空格连接。
+
+\subsection{TF-IDF 向量：三个优点与 sklearn 默认口径手算步骤}
+\key{三个优点}：反映单词在文档中的重要性；通过 IDF 降低常见词（“的”“是”）影响；文本检索和文档分类中表现良好。sklearn 默认（\texttt{smooth\_idf=True, norm='l2'}）：$\mathrm{idf}(w)=\ln\frac{1+N}{1+\mathrm{df}(w)}+1$，权重 = 原始次数 × idf，再对每行做 $L_2$ 归一化。\\
+手算（$N=4$）：(1) df = 1（about, are, hello, too）→ $\ln\frac52+1=1.9163$；df = 2（am, fine, how, you）→ $\ln\frac53+1=1.5108$；(2) 第 1 句：hello $2\times1.9163=3.8326$、are 1.9163、how = you = 1.5108；(3) 长度 $\sqrt{3.8326^2+1.9163^2+2\times1.5108^2}=4.7881$；(4) 相除 → 0.800、0.400、0.316、0.316。第 2 句两词同权 → $1/\sqrt2=0.707$。
+
+\subsection{四种表示比较：One-hot、BoW、TF-IDF、词嵌入}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.5cm}p{3.3cm}LL@{}}
+\toprule
+表示 & 元素取值 & 优点 & 缺点 \\
+\midrule
+One-hot & 0/1：是否出现 & 最简单；不受重复次数影响 & 丢失频率信息 \\
+BoW & 出现次数 & 保留频率、可解释 & 常见词（“公司”“的”）主导；长文档数值大 \\
+TF-IDF & 次数 × IDF（再 $L_2$ 归一化）& 压低常见词、突出区分性词 & 仍忽略词序与语义；依赖语料库 \\
+词嵌入 & 稠密实数向量（100–300 维）& 语义相近 → 向量相近 & 需大语料训练；单维不可解释 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+前三者：维度 $=|V|$（数万维）、\key{高维稀疏}、词间正交\key{无语义}（“盈利”与“利润”是两个无关维度）。
+
+\subsection{词嵌入：定义与四个特点}
+\term{词嵌入}{word embedding}：把词汇映射到连续向量空间，捕捉语义和语法特性，\key{语义相似的词在向量空间中也相近}。四个特点：(1) \key{语义信息}（“国王”“女王”向量接近）；(2) \key{语法信息}（时态、性别）；(3) \key{高维空间}（每个维度可能代表某种语言特性；“高维”是相对的——几十到几百维，相对 One-hot 的 $|V|$ 维是\key{低维稠密}）；(4) \key{密集表示}（dense，每维都取非零实数值）。性质：$\vec v_{\text{king}}-\vec v_{\text{man}}+\vec v_{\text{woman}}\approx\vec v_{\text{queen}}$。
+
+\subsection{常见词嵌入模型：Word2Vec、GloVe、FastText 与分布假设}
+\begin{itemize}
+\item \key{Word2Vec}：用神经网络从大量文本学习词嵌入；两种训练模式：\term{连续词袋}{Continuous Bag of Words, CBOW}与\term{跳字模型}{Skip-gram}。
+\item \key{GloVe}（Global Vectors for Word Representation）：用\key{全语料的词共现统计}训练词向量。
+\item \key{FastText}：类似 Word2Vec，但还考虑\key{单词内部结构}（前缀、后缀），对拼写错误和生僻词处理更好。
+\item 共同基础——\key{分布假设}：出现在相似上下文中的词意义相近（Firth 1957: \textit{You shall know a word by the company it keeps}）。
+\end{itemize}
+
+\subsection{CBOW 与 Skip-gram：滑动窗口、训练样本与 Softmax 目标}
+窗口 $m=2$，“公司 加大 \underline{研发} 投入 提升 创新能力”，中心词“研发”的上下文 $=\{$公司, 加大, 投入, 提升$\}$。\key{CBOW}：上下文 → 中心词，样本 $(\{\text{公司,加大,投入,提升}\}\to\text{研发})$，先平均上下文词向量再预测；训练快、高频词好。\key{Skip-gram}：中心词 → 上下文，4 个训练对（研发→公司、研发→加大、研发→投入、研发→提升）；低频词、小语料好。训练对总数 = 各位置邻居数之和（7 个词、$m=1$：$2\times1+5\times2=12$）。\\
+\tagext\ 每个词有中心向量 $\bm v_w$ 与上下文向量 $\bm u_w$：
+\[
+P(o\mid c)=\frac{\exp(\bm u_o^\top\bm v_c)}{\sum_{w\in V}\exp(\bm u_w^\top\bm v_c)},\qquad
+\max_{\{\bm u,\bm v\}}\ \sum_{t=1}^{T}\sum_{-m\le j\le m,\,j\ne0}\log P(w_{t+j}\mid w_t).
+\]
+点积越大概率越大 → 常共现词的向量被“拉近”；分母对全词表求和、计算量大 → \key{负采样}（negative sampling）或层次 Softmax。示意：$\bm v_{\text{computer}}=(1,0.5)$，$\bm u_{\text{science}}=(1,1),\bm u_{\text{is}}=(0.5,0),\bm u_{\text{banana}}=(-1,0.5)$ → 点积 $1.5, 0.5, -0.75$ → 概率 0.679、0.250、0.072。
+
+\subsection{FastText 五步：字符 n-gram、子词向量求和与未登录词}
+核心：不只学“词”，还学\key{字符级 $n$-gram}（子词）；没见过的词只要“字母结构”相似也能组合出向量——Word2Vec 对\term{未登录词}{out-of-vocabulary, OOV}无法给出向量。
+\begin{enumerate}
+\item \key{输入语料}：\texttt{["computer", "science", "is", "interesting"]}。
+\item \key{对子词建模}：词首尾加边界符 \texttt{<}、\texttt{>}，切出所有长度 $n=3\sim6$ 的连续片段（整词 \texttt{<computer>} 也作一个单元）。
+\item \key{为词构建表示}：词向量 = 所有子词向量之\key{和}（或平均）：$\vec{\text{computer}}=\sum_{g\in\text{subwords}}\vec g$。
+\item \key{训练目标}：给定中心词预测上下文词，最大化 $P(\text{context}\mid\text{center})$（使 $P(\text{science}\mid\text{computer})$ 高、$P(\text{banana}\mid\text{computer})$ 低）；与 Skip-gram 唯一区别：$\bm v_c$ 换成子词向量之和。
+\item \key{反向传播}：预测错时梯度传回每个子词向量；常共现的词，子词向量与组合后的词向量都变得相似。
+\end{enumerate}
+子词计数：含边界符长 $L$ 的串，长度 $n$ 的片段有 $L-n+1$ 个。\texttt{<computer>}（$L=10$）：$n=3$ 为 \texttt{<co com omp mpu put ute ter er>}（8），$n=4,5,6$ 为 7、6、5，共 \key{26}；\texttt{<risk>} 共 $4+3+2+1=10$。边界符区分位置（\texttt{<co} 只能是词首、\texttt{er>} 只能是词尾）。OOV：\texttt{computers} 的 30 个子词中 22 个与 computer 相同 → 求和得相近向量；拼写错误（conputer）同理。中文以汉字为字符（\texttt{<数字}、\texttt{数字化}、\texttt{转型>}……），常把 \texttt{min\_n} 调到 1–2。
+
+\subsection{gensim 训练 Word2Vec／FastText 与文档向量 \texorpdfstring{\tagext}{（拓展）}}
+\begin{lstlisting}[language=Python]
+from gensim.models import Word2Vec, FastText      # texts: 分词后的句子列表 list[list[str]]
+w2v = Word2Vec(sentences=texts, vector_size=100, window=5, min_count=1, sg=1)  # sg=1 Skip-gram, 0 CBOW
+w2v.wv['研发']; w2v.wv.most_similar('数字化', topn=10)
+ft = FastText(sentences=texts, vector_size=100, window=5, min_count=1, min_n=3, max_n=6, sg=1)
+ft.wv['数字化转型']                                  # 未登录词也能由子词得到向量
+\end{lstlisting}
+文档向量：词向量平均；Doc2Vec；BERT 句向量。经管用途：\key{扩充种子词典}（种子词 \texttt{most\_similar} → 人工筛选，Li, Mai, Shen \& Yan 2021 度量企业文化）。
+
+% ======================================================================
+\section{文本情感分析}
+
+\subsection{定义、情感类别、情感词汇与情感词汇表}
+\term{文本情感分析}{sentiment analysis}：识别、提取和分析文本中的主观信息，特别是对实体（产品、服务、事件、话题）的情感倾向或态度；用于市场营销、社交媒体监测、品牌声誉管理、顾客反馈分析、舆情监控。\key{情感类别}：正面（积极、满意、喜欢）、负面（消极、不满、厌恶）、中性（无明显倾向）。\key{情感词汇}：表达情感的词（好、坏、喜欢、不喜欢）；\key{情感词汇表}：存储情感词及其类别的数据结构。经管中常称\key{语调}（tone）或\key{情绪}（sentiment）。
+
+\subsection{情感分析的基本流程五步}
+(1) 数据预处理（去停用词、标点）→ (2) 特征提取（词袋、TF-IDF）→ (3) 模型训练（标注数据训练朴素贝叶斯、SVM、逻辑回归）→ (4) 情感分类（正面/负面/中性）→ (5) 结果评估（准确率、召回率、F1）。\key{词典法不需要第 (3) 步}。
+
+\subsection{基于情感词典的方法：原理、否定词与程度副词、LM 金融词典}
+原理：用预先定义的情感词典（情感词 + 极性值）→ 扫描文本识别情感词 → 按极性和强度计算整段情感倾向 → 划为积极、消极或中性。
+\begin{itemize}
+\item \tagext\ 规则：情感词得分 = 极性 × 程度副词权重 × $(-1)^{\text{否定词数}}$，整句求和。（好 $+1$、失望 $-1$、非常 $\times2$、有点 $\times0.5$、不 $\times(-1)$）“质量非常好，但服务不好，有点失望” $=2-1-0.5=+0.5$；只数词会高估正面。
+\item \tagext\ \key{Loughran–McDonald}（2011, JF）：Harvard 通用词典的负面词（liability, tax, cost, capital）在 10-K 中多为中性术语 → 金融专用词表（正面、负面、不确定性、诉讼等）。中文需自建金融情感词典。
+\end{itemize}
+
+\subsection{语调指数 Tone 与异常语调 \texorpdfstring{\tagext}{（拓展）}}
+$\text{Tone}_1=\frac{Pos-Neg}{Pos+Neg}\in[-1,1]$（情感词内部比例），$\text{Tone}_2=\frac{Pos-Neg}{\text{总词数}}$（还反映情感词密度；篇幅加倍 → $\text{Tone}_1$ 不变、$\text{Tone}_2$ 减半）。如 2000 词、正 30 负 10 → 0.5、0.01。\key{异常语调}：语调对盈利、增长、风险等基本面回归的残差（Huang, Teoh \& Zhang 2014）。
+
+\subsection{SnowNLP：用法、输出与中性句误判}
+专为中文设计（情感分析、文本摘要、分词），典型词典法例子：依赖预定义情感词典 + 否定词、程度副词等简单规则，API 简单；\texttt{pip install snownlp}。
+\begin{lstlisting}[language=Python]
+from snownlp import SnowNLP
+for t in texts:
+    score = SnowNLP(t).sentiments              # 0~1, 越接近 1 越正面
+    label = '正面' if score > 0.5 else '负面'
+    print(f"文本：'{t}'\n情感得分：{score:.2f}\n这是一条{label}评价。")
+\end{lstlisting}
+输出：“这部电影真是太棒了！……” 1.00 正面；“这次购物体验非常糟糕……” 0.01 负面；“今天天气不错，适合外出散步。” \key{0.98 → 中性句被判正面}。明显情感倾向表现良好，中性或轻微情感需更细致分析（设中性区间如 $[0.4,0.6]$ 或在本领域语料重新训练）。\tagext\ 底层实为\key{朴素贝叶斯}：\texttt{.sentiments} = 属于正面类的概率，训练语料是网购、图书、酒店等\key{消费评论}；\texttt{snownlp.sentiment.train(neg\_file, pos\_file)} 可重训。用于年报、政策文本有\key{领域不匹配}。
+
+\subsection{基于机器学习的方法：TF-IDF + MultinomialNB 模板与分类报告}
+流程：预处理 → 训练 → 评估 → 预测；以\key{人工标注标签}（1 正面、0 负面，依据是否含明显褒贬表达）为\key{监督信号}；示例 12 句评论正负交替。
+\begin{lstlisting}[language=Python]
+import jieba, numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score, classification_report
+labels = np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0])   # 人工标注
+corpus = [" ".join(jieba.lcut(t)) for t in data]          # 分词后空格连接
+vectorizer = TfidfVectorizer()
+X = vectorizer.fit_transform(corpus)
+X_train, X_test, y_train, y_test = train_test_split(X, labels, test_size=0.25, random_state=14)
+clf = MultinomialNB().fit(X_train, y_train)               # 默认 alpha=1 拉普拉斯平滑
+y_pred = clf.predict(X_test)
+print(accuracy_score(y_test, y_pred)); print(classification_report(y_test, y_pred))
+X_new = vectorizer.transform([" ".join(jieba.lcut(t)) for t in new_texts])  # 新文本只 transform
+\end{lstlisting}
+输出：准确率 1.0，两类 precision = recall = f1 = 1.00，support 为 1（负）、2（正）。\key{报告各列}：行 0/1 = 分别以该类为正类；precision $=\frac{TP}{TP+FP}$；recall $=\frac{TP}{TP+FN}$；f1 $=\frac{2PR}{P+R}$；\key{support = 测试集中真正属于该类的样本数}；accuracy = 预测正确比例；macro avg = 各类简单平均；weighted avg = 按 support 加权。\\
+\textbf{易错}：(1) 测试集仅 3 句，只验证流程、不代表泛化（\texttt{random\_state=42} 准确率降到 0.67）；规范：扩大样本、\texttt{stratify=labels}、K 折交叉验证、\key{先划分再只在训练集 fit 向量化器}。(2) 新句全是未登录词时 TF-IDF 全 0，NB 后验 = 先验（训练集负 5 正 4 → 判负，5/9），须检查词表覆盖率。
+
+\subsection{多项式朴素贝叶斯：公式与拉普拉斯平滑 \texorpdfstring{\tagext}{（拓展）}}
+$P(c\mid\bm x)\propto P(c)\prod_{i=1}^{n}P(w_i\mid c)$（贝叶斯定理 + 给定类别各词条件独立），$\hat P(w\mid c)=\frac{n_{w,c}+1}{n_c+|V|}$（$n_{w,c}$：$w$ 在 $c$ 类的次数，$n_c$：$c$ 类总词数）。取对数连加防下溢；\texttt{alpha=1} 即“+1”；输入 TF-IDF 时 $n_{w,c}$ 换成权重之和；不平滑则一个未见词使该类得分为 0。示意：正“很 好看／非常 满意”、负“太 差／非常 糟糕”，$|V|=7$，$n_\pm=4$，“非常 好看”：正 $0.5\cdot\frac2{11}\cdot\frac2{11}=0.01653$，负 $0.5\cdot\frac2{11}\cdot\frac1{11}=0.00826$ → $P(+\mid x)=0.667$。
+
+\subsection{投资者意见分歧指数：情绪得分的标准差}
+每帖算情绪得分，以\key{得分的标准差}度量投资者分歧（Antweiler \& Frank 2004）：均值刻画情绪，标准差刻画分歧。0.9, 0.8, 0.2, 0.1：均值 0.5，总体标准差 0.354（样本 0.408）；0.6, 0.55, 0.5, 0.45：均值同为 0.5，标准差仅 0.056。
+
+% ======================================================================
+\section{文本分类}
+
+\subsection{文本分类的定义与应用}
+\term{文本分类}{text classification}：把文本自动分配到一个或多个\key{预定义类别}；用于信息检索、情感分析、垃圾邮件检测、内容推荐；常用朴素贝叶斯、SVM、决策树、随机森林、深度学习模型。情感分析 = 类别为情感极性的文本分类；经管例：识别前瞻性语句（Li 2010）、欺诈性披露、政策文件归类。
+
+\subsection{文本分类技术流程五步}
+\begin{enumerate}
+\item \key{文本预处理}：分词（切成词或短语）、去除停用词（the、is、in）。
+\item \key{特征提取}：词袋（单词出现次数向量）、TF-IDF（单词对语料中某文档的重要性）。
+\item \key{模型训练}：朴素贝叶斯（贝叶斯定理）；SVM（高维空间找最佳决策边界）；逻辑回归（二分类，可扩展多分类）；决策树与随机森林（易理解）；深度学习（CNN、RNN、LSTM、Transformer 如 BERT）。
+\item \key{模型评估}：准确率、精确率、召回率、F1、混淆矩阵（实际类别与预测类别的关系）。
+\item \key{模型优化}：调参数、换特征提取方法、换算法；调参在训练集内交叉验证，测试集最后只用一次。
+\end{enumerate}
+
+\subsection{评估指标：混淆矩阵、Precision、Recall、F1、macro 与 weighted}
+$\text{Acc}=\frac{TP+TN}{N}$，$P=\frac{TP}{TP+FP}$，$R=\frac{TP}{TP+FN}$，$F_1=\frac{2PR}{P+R}$。示意 $TP=4,FN=2,FP=1,TN=3$：Acc 0.70、$P$ 0.80、$R$ 0.667、$F_1$ 0.727（调和平均偏向较小者）；负类 $P$ 0.6、$R$ 0.75、$F_1$ 0.667；macro $F_1$ 0.697；weighted（权重 6/10、4/10）$P$ 0.720、$R$ 0.700、$F_1$ 0.703。\textbf{易错}：二分类中 weighted recall 恒等于 accuracy；类别不平衡时准确率误导（全判多数类也可 0.75），应报告少数类 $P/R/F_1$ 或 macro avg。
+
+\subsection{三种常用算法对比：朴素贝叶斯、逻辑回归、SVM}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.9cm}Lp{3cm}p{2.9cm}@{}}
+\toprule
+算法 & 原理 & 优点 & 缺点 \\
+\midrule
+朴素贝叶斯 & 贝叶斯定理 + \key{特征条件独立}简化概率计算；适用多分类；假设不完全成立也常有效 & 计算效率高、易实现、小数据集好 & 独立假设往往不成立（“非常”与“满意”相关）\\
+逻辑回归 & $\sigma(z)=\frac{1}{1+e^{-z}}$，$z=\bm w^\top\bm x+b$，线性输出 → 概率；阈值 0.5（$\sigma>0.5\Leftrightarrow z>0$；$z=0.8\to0.690$）& 简单、高效、可解释（系数 = 对数几率变化）& 非线性问题差，易欠拟合 \\
+SVM & 按\key{间隔最大化}求最优超平面 $\bm w^\top\bm x+b=0$，间隔 $2/\lVert\bm w\rVert$；文本用线性核或 RBF 核 + TF-IDF & 高维、小样本表现好，精度高 & 大规模数据计算复杂度高 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+文本维度高、样本少、常近似线性可分 → “TF-IDF + 线性 SVM／正则化逻辑回归”是强基线；朴素贝叶斯最快，作第一个基线。
+
+\subsection{Pipeline 交叉验证与文本分类的实证用法 \texorpdfstring{\tagext}{（拓展）}}
+\lstinline|pipe = Pipeline([("tfidf", TfidfVectorizer()), ("clf", LinearSVC())])|；\\ \lstinline|cross_val_score(pipe, corpus, labels, cv=5, scoring="f1_macro").mean()|——每折只在训练折上 fit 向量化器，自动避免数据泄露（\texttt{clf} 可换 \texttt{MultinomialNB()}、\texttt{LogisticRegression(max\_iter=1000)}）。实证中分类器是\key{构造变量的工具}：人工标注部分样本（如风险披露句）→ 训练并报告交叉验证准确率、F1 → 预测全样本 → 汇总为公司—年度指标（风险句占比）；预测标签带误差，稳健性中换模型或阈值。
+
+% ======================================================================
+\section{LDA 主题模型}
+
+\subsection{LDA 的定义与两条基本假设}
+\term{潜在狄利克雷分配}{Latent Dirichlet Allocation, LDA}：从大量文档中提取隐含主题的\key{基于概率图模型的无监督学习}方法，把文本分解为主题和词汇的组合。假设：(1) 每个文档由\key{多个主题按一定比例混合}而成（文档—主题分布）；(2) 每个主题由一组词按\key{一定概率分布}组成（主题—词分布）。主题名由研究者事后看高概率词命名；与聚类不同，一篇文档可同时属于多个主题。
+
+\subsection{生成过程、狄利克雷分布与 \texorpdfstring{$P(w\mid d)=\sum_k\theta_{dk}\phi_{kw}$}{P(w|d)=sum theta phi} \texorpdfstring{\tagext}{（拓展）}}
+主题数 $K$、超参数 $\alpha,\beta>0$：(1) 每个主题 $\bm\phi_k\sim\mathrm{Dir}(\beta)$（$|V|$ 维主题—词分布）；(2) 每篇文档 $\bm\theta_d\sim\mathrm{Dir}(\alpha)$（$K$ 维主题比例）；(3) 每个词位 $z_{dn}\sim\mathrm{Mult}(\bm\theta_d)$，再 $w_{dn}\sim\mathrm{Mult}(\bm\phi_{z_{dn}})$。$\mathrm{Dir}(\bm\theta\mid\alpha)\propto\prod_k\theta_k^{\alpha-1}$ 是“概率向量的分布”：$\alpha<1$ 倾向稀疏（集中于少数主题），$\alpha$ 大倾向均匀；“潜在”指 $z$ 不可观测。
+\[
+P(w\mid d)=\sum_{k=1}^{K}P(z=k\mid d)P(w\mid z=k)=\sum_{k=1}^{K}\theta_{dk}\phi_{kw},\qquad
+P(z=k\mid w,d)=\frac{\theta_{dk}\phi_{kw}}{\sum_j\theta_{dj}\phi_{jw}}.
+\]
+即文档—词概率矩阵 $=\Theta_{D\times K}\Phi_{K\times|V|}$，概率化\key{低秩分解}（$K\ll|V|$）；估计用变分推断（gensim）或吉布斯抽样。示意：$\bm\theta_d=(0.7,0.3)$，$\phi_{1,\text{研发}}=0.02,\phi_{2,\text{研发}}=0.25$ → $P(\text{研发}\mid d)=0.089$，$P(z=2\mid\text{研发})=0.075/0.089=0.843$。
+
+\subsection{LDA 技术流程七步与 gensim 代码}
+(1) 文本预处理（去空格、标点，分词，去停用词）→ (2) 构建\key{词典和语料库}（词典：词 $\leftrightarrow$ 编号；语料库：每篇为词袋）→ (3) 训练（gensim \texttt{LdaModel}，指定\key{主题数量、迭代次数}）→ (4) 主题展示（各主题关键词、各文档主题分布）→ (5) 评估（\key{困惑度}等）→ (6) 可视化（pyLDAvis）→ (7) 应用（预测新文档主题分布）。\textbf{易错}：输入是\key{整数词频 BoW，不是 TF-IDF}。
+\begin{lstlisting}[language=Python]
+from gensim import corpora
+from gensim.models import LdaModel
+dictionary = corpora.Dictionary(texts)                   # texts: list[list[str]]
+dictionary.filter_extremes(no_below=5, no_above=0.5)     # 可选: 去极少见/过常见词
+corpus = [dictionary.doc2bow(t) for t in texts]          # 每篇 [(词id, 次数), ...]
+lda = LdaModel(corpus=corpus, id2word=dictionary, num_topics=5, passes=10, iterations=50, random_state=42)
+lda.print_topics(num_words=10); lda.get_document_topics(corpus[0])
+bound = lda.log_perplexity(corpus)                       # 每词似然下界, 困惑度估计 2**(-bound)
+import pyLDAvis.gensim_models                            # pyLDAvis.save_html(vis, 'lda.html')
+vis = pyLDAvis.gensim_models.prepare(lda, corpus, dictionary)
+\end{lstlisting}
+
+\subsection{困惑度公式与主题数 K 的选择}
+$\mathrm{Perplexity}(D_{\text{test}})=\exp\bigl\{-\sum_d\log p(\bm w_d)\big/\sum_dN_d\bigr\}$：平均每词负对数似然取指数，\key{越低越好}；每词均匀概率 $1/7$ 时恰为 7（“等效候选词个数”）。示意：[资产, 资产, 风险, 研发] 概率 0.295, 0.295, 0.16, 0.089 → $\log p=-6.693$ → $e^{6.693/4}=5.33$。选 $K$：\key{在留出文档上}计算（训练集困惑度随 $K$ 增大几乎总下降），取曲线下降变缓的拐点；困惑度低不等于好懂（Chang et al. 2009），同时报告\key{主题一致性}（coherence，如 c\_v，越高越好；gensim \texttt{CoherenceModel}），并人工检查各主题前 10–20 词可命名、不重复。
+
+\subsection{主题强度指标与研究应用}
+$\text{TopicShare}_{i,t,k}=\hat\theta_{d(i,t),k}$（多篇取 $\frac{1}{|D_{it}|}\sum_{d\in D_{it}}\hat\theta_{dk}$）：公司 $i$ 第 $t$ 年文档中主题 $k$ 的比例。Bellstam 等用 LDA 从分析师报告挖掘“创新”主题，以其强度度量企业创新（无专利公司也有定义）。
+
+% ======================================================================
+\section{文本指标构建：相似度、可读性、EPU 与回归 \texorpdfstring{\tagext}{（拓展）}}
+
+\subsection{余弦相似度：定义、长度不变性与 sklearn 实现}
+$\cos(\bm a,\bm b)=\frac{\bm a\cdot\bm b}{\lVert\bm a\rVert\lVert\bm b\rVert}=\frac{\sum_ia_ib_i}{\sqrt{\sum_ia_i^2}\sqrt{\sum_ib_i^2}}\in[-1,1]$（非负向量 $\in[0,1]$；$1-\cos$ 作文本距离）。只看方向不看长度：$\bm a=(1,2,0)$ 与 $2\bm a$ 余弦为 1、欧氏距离 $\sqrt5$ → 消除篇幅差异；已 $L_2$ 归一化（TfidfVectorizer 默认）时\key{余弦 = 点积}。示意：$(3,0,1)$ 与 $(1,2,1)$ → $4/(3.1623\times2.4495)=0.5164$。代码：\lstinline|from sklearn.metrics.pairwise import cosine_similarity|；\lstinline|cosine_similarity(X)| → 对称矩阵、对角线为 1。应用：产品相似性与文本行业分类（Hoberg \& Phillips）；媒体政治倾向（Gentzkow \& Shapiro 2010）；相邻年报相似度低 = 披露实质变化、未来收益更低（Cohen, Malloy \& Nguyen 2020, Lazy Prices）。
+
+\subsection{可读性：Gunning Fog 指数}
+$\text{Fog}=0.4\times(\text{平均句长（词/句）}+\text{复杂词百分比})$，复杂词 = $\ge3$ 音节；约等于所需受教育年限（句长 20、复杂词 15\% → 14）。Li (2008)：盈利差的公司年报更难读；Loughran \& McDonald (2014)：Fog 不适合年报，改用 10-K \key{文件大小的对数}。中文用平均句长、术语/生僻字比例、逻辑连接词比例。
+
+\subsection{EPU 经济政策不确定性指数的构造步骤}
+Baker, Bloom \& Davis (2016)：(1) 每报每月统计\key{同时含 E（economy）、P（Congress, deficit, Federal Reserve, regulation 等）、U（uncertain/uncertainty）}的文章数；(2) 除以该报当月文章总数（消除版面量变化）；(3) 除以各报基期标准差（各报可比）；(4) 每月对各报取平均；(5) 缩放为基期均值 = 100。分类子指数另要求出现该类专门词汇。示意：A 18/1200 = 1.5\%、B 8/800 = 1.0\%，基期标准差 0.5\%、0.25\% → 3.0、4.0，均值 3.5，基期均值 2.8 → $3.5/2.8\times100=125$。
+
+\subsection{用文本指标做回归：五步构造、回归设定、效度与测量误差}
+\begin{itemize}
+\item \key{五步模板}（企业数字化转型）：(1) 界定概念；(2) 选文本（年报全文或 MD\&A；PDF 转 TXT、按文件名取代码与年份）；(3) 建词典（政策/文献种子词 → 词向量 \texttt{most\_similar} 扩充 → 人工筛选；加入 jieba 用户词典）；(4) 计数与标准化（\texttt{list.count} 词项计数，$\ln(1+\text{词频})$ 或词频/总词数，剔除“尚未应用”等否定语境）；(5) 汇总为公司—年度 $DT_{it}$，按代码、年份并入财务数据。
+\item \key{回归}：$Y_{it}=\beta_0+\beta_1DT_{it}+\bm\gamma^\top\bm X_{it}+\mu_i+\lambda_t+\varepsilon_{it}$；控制 $\ln(\text{总词数})$，公司与年份（或行业 × 年份）固定效应，按公司聚类。
+\item \key{效度}：表面效度（最高/最低样本读原文）；外部效度（与 IT 投入、数字化无形资产、软件著作权相关）；事件效度（入选试点前后应有预期变化）。
+\item \key{测量误差}：$DT_{it}=DT^*_{it}+u_{it}$，经典误差下 $\beta^*=\beta\bigl(1-\E[u^2]/\E[DT^2]\bigr)$，$|\beta^*|<|\beta|$——\key{衰减偏误}。另有：“说”不等于“做”（策略性堆砌热词，误差非经典）；反向因果；分类器/LDA 得到的指标是\key{生成回归元}（常规标准误偏小，用自助法）。对策：$DT_{i,t-1}$、工具变量、准自然实验（DID）、多词典/口径/文本范围稳健性。
+\end{itemize}
+
+% ======================================================================
+\section{本章小结：一句话结论与函数速查}
+
+\subsection{一句话结论}
+文本分析 = 获取（PDF→TXT）→ 预处理（分词、词典、停用词）→ 信息提取（词频、TF-IDF、嵌入、情感、分类、主题）→ 指标构建（语调、相似度、主题强度、EPU）；每步口径（词典、IDF 公式、归一化、阈值）都会改变结果，须写清并做稳健性检验。IDF 口径对照：$\ln\frac{N}{df}$；$\ln\frac{N}{df+1}$（$df=N$ 为负、$df=N-1$ 为 0，$N=2$ 时全 $\le0$ → Top 词得分全为 0）；sklearn $\ln\frac{1+N}{1+df}+1\ (\ge1)$。
+
+\subsection{本章常用库与函数速查}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{2.4cm}L@{}}
+\toprule
+\texttt{open}／\texttt{os} & \texttt{'r'/'w'/'a'}、\texttt{encoding='utf-8'}、\texttt{errors='ignore'}、\texttt{with}；\texttt{os.path.exists／makedirs／basename／splitext／join} \\
+\texttt{re}／\texttt{openpyxl} & \texttt{compile}、\texttt{findall}，\texttt{\^{}[0-9]\{6\}}、\texttt{[\textbackslash u4e00-\textbackslash u9fa5]+}、捕获组；\texttt{Workbook()}、\texttt{create\_sheet}、\texttt{cell(row, column, value)}（从 1 起）\\
+\texttt{jieba}／计数 & \texttt{lcut}、\texttt{add\_word}、\texttt{load\_userdict}；\texttt{str.count}（子串）vs \texttt{list.count}（词项）；\texttt{Counter}、\texttt{defaultdict(int)}、\texttt{sorted(..., key=lambda x: x[1], reverse=True)[:10]} \\
+sklearn & \texttt{CountVectorizer(binary=True)}、\texttt{TfidfVectorizer()}、\texttt{fit／transform／fit\_transform}、\texttt{get\_feature\_names\_out}、\texttt{toarray()}；\texttt{MultinomialNB}、\texttt{train\_test\_split}、\texttt{classification\_report}、\texttt{cosine\_similarity} \\
+其他 & \texttt{SnowNLP(t).sentiments}；\texttt{WordCloud(font\_path=...)}；gensim \texttt{Dictionary}、\texttt{doc2bow}、\texttt{LdaModel}、\texttt{Word2Vec}、\texttt{FastText}；pyLDAvis \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\begin{english}
+\small CBOW predicts the center word from its context, whereas skip-gram predicts the context words from the center word; FastText represents a word as the sum of its character n-gram vectors and can therefore handle out-of-vocabulary words. LDA is an unsupervised generative model in which each document is a mixture of topics and each topic is a probability distribution over words; lower perplexity on held-out documents indicates a better fit. Cosine similarity is invariant to document length; classical measurement error in text-based measures attenuates the coefficient toward zero.
+\end{english}
+
+% ======================================================================
+\section{综合答题要点：方法比较与研究设计框架}
+
+\subsection{词典法 vs 有监督机器学习法}
+\begin{center}\small
+\begin{tabularx}{\linewidth}{@{}p{1.6cm}LL@{}}
+\toprule
+ & 词典法（SnowNLP、LM 词典）& 有监督学习（TF-IDF + NB/LR/SVM）\\
+\midrule
+数据要求 & 只需词典，无需标注 & 需人工标注训练集 \\
+透明度 & 得分可追溯到具体词 & 较难解释 \\
+常见问题 & 依赖词典覆盖与领域（liability 判负面；“今天天气不错”0.98）；需处理否定词、程度副词 & 小样本评估不稳定（3 句测试集）；需分层抽样、交叉验证，勿在测试集上 fit 向量化器 \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\subsection{文本指标研究设计题的五段式答题框架}
+按（a）获取与预处理 →（b）指标构造 →（c）回归 →（d）效度 →（e）识别与稳健性作答，要点见上节“用文本指标做回归”。补充：（a）年报 PDF 以“代码\_年份\_简称\_标题\_日期”命名，转换失败用 \texttt{'a'} 模式记日志，jieba 精确模式 + 用户词典，去停用词与单字词；（b）主指标 $\ln(1+\text{关键词总次数})$，替代指标为词频比例或 TF-IDF 加权；风险披露版用风险词典或分类器识别的风险句占比；（c）控制规模、杠杆、ROA、成长性、上市年限、股权集中度；（e）多口径取主成分或互为工具变量、同行业/同城市均值作 IV、试点政策 DID、行业 × 年份 FE 吸收热词趋势；稳健性换词典、换文本范围、剔除金融业与 ST。

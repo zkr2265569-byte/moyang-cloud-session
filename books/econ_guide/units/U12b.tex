@@ -1,0 +1,1298 @@
+%======================================================================
+\section{Arellano--Bond (1991) 差分 GMM}\label{sec:U12b-ab}
+
+本章前文的 Anderson--Hsiao 估计量对差分方程做恰好识别的 IV 估计：每个差分方程只用一个工具 $y_{i,t-2}$。本节把\key{所有}有效的滞后水平值都用作工具，得到过度识别的 GMM 估计量——Arellano--Bond 差分 GMM。后两节介绍它的两个改进：系统 GMM（加入水平方程）与 FOD GMM（换一种消去 $\alpha_i$ 的变换）。
+
+\subsection{模型、基本假设与记号回顾}
+
+\subsubsection{面板 AR(1) 模型与观测期}
+
+先讨论不含外生变量的面板 AR(1) 模型（含 $x_{it}$ 的情形放在本节后部）：
+\begin{equation}\label{eq:U12b-ar1}
+y_{it}=\alpha_i+\rho\,y_{i,t-1}+u_{it},\qquad i=1,\dots,N,\quad t=1,\dots,T,
+\end{equation}
+观测到 $y_{i0},y_{i1},\dots,y_{iT}$（共 $T+1$ 期，$y_{i0}$ 是数据中的第一个观测，称\term{初始值}{initial condition}）。$\Delta$ 表示一阶差分，$\Delta y_{it}=y_{it}-y_{i,t-1}$。渐近理论取 $N\to\infty$、$T$ 固定，除非另作说明。
+
+\subsubsection{基本假设 (A1)--(A3) 与关键推论}
+
+沿用本章开头的三条假设：
+\begin{itemize}
+  \item (A1) 序贯外生：$\E(u_{it}\mid y_{i,t-1},y_{i,t-2},\dots,y_{i0},\alpha_i)=0$；
+  \item (A2) 无序列相关、同方差：$\E(u_{it}u_{is})=0$（$t\neq s$），$\E(u_{it}^2)=\sigma_u^2$；
+  \item (A3) $\E(\alpha_iu_{it})=0$，$\E(y_{i0}u_{it})=0$（$t\ge1$）。
+\end{itemize}
+由模型反复代入可知 $y_{is}$ 只含 $s$ 期及以前的冲击，于是（本章前文已证）
+\begin{equation}\label{eq:U12b-ysu}
+\E(y_{is}u_{it})=\begin{cases}\rho^{\,s-t}\sigma_u^2, & s\ge t,\\ 0, & s<t.\end{cases}
+\end{equation}
+差分方程 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$ 中，回归元 $\Delta y_{i,t-1}$ 含 $u_{i,t-1}$，与误差 $\Delta u_{it}=u_{it}-u_{i,t-1}$ 相关；而对任何 $s\le t-2$：
+\begin{align*}
+\E(y_{is}\Delta u_{it}) &= \E(y_{is}u_{it})-\E(y_{is}u_{i,t-1}) \why{期望线性性}\\
+&= 0-0=0 \why{$s<t-1<t$，由 \eqref{eq:U12b-ysu}}
+\end{align*}
+即 $y_{i,t-2},y_{i,t-3},\dots,y_{i0}$ 都是第 $t$ 个差分方程的有效工具。
+
+\subsection{从 IV 到 GMM：用上全部滞后工具}
+
+\subsubsection{Anderson--Hsiao 丢掉了大部分矩条件}
+
+第 $t$ 个差分方程（$t=2,\dots,T$）有 $t-1$ 个有效矩条件
+\[
+\E\big(y_{i,t-s}\,\Delta u_{it}\big)=0,\qquad s=2,3,\dots,t,
+\]
+而 Anderson--Hsiao 只用了 $s=2$ 这一个。丢掉其余矩条件损失效率——一句话概括：“IV estimation is not efficient, GMM is efficient.”
+
+\subsubsection{矩条件多于参数：过度识别时用 GMM}
+
+把所有有效滞后 $y_{i,t-2},\dots,y_{i0}$ 都用上，矩条件个数多于参数个数，称\term{过度识别}{overidentification}。此时用 GMM（一般理论见第 8 章）：最小化 $\bar g(\theta)\T\,\Omega\inv\,\bar g(\theta)$，最优权重为矩条件方差的逆。这一思路最早由 Holtz-Eakin, Newey \& Rosen (1988) 提出，Arellano \& Bond (1991, \emph{Review of Economic Studies}) 系统发展，称为 \term{Arellano--Bond 估计量}{Arellano-Bond estimator}，或\term{差分 GMM}{difference GMM}，简记 AB GMM。在使用这组矩条件的估计量中它是最有效的（most efficient GMM），也称\term{有效 GMM}{efficient GMM}（EGMM）。
+
+\subsubsection{动态面板的 GMM 家族}
+
+动态面板 GMM 有三个成员，Stata 中都可用 \texttt{xtabond2} 实现（见本章后文 Stata 实现一节）：
+\begin{enumerate}
+  \item Arellano--Bond GMM（差分 GMM）：本节；
+  \item System GMM（系统 GMM）：下一节；
+  \item FOD GMM（前向正交离差 GMM）：第三节。
+\end{enumerate}
+下面先推导无 $x$ 的面板 AR(1)，再推广到含 $x_{it}$ 的情形。
+
+%----------------------------------------------------------------------
+\subsection{按个体堆叠差分方程：\texorpdfstring{$\Delta Y_i=\rho\,\Delta Y_{i,-1}+\Delta U_i$}{Delta Y = rho Delta Y(-1) + Delta U}}
+
+\subsubsection{第 \texorpdfstring{$t$}{t} 个差分方程的工具向量 \texorpdfstring{$q_{i,t-2}$}{q(i,t-2)}}
+
+差分方程 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$ 中 $\Delta y_{i,t-1}$ 与 $\Delta u_{it}$ 相关。记第 $t$ 个方程的全部有效工具为
+\[
+q_{i,t-2}=(y_{i0},y_{i1},\dots,y_{i,t-2})\T\qquad\big((t-1)\times1\big),
+\]
+矩条件为 $\E(q_{i,t-2}\,\Delta u_{it})=0$。
+
+\subsubsection{沿时间堆叠成 \texorpdfstring{$(T-1)$}{(T-1)} 维向量}
+
+对每个个体，把 $t=2,\dots,T$ 的差分方程按时间堆叠（vector form）：
+\[
+\underbrace{\begin{pmatrix}\Delta y_{i2}\\ \Delta y_{i3}\\ \vdots\\ \Delta y_{iT}\end{pmatrix}}_{\Delta Y_i}
+=\rho\underbrace{\begin{pmatrix}\Delta y_{i1}\\ \Delta y_{i2}\\ \vdots\\ \Delta y_{i,T-1}\end{pmatrix}}_{\Delta Y_{i,-1}}
++\underbrace{\begin{pmatrix}\Delta u_{i2}\\ \Delta u_{i3}\\ \vdots\\ \Delta u_{iT}\end{pmatrix}}_{\Delta U_i},
+\qquad
+\boxed{\Delta Y_i=\rho\,\Delta Y_{i,-1}+\Delta U_i,\quad i=1,\dots,N}
+\]
+三个向量都是 $(T-1)\times1$。第一行用到 $\Delta y_{i1}=y_{i1}-y_{i0}$，所以首期必须是 $y_{i0}$；第一个可用的差分方程是 $t=2$（$t=1$ 的差分方程需要 $y_{i,-1}$，观测不到）。
+
+\subsection{逐方程列出可用工具：越晚的方程工具越多}
+
+\begin{center}
+\small
+\begin{tabular}{llcc}
+\toprule
+方程（第 $t$ 期） & 可用工具 & 记号 & 个数\\
+\midrule
+$\Delta y_{i2}=\rho\Delta y_{i1}+\Delta u_{i2}$ & $y_{i0}$（第一期观测作工具） & $q_{i0}$ & $1$\\
+$\Delta y_{i3}=\rho\Delta y_{i2}+\Delta u_{i3}$ & $y_{i0},y_{i1}$ & $q_{i1}$ & $2$\\
+\quad$\vdots$ & \quad$\vdots$ & & \\
+$\Delta y_{i,T-1}=\rho\Delta y_{i,T-2}+\Delta u_{i,T-1}$ & $y_{i0},\dots,y_{i,T-3}$ & $q_{i,T-3}$ & $T-2$\\
+$\Delta y_{iT}=\rho\Delta y_{i,T-1}+\Delta u_{iT}$ & $y_{i0},\dots,y_{i,T-2}$ & $q_{i,T-2}$ & $T-1$\\
+\bottomrule
+\end{tabular}
+\captionof{table}{AB GMM 各差分方程的可用工具}
+\end{center}
+
+越晚的方程可用的工具越多——各方程工具\key{个数不齐}，不能把同一组工具用于所有方程。解决办法是把工具排成块对角矩阵。
+
+\subsection{块对角工具矩阵 \texorpdfstring{$W_i$}{W\_i}}
+
+\subsubsection{定义：\texorpdfstring{$W_i=\diag(q_{i0}',\dots,q_{i,T-2}')$}{W = diag(q')}}
+
+\begin{defn}[Arellano--Bond 工具矩阵]\label{def:U12b-Wi}
+\[
+\underset{(T-1)\times\frac{T(T-1)}{2}}{W_i}
+=\begin{pmatrix} q_{i0}\T & & & \\ & q_{i1}\T & & \\ & & \ddots & \\ & & & q_{i,T-2}\T\end{pmatrix}
+=\begin{pmatrix} y_{i0} & & & & & & 0\\ & y_{i0} & y_{i1} & & & & \\ & & & \ddots & & & \\ 0 & & & & y_{i0} & \cdots & y_{i,T-2}\end{pmatrix},
+\]
+称为\term{块对角工具矩阵}{block-diagonal instrument matrix}。第 $r$ 行对应第 $t=r+1$ 个差分方程，只在“自己的”块里放工具，其余位置为 $0$。
+\end{defn}
+
+\subsubsection{列数：\texorpdfstring{$1+2+\cdots+(T-1)=T(T-1)/2$}{1+2+...+(T-1) = T(T-1)/2}}
+
+第 $t$ 个方程占 $t-1$ 列，所以
+\begin{align*}
+L\equiv\text{列数} &= \sum_{t=2}^{T}(t-1) \why{逐方程相加}\\
+&= 1+2+\cdots+(T-1)=\frac{T(T-1)}{2} \why{等差数列求和}
+\end{align*}
+$L$ 就是矩条件（工具）的个数，它随 $T^2$ 增长。
+
+\subsubsection{块对角结构的作用：每个误差只与自己的工具相乘}
+
+矩阵乘积 $W_i\T\Delta U_i$ 恰好把每个方程的误差只与它自己的工具相乘：
+\[
+W_i\T\Delta U_i=\begin{pmatrix} q_{i0}\,\Delta u_{i2}\\ q_{i1}\,\Delta u_{i3}\\ \vdots\\ q_{i,T-2}\,\Delta u_{iT}\end{pmatrix}\qquad\Big(\tfrac{T(T-1)}{2}\times1\Big).
+\]
+它的每个元素都是某个 $y_{is}\Delta u_{it}$（$s\le t-2$），这正是上面列出的全部矩条件。这种“每个滞后、每个时期各占一列”的用法就是 Stata 中的 \texttt{gmmstyle} 工具（见本章后文 Stata 实现一节）。
+
+\subsubsection{例：\texorpdfstring{$T=4$}{T=4} 的工具矩阵}
+
+\begin{exmp}[$T=4$：观测 $y_{i0},\dots,y_{i4}$]\label{ex:U12b-W4}
+写出 $W_i$ 与 $W_i\T\Delta U_i$，并求过度识别度。
+
+\solution 差分方程 $t=2,3,4$（3 行），工具 $1+2+3=6$ 列：
+\[
+\underset{3\times6}{W_i}=\left(\begin{array}{c|cc|ccc}
+y_{i0} & 0 & 0 & 0 & 0 & 0\\ \hline
+0 & y_{i0} & y_{i1} & 0 & 0 & 0\\ \hline
+0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2}
+\end{array}\right),\qquad
+W_i\T\Delta U_i=\begin{pmatrix} y_{i0}\Delta u_{i2}\\ y_{i0}\Delta u_{i3}\\ y_{i1}\Delta u_{i3}\\ y_{i0}\Delta u_{i4}\\ y_{i1}\Delta u_{i4}\\ y_{i2}\Delta u_{i4}\end{pmatrix}.
+\]
+6 个矩条件、1 个参数，过度识别度 $6-1=5$——这也是 Hansen $J$ 检验的自由度（见本章后文设定检验一节）。
+\end{exmp}
+
+\subsubsection{例：\texorpdfstring{$T=5$}{T=5} 的工具矩阵}
+
+\begin{exmp}[$T=5$：观测 $y_{i0},\dots,y_{i5}$]\label{ex:U12b-W5}
+写出 $W_i$。
+
+\solution 差分方程 $t=2,\dots,5$（4 行），工具 $1+2+3+4=10$ 列：
+\[
+\underset{4\times10}{W_i}=\left(\begin{array}{c|cc|ccc|cccc}
+y_{i0} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\ \hline
+0 & y_{i0} & y_{i1} & 0 & 0 & 0 & 0 & 0 & 0 & 0\\ \hline
+0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2} & 0 & 0 & 0 & 0\\ \hline
+0 & 0 & 0 & 0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2} & y_{i3}
+\end{array}\right).
+\]
+10 个矩条件、1 个参数，过度识别度 9。
+\end{exmp}
+
+\subsubsection{工具个数随 \texorpdfstring{$T$}{T} 平方增长：计数表}
+
+\begin{center}
+\small
+\begin{tabular}{lcccccc}
+\toprule
+$T$（差分方程 $T-1$ 个） & 3 & 4 & 5 & 10 & 20 & 50\\
+\midrule
+工具 / 矩条件个数 $L=T(T-1)/2$ & 3 & 6 & 10 & 45 & 190 & 1225\\
+$\Omega$ 的维度 $L\times L$ & $3\times3$ & $6\times6$ & $10\times10$ & $45\times45$ & $190\times190$ & $1225\times1225$\\
+\bottomrule
+\end{tabular}
+\captionof{table}{AB GMM 的工具个数}
+\end{center}
+
+\subsection{AB 矩条件 \texorpdfstring{$\E(W_i'\Delta U_i)=0$}{E(W'Delta U)=0}}
+
+\begin{thm}[AB 矩条件]\label{thm:U12b-abmc}
+在 (A1)--(A3) 下，
+\begin{equation}\label{eq:U12b-abmc}
+\E\big(W_i\T\Delta U_i\big)=\E\big[W_i\T(\Delta Y_i-\rho\,\Delta Y_{i,-1})\big]=0\qquad\Big(\tfrac{T(T-1)}{2}\ \text{个矩条件}\Big).
+\end{equation}
+$T\ge3$ 时矩条件多于参数，过度识别；$T=2$ 时只有 1 个矩条件 $\E(y_{i0}\Delta u_{i2})=0$，AB 退化为 Anderson--Hsiao。
+\end{thm}
+
+证明只需逐个元素检查：$W_i\T\Delta U_i$ 的每个元素形如 $y_{is}\Delta u_{it}$，且 $s\le t-2$；由本节开头的推论，$\E(y_{is}\Delta u_{it})=0$。第二个等号只是把 $\Delta U_i=\Delta Y_i-\rho\,\Delta Y_{i,-1}$ 代入。
+
+%----------------------------------------------------------------------
+\subsection{\texorpdfstring{$\Delta U_i$}{Delta U\_i} 的协方差矩阵 \texorpdfstring{$H$}{H}}
+
+要证：若 $u_{it}$ 无序列相关且同方差，则 $\E(\Delta U_i\Delta U_i\T)=\sigma_u^2H$，$H$ 是对角为 $2$、次对角为 $-1$ 的三对角矩阵。思路：$\Delta u_{it}=u_{it}-u_{i,t-1}$ 是 \term{MA(1) 过程}{moving average of order one}——相邻两个差分共享一个 $u$，相隔两期以上不共享。
+
+\subsubsection{方差 \texorpdfstring{$2\sigma_u^2$}{2 sigma\^{}2}、相邻协方差 \texorpdfstring{$-\sigma_u^2$}{-sigma\^{}2}、相隔两期以上为 0}
+
+逐项计算方差与各阶自协方差：
+\begin{align*}
+\Var(\Delta u_{it}) &= \E(u_{it}-u_{i,t-1})^2 \why{均值为 0}\\
+&= \E(u_{it}^2)-2\E(u_{it}u_{i,t-1})+\E(u_{i,t-1}^2) \why{展开平方}\\
+&= \sigma_u^2-2\cdot0+\sigma_u^2=2\sigma_u^2 \why{(A2)}\\[4pt]
+\Cov(\Delta u_{it},\Delta u_{i,t+1}) &= \E\big[(u_{it}-u_{i,t-1})(u_{i,t+1}-u_{it})\big] \why{均值为 0}\\
+&= \E(u_{it}u_{i,t+1})-\E(u_{it}^2)-\E(u_{i,t-1}u_{i,t+1})+\E(u_{i,t-1}u_{it}) \why{展开四项}\\
+&= 0-\sigma_u^2-0+0=-\sigma_u^2 \why{只有共享的 $u_{it}$ 贡献}\\[4pt]
+\Cov(\Delta u_{it},\Delta u_{i,t+s}) &= \E\big[(u_{it}-u_{i,t-1})(u_{i,t+s}-u_{i,t+s-1})\big]=0,\quad s\ge2 \why{四个 $u$ 的时期互不相同}
+\end{align*}
+
+\subsubsection{\texorpdfstring{$H$}{H}：对角为 2、次对角为 \texorpdfstring{$-1$}{-1} 的三对角矩阵}
+
+把上面的结果排成矩阵：
+\begin{equation}\label{eq:U12b-H}
+\E\big(\Delta U_i\Delta U_i\T\big)
+=\E\left[\begin{pmatrix}u_{i2}-u_{i1}\\ u_{i3}-u_{i2}\\ \vdots\\ u_{iT}-u_{i,T-1}\end{pmatrix}
+\big(u_{i2}-u_{i1},\ \dots,\ u_{iT}-u_{i,T-1}\big)\right]
+=\sigma_u^2\underbrace{\begin{pmatrix}2 & -1 & & 0\\ -1 & 2 & \ddots & \\ & \ddots & \ddots & -1\\ 0 & & -1 & 2\end{pmatrix}}_{H\ \ ((T-1)\times(T-1))}.
+\end{equation}
+例如第 $(1,2)$ 元 $\E[(u_{i2}-u_{i1})(u_{i3}-u_{i2})]$：两个因子共同含有 $u_{i2}$，它产生了 $-\sigma_u^2$；不相邻的元素不共享任何 $u$，为 $0$。$H$ 是\term{带状矩阵}{band matrix}（三对角）。例如 $T=4$：
+\[
+H=\begin{pmatrix}2 & -1 & 0\\ -1 & 2 & -1\\ 0 & -1 & 2\end{pmatrix}.
+\]
+
+\subsubsection{\texorpdfstring{$\sigma_u^2$}{sigma\_u\^{}2} 不影响 GMM 估计值}
+
+常把 $\sigma_u^2$ 标准化为 $1$，直接写 $H=\E(\Delta U_i\Delta U_i\T)$；一般地 $\E(\Delta U_i\Delta U_i\T)=\sigma_u^2H$。标量 $\sigma_u^2$ 不影响 GMM 估计值：权重矩阵乘一个正常数，目标函数只差一个倍数，$\argmin$ 不变。
+
+\subsection{最优权重矩阵 \texorpdfstring{$\Omega=\sigma_u^2\,\E(W_i'HW_i)$}{Omega = sigma\^{}2 E(W'HW)}}
+
+最优 GMM 的权重矩阵是矩条件方差的逆（第 8 章）。下面求 $\Omega=\Var(W_i\T\Delta U_i)$。
+
+\subsubsection{按块展开 \texorpdfstring{$\Omega$}{Omega}}
+
+记 $H_{ts}$ 为 $H$ 中对应第 $t$、$s$ 个差分方程的元素：$H_{tt}=2$，$|t-s|=1$ 时 $H_{ts}=-1$，其余为 $0$。
+\begin{align*}
+\Omega &= \Var\big(W_i\T\Delta U_i\big)=\E\big(W_i\T\Delta U_i\Delta U_i\T W_i\big) \why{均值为 0}\\
+&= \Big[\E\big(q_{i,t-2}\,q_{i,s-2}\T\,\Delta u_{it}\Delta u_{is}\big)\Big]_{t,s=2,\dots,T} \why{按块写出第 $(t,s)$ 块}\\
+&= \Big[\sigma_u^2H_{ts}\,\E\big(q_{i,t-2}\,q_{i,s-2}\T\big)\Big]_{t,s} \why{逐块用迭代期望律（见下）}\\
+&= \sigma_u^2\,\E\big(W_i\T HW_i\big) \why{$W_i\T HW_i$ 的 $(t,s)$ 块为 $H_{ts}q_{i,t-2}q_{i,s-2}\T$}
+\end{align*}
+最后一步：$W_i$ 第 $t$ 个方程那一行在第 $t$ 块放 $q_{i,t-2}\T$，故 $W_i\T HW_i=\sum_{t,s}(\text{第 $t$ 行})\T H_{ts}(\text{第 $s$ 行})$ 的第 $(t,s)$ 块恰为 $H_{ts}\,q_{i,t-2}q_{i,s-2}\T$。$\Omega$ 的维度为 $\frac{T(T-1)}{2}\times\frac{T(T-1)}{2}$。
+
+\subsubsection{逐块用迭代期望律：三种情形}
+
+设 $t\le s$（$t>s$ 由对称性得到）。由 (A1)，给定 $(y_{i0},\dots,y_{i,r-1},\alpha_i)$ 时 $u_{ir}$ 的条件均值为 $0$；而 $u_{ir}=y_{ir}-\alpha_i-\rho y_{i,r-1}$ 在给定 $(y_{i0},\dots,y_{ir},\alpha_i)$ 后是已知量。
+\begin{itemize}
+  \item $s\ge t+2$：对 $(y_{i0},\dots,y_{i,s-2},\alpha_i)$ 条件化，$q_{i,t-2},q_{i,s-2},\Delta u_{it}$ 都是已知量，而 $u_{is},u_{i,s-1}$ 的条件均值为 $0$，故 $\E(\Delta u_{is}\mid\cdot)=0$，该块为 $0$。
+  \item $s=t+1$：$\Delta u_{it}\Delta u_{i,t+1}=u_{it}u_{i,t+1}-u_{it}^2-u_{i,t-1}u_{i,t+1}+u_{i,t-1}u_{it}$。含 $u_{i,t+1}$ 的两项对 $(y_{i0},\dots,y_{it},\alpha_i)$ 条件化后为 $0$；$u_{i,t-1}u_{it}$ 对 $(y_{i0},\dots,y_{i,t-1},\alpha_i)$ 条件化后为 $0$。只剩
+  \[
+  -\E\big(q_{i,t-2}q_{i,t-1}\T u_{it}^2\big)=-\sigma_u^2\,\E\big(q_{i,t-2}q_{i,t-1}\T\big).
+  \]
+  \item $s=t$：$(\Delta u_{it})^2=u_{it}^2-2u_{it}u_{i,t-1}+u_{i,t-1}^2$，交叉项条件期望为 $0$，两个平方项各贡献 $\sigma_u^2\E(q_{i,t-2}q_{i,t-2}\T)$，合计 $2\sigma_u^2\,\E(q_{i,t-2}q_{i,t-2}\T)$。
+\end{itemize}
+三种情形的系数 $0,-1,2$ 正是 $H_{ts}$。
+
+\subsubsection{需要把 (A2) 加强为条件同方差}
+
+上面“$\E(q\,q\T u_{it}^2)=\sigma_u^2\E(q\,q\T)$”一步要求\term{条件同方差}{conditional homoskedasticity}：
+\[
+\E\big(u_{it}^2\mid y_{i,t-1},\dots,y_{i0},\alpha_i\big)=\sigma_u^2 .
+\]
+只有无条件的 (A2) 不够。若条件同方差不成立，$\Omega\neq\sigma_u^2\E(W_i\T HW_i)$，见下文两步 GMM。
+
+\subsubsection{易错点：不能对 \texorpdfstring{$W_i$}{W\_i} 条件化，也不能漏掉期望}
+
+\begin{note}[$\Omega$ 的正确写法与维度检查]
+\begin{itemize}
+  \item 不能写成“$\E(\Delta U_i\Delta U_i\T\mid W_i)=\sigma_u^2H$”：$W_i$ 中的 $y_{i1},y_{i2},\dots$ 本身含 $u_{i1},u_{i2},\dots$，给定 $W_i$ 后部分 $\Delta u_{it}$ 已被确定。正确做法是上面的逐块迭代期望。
+  \item 正确写法是 $\Omega=\sigma_u^2\,\E(W_i\T HW_i)$，不要漏掉期望；样本中用 $\hat\Omega=\frac1N\sum_{i=1}^NW_i\T HW_i$（略去 $\sigma_u^2$），或直接用 $\sum_iW_i\T HW_i$。
+  \item 维度检查：$W_i\T$ 为 $L\times(T-1)$，$H$ 为 $(T-1)\times(T-1)$，$W_i$ 为 $(T-1)\times L$，乘积 $L\times L$。若写成 $W_i\T HW_i\T$，维度根本不匹配。
+\end{itemize}
+\end{note}
+
+\subsubsection{例：\texorpdfstring{$T=3$}{T=3} 时手算 \texorpdfstring{$W_i'HW_i$}{W'HW}}
+
+\begin{exmp}[$T=3$ 时的 $W_i\T HW_i$]\label{ex:U12b-WHW}
+$T=3$ 时
+\[
+W_i=\begin{pmatrix}y_{i0} & 0 & 0\\ 0 & y_{i0} & y_{i1}\end{pmatrix}\ (2\times3),\qquad H=\begin{pmatrix}2 & -1\\ -1 & 2\end{pmatrix}.
+\]
+求 $W_i\T HW_i$，并代入 $y_{i0}=2$，$y_{i1}=4$。
+
+\solution
+\begin{align*}
+HW_i &= \begin{pmatrix}2y_{i0} & -y_{i0} & -y_{i1}\\ -y_{i0} & 2y_{i0} & 2y_{i1}\end{pmatrix} \why{$2\times2$ 乘 $2\times3$}\\
+W_i\T HW_i &= \begin{pmatrix}y_{i0} & 0\\ 0 & y_{i0}\\ 0 & y_{i1}\end{pmatrix}HW_i
+=\begin{pmatrix}2y_{i0}^2 & -y_{i0}^2 & -y_{i0}y_{i1}\\ -y_{i0}^2 & 2y_{i0}^2 & 2y_{i0}y_{i1}\\ -y_{i0}y_{i1} & 2y_{i0}y_{i1} & 2y_{i1}^2\end{pmatrix} \why{$3\times2$ 乘 $2\times3$}\\
+&= \begin{pmatrix}8 & -4 & -8\\ -4 & 8 & 16\\ -8 & 16 & 32\end{pmatrix} \why{代入 $y_{i0}=2$, $y_{i1}=4$}
+\end{align*}
+非对角的负号来自 $H$ 的 $-1$：第 1 个矩条件（$t=2$ 方程）与第 2、3 个矩条件（$t=3$ 方程）相关，因为 $\Delta u_{i2}$ 与 $\Delta u_{i3}$ 共享 $u_{i2}$。
+\end{exmp}
+
+%----------------------------------------------------------------------
+\subsection{GMM 目标函数与闭式解}
+
+\subsubsection{目标函数 \texorpdfstring{$J(\rho)$}{J(rho)} 与一阶条件}
+
+要求：最小化 GMM 目标函数，得到 $\hat\rho^{AB}_{GMM}$ 的闭式解。记
+\[
+S_x=\sum_{i=1}^NW_i\T\Delta Y_{i,-1},\qquad S_y=\sum_{i=1}^NW_i\T\Delta Y_i\qquad\Big(\text{都是 }\tfrac{T(T-1)}{2}\times1\Big).
+\]
+\begin{align*}
+J(\rho) &= \Big(\sum_{i=1}^NW_i\T(\Delta Y_i-\rho\,\Delta Y_{i,-1})\Big)\T\,\Omega\inv\Big(\sum_{i=1}^NW_i\T(\Delta Y_i-\rho\,\Delta Y_{i,-1})\Big) \why{样本矩的二次型}\\
+&= (S_y-\rho S_x)\T\,\Omega\inv(S_y-\rho S_x) \why{代入记号}\\
+&= S_y\T\Omega\inv S_y-2\rho\,S_x\T\Omega\inv S_y+\rho^2S_x\T\Omega\inv S_x \why{展开，$\Omega\inv$ 对称}\\
+\frac{dJ}{d\rho} &= -2S_x\T\Omega\inv S_y+2\rho\,S_x\T\Omega\inv S_x=-2S_x\T\Omega\inv(S_y-\rho S_x)=0 \why{对标量 $\rho$ 求导}\\
+\Rightarrow\ \hat\rho^{AB}_{GMM} &= \big(S_x\T\Omega\inv S_x\big)\inv S_x\T\Omega\inv S_y \why{解一阶条件}
+\end{align*}
+
+\subsubsection{AB 估计量的闭式解}
+
+代回 $S_x\T=\sum_i\Delta Y_{i,-1}\T W_i$，并用 $\hat\Omega$ 代替 $\Omega$：
+\begin{equation}\label{eq:U12b-abgmm}
+\boxed{\ \hat\rho^{AB}_{GMM}=\Big(\sum_i\Delta Y_{i,-1}\T W_i\;\hat\Omega\inv\sum_iW_i\T\Delta Y_{i,-1}\Big)\inv\Big(\sum_i\Delta Y_{i,-1}\T W_i\;\hat\Omega\inv\sum_iW_i\T\Delta Y_i\Big)\ }
+\end{equation}
+其中 $\hat\Omega=\sum_iW_i\T HW_i$（乘以常数不影响结果，也可用 $\frac1N\sum_iW_i\T HW_i$）。记忆口诀：“回归元–工具–权重–工具–回归元”取逆，乘“回归元–工具–权重–工具–因变量”。第一个因子里放的是回归元 $\Delta Y_{i,-1}\T$，不要误写成因变量 $\Delta Y_i\T$。
+
+\subsubsection{全样本矩阵形式：与 2SLS 只差权重}
+
+把所有个体再堆叠：$\Delta Y=(\Delta Y_1\T,\dots,\Delta Y_N\T)\T$，$\Delta Y_{-1}$ 同理，$W=(W_1\T,\dots,W_N\T)\T$（$N(T-1)\times L$）。由 $W\T\Delta Y_{-1}=\sum_iW_i\T\Delta Y_{i,-1}$，
+\[
+\hat\rho=\big(\Delta Y_{-1}\T W\hat\Omega\inv W\T\Delta Y_{-1}\big)\inv\Delta Y_{-1}\T W\hat\Omega\inv W\T\Delta Y,\qquad \hat\Omega=W\T(I_N\otimes H)W .
+\]
+形式与 2SLS 相同，只是 2SLS 中的 $W\T W$ 换成了考虑 MA(1) 结构的 $\sum_iW_i\T HW_i$。
+
+\subsection{一步与两步 GMM、稳健方差与 Windmeijer 校正}
+
+\tagext\ 本小节内容见 Hansen §17.39。
+
+\subsubsection{一步 GMM：权重 \texorpdfstring{$\sum_iW_i'HW_i$}{sum W'HW}}
+
+\term{一步 GMM}{one-step GMM}：权重 $\hat\Omega_1=\sum_iW_i\T HW_i$ 不依赖未知参数，即 \eqref{eq:U12b-abgmm}。在条件同方差下渐近有效。常规方差估计
+\[
+\hat V_1=\hat\sigma_u^2\big(S_x\T\hat\Omega_1\inv S_x\big)\inv,\qquad \hat\sigma_u^2=\frac{1}{2N(T-1)}\sum_i\sum_t\Delta\hat u_{it}^2,
+\]
+分母有因子 $2$，因为 $\E(\Delta u_{it}^2)=2\sigma_u^2$。
+
+\subsubsection{两步 GMM：用一步残差构造聚类稳健权重}
+
+\term{两步 GMM}{two-step GMM}：用一步残差 $\Delta\hat U_i$ 构造聚类稳健形式的
+\[
+\hat\Omega_2=\sum_iW_i\T\Delta\hat U_i\Delta\hat U_i\T W_i,
+\]
+再代入 \eqref{eq:U12b-abgmm}。它允许异方差，并在此时渐近有效。
+
+\subsubsection{两步标准误偏小：Windmeijer 校正}
+
+两步 GMM 的常规标准误在有限样本中严重偏小，应使用 \term{Windmeijer 校正}{Windmeijer correction}（Windmeijer, 2005, \emph{Journal of Econometrics}）后的标准误。Stata 中两步估计须加稳健选项（\texttt{xtabond2 ..., twostep robust}；官方命令用 \texttt{twostep vce(robust)}）才报告校正后的标准误；不加时两步标准误未经校正。
+
+\subsubsection{一步还是两步}
+
+一步估计的权重不含残差、随机性小、更稳定，小样本中、误差近似同方差时常表现更好；两步估计在大样本、明显异方差时更优。
+
+%----------------------------------------------------------------------
+\subsection{AB GMM 的性质：有效、一致渐近正态，但渐近有偏}
+
+\begin{thm}[Arellano--Bond GMM 的性质]\label{thm:U12b-abprop}
+\begin{enumerate}[label=(\alph*)]
+  \item \key{有效 GMM}（EGMM / optimal GMM）：在使用矩条件 $\E(W_i\T\Delta U_i)=0$ 的估计量中，最优权重 $\Omega\inv$ 使渐近方差最小。
+  \item \key{一致、渐近正态}：$T$ 固定、$N\to\infty$ 时 $\sqrt N(\hat\rho^{AB}-\rho)\dto N(0,V_T)$，$V_T=\big(G\T\Omega\inv G\big)\inv$，$G=\E(W_i\T\Delta Y_{i,-1})$。
+  \item 但\term{渐近有偏}{asymptotically biased}，原因是（多个）弱工具：当 $N,T$ 都大时
+  \[
+  \sqrt{NT}\big(\hat\rho^{AB}_{GMM}-\rho\big)\overset{a}{\sim}N(c,\ \text{variance}),\qquad c\neq0,
+  \]
+  偏误大小取决于 $T/N$。
+  \item 方差：$\Var(\hat\rho^{AB}_{GMM})$ 没有简单闭式（$\Omega\inv$ 没有简单的解析表达式），$T$ 大时接近 FOD GMM 的 $1-\rho^2$（见本章 FOD GMM 一节）。
+  \item \key{计算量巨大}：$\Omega$ 是 $\frac{T(T-1)}{2}\times\frac{T(T-1)}{2}$ 的矩阵，必须求逆。
+  \item Arellano \& Bond (1991) 是被引用最多的经济学论文之一（one of the most cited economic papers）。
+\end{enumerate}
+\end{thm}
+
+\subsubsection{为什么偏误中心 \texorpdfstring{$c\neq0$}{c != 0}：多个弱工具}
+
+矩条件个数 $L=T(T-1)/2$ 随 $T^2$ 增长，其中大量是远期滞后（弱工具）。工具太多时，第一阶段会“过度拟合”内生回归元 $\Delta y_{i,t-1}$，把其中与 $\Delta u_{it}$ 相关的部分也拟合进来，估计量被拉向有偏的 FD-OLS，产生 $O(1/N)$ 量级的偏误；乘以 $\sqrt{NT}$ 后为
+\[
+\sqrt{NT}\cdot O\Big(\frac1N\Big)=O\Big(\sqrt{T/N}\Big),
+\]
+只要 $T/N$ 不趋于 $0$，偏误项就不消失。
+
+\subsubsection{Alvarez--Arellano 精确结论：偏误主项 \texorpdfstring{$-(1+\rho)/N$}{-(1+rho)/N}}
+
+\tagext\ Alvarez \& Arellano (2003, \emph{Econometrica})：$N,T\to\infty$ 且 $T/N\to\kappa\in[0,\infty)$ 时，GMM 估计量的偏误主项为 $-(1+\rho)/N$，故
+\begin{align*}
+c &= \lim\sqrt{NT}\cdot\Big(-\frac{1+\rho}{N}\Big) \why{偏误主项乘以 $\sqrt{NT}$}\\
+&= -\lim\sqrt{T/N}\,(1+\rho)=-\sqrt\kappa\,(1+\rho) \why{$T/N\to\kappa$}
+\end{align*}
+$\kappa=0$（$N$ 远大于 $T$）时 $c=0$。
+
+\subsubsection{GMM 适合 \texorpdfstring{$N\gg T$}{N >> T}，WG 适合 \texorpdfstring{$T\gg N$}{T >> N}}
+
+对比 WG 的偏误 $-(1+\rho)/T$（本章前文 Nickell 偏误）：GMM 的偏误随 $N$ 增大而消失，WG 的偏误随 $T$ 增大而消失。所以 \key{GMM 适合 $N\gg T$ 的微观面板，WG 类估计适合 $T\gg N$ 的宏观面板}。
+
+\subsection{工具数膨胀与计算负担：\texorpdfstring{$T=20\to190$}{T=20 -> 190}，\texorpdfstring{$T=50\to1225$}{T=50 -> 1225}}
+
+\subsubsection{\texorpdfstring{$\Omega$}{Omega} 的维度与求逆的计算量}
+
+$\Omega$ 的维度为 $\frac{T(T-1)}{2}\times\frac{T(T-1)}{2}$，即工具矩阵的列数是 $T^2/2$ 的量级，$\Omega$ 很快变得巨大：
+\begin{itemize}
+  \item $T=20$：$L=190$，$\Omega$ 为 $190\times190$，有 $190^2=36\,100$ 个元素；
+  \item $T=50$：$L=25\times49=1225$，$\Omega$ 为 $1225\times1225$，有 $1225^2\approx150$ 万个元素。
+\end{itemize}
+求逆的计算量约与 $L^3$ 成正比。
+
+\subsubsection{工具数超过个体数：权重矩阵奇异}
+
+更严重的是统计问题。两步权重 $\hat\Omega_2=\sum_iW_i\T\Delta\hat U_i\Delta\hat U_i\T W_i$ 是 $N$ 个秩为 1 的矩阵之和，秩不超过 $N$；工具数 $L$ 超过个体数 $N$ 时它奇异，Hansen 过度识别检验也随之失效（见本章后文设定检验一节）。工具个数随 $T$ 膨胀带来的这些问题称为\term{工具数膨胀}{instrument proliferation}。常用对策是只用部分滞后作工具，或把工具“合并”（collapse）。
+
+%----------------------------------------------------------------------
+\subsection{含严格外生 \texorpdfstring{$x_{it}$}{x\_it} 的 AB GMM}
+
+\subsubsection{差分方程与工具：\texorpdfstring{$\Delta x_{it}$}{Delta x} 作自身的工具}
+
+模型 $y_{it}=\alpha_i+\rho\,y_{i,t-1}+x_{it}\T\beta+u_{it}$，$x_{it}$ 为 $k\times1$ 严格外生。差分后
+\[
+\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta x_{it}\T\beta+\Delta u_{it},\qquad
+\Delta y_{i,t-1}\leftarrow q_{i,t-2}=(y_{i0},\dots,y_{i,t-2})\T,\qquad
+\Delta x_{it}\leftarrow\Delta x_{it}.
+\]
+箭头表示“由……作工具”：内生的 $\Delta y_{i,t-1}$ 用滞后水平值作工具，外生的 $\Delta x_{it}$ 作自身的工具。
+
+\subsubsection{堆叠形式与工具矩阵}
+
+堆叠：$\Delta Y_i=\rho\,\Delta Y_{i,-1}+\Delta X_i\beta+\Delta U_i$，其中 $\Delta X_i=(\Delta x_{i2},\dots,\Delta x_{iT})\T$ 为 $(T-1)\times k$。工具矩阵在每块后面加上本期的 $\Delta x_{it}\T$：
+\[
+W_i=\begin{pmatrix} (q_{i0}\T,\ \Delta x_{i2}\T) & & & 0\\ & (q_{i1}\T,\ \Delta x_{i3}\T) & & \\ & & \ddots & \\ 0 & & & (q_{i,T-2}\T,\ \Delta x_{iT}\T)\end{pmatrix}.
+\]
+第一个差分方程是 $t=2$，所以第一块放的是 $\Delta x_{i2}\T$，不是 $\Delta x_{i1}\T$。
+
+\subsubsection{估计量：与无 \texorpdfstring{$x$}{x} 情形同形}
+
+记回归元矩阵 $\Delta R_i=(\Delta Y_{i,-1},\ \Delta X_i)$（$(T-1)\times(1+k)$），$\theta=(\rho,\beta\T)\T$。把 \eqref{eq:U12b-abgmm} 中的 $\Delta Y_{i,-1}$ 换成 $\Delta R_i$：
+\[
+\begin{pmatrix}\hat\rho^{AB}_{GMM}\\ \hat\beta^{AB}_{GMM}\end{pmatrix}
+=\Big(\sum_i\Delta R_i\T W_i\hat\Omega\inv\sum_iW_i\T\Delta R_i\Big)\inv\Big(\sum_i\Delta R_i\T W_i\hat\Omega\inv\sum_iW_i\T\Delta Y_i\Big),\qquad \hat\Omega=\sum_iW_i\T HW_i .
+\]
+性质同前：(a) 有效 GMM；(b) 一致、渐近正态，但 $N,T$ 都大时渐近有偏（弱工具）；(c) 计算量很大（computation is very extensive）。
+
+\subsubsection{工具列数的三种算法}
+
+列数取决于 $x$ 的工具怎么放：
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{LLl}
+\toprule
+做法 & 每个差分方程中 $x$ 的工具 & 总列数\\
+\midrule
+(i) 块内放本期 $\Delta x_{it}$（上面的 $W_i$） & $\Delta x_{it}$（$k$ 个） & $\frac{T(T-1)}{2}+k(T-1)$\\
+(ii) 严格外生：块内放全部 $x_{i1},\dots,x_{iT}$ & $kT$ 个 & $\frac{T(T-1)}{2}+kT(T-1)=T(T-1)\big(k+\frac12\big)$\\
+(iii) IV 式：所有方程共用一列 $\Delta x_{it}$ & 共享 $k$ 列 & $\frac{T(T-1)}{2}+k$\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{含 $x_{it}$ 时 AB 工具矩阵的列数}
+\end{center}
+做法 (ii) 下 $\Omega$ 的维度为 $T(T-1)\big(k+\frac12\big)\times T(T-1)\big(k+\frac12\big)$。做法 (iii) 中那一列在第 $t$ 行放 $\Delta x_{it}\T$，对应合并后的矩条件 $\sum_t\E(\Delta x_{it}\Delta u_{it})=0$。
+
+\subsection{\texorpdfstring{$x_{it}$}{x\_it} 的三种外生性与相应工具}
+
+\tagext\ 本小节内容见 Hansen §17.41。
+
+\subsubsection{严格外生、前定、内生的定义}
+
+\begin{defn}[严格外生、前定、内生回归元]\label{def:U12b-exog}
+\begin{itemize}
+  \item \term{严格外生}{strictly exogenous}：$\E(x_{is}u_{it})=0$ 对所有 $s,t$；
+  \item \term{前定}{predetermined}：$\E(x_{i,t-s}u_{it})=0$ 对 $s\ge0$（$x$ 可以对过去的冲击作出反应，如 $x_{it}$ 依赖 $y_{i,t-1}$）；
+  \item \term{内生}{endogenous}：$\E(x_{it}u_{it})\neq0$，只有 $\E(x_{i,t-s}u_{it})=0$ 对 $s\ge1$。
+\end{itemize}
+\end{defn}
+
+\subsubsection{前定时 \texorpdfstring{$\Delta x_{it}$}{Delta x} 不能作自身的工具，\texorpdfstring{$x_{i,t-1}$}{x(t-1)} 可以}
+
+设 $x_{it}$ 前定。分别计算 $\Delta x_{it}$ 与 $x_{i,t-1}$ 和 $\Delta u_{it}$ 的协方差：
+\begin{align*}
+\E(\Delta x_{it}\Delta u_{it}) &= \E(x_{it}u_{it})-\E(x_{i,t-1}u_{it})-\E(x_{it}u_{i,t-1})+\E(x_{i,t-1}u_{i,t-1}) \why{展开四项}\\
+&= 0-0-\E(x_{it}u_{i,t-1})+0=-\E(x_{it}u_{i,t-1})\neq0 \why{前定：只有“未来 $x$、过去 $u$”非零}\\[4pt]
+\E(x_{i,t-1}\Delta u_{it}) &= \E(x_{i,t-1}u_{it})-\E(x_{i,t-1}u_{i,t-1})=0-0=0 \why{前定，$s=1$ 与 $s=0$}
+\end{align*}
+同理，内生时 $\E(x_{i,t-1}\Delta u_{it})=0-\E(x_{i,t-1}u_{i,t-1})\neq0$，而 $\E(x_{i,t-2}\Delta u_{it})=\E(x_{i,t-2}u_{it})-\E(x_{i,t-2}u_{i,t-1})=0$，工具要从 $x_{i,t-2}$ 开始。
+
+\subsubsection{三类回归元的工具与 xtabond2 写法}
+
+\begin{center}
+\small
+\begin{tabular}{llll}
+\toprule
+$x_{it}$ 的类型 & 第 $t$ 个差分方程的工具 & \texttt{xtabond2} 写法 & 代价\\
+\midrule
+严格外生 & $\Delta x_{it}$（或全部 $x_{i1},\dots,x_{iT}$） & \texttt{iv(x)} & —\\
+前定 & $x_{i,t-1},x_{i,t-2},\dots,x_{i1}$ & \texttt{gmm(x, lag(1 .))} & 识别变弱\\
+内生 & $x_{i,t-2},x_{i,t-3},\dots,x_{i1}$ & \texttt{gmm(x, lag(2 .))} & 识别更弱\\
+\bottomrule
+\end{tabular}
+\captionof{table}{三类回归元的工具}
+\end{center}
+放宽外生性假设更稳健，但工具离得更远、相关性更弱；$x$ 高度持续（接近单位根）时会弱识别。
+
+\begin{keypt}[差分 GMM 的常考点]
+写出 AB 工具矩阵 $W_i$ 并数矩条件个数（$T(T-1)/2$）；由 MA(1) 结构推导 $H$；写出最优权重 $\Omega=\sigma_u^2\E(W_i\T HW_i)$ 与闭式解 \eqref{eq:U12b-abgmm}；说明“一致但 $N,T$ 都大时渐近有偏、计算量大”的原因。
+\end{keypt}
+
+\begin{prac}[AB 工具矩阵、$H$ 与计数]\label{pr:U12b-ab}
+(1) $T=4$（观测 $y_{i0},\dots,y_{i4}$），写出 $\Delta Y_i,\Delta Y_{i,-1}$、$W_i$ 与 $H$，并说明 $\Omega$ 的维度与过度识别度。\\
+(2) 设 $x_{it}$ 为 $k=2$ 维严格外生变量，$T=6$。分别按上文做法 (i)(ii)(iii) 计算工具列数。\\
+(3) 若误差 $u_{it}$ 存在异方差，一步 AB 估计量是否仍一致？是否仍有效？应如何改进？
+\answer
+(1) $\Delta Y_i=(\Delta y_{i2},\Delta y_{i3},\Delta y_{i4})\T$，$\Delta Y_{i,-1}=(\Delta y_{i1},\Delta y_{i2},\Delta y_{i3})\T$；$W_i$ 即例~\ref{ex:U12b-W4} 中的 $3\times6$ 矩阵；
+\[
+H=\begin{pmatrix}2 & -1 & 0\\ -1 & 2 & -1\\ 0 & -1 & 2\end{pmatrix}\ (3\times3).
+\]
+$\Omega=\sigma_u^2\E(W_i\T HW_i)$ 为 $6\times6$；6 个矩条件、1 个参数，过度识别度 5。\\
+(2) $L_{AB}=6\cdot5/2=15$。(i) $15+2\cdot5=25$；(ii) $15+2\cdot6\cdot5=75$（$=6\cdot5\cdot2.5$）；(iii) $15+2=17$。\\
+(3) 一致性只依赖矩条件 $\E(W_i\T\Delta U_i)=0$，异方差不影响，故仍一致；但 $\Var(W_i\T\Delta U_i)\neq\sigma_u^2\E(W_i\T HW_i)$，$\sum_iW_i\T HW_i$ 不再是最优权重，一步估计量不再有效，常规标准误也不对。改进：用聚类稳健方差；或用一步残差构造 $\hat\Omega_2=\sum_iW_i\T\Delta\hat U_i\Delta\hat U_i\T W_i$ 做两步 GMM，并报告 Windmeijer 校正标准误。
+\end{prac}
+
+\begin{english}
+\textbf{Arellano--Bond difference GMM.} Stack the first-differenced equations for individual $i$ as $\Delta Y_i=\rho\Delta Y_{i,-1}+\Delta U_i$. For the equation dated $t$ the valid instruments are $q_{i,t-2}=(y_{i0},\dots,y_{i,t-2})'$, so the instrument matrix $W_i=\mathrm{diag}(q_{i0}',\dots,q_{i,T-2}')$ is block diagonal of dimension $(T-1)\times T(T-1)/2$ and the moment conditions are $E(W_i'\Delta U_i)=0$. If $u_{it}$ is i.i.d., $\Delta U_i$ is MA(1) with $E(\Delta U_i\Delta U_i')=\sigma_u^2H$, where $H$ is tridiagonal with 2 on the diagonal and $-1$ on the first off-diagonals. The optimal weighting matrix is $\Omega^{-1}$ with $\Omega=\sigma_u^2E(W_i'HW_i)$, and the efficient GMM estimator is $\hat\rho=(\sum\Delta Y_{i,-1}'W_i\hat\Omega^{-1}\sum W_i'\Delta Y_{i,-1})^{-1}\sum\Delta Y_{i,-1}'W_i\hat\Omega^{-1}\sum W_i'\Delta Y_i$. It is consistent and asymptotically normal as $N\to\infty$, but the number of instruments grows with $T^2$ (190 for $T=20$, 1225 for $T=50$), which leads to a many-weak-instruments bias that depends on $T/N$ and to a heavy computational burden.
+\end{english}
+
+%======================================================================
+\section{Blundell--Bond (1998) 系统 GMM}\label{sec:U12b-sys}
+
+差分 GMM 只用差分方程，工具是滞后水平值；当 $\rho$ 接近 1 或个体效应方差很大时，这些工具很弱。本节在差分方程之外再加入\key{水平方程}，以\key{滞后差分}作工具，得到系统 GMM。代价是要多加一个关于初始值的假设。
+
+\subsection{动机：为差分 GMM 寻找强工具}
+
+\subsubsection{差分 GMM 的弱点：多个弱工具，有限样本表现差}
+
+上一节已经看到，AB GMM 的问题出在“many weak IVs”：工具多而弱，有限样本偏误大。如何部分地解决弱工具问题？办法是\key{找一个强工具}（by finding a strong IV）。Blundell \& Bond 的系统 GMM 正是为改进 AB GMM 的\key{有限样本}表现而提出的；形式上它只是 AB GMM 的一个小改动（System GMM is just a slightly modified A-B GMM）。
+
+\subsubsection{思路：加入水平方程，以滞后差分作工具}
+
+\term{系统 GMM}{system GMM}（Arellano \& Bover, 1995；Blundell \& Bond, 1998, \emph{Journal of Econometrics}）同时使用两类方程：
+\begin{itemize}
+  \item 差分方程 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$，工具是滞后水平值（与 AB 相同）；
+  \item \term{水平方程}{level equation}
+  \[
+  y_{it}-\rho\,y_{i,t-1}=\alpha_i+u_{it},
+  \]
+  工具是滞后差分 $\Delta y_{i,t-1}$。
+\end{itemize}
+
+\subsubsection{关键问题：\texorpdfstring{$\E(\alpha_i\Delta y_{i,t-1})$}{E(alpha Delta y)} 是否为零}
+
+水平方程的回归元 $y_{i,t-1}$ 含 $\alpha_i$（这正是混合 OLS 失效的原因）。要找一个与 $y_{i,t-1}$ 相关、但与误差 $\alpha_i+u_{it}$ 不相关的工具。候选是 $\Delta y_{i,t-1}$：它显然与 $y_{i,t-1}$ 相关；它与 $u_{it}$ 不相关（只含 $t-1$ 期及以前的冲击）；差分已经把 $\alpha_i$ 的“水平”去掉了。关键问题是 $\E(\alpha_i\Delta y_{i,t-1})$ 是否为 $0$，这取决于\key{初始条件}。
+
+%----------------------------------------------------------------------
+\subsection{均值平稳初始条件 \texorpdfstring{$y_{i0}=\alpha_i/(1-\rho)+v_{i0}$}{y0 = alpha/(1-rho) + v0}}
+
+\subsubsection{模型加初始条件}
+
+原始的系统 GMM 基于
+\[
+\begin{cases}
+y_{it}=\alpha_i+\rho\,y_{i,t-1}+u_{it},\\[2pt]
+y_{i0}=\dfrac{\alpha_i}{1-\rho}+v_{i0}\quad\longrightarrow\quad\text{initial condition}.
+\end{cases}
+\]
+
+\subsubsection{来源：过程在样本开始前早已运行}
+
+设 $|\rho|<1$，过程在样本开始前早已运行（$\dots,y_{i,-3},y_{i,-2},y_{i,-1}$ 不可观测），$y_{i0}$ 只是数据中的第一个观测（例如 2000 年，the first observation in the data）。对样本前的方程反复代入：
+\begin{align*}
+y_{i0} &= \alpha_i+\rho\,y_{i,-1}+u_{i0} \why{$t=0$ 的方程}\\
+&= \alpha_i+\rho\big(\alpha_i+\rho\,y_{i,-2}+u_{i,-1}\big)+u_{i0} \why{代入 $y_{i,-1}$}\\
+&= \alpha_i(1+\rho)+\rho^2y_{i,-2}+u_{i0}+\rho\,u_{i,-1} \why{整理}\\
+&= \alpha_i(1+\rho+\rho^2+\cdots)+\big(u_{i0}+\rho\,u_{i,-1}+\rho^2u_{i,-2}+\cdots\big) \why{无限次代入，$\rho^sy_{i,-s}\to0$}\\
+&= \frac{\alpha_i}{1-\rho}+v_{i0},\qquad v_{i0}\equiv\sum_{s\ge0}\rho^s u_{i,-s} \why{等比级数，$|\rho|<1$}
+\end{align*}
+$\alpha_i/(1-\rho)$ 是个体 $i$ 的长期均值（稳态水平），$v_{i0}$ 是样本前全部冲击的加权和。若 $\alpha_i$ 与样本前的冲击不相关，则 $\E(\alpha_iv_{i0})=0$。
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[x=1.15cm,>={Stealth[length=2mm]}]
+\draw[->] (-4.6,0) -- (5.6,0) node[right,font=\small] {time};
+\foreach \x/\l in {-4/{y_{i,-4}},-3/{y_{i,-3}},-2/{y_{i,-2}},-1/{y_{i,-1}},0/{y_{i0}},1/{y_{i1}},4.5/{y_{iT}}}
+  {\draw (\x,0.08) -- (\x,-0.08); \node[below,font=\small] at (\x,-0.1) {$\l$};}
+\node[below,font=\small] at (2.75,-0.1) {$\cdots$};
+\draw[thick] (0,0) circle (3pt);
+\draw[thick] (-0.25,0.25) -- (-0.35,0.25) -- (-0.35,-0.25) -- (-0.25,-0.25);
+\draw[thick] (4.75,0.25) -- (4.85,0.25) -- (4.85,-0.25) -- (4.75,-0.25);
+\draw[decorate,decoration={brace,mirror,amplitude=4pt}] (-4.2,-0.6) -- (-0.8,-0.6) node[midway,below=4pt,font=\small] {样本前：过程早已运行，不可观测};
+\draw[decorate,decoration={brace,mirror,amplitude=4pt}] (-0.2,-0.6) -- (4.7,-0.6) node[midway,below=4pt,font=\small] {观测样本};
+\draw[<-] (-4,0.55) -- (0,0.55) node[right,font=\small] {$y_{i0}=\frac{\alpha_i}{1-\rho}+v_{i0}$：向过去递推};
+\end{tikzpicture}
+\captionof{figure}{系统 GMM 的初始条件：第一个观测 $y_{i0}$ 处在个体的“稳态”附近}
+\end{minipage}\end{center}
+
+\subsubsection{均值平稳的定义}
+
+\begin{defn}[均值平稳]\label{def:U12b-meanstat}
+若 $y_{i0}=\dfrac{\alpha_i}{1-\rho}+v_{i0}$ 且 $\E(\alpha_iv_{i0})=0$，称过程在样本初始时\term{均值平稳}{mean stationarity}：初始观测对个体长期均值 $\frac{\alpha_i}{1-\rho}$ 的偏离与个体效应不相关。Hansen §17.42 指出只需
+\[
+\E\Big[\Big(y_{i0}-\frac{\alpha_i}{1-\rho}\Big)\alpha_i\Big]=0,
+\]
+比完全平稳弱。
+\end{defn}
+
+偏离项记作 $v_{i0}$ 还是 $u_{i0}$ 无关紧要（有的文献写 $y_{i0}=\frac{\alpha_i}{1-\rho}+u_{i0}$），关键是它与 $\alpha_i$ \key{不相关}。注意 $v_{i0}=u_{i0}+\rho u_{i,-1}+\cdots$ 只是偏离项本身的展开，$\frac{\alpha_i}{1-\rho}+v_{i0}$ 并不等于 $u_{i0}+\rho u_{i,-1}+\cdots$。
+
+%----------------------------------------------------------------------
+\subsection{水平方程的矩条件 \texorpdfstring{$\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$}{E[(y - rho y(-1)) Delta y(-1)] = 0}}
+
+\subsubsection{水平矩条件等价于 \texorpdfstring{$\E(\alpha_i\Delta y_{i,t-1})=0$}{E(alpha Delta y)=0}}
+
+由水平方程 $y_{it}-\rho\,y_{i,t-1}=\alpha_i+u_{it}$：
+\begin{align*}
+\E\big[(y_{it}-\rho\,y_{i,t-1})\,\Delta y_{i,t-1}\big] &= \E\big[(\alpha_i+u_{it})\,\Delta y_{i,t-1}\big] \why{水平方程}\\
+&= \E(\alpha_i\,\Delta y_{i,t-1})+\E(u_{it}\,\Delta y_{i,t-1}) \why{期望线性性}\\
+&= \E(\alpha_i\,\Delta y_{i,t-1})+\big[\E(u_{it}y_{i,t-1})-\E(u_{it}y_{i,t-2})\big] \why{展开 $\Delta y_{i,t-1}$}\\
+&= \E(\alpha_i\,\Delta y_{i,t-1})+0 \why{由 \eqref{eq:U12b-ysu}，$y$ 的时期早于 $t$}
+\end{align*}
+所以水平矩条件 $\iff\E(\alpha_i\Delta y_{i,t-1})=0$。
+
+\subsubsection{Blundell--Bond 水平矩条件}
+
+\begin{thm}[Blundell--Bond 水平矩条件]\label{thm:U12b-level}
+在 (A1)--(A3) 与均值平稳初始条件下，
+\begin{equation}\label{eq:U12b-level}
+\E\big[(y_{it}-\rho\,y_{i,t-1})\,\Delta y_{i,t-1}\big]=0,\qquad t=2,3,\dots,T,
+\end{equation}
+即 $\Delta y_{i,t-1}$ 是水平方程的有效工具，而且是强工具（very strong instrument）。
+\end{thm}
+
+下面给出两种证明：先直接证 $t=2$，再用归纳法证一般 $t$。
+
+\subsection{证明一：\texorpdfstring{$t=2$}{t=2} 的直接证明}
+
+\subsubsection{逐步推导}
+
+要证 $\E[(y_{i2}-\rho\,y_{i1})\Delta y_{i1}]=0$。思路：把 $y_{i1}$ 用 $y_{i0}$ 表示，再代入初始条件。
+\begin{align*}
+\E\big[(y_{i2}-\rho\,y_{i1})\,\Delta y_{i1}\big] &= \E\big[(\alpha_i+u_{i2})(y_{i1}-y_{i0})\big] \why{$y_{i2}-\rho y_{i1}=\alpha_i+u_{i2}$}\\
+&= \E\big[\alpha_i(y_{i1}-y_{i0})\big]+\underbrace{\E\big[u_{i2}(y_{i1}-y_{i0})\big]}_{=0} \why{$u_{i2}$ 与 $y_{i1},y_{i0}$ 不相关}\\
+&= \E\big[\alpha_i(\alpha_i+\rho\,y_{i0}+u_{i1}-y_{i0})\big] \why{代入 $y_{i1}=\alpha_i+\rho y_{i0}+u_{i1}$}\\
+&= \E\big[\alpha_i^2+(\rho-1)\,y_{i0}\alpha_i+\alpha_iu_{i1}\big] \why{整理}\\
+&= \E(\alpha_i^2)+(\rho-1)\,\E(y_{i0}\alpha_i)+0 \why{$\E(\alpha_iu_{i1})=0$}\\
+&= \E(\alpha_i^2)+(\rho-1)\,\E\Big[\Big(\frac{\alpha_i}{1-\rho}+v_{i0}\Big)\alpha_i\Big] \why{初始条件}\\
+&= \E(\alpha_i^2)+\underbrace{\frac{\rho-1}{1-\rho}}_{=-1}\E(\alpha_i^2)+(\rho-1)\underbrace{\E(\alpha_iv_{i0})}_{=0} \why{展开，$\E(\alpha_iv_{i0})=0$}\\
+&= 0.
+\end{align*}
+
+\subsubsection{含义：稳态时个体效应只决定水平，不决定变化}
+
+$\alpha_i$ 对 $y_{i1}$ 的直接贡献（$+\alpha_i$）恰好被它通过 $y_{i0}$ 的贡献（$(\rho-1)\frac{\alpha_i}{1-\rho}=-\alpha_i$）抵消。处于稳态时，个体效应只决定 $y$ 的\key{水平}，不决定 $y$ 的\key{变化}，所以变化量 $\Delta y_{i1}$ 与 $\alpha_i$ 不相关。
+
+\subsection{证明二：对一般 \texorpdfstring{$t$}{t} 的归纳证明}
+
+\subsubsection{归纳链}
+
+由水平矩条件的等价形式，只需证明对所有 $t\ge1$，$\E(\alpha_i\Delta y_{it})=0$。证明沿下面的链条进行：
+\[
+\boxed{\E(\alpha_i\Delta y_{i1})=0}\ \Rightarrow\ \boxed{\E(\alpha_i\Delta y_{i2})=0}\ \Rightarrow\ \E(\alpha_i\Delta y_{i3})=0\ \Rightarrow\ \cdots
+\]
+
+\subsubsection{第一步：\texorpdfstring{$\E(\alpha_i\Delta y_{i1})=0$}{E(alpha Delta y1)=0}}
+
+先写出
+\[
+\Delta y_{i1}=y_{i1}-y_{i0}=\rho\,y_{i0}+\alpha_i+u_{i1}-y_{i0}=(\rho-1)\,y_{i0}+\alpha_i+u_{i1}.
+\]
+\begin{align*}
+\E(\alpha_i\Delta y_{i1}) &= \E\big[\alpha_i\big((\rho-1)y_{i0}+\alpha_i+u_{i1}\big)\big] \why{代入上式}\\
+&= (\rho-1)\,\E(\alpha_iy_{i0})+\E(\alpha_i^2)+\underbrace{\E(\alpha_iu_{i1})}_{=0} \why{期望线性性}\\
+&= (\rho-1)\,\E\Big[\alpha_i\frac{\alpha_i}{1-\rho}+\alpha_iv_{i0}\Big]+\E(\alpha_i^2) \why{初始条件}\\
+&= \frac{\rho-1}{1-\rho}\E(\alpha_i^2)+\E(\alpha_i^2)=-\E(\alpha_i^2)+\E(\alpha_i^2)=0 \why{$\E(\alpha_iv_{i0})=0$}
+\end{align*}
+
+\subsubsection{归纳步：由差分方程递推}
+
+设 $\E(\alpha_i\Delta y_{i,t-1})=0$。由差分方程 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$（$t\ge2$）：
+\begin{align*}
+\E(\alpha_i\Delta y_{it}) &= \rho\,\E(\alpha_i\Delta y_{i,t-1})+\E(\alpha_i\Delta u_{it}) \why{期望线性性}\\
+&= \rho\cdot0+\big[\E(\alpha_iu_{it})-\E(\alpha_iu_{i,t-1})\big]=0 \why{归纳假设与 (A3)}
+\end{align*}
+故对所有 $t\ge1$，$\E(\alpha_i\Delta y_{it})=0$，从而 \eqref{eq:U12b-level} 对 $t=2,\dots,T$ 成立。\hfill$\square$
+
+\subsubsection{递推的显式形式：\texorpdfstring{$\E(\alpha_i\Delta y_{it})=\rho^{t-1}\E(\alpha_i\Delta y_{i1})$}{E(alpha Delta y\_t) = rho\^{}(t-1) E(alpha Delta y\_1)}}
+
+归纳步其实给出了一个不依赖初始条件的递推式 $\E(\alpha_i\Delta y_{it})=\rho\,\E(\alpha_i\Delta y_{i,t-1})$，反复使用得
+\[
+\E(\alpha_i\Delta y_{it})=\rho^{\,t-1}\,\E(\alpha_i\Delta y_{i1}),\qquad t\ge1 .
+\]
+所以全部水平矩条件成立与否只取决于第一步 $\E(\alpha_i\Delta y_{i1})=0$，也就是取决于初始条件（Hansen §17.42 用的就是这条思路）。
+
+%----------------------------------------------------------------------
+\subsection{为什么 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y(i,t-1)} 是强工具}
+
+\subsubsection{直观：过去的变化对当前水平有信息}
+
+$\rho$ 接近 $1$ 时，\key{过去的水平几乎不能预测未来的变化}（AB 的工具弱，见本章前文关于弱工具的讨论），但\key{过去的变化对当前水平有信息}：$y_{i,t-1}=y_{i,t-2}+\Delta y_{i,t-1}$，最近的变化本身就是当前水平的组成部分。而且 $\Delta y_{i,t-1}$ 不含持久的 $\frac{\alpha_i}{1-\rho}$，不会被个体效应的巨大方差“淹没”。
+
+\subsubsection{单方程比较的工具：恰好识别 IV 的渐近方差}
+
+下面用单个方程、单个工具的渐近方差把直观说清楚。设平稳、正态，$\E(\alpha_i)=0$。对单回归元 $x$、单工具 $z$、结构误差 $\varepsilon$ 的恰好识别 IV，$z$ 与 $\varepsilon$ 不相关；在正态下二者独立，于是
+\[
+N\times\avar=\frac{\sigma_\varepsilon^2\Var(z)}{\Cov(z,x)^2}.
+\]
+平稳时 $y_{it}=\frac{\alpha_i}{1-\rho}+v_{it}$，$v_{it}=\rho v_{i,t-1}+u_{it}$，$\sigma_v^2\equiv\Var(v_{it})=\frac{\sigma_u^2}{1-\rho^2}$，$\Cov(v_{it},v_{i,t-1})=\rho\sigma_v^2$，$v$ 与 $\alpha_i$ 独立。
+
+\subsubsection{AH：差分方程 + 工具 \texorpdfstring{$y_{i,t-2}$}{y(i,t-2)}}
+
+$x=\Delta y_{i,t-1}$，$z=y_{i,t-2}$，$\varepsilon=\Delta u_{it}$，$\sigma_\varepsilon^2=2\sigma_u^2$。
+\begin{align*}
+\Cov(z,x) &= \Cov(y_{i,t-2},y_{i,t-1})-\Var(y_{i,t-2}) \why{$x=y_{i,t-1}-y_{i,t-2}$}\\
+&= \Big[\frac{\sigma_\alpha^2}{(1-\rho)^2}+\rho\sigma_v^2\Big]-\Big[\frac{\sigma_\alpha^2}{(1-\rho)^2}+\sigma_v^2\Big] \why{平稳分解}\\
+&= -(1-\rho)\sigma_v^2=-\frac{\sigma_u^2}{1+\rho} \why{$\sigma_v^2=\sigma_u^2/(1-\rho^2)$}\\
+\Var(z) &= \frac{\sigma_\alpha^2}{(1-\rho)^2}+\frac{\sigma_u^2}{1-\rho^2} \why{$\alpha_i$ 与 $v$ 独立}
+\end{align*}
+
+\subsubsection{BB：水平方程 + 工具 \texorpdfstring{$\Delta y_{i,t-1}$}{Delta y(i,t-1)}}
+
+$x=y_{i,t-1}$，$z=\Delta y_{i,t-1}$，$\varepsilon=\alpha_i+u_{it}$，$\sigma_\varepsilon^2=\sigma_\alpha^2+\sigma_u^2$。
+\begin{align*}
+\Cov(z,x) &= \Var(y_{i,t-1})-\Cov(y_{i,t-2},y_{i,t-1}) \why{$z=y_{i,t-1}-y_{i,t-2}$}\\
+&= \sigma_v^2-\rho\sigma_v^2=\frac{\sigma_u^2}{1+\rho} \why{$\alpha_i$ 部分相互抵消}\\
+\Var(z) &= \Var(v_{i,t-1}-v_{i,t-2})=2\sigma_v^2-2\rho\sigma_v^2=\frac{2\sigma_u^2}{1+\rho} \why{差分去掉了 $\alpha_i$}
+\end{align*}
+两种情形下 $|\Cov(z,x)|$ 相同，都等于 $\sigma_u^2/(1+\rho)$。
+
+\subsubsection{数值比较：\texorpdfstring{$\rho\to1$}{rho -> 1} 时 AH 方差爆炸，BB 几乎不变}
+
+取 $\sigma_\alpha^2=\sigma_u^2=1$（两种结构误差方差都等于 $2$），代入公式：
+\begin{align*}
+N\times\avar_{AH} &= 2\cdot\Big[\frac{1}{(1-\rho)^2}+\frac{1}{1-\rho^2}\Big]\cdot(1+\rho)^2 \why{$\sigma_\varepsilon^2\cdot\Var(z)\big/\Cov(z,x)^2$}\\
+&= \frac{2(1+\rho)^2}{(1-\rho)^2}+\frac{2(1+\rho)}{1-\rho} \why{展开，$1-\rho^2=(1-\rho)(1+\rho)$}\\
+N\times\avar_{BB} &= 2\cdot\frac{2}{1+\rho}\cdot(1+\rho)^2=4(1+\rho) \why{$\sigma_\varepsilon^2\cdot\Var(z)\big/\Cov(z,x)^2$}
+\end{align*}
+例如 $\rho=0.9$：$\avar_{AH}$ 一项为 $2\cdot1.9^2/0.1^2=722$，另一项为 $2\cdot1.9/0.1=38$，合计 $760$；$\avar_{BB}=4\cdot1.9=7.6$。
+\begin{center}
+\small
+\begin{tabular}{lcccc}
+\toprule
+$N\times$ 渐近方差 & $\rho=0.5$ & $\rho=0.8$ & $\rho=0.9$ & $\rho=0.95$\\
+\midrule
+差分方程 + 工具 $y_{i,t-2}$（AH） & 24 & 180 & 760 & 3120\\
+水平方程 + 工具 $\Delta y_{i,t-1}$（BB） & 6.0 & 7.2 & 7.6 & 7.8\\
+\bottomrule
+\end{tabular}
+\captionof{table}{单方程、单工具的渐近方差比较（$\sigma_\alpha^2=\sigma_u^2=1$）}
+\end{center}
+差别全在 $\Var(z)$：AH 的工具 $y_{i,t-2}$ 的方差含 $\sigma_\alpha^2/(1-\rho)^2$，$\rho\to1$ 时爆炸；BB 的工具 $\Delta y_{i,t-1}$ 的方差只有 $2\sigma_u^2/(1+\rho)$。
+
+\subsubsection{有限样本：优势来自合并使用全部矩条件}
+
+只用一个方程时，有限样本分布仍可能很差。系统 GMM 的优势来自把所有 $t$ 的水平矩条件与 AB 矩条件合在一起使用。本章后文的模拟比较中，$\rho=0.9$ 时 AB 估计的均值为 0.71、标准差 0.22，系统 GMM 的均值为 0.92、标准差 0.05。
+
+%----------------------------------------------------------------------
+\subsection{增广工具矩阵 \texorpdfstring{$W_i^*$}{W\_i*}}
+
+\subsubsection{差分方程与水平方程上下堆叠}
+
+新增的工具 $\Delta y_{i,t-1}$ 是给水平方程用的，所以要把差分方程与水平方程上下堆叠成一个方程组（“system”一词即由此而来）：
+\[
+\underbrace{\begin{pmatrix}\Delta Y_i\\ Y_i^L\end{pmatrix}}_{2(T-1)\times1}
+=\rho\underbrace{\begin{pmatrix}\Delta Y_{i,-1}\\ Y_{i,-1}^L\end{pmatrix}}_{2(T-1)\times1}
++\begin{pmatrix}\Delta U_i\\ \alpha_i\one_{T-1}+U_i^L\end{pmatrix},\qquad
+Y_i^L=\begin{pmatrix}y_{i2}\\ \vdots\\ y_{iT}\end{pmatrix},\quad
+Y_{i,-1}^L=\begin{pmatrix}y_{i1}\\ \vdots\\ y_{i,T-1}\end{pmatrix},
+\]
+其中 $U_i^L=(u_{i2},\dots,u_{iT})\T$，$\one_{T-1}$ 为 $(T-1)\times1$ 全 1 向量。
+
+\subsubsection{\texorpdfstring{$W_i^*$}{W\_i*} 的定义与维度}
+
+\begin{defn}[系统 GMM 的工具矩阵]\label{def:U12b-Wstar}
+\[
+W_i^*=\begin{pmatrix} W_i & 0\\ 0 & \diag(\Delta y_{i1},\Delta y_{i2},\dots,\Delta y_{i,T-1})\end{pmatrix},\qquad
+2(T-1)\times\Big(\frac{T(T-1)}{2}+(T-1)\Big).
+\]
+上半部分是 AB 的块对角矩阵，管差分方程；右下角对角块管水平方程，第 $t$ 个水平方程（$t=2,\dots,T$）用 $\Delta y_{i,t-1}$。
+\end{defn}
+矩条件个数为
+\begin{align*}
+\frac{T(T-1)}{2}+(T-1) &= (T-1)\Big(\frac T2+1\Big) \why{提出 $T-1$}\\
+&= \frac{(T-1)(T+2)}{2} \why{通分}
+\end{align*}
+
+\subsubsection{简写与合并（collapse）：\texorpdfstring{$T(T-1)/2+1$}{T(T-1)/2+1} 列}
+
+常见的简写是“在 AB 的块对角矩阵右边加一列 $(\Delta y_{i1},\dots,\Delta y_{i,T-1})\T$”：
+\[
+W_i^*=\Big(\,W_i\quad \big(\Delta y_{i1},\Delta y_{i2},\dots,\Delta y_{i,T-1}\big)\T\,\Big)\ \longrightarrow\ \text{system GMM},
+\]
+维度记为 $(T-1)\times\big(\frac{(T-1)T}{2}+1\big)$。这是一种示意：新增那一列的各行实际对应水平方程。若把水平方程的工具\term{合并}{collapse}成一列 $(\Delta y_{i1},\dots,\Delta y_{i,T-1})\T$（对应单个矩条件 $\sum_t\E[\Delta y_{i,t-1}(y_{it}-\rho y_{i,t-1})]=0$），水平部分只占 1 列，总列数就是 $\frac{T(T-1)}{2}+1$。
+
+\subsubsection{例：\texorpdfstring{$T=4$}{T=4} 的 \texorpdfstring{$W_i^*$}{W\_i*}}
+
+\begin{exmp}[$T=4$ 的 $W_i^*$（$6\times9$）]\label{ex:U12b-Wstar4}
+写出 $T=4$（观测 $y_{i0},\dots,y_{i4}$）时的 $W_i^*$，并数矩条件。
+
+\solution
+\[
+W_i^*=\left(\begin{array}{cccccc|ccc}
+y_{i0} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & y_{i0} & y_{i1} & 0 & 0 & 0 & 0 & 0 & 0\\
+0 & 0 & 0 & y_{i0} & y_{i1} & y_{i2} & 0 & 0 & 0\\ \hline
+0 & 0 & 0 & 0 & 0 & 0 & \Delta y_{i1} & 0 & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & \Delta y_{i2} & 0\\
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & \Delta y_{i3}
+\end{array}\right)
+\begin{array}{l}
+\leftarrow\ \Delta y_{i2}\ \text{方程}\\
+\leftarrow\ \Delta y_{i3}\ \text{方程}\\
+\leftarrow\ \Delta y_{i4}\ \text{方程}\\
+\leftarrow\ y_{i2}\ \text{水平方程}\\
+\leftarrow\ y_{i3}\ \text{水平方程}\\
+\leftarrow\ y_{i4}\ \text{水平方程}
+\end{array}
+\]
+矩条件 $6+3=9$ 个，即 $\frac{(T-1)(T+2)}{2}=\frac{3\cdot6}{2}=9$；合并版为 $6+1=7$ 个。
+\end{exmp}
+
+\subsubsection{易错点：\texorpdfstring{$t=1$}{t=1} 的水平方程不能用；更早的差分是冗余工具}
+
+\begin{note}[水平方程的工具]
+(1) $t=1$ 的水平方程不能用：它的工具是 $\Delta y_{i0}=y_{i0}-y_{i,-1}$，需要观测不到的 $y_{i,-1}$。\\
+(2) 水平方程再加入更早的差分 $\Delta y_{i,t-2},\Delta y_{i,t-3},\dots$ 作工具是冗余的：在 AB 矩条件已使用的前提下，它们不提供新信息（Blundell \& Bond, 1998）。
+\end{note}
+
+\subsection{估计：与 AB 相同，只把 \texorpdfstring{$W_i$}{W\_i} 换成 \texorpdfstring{$W_i^*$}{W\_i*}}
+
+\subsubsection{系统 GMM 估计量}
+
+“Estimation is the same as the AB GMM with $W_i\to W_i^*$.”记 $Y_i^*=(\Delta Y_i\T,\ Y_i^{L\prime})\T$，$X_i^*=(\Delta Y_{i,-1}\T,\ Y_{i,-1}^{L\prime})\T$（都是 $2(T-1)\times1$），则
+\[
+\hat\rho_{SYS}=\Big(\sum_iX_i^{*\prime}W_i^*\,\hat\Omega^{*-1}\sum_iW_i^{*\prime}X_i^*\Big)\inv\Big(\sum_iX_i^{*\prime}W_i^*\,\hat\Omega^{*-1}\sum_iW_i^{*\prime}Y_i^*\Big).
+\]
+
+\subsubsection{一步权重 \texorpdfstring{$\diag(H,I_{T-1})$}{diag(H,I)} 与两步 GMM}
+
+水平方程的误差 $\alpha_i+u_{it}$ 在各期之间相关（共享 $\alpha_i$），没有像 $H$ 那样已知的协方差结构。实践中一步估计常取（Hansen §17.42）
+\[
+\hat\Omega_1^*=\sum_iW_i^{*\prime}\diag(H,\ I_{T-1})\,W_i^*,
+\]
+再用一步残差 $\hat U_i^*$ 构造 $\hat\Omega_2^*=\sum_iW_i^{*\prime}\hat U_i^*\hat U_i^{*\prime}W_i^*$ 做两步 GMM。一步与两步的利弊、Windmeijer 校正与差分 GMM 相同。
+
+\subsubsection{系统 GMM 的性质}
+
+\begin{thm}[System GMM 的性质]\label{thm:U12b-sysprop}
+\begin{enumerate}
+  \item 在均值平稳初始条件下一致、渐近正态，是同时使用 AB 矩条件与水平矩条件的有效 GMM。
+  \item System GMM 的表现优于 AB GMM（System GMM performs better than AB-GMM），确实改进了 AB GMM 的有限样本表现：在 $\rho$ 接近 1 或 $\sigma_\alpha^2/\sigma_u^2$ 大时改进尤其明显（Blundell \& Bond, 1998 的模拟）。
+  \item 缺点：依赖初始条件假设；一旦不成立，新增矩条件无效，估计有偏且不一致。
+\end{enumerate}
+\end{thm}
+
+%----------------------------------------------------------------------
+\subsection{谨慎使用：含 \texorpdfstring{$x_{it}$}{x\_it} 时初始条件可能不成立}
+
+“能不能用 System GMM？”回答是：可以，但要谨慎（use with caution）。
+
+\subsubsection{无 \texorpdfstring{$x_{it}$}{x\_it} 时：初始条件可能成立}
+
+原始的系统 GMM 是为不含 $x_{it}$ 的面板设计的（original system GMM is for panel without $x_{it}$）。对纯 AR(1) 面板，$y_{i0}=\frac{\alpha_i}{1-\rho}+u_{i0}$ 可能成立，从而 $\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$ 可能成立。
+
+\subsubsection{含 \texorpdfstring{$x_{it}$}{x\_it} 时：初始值还受样本前 \texorpdfstring{$x$}{x} 的驱动}
+
+对 $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}\T\beta+u_{it}$，$y_{i0}$ 也受样本前的 $x_{i0},x_{i,-1},x_{i,-2},\dots$ 驱动，初始条件应为
+\[
+y_{i0}=\frac{\alpha_i}{1-\rho}+\big(x_{i0},x_{i,-1},\dots\text{ 的函数}\big)+u_{i0}.
+\]
+于是 $y_{i0}=\frac{\alpha_i}{1-\rho}+v_{i0}$ 未必成立，水平矩条件
+\[
+\E\big[(y_{it}-\rho\,y_{i,t-1}-x_{it}\T\beta)\,\Delta y_{i,t-1}\big]=0
+\]
+也就成了疑问。
+
+\subsubsection{推导：\texorpdfstring{$\E(\alpha_i\Delta y_{i1})$}{E(alpha Delta y1)} 多出与 \texorpdfstring{$x$}{x} 有关的项}
+
+平稳时，与上文同样反复代入得初始值 $y_{i0}=\frac{\alpha_i}{1-\rho}+\sum_{s\ge0}\rho^sx_{i,-s}\T\beta+v_{i0}$。重复 $t=1$ 的计算（设 $\E(\alpha_iv_{i0})=0$、$\E(\alpha_iu_{i1})=0$）：
+\begin{align*}
+\E(\alpha_i\Delta y_{i1}) &= \E\big[\alpha_i\big((\rho-1)y_{i0}+\alpha_i+x_{i1}\T\beta+u_{i1}\big)\big] \why{$\Delta y_{i1}$ 含 $x_{i1}\T\beta$}\\
+&= -\E(\alpha_i^2)-(1-\rho)\sum_{s\ge0}\rho^s\E(\alpha_ix_{i,-s}\T)\beta+\E(\alpha_i^2)+\E(\alpha_ix_{i1}\T)\beta \why{代入初始条件}\\
+&= \E(\alpha_ix_{i1}\T)\beta-(1-\rho)\sum_{s\ge0}\rho^s\E(\alpha_ix_{i,-s}\T)\beta \why{$\E(\alpha_i^2)$ 抵消}
+\end{align*}
+
+\subsubsection{充分条件：\texorpdfstring{$x$}{x} 与 \texorpdfstring{$\alpha_i$}{alpha\_i} 的相关不随时间变化}
+
+上式为 $0$ 的一个充分条件是 $x$ 与 $\alpha_i$ 的相关不随时间变化：$\E(\alpha_ix_{it})\equiv c$ 对所有 $t$（含样本前）成立。此时
+\begin{align*}
+(1-\rho)\sum_{s\ge0}\rho^s\E(\alpha_ix_{i,-s}\T)\beta &= (1-\rho)\sum_{s\ge0}\rho^s\,c\T\beta \why{恒定相关}\\
+&= (1-\rho)\cdot\frac{1}{1-\rho}\,c\T\beta=c\T\beta \why{等比级数}
+\end{align*}
+与第一项 $\E(\alpha_ix_{i1}\T)\beta=c\T\beta$ 抵消。“恒定相关”等价于 $\E(\alpha_i\Delta x_{it})=0$（Hansen §17.42 的 constant correlation 假设）。它在归纳步中也要用到：含 $x$ 时 $\E(\alpha_i\Delta y_{it})=\rho\,\E(\alpha_i\Delta y_{i,t-1})+\E(\alpha_i\Delta x_{it}\T)\beta$，第二项要靠 $\E(\alpha_i\Delta x_{it})=0$ 才消失。在此假设下 $\Delta x_{it}$ 也可作为水平方程的工具。若 $x$ 有趋势，或 $x$ 与 $\alpha_i$ 的相关随时间改变，条件就不成立——这正是含 $x$ 时使用系统 GMM 要谨慎的原因。
+
+\subsubsection{差分 GMM 与系统 GMM 的比较与实务建议}
+
+AB GMM 与 System GMM 都是有效 GMM（在各自的矩条件下）。AB GMM 的问题是渐近偏误与弱工具；System GMM 是修正的 AB GMM，在一个关于 $y_{i0}$ 的新假设（且原始设定不含 $x_{it}$）下引入新的矩条件（new moment conditions under a new assumption of $y_{i0}$ without $x_{it}$）。实务上，报告 System GMM 时要用 Difference-in-Hansen 检验水平矩条件这一子集是否有效（见本章后文设定检验一节），并与 AB 估计比较。
+
+\begin{keypt}[系统 GMM 的常考点]
+证明水平矩条件 \eqref{eq:U12b-level}：先化为 $\E(\alpha_i\Delta y_{i,t-1})=0$，再代入均值平稳初始条件证 $t=1$（或 $t=2$），最后用差分方程归纳；解释为什么 $\Delta y_{i,t-1}$ 是强工具；指出含 $x_{it}$ 时初始条件存疑。
+\end{keypt}
+
+\begin{prac}[初始条件不成立时 System GMM 失效]\label{pr:U12b-sys}
+设 $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$，但初始值为 $y_{i0}=\frac{\alpha_i}{1-\rho}+\delta\alpha_i+v_{i0}$（$\delta\neq0$，$\E(\alpha_iv_{i0})=0$，$\Var(\alpha_i)=\sigma_\alpha^2$）。\\
+(1) 计算 $\E(\alpha_i\Delta y_{i1})$ 与 $\E(\alpha_i\Delta y_{it})$（$t\ge1$）。\\
+(2) 水平矩条件 \eqref{eq:U12b-level} 是否成立？AB 矩条件呢？\\
+(3) $T=5$ 时 System GMM（非合并）有多少矩条件？
+\answer
+(1) 由第一步的推导，
+\begin{align*}
+\E(\alpha_i\Delta y_{i1}) &= (\rho-1)\E(\alpha_iy_{i0})+\E(\alpha_i^2) \why{$\E(\alpha_iu_{i1})=0$}\\
+&= (\rho-1)\Big(\frac{\sigma_\alpha^2}{1-\rho}+\delta\sigma_\alpha^2\Big)+\sigma_\alpha^2 \why{代入新初始条件}\\
+&= -\sigma_\alpha^2+(\rho-1)\delta\sigma_\alpha^2+\sigma_\alpha^2=(\rho-1)\delta\sigma_\alpha^2\neq0 \why{整理}
+\end{align*}
+由归纳步的递推式 $\E(\alpha_i\Delta y_{it})=\rho\,\E(\alpha_i\Delta y_{i,t-1})$，得 $\E(\alpha_i\Delta y_{it})=\rho^{t-1}(\rho-1)\delta\sigma_\alpha^2$。\\
+(2) 水平矩条件 $\E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=\E(\alpha_i\Delta y_{i,t-1})=\rho^{t-2}(\rho-1)\delta\sigma_\alpha^2\neq0$，\key{不成立}（虽随 $t$ 几何衰减）；System GMM 不一致。AB 矩条件 $\E(y_{is}\Delta u_{it})=0$（$s\le t-2$）只依赖 $\E(y_{i0}u_{it})=0$ 等，与 $y_{i0}$ 和 $\alpha_i$ 的关系无关，\key{仍成立}——这就是“AB 更稳健、System 更有效”的权衡。\\
+(3) $\frac{5\cdot4}{2}+(5-1)=10+4=14$ 个。
+\end{prac}
+
+\begin{english}
+\textbf{System GMM.} Blundell and Bond (1998) add the level equation $y_{it}-\rho y_{i,t-1}=\alpha_i+u_{it}$, instrumented by $\Delta y_{i,t-1}$. Under the mean-stationarity initial condition $y_{i0}=\alpha_i/(1-\rho)+v_{i0}$ with $E(\alpha_iv_{i0})=0$, one can show $E(\alpha_i\Delta y_{i1})=0$ and, by induction, $E(\alpha_i\Delta y_{it})=0$ for all $t$, which yields the additional moment conditions $E[(y_{it}-\rho y_{i,t-1})\Delta y_{i,t-1}]=0$, $t=2,\dots,T$. Lagged differences remain informative about levels even when $\rho$ is close to one, so system GMM alleviates the weak-instrument problem of difference GMM and improves finite-sample performance. Estimation is the same as Arellano--Bond GMM with the augmented instrument matrix $W_i^*=\mathrm{diag}(W_i,\mathrm{diag}(\Delta y_{i1},\dots,\Delta y_{i,T-1}))$. It should be used with caution: the initial condition is plausible in a pure AR(1) panel, but with regressors $x_{it}$ it requires, e.g., constant correlation between $x_{it}$ and $\alpha_i$, and its validity should be checked with a difference-in-Hansen test.
+\end{english}
+
+%======================================================================
+\section{FOD GMM：前向正交离差}\label{sec:U12b-fod}
+
+前两节都用一阶差分消去 $\alpha_i$。本节换一种消去 $\alpha_i$ 的变换——前向正交离差：它在消去个体效应的同时保持误差无序列相关、同方差，并使最近的滞后 $y_{i,t-1}$ 也成为有效工具。
+
+\subsection{一阶差分的两个副作用}
+
+\subsubsection{误差 \texorpdfstring{$\Delta u_{it}$}{Delta u} 一阶序列相关}
+
+$y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$ 经一阶差分得 $\Delta y_{it}=\rho\,\Delta y_{i,t-1}+\Delta u_{it}$，误差 $\Delta u_{i,t-1},\Delta u_{it},\Delta u_{i,t+1}$ 相邻相关（order 1 correlation，即 $H$ 中的 $-1$）。FD 带来两个副作用：
+\begin{enumerate}
+  \item 误差是 MA(1)，一步 GMM 要用 $H$ 加权；
+  \item 第 $t$ 个差分方程中 $y_{i,t-1}$ 因含 $u_{i,t-1}$ 而不能作工具，离得最近的工具只能是 $y_{i,t-2}$。
+\end{enumerate}
+
+\subsubsection{FOD 的目标：消去 \texorpdfstring{$\alpha_i$}{alpha\_i} 而保持误差的 i.i.d. 结构}
+
+\term{前向正交离差}{forward orthogonal deviations}（FOD）变换由 Arellano \& Bover (1995) 提出（最早由 Hayashi \& Sims (1983) 用于时间序列），Alvarez \& Arellano (2003) 将其用于动态面板 GMM。它使误差保持无序列相关，并使 $y_{i,t-1}$ 在第 $t$ 个方程中成为有效工具。但要注意：用全部滞后作工具时，FD 与 FOD 的工具总数相同、估计值在数值上相同（见本节末）。FOD 的好处主要在计算与非平衡面板，而不是“多出了信息”。
+
+%----------------------------------------------------------------------
+\subsection{前向均值与 FOD 变换}
+
+\subsubsection{思路：当期方程减去未来方程的平均}
+
+$\alpha_i$ 在每个未来方程中都相同。把第 $t$ 期以后的方程排在一起：
+\[
+\left.\begin{aligned}
+y_{i,t+1}&=\boxed{\alpha_i}+\rho\,y_{it}+u_{i,t+1}\\
+&\ \ \vdots\\
+y_{iT}&=\boxed{\alpha_i}+\rho\,y_{i,T-1}+u_{iT}
+\end{aligned}\right\}
+\xrightarrow{\ \text{对 } s=t+1,\dots,T\ \text{平均}\ }
+\bar y_{it}^{f}=\alpha_i+\rho\,\bar y_{i,t-1}^{f}+\bar u_{it}^{f}.
+\]
+推导如下：
+\begin{align*}
+\frac{1}{T-t}\sum_{s=t+1}^{T}y_{is} &= \frac{1}{T-t}\sum_{s=t+1}^{T}\big(\alpha_i+\rho\,y_{i,s-1}+u_{is}\big) \why{逐个代入模型}\\
+&= \alpha_i+\rho\,\frac{1}{T-t}\sum_{s=t+1}^{T}y_{i,s-1}+\frac{1}{T-t}\sum_{s=t+1}^{T}u_{is} \why{$\alpha_i$ 与 $s$ 无关}
+\end{align*}
+
+\subsubsection{前向均值的定义}
+
+上式中出现的三个平均称为\term{前向均值}{forward mean}：
+\[
+\bar y_{it}^{f}=\frac{1}{T-t}\big(y_{i,t+1}+\cdots+y_{iT}\big),\qquad
+\bar y_{i,t-1}^{f}=\frac{1}{T-t}\big(y_{it}+\cdots+y_{i,T-1}\big),\qquad
+\bar u_{it}^{f}=\frac{1}{T-t}\big(u_{i,t+1}+\cdots+u_{iT}\big).
+\]
+注意 $\bar y_{i,t-1}^{f}$ 是第 $t$ 个方程中“滞后变量”的前向均值：未来方程的滞后项 $y_{it},\dots,y_{i,T-1}$ 的平均。
+
+\subsubsection{减去前向平均方程，\texorpdfstring{$\alpha_i$}{alpha\_i} 消失}
+
+用第 $t$ 个方程 $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$ 减去前向平均方程：
+\[
+y_{it}-\bar y_{it}^{f}=\rho\big(y_{i,t-1}-\bar y_{i,t-1}^{f}\big)+\big(u_{it}-\bar u_{it}^{f}\big),\qquad t=1,\dots,T-1 .
+\]
+最后一期 $t=T$ 没有“未来”，损失一期。
+
+\subsubsection{FOD 变换与缩放因子 \texorpdfstring{$c_t$}{c\_t}}
+
+\begin{defn}[FOD 变换]\label{def:U12b-fod}
+对第 $t$ 个方程（$t=1,\dots,T-1$），令 $c_t=\sqrt{\dfrac{T-t}{T-t+1}}$，
+\[
+y_{it}^{f}=c_t\big(y_{it}-\bar y_{it}^{f}\big),\qquad
+y_{i,t-1}^{f}=c_t\big(y_{i,t-1}-\bar y_{i,t-1}^{f}\big),\qquad
+u_{it}^{f}=c_t\big(u_{it}-\bar u_{it}^{f}\big),
+\]
+得到 FOD 方程
+\begin{equation}\label{eq:U12b-fod}
+y_{it}^{f}=\rho\,y_{i,t-1}^{f}+u_{it}^{f},\qquad t=1,\dots,T-1 .
+\end{equation}
+\end{defn}
+
+\subsubsection{缩放因子的作用与记号}
+
+不乘 $c_t$ 时，变换后误差仍互不相关，但方差 $\sigma_u^2\frac{T-t+1}{T-t}$ 随 $t$ 变化；乘上 $c_t$ 后方差都等于 $\sigma_u^2$，一步 GMM 才恰好是 2SLS（见下文）。文献中的记号不统一：$\bar y^f$、$y^{FOD}$、$\tilde y^f$，Hansen 记作 $Y_{it}^*$。名称是 forward orthogonal \emph{deviations}（离差），不要写成 difference。
+
+\subsection{变换后误差互不相关且同方差}
+
+要证：若 $u_{it}$ i.i.d.（方差 $\sigma_u^2$），则 $\E(u_{it}^fu_{is}^f)=0$（$t\neq s$），$\Var(u_{it}^f)=\sigma_u^2$。
+
+\subsubsection{协方差为零}
+
+设 $t<s$。$\bar u_{it}^f$ 包含 $u_{is}$ 以及 $\bar u_{is}^f$ 中的全部项。
+\begin{align*}
+\E\big[(u_{it}-\bar u_{it}^{f})(u_{is}-\bar u_{is}^{f})\big]
+&= \E(u_{it}u_{is})-\E(u_{it}\bar u_{is}^{f})-\E(\bar u_{it}^{f}u_{is})+\E(\bar u_{it}^{f}\bar u_{is}^{f}) \why{展开}\\
+&= 0-0-\frac{\sigma_u^2}{T-t}+\E(\bar u_{it}^{f}\bar u_{is}^{f}) \why{$\bar u_{it}^f$ 中 $u_{is}$ 的权重 $\frac{1}{T-t}$}\\
+&= -\frac{\sigma_u^2}{T-t}+\frac{1}{T-t}\cdot\frac{1}{T-s}\cdot(T-s)\,\sigma_u^2 \why{共享 $u_{i,s+1},\dots,u_{iT}$ 共 $T-s$ 项}\\
+&= 0.
+\end{align*}
+第二行中 $\E(u_{it}\bar u_{is}^f)=0$，因为 $\bar u_{is}^f$ 只含 $s$ 期以后的冲击，而 $t<s$。乘以 $c_tc_s$ 即得 $\E(u_{it}^fu_{is}^f)=0$。
+
+\subsubsection{方差为 \texorpdfstring{$\sigma_u^2$}{sigma\_u\^{}2}}
+
+$u_{it}$ 与 $\bar u_{it}^f$ 中的未来冲击不相关，方差可以直接相加：
+\begin{align*}
+\Var(u_{it}^f) &= c_t^2\big[\Var(u_{it})+\Var(\bar u_{it}^f)\big] \why{$u_{it}$ 与未来冲击不相关}\\
+&= c_t^2\Big[\sigma_u^2+\frac{\sigma_u^2}{T-t}\Big] \why{$T-t$ 个 i.i.d. 项的平均}\\
+&= \frac{T-t}{T-t+1}\cdot\frac{T-t+1}{T-t}\,\sigma_u^2=\sigma_u^2 \why{代入 $c_t^2$}
+\end{align*}
+这说明：FOD 消去 $\alpha_i$ 的同时\key{保持了误差的 i.i.d. 协方差结构}（$\sigma_u^2I$），而 FD 把它变成了 $\sigma_u^2H$。
+
+%----------------------------------------------------------------------
+\subsection{例：\texorpdfstring{$T=3$}{T=3} 的 FOD 变换矩阵}
+
+\subsubsection{例：把 \texorpdfstring{$(u_{i1},u_{i2},u_{i3})$}{(u1,u2,u3)} 变换为 \texorpdfstring{$(u_{i1}^f,u_{i2}^f)$}{(u1f,u2f)}}
+
+\begin{exmp}[$T=3$ 的 FOD 变换]\label{ex:U12b-fod3}
+$T=3$，写出 $u_{i1}^f,u_{i2}^f$ 与变换矩阵 $A$（$U_i^f=AU_i$），直接验证误差互不相关、同方差，并验证 $A\one_3=0$、$AA\T=I_2$、$A\T A=M_3$。
+
+\solution $c_1=\sqrt{2/3}$，$c_2=\sqrt{1/2}$：
+\[
+u_{i1}^f=\sqrt{\tfrac23}\Big(u_{i1}-\frac{u_{i2}+u_{i3}}{2}\Big),\qquad
+u_{i2}^f=\sqrt{\tfrac12}\,(u_{i2}-u_{i3}),\qquad
+A=\begin{pmatrix}\sqrt{2/3} & -\frac12\sqrt{2/3} & -\frac12\sqrt{2/3}\\ 0 & \sqrt{1/2} & -\sqrt{1/2}\end{pmatrix}.
+\]
+直接验证：
+\begin{align*}
+\Var(u_{i1}^f) &= \tfrac23\big(1+\tfrac14+\tfrac14\big)\sigma_u^2=\sigma_u^2 \why{三项方差相加}\\
+\Var(u_{i2}^f) &= \tfrac12\cdot2\sigma_u^2=\sigma_u^2 \why{两项方差相加}\\
+\Cov(u_{i1}^f,u_{i2}^f) &= \sqrt{\tfrac23}\sqrt{\tfrac12}\,\E\big[(u_{i1}-\tfrac12u_{i2}-\tfrac12u_{i3})(u_{i2}-u_{i3})\big] \why{代入定义}\\
+&= \sqrt{\tfrac13}\big(-\tfrac12+\tfrac12\big)\sigma_u^2=0 \why{只有 $u_{i2},u_{i3}$ 的平方项}
+\end{align*}
+矩阵形式：$A\one_3=0$（每行之和为 0，消去个体效应）；$AA\T=I_2$（误差协方差保持 $\sigma_u^2I$）；$A\T A=M_3=I_3-\frac13\one_3\one_3\T$（组内变换矩阵）。例如 $A\T A$ 的 $(1,1)$ 元为 $\frac23$，$(1,2)$ 元为 $\sqrt{\frac23}\cdot(-\frac12\sqrt{\frac23})=-\frac13$，$(2,2)$ 元为 $\frac14\cdot\frac23+\frac12=\frac23$，与 $M_3$ 一致。
+\end{exmp}
+
+\subsubsection{一般 \texorpdfstring{$T$}{T}：\texorpdfstring{$A\one_T=0$}{A1=0}、\texorpdfstring{$AA'=I_{T-1}$}{AA'=I}、\texorpdfstring{$A'A=M_T$}{A'A=M}}
+
+一般地，FOD 可写成 $U_i^f=AU_i$，$A$ 为 $(T-1)\times T$ 的前向正交离差算子，满足 $A\one_T=0$、$AA\T=I_{T-1}$、$A\T A=M_T$（Hansen §17.43，可直接相乘验证）。于是 $\E(U_i^fU_i^{f\prime})=\sigma_u^2AA\T=\sigma_u^2I_{T-1}$。
+
+\subsubsection{\texorpdfstring{$A'A=M$}{A'A=M} 的含义：FOD 本身并不能消除 Nickell 偏误}
+
+\begin{note}[FOD-OLS = WG]
+记 $Y_i=(y_{i1},\dots,y_{iT})\T$，$Y_{i,-1}=(y_{i0},\dots,y_{i,T-1})\T$。对 FOD 变换后的数据直接做 OLS，分子为
+\begin{align*}
+\sum_t y_{i,t-1}^fy_{it}^f &= (AY_{i,-1})\T(AY_i) \why{FOD 的矩阵形式}\\
+&= Y_{i,-1}\T A\T AY_i=Y_{i,-1}\T M_TY_i \why{$A\T A=M_T$}
+\end{align*}
+恰好等于 WG 的分子（分母同理）。所以 \key{FOD-OLS = WG，同样有 Nickell 偏误}。FOD 的好处不在于变换本身，而在于变换后可以使用更强、更多的有效工具（下一小节）。
+\end{note}
+
+%----------------------------------------------------------------------
+\subsection{变换后回归元仍内生，但 \texorpdfstring{$y_{i,t-1}$}{y(i,t-1)} 本身可作工具}
+
+\subsubsection{\texorpdfstring{$y_{i,t-1}^f$}{y(t-1)f} 与 \texorpdfstring{$u_{it}^f$}{u(t)f} 共享冲击：回归元内生}
+
+$y_{i,t-1}^f$ 含 $\bar y_{i,t-1}^f=\frac{1}{T-t}(y_{it}+\cdots+y_{i,T-1})$，而 $y_{it},\dots,y_{i,T-1}$ 含 $u_{it},\dots,u_{i,T-1}$，与 $u_{it}^f$（含 $u_{it},\dots,u_{iT}$）共享冲击，所以 $y_{i,t-1}^f$ 是内生的（endogenous）。按时期看：$y_{i,t-1}^f$ 涉及 $y$ 的第 $t-1,t,\dots,T-1$ 期，$u_{it}^f$ 涉及 $u$ 的第 $t,t+1,\dots,T$ 期。
+
+\subsubsection{任何 \texorpdfstring{$s\le t-1$}{s <= t-1} 的 \texorpdfstring{$y_{is}$}{y\_is} 都是有效工具}
+
+$u_{it}^f$ 只含 $t$ 期及以后的冲击（time $t$ and after），因此任何 $s\le t-1$ 的 $y_{is}$ 都与之不相关：
+\begin{align*}
+\E(y_{is}u_{it}^f) &= c_t\Big[\E(y_{is}u_{it})-\frac{1}{T-t}\sum_{r=t+1}^{T}\E(y_{is}u_{ir})\Big] \why{代入 $u_{it}^f$ 的定义}\\
+&= c_t\big[0-0\big]=0,\qquad s<t \why{$s<t<r$，由 \eqref{eq:U12b-ysu}}
+\end{align*}
+于是第 $t$ 个 FOD 方程的工具集为 $(y_{i0},\dots,y_{i,t-2},\boxed{y_{i,t-1}})$——\key{包括 $y_{i,t-1}$ 本身}。用 $y_{i,t-1}$ 作 $y_{i,t-1}^f$ 的工具做 IV 估计，估计量一致、渐近正态。
+
+\subsubsection{工具与变换后误差在时间上不重叠}
+
+\begin{center}\begin{minipage}{\linewidth}\centering
+\begin{tikzpicture}[x=1.3cm,>={Stealth[length=2mm]}]
+\draw[->] (-0.5,0) -- (7.4,0) node[right,font=\small] {time};
+\foreach \x/\l in {0/{t-3},1/{t-2},2/{t-1},3/{t},4/{t+1},6/{T}}
+  {\draw (\x,0.08) -- (\x,-0.08); \node[below,font=\small] at (\x,-0.1) {$\l$};}
+\node[below,font=\small] at (5,-0.1) {$\cdots$};
+\draw[thick,ForestGreen] (0,0.25) .. controls (0.6,1.0) and (1.6,1.0) .. (2.2,0.25);
+\node[ForestGreen,font=\small,align=center] at (1.0,1.25) {IVs：$y_{i0},\dots,y_{i,t-2},y_{i,t-1}$（strong）};
+\draw[thick,red] (2.8,0.25) .. controls (3.6,1.0) and (5.4,1.0) .. (6.2,0.25);
+\node[red,font=\small] at (4.6,1.25) {$u_{it}^f$：$u_{it},u_{i,t+1},\dots,u_{iT}$};
+\node[font=\large] at (2.5,0.55) {$\#$};
+\end{tikzpicture}
+\captionof{figure}{FOD 的工具：工具（左弧）与变换后误差的冲击（右弧）在时间上不重叠，最近的 $y_{i,t-1}$ 也是有效且最强的工具}
+\end{minipage}\end{center}
+
+\subsubsection{FD 与 FOD 的对照}
+
+\begin{center}
+\small
+\begin{tabular}{lll}
+\toprule
+ & FD（差分 GMM） & FOD（FOD GMM）\\
+\midrule
+变换后误差含哪些冲击 & $u_{i,t-1},u_{it}$ & $u_{it},u_{i,t+1},\dots,u_{iT}$\\
+最近的有效工具 & $y_{i,t-2}$ & $y_{i,t-1}$\\
+第 $t$ 个方程的工具数 & $t-1$（$t=2,\dots,T$） & $t$（$t=1,\dots,T-1$）\\
+工具总数 & $T(T-1)/2$ & $T(T-1)/2$\\
+误差协方差 & $\sigma_u^2H$（MA(1)） & $\sigma_u^2I$\\
+\bottomrule
+\end{tabular}
+\captionof{table}{一阶差分与前向正交离差的对照}
+\end{center}
+
+%----------------------------------------------------------------------
+\subsection{截面向量形式与矩条件 \texorpdfstring{$\E(Z_t'U_t^f)=0$}{E(Z'U)=0}}
+
+\subsubsection{对每个 \texorpdfstring{$t$}{t} 沿个体堆叠}
+
+与 AB“按个体、沿时间堆叠”相反，FOD GMM \key{对每个 $t$ 沿个体堆叠}：
+\[
+\underbrace{\begin{pmatrix}y_{1t}^f\\ y_{2t}^f\\ \vdots\\ y_{Nt}^f\end{pmatrix}}_{Y_t^f}
+=\rho\underbrace{\begin{pmatrix}y_{1,t-1}^f\\ y_{2,t-1}^f\\ \vdots\\ y_{N,t-1}^f\end{pmatrix}}_{Y_{t-1}^f}
++\underbrace{\begin{pmatrix}u_{1t}^f\\ u_{2t}^f\\ \vdots\\ u_{Nt}^f\end{pmatrix}}_{U_t^f},\qquad
+Y_s=\begin{pmatrix}y_{1s}\\ \vdots\\ y_{Ns}\end{pmatrix}\ (N\times1).
+\]
+
+\subsubsection{工具矩阵 \texorpdfstring{$Z_t=(Y_0,\dots,Y_{t-1})$}{Z\_t=(Y\_0,...,Y\_(t-1))}}
+
+第 $t$ 个 FOD 方程的矩条件为
+\[
+\E(Y_{t-1}\T U_t^f)=0,\quad \E(Y_{t-2}\T U_t^f)=0,\quad\dots,\quad \E(Y_0\T U_t^f)=0 .
+\]
+合成矩阵：
+\[
+Z_t=\big(Y_0,Y_1,\dots,Y_{t-1}\big)\quad(N\times t),\qquad \boxed{\E\big(Z_t\T U_t^f\big)=0}.
+\]
+$Z_t$ 有 $t$ 列（$Y_0$ 到 $Y_{t-1}$）。若把第一个观测记为 $y_{i1}$，就写成 $Z_t=(Y_1,\dots,Y_{t-1})$、投影矩阵下标随之平移一位，内容不变；本书统一用 $Z_t=(Y_0,\dots,Y_{t-1})$。
+
+\subsection{投影矩阵 \texorpdfstring{$P_t$}{P\_t} 与 2SLS 形式的估计量}
+
+\subsubsection{投影矩阵 \texorpdfstring{$P_t$}{P\_t}}
+
+\begin{defn}[投影矩阵]\label{def:U12b-Pt}
+$P_t=Z_t(Z_t\T Z_t)\inv Z_t\T$（$N\times N$）称为 $Z_t$ 的\term{投影矩阵}{projection matrix}（第 3 章），只需对 $t\times t$ 的 $Z_t\T Z_t$ 求逆。
+\end{defn}
+
+用 $P_t$ 左乘第 $t$ 期的截面方程：
+\[
+P_tY_t^f=\rho\,P_tY_{t-1}^f+P_tU_t^f ,
+\]
+即先把内生回归元 $Y_{t-1}^f$ 投影到工具空间上——这正是 2SLS 的做法。
+
+\subsubsection{目标函数与闭式解}
+
+把所有 $t$ 的矩条件堆叠，权重取块对角 $\diag\big((Z_1\T Z_1)\inv,\dots,(Z_{T-1}\T Z_{T-1})\inv\big)$：
+\begin{align*}
+J(\rho) &= \sum_{t=1}^{T-1}\big(Y_t^f-\rho Y_{t-1}^f\big)\T Z_t(Z_t\T Z_t)\inv Z_t\T\big(Y_t^f-\rho Y_{t-1}^f\big) \why{块对角权重，各期二次型相加}\\
+&= \sum_{t=1}^{T-1}\big(Y_t^f-\rho Y_{t-1}^f\big)\T P_t\big(Y_t^f-\rho Y_{t-1}^f\big) \why{$P_t$ 的定义}\\
+\frac{dJ}{d\rho} &= -2\sum_{t=1}^{T-1}Y_{t-1}^{f\prime}P_t\big(Y_t^f-\rho Y_{t-1}^f\big)=0 \why{$P_t$ 对称}
+\end{align*}
+解得
+\begin{equation}\label{eq:U12b-fodgmm}
+\boxed{\ \hat\rho^{FOD}_{GMM}=\hat\rho_{2SLS}=\Big(\sum_{t=1}^{T-1}Y_{t-1}^{f\prime}P_tY_{t-1}^f\Big)\inv\Big(\sum_{t=1}^{T-1}Y_{t-1}^{f\prime}P_tY_t^f\Big)\ }
+\end{equation}
+两个求和的范围相同，都是 $t=1,\dots,T-1$（$t=T$ 没有前向均值）。
+
+\subsubsection{块对角权重在同方差下是最优权重}
+
+最优权重是矩条件方差的逆（optimal under homoskedasticity）。记 $z_{it}=(y_{i0},\dots,y_{i,t-1})\T$，则 $Z_t\T U_t^f=\sum_iz_{it}u_{it}^f$。设条件同方差，$\mathcal F_{r}=(y_{i0},\dots,y_{ir},\alpha_i)$。
+\begin{itemize}
+  \item 同期：$\E[(u_{it}^f)^2\mid\mathcal F_{t-1}]=c_t^2\big(\sigma_u^2+\frac{\sigma_u^2}{T-t}\big)=\sigma_u^2$，故 $\Var(z_{it}u_{it}^f)=\sigma_u^2\E(z_{it}z_{it}\T)$。
+  \item 不同期 $t<s$：把 $u_{it}^f$ 拆成 $s$ 期前已知的部分 $a_{it}$ 与含 $u_{is},\dots,u_{iT}$ 的部分 $b_{it}=-\frac{c_t}{T-t}\sum_{r=s}^Tu_{ir}$。
+\end{itemize}
+\begin{align*}
+\E\big(z_{it}a_{it}u_{is}^fz_{is}\T\big) &= \E\big[z_{it}a_{it}z_{is}\T\,\E(u_{is}^f\mid\mathcal F_{s-1})\big]=0 \why{$u_{is}^f$ 只含 $s$ 期起的冲击}\\
+\E\big(b_{it}u_{is}^f\mid\mathcal F_{s-1}\big) &= -\frac{c_tc_s}{T-t}\E\Big[\sum_{r=s}^{T}u_{ir}\Big(u_{is}-\frac{1}{T-s}\sum_{r'=s+1}^{T}u_{ir'}\Big)\Bigm|\mathcal F_{s-1}\Big] \why{代入定义}\\
+&= -\frac{c_tc_s}{T-t}\Big[\sigma_u^2-\frac{1}{T-s}(T-s)\sigma_u^2\Big]=0 \why{条件下仍无相关、同方差}
+\end{align*}
+所以 $\Cov(Z_t\T U_t^f,Z_s\T U_s^f)=0$（$t\neq s$），矩条件方差是块对角的 $\sigma_u^2\diag\big(\E Z_1\T Z_1,\dots,\E Z_{T-1}\T Z_{T-1}\big)$（以样本矩代替），其逆正是所用权重。于是\key{一步 FOD GMM 就是 2SLS，且在同方差下是最优 GMM}。异方差时可用一步残差构造聚类稳健权重做两步 GMM。
+
+%----------------------------------------------------------------------
+\subsection{Alvarez--Arellano (2003)：\texorpdfstring{$\sqrt{NT}$}{sqrt(NT)} 渐近正态与方差 \texorpdfstring{$1-\rho^2$}{1-rho\^{}2}}
+
+\subsubsection{FOD GMM 的渐近分布}
+
+\begin{thm}[FOD GMM 的渐近分布]\label{thm:U12b-aa}
+（Alvarez \& Arellano, 2003, \emph{Econometrica}）$N,T\to\infty$，且 $N$ 相对 $T$ 足够大（$T/N\to0$）时
+\[
+\sqrt{NT}\big(\hat\rho^{FOD}_{GMM}-\rho\big)\dto N\big(0,\ 1-\rho^2\big).
+\]
+$1-\rho^2$ 是\term{效率下界}{efficiency bound}；AB GMM 在最优权重下也有 $\Var(\hat\rho^{AB})\approx1-\rho^2$（optimal with $\Omega$）。
+\end{thm}
+
+\subsubsection{\texorpdfstring{$1-\rho^2$}{1-rho\^{}2} 的来源：已知个体效应时的不可行估计量}
+
+假如个体效应已知（从而个体均值 $\mu_i=\alpha_i/(1-\rho)$ 已知），由模型
+\[
+y_{it}-\mu_i=\rho\,(y_{i,t-1}-\mu_i)+u_{it}
+\]
+可直接用 $NT$ 个观测做 OLS，只用个体内的变异。其渐近方差为
+\begin{align*}
+\avar\big(\sqrt{NT}(\tilde\rho-\rho)\big) &= \frac{\sigma_u^2}{\Var(y_{i,t-1}\mid\alpha_i)} \why{OLS 渐近方差}\\
+&= \frac{\sigma_u^2}{\sigma_v^2}=\frac{\sigma_u^2}{\sigma_u^2/(1-\rho^2)}=1-\rho^2 \why{$\sigma_v^2=\sigma_u^2/(1-\rho^2)$}
+\end{align*}
+与时间序列 AR(1) 的 OLS 相同。这是“知道个体效应”的不可行估计量所能达到的精度，自然是基准下界；FOD GMM 在大样本下达到它。
+
+\subsubsection{严格表述：\texorpdfstring{$T/N\to\kappa$}{T/N -> kappa} 时同样有偏误项}
+
+\tagext\ Alvarez \& Arellano (2003) 的精确结论：$N,T\to\infty$ 且 $T/N\to\kappa\in[0,\infty)$ 时，
+\[
+\sqrt{NT}\big(\hat\rho_{GMM}-\rho\big)\dto N\big(-\sqrt\kappa\,(1+\rho),\ 1-\rho^2\big).
+\]
+GMM（包括 FOD GMM）同样有 $-(1+\rho)/N$ 量级的偏误，只有 $\kappa=0$（$N$ 相对 $T$ 足够大）时中心为 $0$。这与差分 GMM 性质中“$c\neq0$”是同一现象；上面定理中的 $N(0,1-\rho^2)$ 对应的正是 $T/N\to0$。
+
+%----------------------------------------------------------------------
+\subsection{含 \texorpdfstring{$x_{it}$}{x\_it} 的 FOD GMM}
+
+\subsubsection{FOD 变换后的方程与工具矩阵}
+
+模型 $y_{it}=\alpha_i+\rho y_{i,t-1}+x_{it}\T\beta+u_{it}$，FOD 变换后
+\[
+y_{it}^f=\rho\,y_{i,t-1}^f+x_{it}^{f\prime}\beta+u_{it}^f,\qquad
+x_{it}^f=c_t\Big[x_{it}-\frac{1}{T-t}\big(x_{i,t+1}+\cdots+x_{iT}\big)\Big].
+\]
+截面形式 $Y_t^f=\rho\,Y_{t-1}^f+X_t^f\beta+U_t^f$，工具矩阵
+\[
+Z_t=\big(\underbrace{Y_0,\dots,Y_{t-1}}_{\text{为 }Y_{t-1}^f},\ X_t^f\big):
+\]
+滞后水平块作 $Y_{t-1}^f$ 的工具，$X_t^f$ 作自身的工具（外生）。
+
+\subsubsection{估计量：同样的 2SLS 形式}
+
+记 $R_t^f=(Y_{t-1}^f,\ X_t^f)$（$N\times(1+k)$），把 \eqref{eq:U12b-fodgmm} 中的 $Y_{t-1}^f$ 换成 $R_t^f$：
+\[
+\begin{pmatrix}\hat\rho_{FOD}\\ \hat\beta_{FOD}\end{pmatrix}
+=\Big(\sum_{t=1}^{T-1}R_t^{f\prime}P_tR_t^f\Big)\inv\Big(\sum_{t=1}^{T-1}R_t^{f\prime}P_tY_t^f\Big).
+\]
+
+\subsubsection{\texorpdfstring{$x$}{x} 只有严格外生时 \texorpdfstring{$X_t^f$}{X\_t f} 才能作自身的工具}
+
+$X_t^f$ 含未来的 $x$，只有 $x$ 严格外生时它才能作自身的工具。$x$ 前定时应改用 $x$ 的水平值作工具：$u_{it}^f$ 只含 $t$ 期及以后的冲击，而前定意味着 $\E(x_{is}u_{ir})=0$（$s\le r$），所以 $x_{it},x_{i,t-1},\dots,x_{i1}$ 都与 $u_{it}^f$ 不相关；$x$ 内生时则只能用 $x_{i,t-1},x_{i,t-2},\dots$。
+
+%----------------------------------------------------------------------
+\subsection{FOD GMM 与 AB GMM 的关系}
+
+\subsubsection{数值等价}
+
+\begin{thm}[数值等价（Arellano \& Bover, 1995）]\label{thm:U12b-equiv}
+\tagext\ 使用全部可用滞后作工具时，一步差分 GMM（权重 $\sum_iW_i\T HW_i$）与 FOD GMM（2SLS）给出\key{数值上完全相同}的估计值。
+\end{thm}
+本章后文的模拟比较中逐次核对过：两者在每次重复中的差异在 $10^{-15}$ 量级。这也解释了为什么有 $\Var(\hat\rho^{AB})\approx\Var(\hat\rho^{FOD}_{GMM})=1-\rho^2$。
+
+\subsubsection{FOD 的实际优点}
+
+\begin{enumerate}
+  \item \key{计算}：只需对若干 $t\times t$ 矩阵求逆，而 AB 要对 $\frac{T(T-1)}{2}\times\frac{T(T-1)}{2}$ 的 $\Omega$ 求逆；
+  \item \key{误差结构}：$\sigma_u^2I$，一步估计就是 2SLS；
+  \item \key{非平衡面板}：有缺口（gaps）时 FD 会丢掉缺口两侧的观测，FOD 只需每个个体的“未来平均”，损失的观测更少（Roodman, 2009）。
+\end{enumerate}
+
+\subsubsection{FOD 的缺点}
+
+Hansen §17.43 列出：对早期与晚期观测的处理不对称；研究不如 FD 充分；部分 Stata 官方命令不支持（如 \texttt{xtdpd} 的 FOD 选项不能与水平方程工具同时使用，也不能用于有缺口的数据），此时可用 \texttt{xtabond2}。
+
+\begin{summary}[三种动态面板 GMM 对照]
+\small
+\begin{tabularx}{\linewidth}{lLLL}
+\toprule
+ & 差分 GMM（AB） & 系统 GMM（BB） & FOD GMM\\
+\midrule
+消去 $\alpha_i$ & 一阶差分 & 差分方程 + 水平方程（水平方程不消去） & 前向正交离差\\
+工具 & $y_{i0},\dots,y_{i,t-2}$ & AB 工具 + 水平方程用 $\Delta y_{i,t-1}$ & $y_{i0},\dots,y_{i,t-1}$\\
+一步权重 & $(\sum_iW_i\T HW_i)\inv$ & $(\sum_iW_i^{*\prime}\diag(H,I)W_i^*)\inv$ & $\diag\big((Z_t\T Z_t)\inv\big)$，即 2SLS\\
+额外假设 & — & 均值平稳初始条件 & —\\
+主要问题 & 弱工具、工具膨胀、计算量 & 初始条件不成立时不一致 & 与 AB 数值等价\\
+\bottomrule
+\end{tabularx}
+\end{summary}
+
+\begin{keypt}[FOD GMM 的常考点]
+解释为什么 FOD 可以用 $y_{i,t-1}$ 作工具（$u_{it}^f$ 只含 $t$ 期及以后的冲击）；证明 FOD 误差互不相关且同方差；写出 $Z_t$、$P_t$ 与 2SLS 形式的估计量 \eqref{eq:U12b-fodgmm}；说明 $\sqrt{NT}$ 渐近分布与方差 $1-\rho^2$。
+\end{keypt}
+
+\begin{prac}[FOD 与 FD 的比较（$T=3$）]\label{pr:U12b-fod}
+观测 $y_{i0},\dots,y_{i3}$，模型 $y_{it}=\alpha_i+\rho y_{i,t-1}+u_{it}$，$u_{it}$ i.i.d.\\
+(1) 写出两个 FOD 方程（$t=1,2$）的具体形式及各自的工具；共有多少工具？\\
+(2) 说明在 FOD 的 $t=2$ 方程中 $y_{i1}$ 是有效工具，而在 FD 的 $t=2$ 方程中 $y_{i1}$ 不是。
+\answer
+(1) $c_1=\sqrt{2/3}$，$c_2=\sqrt{1/2}$。
+\begin{align*}
+t=1:&\quad \sqrt{\tfrac23}\Big[y_{i1}-\frac{y_{i2}+y_{i3}}{2}\Big]=\rho\sqrt{\tfrac23}\Big[y_{i0}-\frac{y_{i1}+y_{i2}}{2}\Big]+\sqrt{\tfrac23}\Big[u_{i1}-\frac{u_{i2}+u_{i3}}{2}\Big],\quad\text{工具 }y_{i0};\\
+t=2:&\quad \sqrt{\tfrac12}\,(y_{i2}-y_{i3})=\rho\sqrt{\tfrac12}\,(y_{i1}-y_{i2})+\sqrt{\tfrac12}\,(u_{i2}-u_{i3}),\quad\text{工具 }y_{i0},y_{i1}.
+\end{align*}
+共 $1+2=3=T(T-1)/2$ 个，与 AB 相同。\\
+(2) FOD $t=2$ 方程的误差 $\sqrt{1/2}\,(u_{i2}-u_{i3})$ 只含 2、3 期冲击，$y_{i1}$ 只含 1 期及以前的冲击，故 $\E[y_{i1}(u_{i2}-u_{i3})]=0$。FD $t=2$ 方程的误差 $\Delta u_{i2}=u_{i2}-u_{i1}$ 含 $u_{i1}$，而 $y_{i1}$ 也含 $u_{i1}$：
+\begin{align*}
+\E(y_{i1}\Delta u_{i2}) &= \E(y_{i1}u_{i2})-\E(y_{i1}u_{i1}) \why{展开}\\
+&= 0-\sigma_u^2=-\sigma_u^2\neq0 \why{由 \eqref{eq:U12b-ysu}}
+\end{align*}
+所以 $y_{i1}$ 不是 FD $t=2$ 方程的有效工具。
+\end{prac}
+
+\begin{english}
+\textbf{FOD GMM.} The forward orthogonal deviations transformation subtracts from each observation the mean of all future observations and rescales by $c_t=\sqrt{(T-t)/(T-t+1)}$: $y_{it}^f=c_t[y_{it}-(y_{i,t+1}+\cdots+y_{iT})/(T-t)]$. It removes $\alpha_i$ and, unlike first differencing, preserves the i.i.d.\ structure of the errors: $u_{it}^f$ are serially uncorrelated and homoskedastic. Since $u_{it}^f$ depends only on $u_{it},\dots,u_{iT}$, all past levels $y_{i0},\dots,y_{i,t-1}$, including $y_{i,t-1}$ itself, are valid instruments. Stacking across individuals for each $t$, with $Z_t=(Y_0,\dots,Y_{t-1})$ and $P_t=Z_t(Z_t'Z_t)^{-1}Z_t'$, the estimator is $\hat\rho=(\sum_tY_{t-1}^{f\prime}P_tY_{t-1}^f)^{-1}\sum_tY_{t-1}^{f\prime}P_tY_t^f$, which is 2SLS and is the optimal GMM estimator under homoskedasticity. Alvarez and Arellano (2003) show that $\sqrt{NT}(\hat\rho-\rho)\to N(0,1-\rho^2)$ when $T/N\to0$, where $1-\rho^2$ is the efficiency bound. With all available lags as instruments, FOD GMM is numerically identical to one-step difference GMM.
+\end{english}
