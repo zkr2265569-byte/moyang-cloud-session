@@ -1055,7 +1055,7 @@ SSR_{\text{长}} &= \min_{b_1,b_2}\|Y-X_1b_1-X_2b_2\|^2 \why{OLS 的定义}\\
 
 \subsubsection{对增加回归元的惩罚：\texorpdfstring{$\bar R^2$}{adj. R\^{}2} 上升当且仅当 \texorpdfstring{$|t|>1$}{|t| > 1}}
 
-加入新变量后 $SSR$ 下降，但 $n-K$ 也下降，$\bar R^2$ 可能下降。可以证明：$\bar R^2$ 上升当且仅当新变量的（同方差）$t$ 统计量绝对值大于 1（Hansen §9.13 的结论）。$\bar R^2$ 可以为负：$\bar R^2<0\iff R^2<(K-1)/(n-1)$。
+加入新变量后 $SSR$ 下降，但 $n-K$ 也下降，$\bar R^2$ 可能下降。可以证明：$\bar R^2$ 上升当且仅当新变量的（同方差）$t$ 统计量绝对值大于 1（证明见下面的拓展）。$\bar R^2$ 可以为负：$\bar R^2<0\iff R^2<(K-1)/(n-1)$。
 
 \begin{extend}[$\bar R^2$ 上升 $\iff|t|>1$ 的证明]
 设原回归有 $K$ 个回归元，残差平方和 $SSR_0$；加入一个回归元后为 $SSR_1$。单个约束的 $F$ 统计量等于 $t^2$（第 6 章）：
@@ -1073,7 +1073,7 @@ SST 不变，所以 $\bar R^2$ 上升 $\iff$ $s^2$ 下降：
 
 \subsubsection{留一法 \texorpdfstring{$\tilde R^2$}{R-tilde\^{}2}：更好的拟合度量}
 
-Hansen 建议用基于留一法预测误差 $\tilde u_i$（\ref{ss:U03-loo} 小节）的
+Hansen §4.19 建议用基于留一法预测误差 $\tilde u_i$（\ref{ss:U03-loo} 小节）的
 \[
 \tilde R^2=1-\frac{\sum_i\tilde u_i^2}{\sum_i(y_i-\bar y)^2}
 \]

@@ -832,3 +832,161 @@ D&=n(\tilde\beta-\hat\beta)\T\hat V\inv(\tilde\beta-\hat\beta) \why{分解式}\\
 \begin{keypt}[恰好识别模型中三种检验之争]
 恰好识别模型 $y_i=x_{1i}\T\beta_1+x_{2i}\T\beta_2+u_i$，$\E(z_iu_i)=0$，检验 $H_0:\beta_1=0$。三种提议——Wald 检验、GMM 距离检验、对约束模型做过度识别检验——在此情形下是同一回事：距离检验 $D$ 就是约束模型的过度识别 $J$ 统计量；约束是线性的，用同一 $\hat\Omega$ 时 $D$ 又与 Wald 数值相等；三者都渐近服从 $\chi^2_{q}$，$q=\dim\beta_1$。差别只在实现：Wald 只需无约束估计；$D$ 与 $J$ 需要估计约束模型，但不受约束写法影响；若各自用不同的 $\hat\Omega$，有限样本数值会略有差异。
 \end{keypt}
+
+\subsection{非线性 GMM}\label{sec:U08b-nl}
+
+\subsubsection{一般矩条件与估计量}
+
+GMM 适用于任何能写成矩条件的模型：$\E g_i(\beta)=0$，$g_i(\beta)$ 为 $L\times1$，可以关于 $\beta$ 非线性，$L\ge K$。例如非线性回归 $y_i=m(x_i,\beta)+u_i$，$\E(z_iu_i)=0$，取 $g_i(\beta)=z_i\big(y_i-m(x_i,\beta)\big)$。估计量为
+\[
+\hat\beta=\argmin_\beta\ \bar g_n(\beta)\T W\bar g_n(\beta),\qquad \bar g_n(\beta)=\frac1n\sum_{i=1}^ng_i(\beta),
+\]
+一般没有闭式解，需要数值求解。
+
+\subsubsection{渐近分布：把 \texorpdfstring{$Q$}{Q} 换成雅可比矩阵}
+
+记雅可比矩阵 $\hat G_n(\beta)=\partial\bar g_n(\beta)/\partial\beta\T$（$L\times K$），$Q=\E\big[\partial g_i(\beta)/\partial\beta\T\big]$，$\Omega=\E\big[g_i(\beta)g_i(\beta)\T\big]$。思路：对一阶条件中的 $\bar g_n(\hat\beta)$ 在真值处做中值展开，化成线性情形的结构。
+\begin{align*}
+0&=\hat G_n(\hat\beta)\T W\bar g_n(\hat\beta) \why{一阶条件}\\
+&=\hat G_n(\hat\beta)\T W\big[\bar g_n(\beta)+\hat G_n(\bar\beta)(\hat\beta-\beta)\big] , \why{中值定理（逐行）}\\
+\sqrt n(\hat\beta-\beta)&=-\big[\hat G_n(\hat\beta)\T W\hat G_n(\bar\beta)\big]\inv\hat G_n(\hat\beta)\T W\sqrt n\,\bar g_n(\beta) \why{解出 $\hat\beta-\beta$}\\
+&\dto N\big(0,\ (Q\T WQ)\inv Q\T W\Omega WQ(Q\T WQ)\inv\big) . \why{$\hat G_n\pto Q$；CLT；Slutsky}
+\end{align*}
+渐近分布的形式与线性情形完全相同，只是 $Q$ 换成矩条件的雅可比矩阵（Hansen 第 13.25 节）。有效权重 $W=\Omega\inv$ 时方差为 $(Q\T\Omega\inv Q)\inv$。本节的 Wald 检验、约束估计、距离检验以及第 9 章的过度识别检验都可以照搬到非线性 GMM。
+
+\subsubsection{线性情形与非线性回归的雅可比矩阵}
+
+线性情形 $g_i(\beta)=z_i(y_i-x_i\T\beta)$，$\partial g_i/\partial\beta\T=-z_ix_i\T$，$Q=-\E(z_ix_i\T)$。符号不影响方差：把 $Q$ 换成 $-Q$，夹心公式中负号成对出现而相消。非线性回归中
+\[
+Q=-\E\Big[z_i\,\frac{\partial m(x_i,\beta)}{\partial\beta\T}\Big] .
+\]
+
+\subsubsection{有效非线性 GMM 的两步实现}
+
+先取 $W=I_L$ 得一致估计 $\tilde\beta$，再取 $W=\big[\frac1n\sum_ig_i(\tilde\beta)g_i(\tilde\beta)\T\big]\inv$（或中心化版本）重新估计；也可以迭代到收敛。方差估计用 $\hat Q=\frac1n\sum_i\partial g_i(\hat\beta)/\partial\beta\T$ 与最终估计算出的 $\hat\Omega$，有效时 $\hat V=(\hat Q\T\hat\Omega\inv\hat Q)\inv$。
+
+\subsection{额外矩条件与效率}\label{sec:U08b-extra}
+
+\subsubsection{原理：增加有效矩条件不会降低效率}
+
+\begin{thm}[额外矩条件不降低效率]\label{thm:U08b-extra}
+把矩条件分成两组 $g_i=(g_{1i}\T,g_{2i}\T)\T$，相应分块 $Q=(Q_1\T,Q_2\T)\T$、$\Omega=\begin{pmatrix}\Omega_{11}&\Omega_{12}\\ \Omega_{21}&\Omega_{22}\end{pmatrix}$，且 $g_1$ 本身已能识别 $\beta$。则只用 $g_1$ 的有效 GMM 方差 $(Q_1\T\Omega_{11}\inv Q_1)\inv$ 不小于用全部矩条件的有效 GMM 方差 $(Q\T\Omega\inv Q)\inv$。
+\end{thm}
+证明：只用 $g_1$ 的有效 GMM，等价于用全部矩条件、取半正定权重 $W=\diag(\Omega_{11}\inv,0)$ 的 GMM。
+\begin{align*}
+WQ&=\begin{pmatrix}\Omega_{11}\inv Q_1\\ 0\end{pmatrix},\qquad Q\T WQ=Q_1\T\Omega_{11}\inv Q_1 , \why{分块相乘}\\
+Q\T W\Omega WQ&=Q_1\T\Omega_{11}\inv\,\Omega_{11}\,\Omega_{11}\inv Q_1=Q_1\T\Omega_{11}\inv Q_1 , \why{只有左上块非零}\\
+V_W&=(Q_1\T\Omega_{11}\inv Q_1)\inv\ \ge\ (Q\T\Omega\inv Q)\inv . \why{结论 \ref{thm:U08b-egmm} 的证明只需 $Q'WQ$ 可逆}
+\end{align*}
+多出来的矩条件可以“不用”（给零权重），所以用上它们的最优加权至少一样好；只要新矩条件与原有矩条件在效率上不冗余，通常严格更好。下面是两个典型情形。
+
+\subsubsection{情形一：回归中额外的外生变量}
+
+$y_i=x_i\T\beta+u_i$，$\E(x_iu_i)=0$，又知另一组变量满足 $\E(q_iu_i)=0$。以 $z_i=(x_i\T,q_i\T)\T$ 为工具做有效 GMM。
+\begin{itemize}
+  \item 同方差时有效 GMM $=$ 2SLS；$X$ 的每一列都是 $Z$ 的一列，$P_ZX=X$，于是
+  \[
+  \hat\beta_{2SLS}=(X\T P_ZX)\inv X\T P_ZY=(X\T X)\inv X\T Y=\hat\beta_{OLS} :
+  \]
+  \key{同方差下额外矩条件没有帮助}。
+  \item 异方差时有效 GMM 用 $\hat\Omega=\frac1n\sum_iz_iz_i\T\hat u_i^2$ 加权，一般不等于 OLS，渐近方差可以严格小于 OLS 的稳健方差。把 $x_i$ 的函数（如 $x_i^2$）当作额外工具也是同样的道理。
+\end{itemize}
+
+\subsubsection{情形二：已知其他变量的均值}
+
+估计 $\mu=\E(y_i)$，并已知 $\E(x_i)=0$。矩条件 $g_i(\mu)=(y_i-\mu,\ x_i)\T$，$L=2>K=1$。
+
+\begin{exmp}[已知 $\E(x)=0$ 时 $\E(y)$ 的有效 GMM]\label{ex:U08b-mu}
+$y_i,x_i$ 为标量，随机抽样，$\E(x_i)=0$。求 $\mu=\E(y_i)$ 的有效 GMM 估计量及其渐近方差，并与样本均值 $\bar y$ 比较。
+\solution
+样本矩与相关矩阵为
+\[
+\bar g_n(\mu)=\begin{pmatrix}\bar y-\mu\\ \bar x\end{pmatrix},\qquad
+\Omega=\E(g_ig_i\T)=\begin{pmatrix}\sigma_y^2&\sigma_{xy}\\ \sigma_{xy}&\sigma_x^2\end{pmatrix},\qquad
+Q=\frac{\partial g_i}{\partial\mu}=\begin{pmatrix}-1\\0\end{pmatrix},
+\]
+其中 $\E[(y_i-\mu)x_i]=\Cov(y_i,x_i)=\sigma_{xy}$（因 $\E(x_i)=0$）。有效 GMM 的一阶条件为 $Q\T\Omega\inv\bar g_n(\mu)=0$：
+\begin{align*}
+0&=(-1,\,0)\,\Omega\inv\bar g_n(\mu) \why{一阶条件}\\
+\Rightarrow\ 0&=(\Omega\inv)_{11}(\bar y-\mu)+(\Omega\inv)_{12}\,\bar x \why{取 $\Omega^{-1}$ 第一行}\\
+\Rightarrow\ \hat\mu&=\bar y+\frac{(\Omega\inv)_{12}}{(\Omega\inv)_{11}}\,\bar x \why{解出 $\mu$}\\
+&=\bar y-\frac{\sigma_{xy}}{\sigma_x^2}\,\bar x . \why{$\Omega^{-1}=\frac1{\det\Omega}\begin{pmatrix}\sigma_x^2&-\sigma_{xy}\\-\sigma_{xy}&\sigma_y^2\end{pmatrix}$}
+\end{align*}
+渐近方差：
+\begin{align*}
+(Q\T\Omega\inv Q)\inv&=\big[(\Omega\inv)_{11}\big]\inv=\frac{\det\Omega}{\sigma_x^2} \why{$Q=(-1,0)'$}\\
+&=\frac{\sigma_y^2\sigma_x^2-\sigma_{xy}^2}{\sigma_x^2}=\sigma_y^2(1-\rho_{xy}^2)\ \le\ \sigma_y^2 . \why{$\rho_{xy}=\sigma_{xy}/(\sigma_x\sigma_y)$}
+\end{align*}
+直觉：若样本中 $\bar x>0$ 而总体均值是 0，说明这次抽样“偏高”；$y$ 与 $x$ 正相关时 $\bar y$ 也很可能偏高，于是按 $y$ 对 $x$ 的回归系数 $\sigma_{xy}/\sigma_x^2$ 往下修正。额外信息 $\E(x)=0$ 使渐近方差从 $\sigma_y^2$（样本均值）降到 $\sigma_y^2(1-\rho_{xy}^2)$。实际中用样本矩 $\hat\sigma_{xy},\hat\sigma_x^2$ 代替，$\hat\mu=\bar y-\hat b\,\bar x$，$\hat b$ 为 $y$ 对 $x$ 回归的 OLS 斜率。
+\end{exmp}
+
+\subsection{条件矩约束、工具的函数与最优工具}\label{sec:U08b-condmom}
+
+\subsubsection{条件矩约束生成无穷多个有效工具}
+
+若 $\E(u_i\mid z_i)=0$（\term{条件矩约束}{conditional moment restriction}），则对 $z_i$ 的任意函数 $\phi(z_i)$：
+\begin{align*}
+\E\big[\phi(z_i)u_i\big]&=\E\big[\phi(z_i)\,\E(u_i\mid z_i)\big] \why{迭代期望律，提出已知量}\\
+&=0 . \why{$\E(u_i\mid z_i)=0$}
+\end{align*}
+所以 $z_i,z_i^2,z_i^3,\dots$ 都是有效工具。条件矩约束比无条件矩条件 $\E(z_iu_i)=0$ 强得多；问题变成从无穷多个候选中选哪些工具。
+
+\subsubsection{用 \texorpdfstring{$(z,z^2)$}{(z, z\^{}2)} 作工具的可行性}
+
+模型 $y=z\beta+x\gamma+u$，$z$ 外生、$x$ 内生、均为标量，$\E(u\mid z)=0$。用 $(z,z^2)$ 作工具：$L=K=2$，恰好识别。
+\begin{itemize}
+  \item \textbf{外生性}：由 $\E(u\mid z)=0$ 保证（上一小节）。
+  \item \textbf{相关性}：要求 $Q=\E\Big[\begin{pmatrix}z\\ z^2\end{pmatrix}(z,\ x)\Big]=\begin{pmatrix}\E z^2&\E(zx)\\ \E z^3&\E(z^2x)\end{pmatrix}$ 满秩，即控制 $z$ 之后 $x$ 仍与 $z^2$ 相关——$x$ 的条件均值关于 $z$ 必须是非线性的。反例：若 $\E(x\mid z)=\pi z$（线性），则
+  \begin{align*}
+  \E(zx)&=\E\big[z\,\E(x\mid z)\big]=\pi\E(z^2), \why{迭代期望律}\\
+  \E(z^2x)&=\E\big[z^2\E(x\mid z)\big]=\pi\E(z^3), \why{迭代期望律}
+  \end{align*}
+  $Q$ 的第二列是第一列的 $\pi$ 倍，秩为 1，模型不可识别：$z^2$ 对 $x$ 没有超出 $z$ 的解释力。
+\end{itemize}
+
+\subsubsection{最优工具 \texorpdfstring{$A_i=\sigma_i^{-2}\E(x_i\mid z_i)$}{A = sigma-2 E(x|z)}}
+
+Chamberlain (1987) 给出了条件矩约束下的最优工具。线性模型 $\E(u_i\mid z_i)=0$ 中，
+\[
+A_i=\sigma_i^{-2}\,\E(x_i\mid z_i),\qquad \sigma_i^2=\E(u_i^2\mid z_i),
+\]
+以 $A_i$（$K\times1$）为工具的恰好识别 GMM，在所有形如 $\E[\phi(z_i)u_i]=0$ 的 GMM 中渐近方差最小（Hansen 第 13.27 节）。一般地，若 $\E[e_i(\beta)\mid z_i]=0$，最优工具为 $A_i=-\sigma_i^{-2}\E\big[\partial e_i(\beta)/\partial\beta\mid z_i\big]$；线性模型中 $e_i(\beta)=y_i-x_i\T\beta$，$\partial e_i/\partial\beta=-x_i$，即得上式。两点含义：
+\begin{itemize}
+  \item 外生回归模型中 $x_i=z_i$，$A_i=\sigma_i^{-2}x_i$：有效 GMM 就是加权最小二乘 / GLS（第 \ref{sec:U08b-gls} 小节）。
+  \item 内生回归元时，构造好的工具需要 $x$ 关于 $z$ 的\key{好的条件均值模型}，而不仅仅是线性投影；同时按误差条件方差的倒数加权，与 GLS 同理。$A_i$ 含未知量，实践中不可直接使用，但它指明了构造工具的方向。
+\end{itemize}
+
+\subsection{Hansen 第 13 章章末练习考点索引}\label{sec:U08b-hansenidx}
+
+下表把 Hansen 第 13 章章末练习按考查的知识点归类，便于查找对应内容。
+
+\begin{center}
+\small
+\begin{tabularx}{\linewidth}{>{\raggedright\arraybackslash}p{2.3cm}L>{\raggedright\arraybackslash}p{3.4cm}}
+\toprule
+练习编号 & 考查内容 & 对应知识点\\
+\midrule
+13.1 & 用样本矩解恰好识别的方程组（含 $e^2=z\T\gamma+\eta$ 的方差方程） & 本章矩估计原理\\
+13.2 & $W=(Z\T Z)\inv$、同方差下 2SLS 的渐近方差 $\sigma^2(Q\T M\inv Q)\inv$ & 第 \ref{sec:U08b-homo} 小节\\
+13.3 & 用一致估计 $\tilde\beta$ 的残差构造的 $\hat\Omega$ 的一致性 & 第 \ref{sec:U08b-twostep} 小节\\
+13.4 & 有效权重矩阵的 $A$、$B$ 证明 & 第 \ref{sec:U08b-egmm} 小节\\
+13.5 & GMM Wald 统计量的 $\chi^2_q$ 极限 & 第 \ref{sec:U08b-wald} 小节\\
+13.6--13.9 & 约束 GMM 的公式、有效权重下的简化、渐近方差 & 第 \ref{sec:U08b-cgmm} 小节\\
+13.10 & 非线性回归 $m(x,\beta)$ 的有效 GMM & 第 \ref{sec:U08b-nl} 小节\\
+13.11、13.17--13.19 & 额外矩条件；以 $(z,z^2)$ 等工具的函数为工具；已知 $\E(x)=0$ 时估计 $\E(y)$ & 第 \ref{sec:U08b-extra}、\ref{sec:U08b-condmom} 小节\\
+13.12 & 准则函数写成最小距离形式；线性约束下 $D$ 等于 Wald & 第 \ref{sec:U08b-dist} 小节\\
+13.13、13.24--13.26 & $J\dto\chi^2_{L-K}$ 的逐步证明、自由度与适用条件（“$n$ 个矩条件”的陷阱） & 第 9 章过度识别检验\\
+13.14 & 用 $J_n(\beta_0)$ 检验 $H_0:\beta=\beta_0$：Anderson--Rubin 型统计量与置信集的形状 & 第 \ref{sec:U08b-weakremedy} 小节\\
+13.15、13.20、13.23 & 已知或有效权重下的约束 GMM；$\beta=H\theta$ 型约束的有效估计 & 第 \ref{sec:U08b-cgmm}、\ref{sec:U08b-dist} 小节\\
+13.16 & 局部误设 $e=\delta n^{-1/2}+u$ 下 GMM 的渐近分布 & 第 9 章（$J$ 检验的功效）\\
+13.21 & 两组工具的 GMM 是两个 2SLS 估计的加权平均 & 本章 GMM 数值例（单工具估计的加权平均）\\
+13.22 & 恰好识别模型中 Wald、距离、过度识别三种检验之争 & 第 \ref{sec:U08b-dist} 小节\\
+13.27--13.28 & 实证：\texttt{ivregress gmm}、\texttt{estat overid} & 第 9 章\\
+\bottomrule
+\end{tabularx}
+\captionof{table}{Hansen 第 13 章章末练习与本书知识点对照}
+\end{center}
+
+\begin{english}
+\textbf{Inference and extensions.} Wald tests after GMM use $\mathcal W=n(\hat\theta-\theta_0)'(\hat R'\hat V_\beta\hat R)^{-1}(\hat\theta-\theta_0)\dto\chi^2_q$. Constrained GMM minimizes $J(\beta)$ subject to $R'\beta=c$ and equals $\hat\beta_{gmm}-(X'ZWZ'X)^{-1}R[R'(X'ZWZ'X)^{-1}R]^{-1}(R'\hat\beta_{gmm}-c)$; with the efficient weight matrix this is the efficient minimum distance estimator, with asymptotic variance $V_\beta-V_\beta R(R'V_\beta R)^{-1}R'V_\beta$. The GMM distance statistic $D=J(\hat\beta_{cgmm})-J(\hat\beta_{gmm})$ is asymptotically $\chi^2_q$ under $H_0$ and equals the Wald statistic for linear restrictions when the same weight matrix is used; unlike the Wald statistic it is invariant to how a nonlinear restriction is written. For nonlinear moment conditions the same asymptotic theory applies with $Q$ replaced by the Jacobian $\E[\partial g_i(\beta)/\partial\beta']$. Adding valid moment conditions cannot reduce the asymptotic efficiency of efficient GMM, and under a conditional moment restriction the optimal instrument is $\sigma_i^{-2}\E(x_i\mid z_i)$.
+\end{english}

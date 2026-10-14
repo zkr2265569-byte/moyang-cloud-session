@@ -1101,7 +1101,7 @@ $r=1$ 时 $C=c$ 是非零标量，说明单因子模型中什么无法识别。
 
 \subsection{识别条件（标准化）：用 \texorpdfstring{$r^2$}{r\^{}2} 个约束钉住 \texorpdfstring{$C$}{C}}
 
-既然 $C$ 有 $r^2$ 个自由元素，就需要 $r^2$ 个约束把它“钉死”。下面给出两种等价的\term{标准化}{normalization}。
+既然 $C$ 有 $r^2$ 个自由元素，就需要 $r^2$ 个约束把它“钉死”。这样的约束称为\term{标准化}{normalization}条件，下面给出两种等价的写法。
 
 \subsubsection{准备：\texorpdfstring{$F'F=\sum_tf_tf_t'$}{F'F = sum f\_t f\_t'} 与 \texorpdfstring{$\Lambda'\Lambda=\sum_i\lambda_i\lambda_i'$}{Lambda'Lambda = sum lambda\_i lambda\_i'}}
 
@@ -1146,7 +1146,12 @@ $\frac1TF\T F=I_r$ 的含义是“每个因子的样本二阶矩为 1、不同�
 \tfrac1TF_{(2)}\T F_{(2)}&=\tfrac1T\bigl(\sqrt TF_{(1)}\bigr)\T\bigl(\sqrt TF_{(1)}\bigr) \why{代入 $F_{(2)}$}\\
 &=\tfrac TT\,F_{(1)}\T F_{(1)}=I_r \why{$F_{(1)}\T F_{(1)}=I_r$}
 \end{align*}
-相应地载荷缩小 $\sqrt T$ 倍，$\Lambda_{(2)}=\Lambda_{(1)}/\sqrt T$，于是拟合的共同部分不变：$\Lambda_{(2)}F_{(2)}\T=\frac1{\sqrt T}\Lambda_{(1)}\cdot\sqrt TF_{(1)}\T=\Lambda_{(1)}F_{(1)}\T$（两种标准化下 PCA 解的完整比较见本章 PCA 估计一节）。$\Lambda\T\Lambda$ 对角与 $\frac1N\Lambda\T\Lambda$ 对角是同一个约束。
+相应地载荷缩小 $\sqrt T$ 倍，$\Lambda_{(2)}=\Lambda_{(1)}/\sqrt T$，于是拟合的共同部分不变：
+\begin{align*}
+\Lambda_{(2)}F_{(2)}\T&=\tfrac1{\sqrt T}\Lambda_{(1)}\bigl(\sqrt TF_{(1)}\bigr)\T \why{代入 $\Lambda_{(2)},F_{(2)}$}\\
+&=\Lambda_{(1)}F_{(1)}\T \why{$\tfrac1{\sqrt T}\cdot\sqrt T=1$}
+\end{align*}
+两种标准化下 PCA 解的完整比较见本章 PCA 估计一节。$\Lambda\T\Lambda$ 对角与 $\frac1N\Lambda\T\Lambda$ 对角是同一个约束。
 
 \subsubsection{为什么恰好需要 \texorpdfstring{$r^2$}{r\^{}2} 个约束}
 
